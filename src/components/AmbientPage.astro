@@ -15,7 +15,7 @@
  * is on screen: an IntersectionObserver adds the clone and removes it again.
  * So an off-screen tile contains nothing, not even hidden elements. At most
  * two spacers can be on screen at once (they are 100lvh), which is the
- * "≤14 in view, ≤28 running" budget recorded in ADR-0039.
+ * "≤16 in view, ≤32 running" budget recorded in ADR-0039.
  *
  * No animation loop: the script only adds and removes DOM. Visitors who never
  * opt in pay for one MutationObserver and one style read at start-up.
@@ -92,7 +92,7 @@ const { home = false } = Astro.props;
 
     // The page's own layers — the homepage hero's, /brand's preview stage —
     // keep running in every scope. While this background is active, each stops
-    // when it scrolls away, so everything together still holds "≤28 running".
+    // when it scrolls away, so everything together still holds "≤32 running".
     // (Tiles are cloned into spacers later, so they are never in this list.)
     const ownLayers = [...main.querySelectorAll<HTMLElement>('.ambient')];
     const ownLive = new IntersectionObserver(

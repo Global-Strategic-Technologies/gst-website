@@ -57,6 +57,7 @@ describe('ambient-motion settings (BL-035)', () => {
       scan: 40,
       rails: DEFAULT_STRENGTH.rails,
       deltas: DEFAULT_STRENGTH.deltas,
+      arrows: DEFAULT_STRENGTH.arrows,
     });
     expect(s.pace).toBe(PACE.max);
     expect(parseSettings(JSON.stringify({ pace: 64 })).pace).toBe(60);
@@ -145,7 +146,8 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
     ['nothing stored', null],
     ['one effect', JSON.stringify({ on: ['scan'], strength: { scan: 70 }, pace: 80 })],
     ['layered, reordered', JSON.stringify({ on: ['rails', 'grid', 'glow'] })],
-    ['all five', JSON.stringify({ on: [...EFFECT_IDS] })],
+    ['all six', JSON.stringify({ on: [...EFFECT_IDS] })],
+    ['arrows alone, strength set', JSON.stringify({ on: ['arrows'], strength: { arrows: 80 } })],
     [
       'out-of-range and junk numbers',
       JSON.stringify({ on: ['glow'], strength: { glow: 'loud', grid: 999, scan: 33 }, pace: -4 }),

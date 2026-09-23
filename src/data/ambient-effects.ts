@@ -12,7 +12,8 @@
  * (AmbientPage.astro), they hide, and what remains is the prototype's
  * Combined subset. AmbientEffect.astro renders
  * these tables and tests/unit/ambient-effect-budget.test.ts counts them
- * against BL-035's 15-animated-element ceiling.
+ * against the 16-animated-element ceiling (BL-035's 15, raised by the operator
+ * for Delta Arrows on 2026-09-23).
  *
  * Intensities are drawn at twice the prototype's, so a strength of 50 in the
  * panel reproduces the prototype at 100 and the slider has headroom above it.
@@ -264,9 +265,115 @@ export const DELTAS: readonly Delta[] = [
   { x: 59.38, y: 77.78, size: 56, duration: 25, offset: 4, solo: false },
 ];
 
+/** One solid delta in a volley, placed relative to the volley's lead. */
+export interface VolleyArrow {
+  /** Sideways from the flight line, px (+ = right of travel). */
+  ax: number;
+  /** Behind the lead along the flight line, px. */
+  ay: number;
+  /** Edge length, px. */
+  size: number;
+  /** Opacity relative to the volley's peak, 0–1. */
+  alpha: number;
+}
+
+/**
+ * A cluster of deltas that shoots bottom-left → top-right across the layer,
+ * pulsing in and out on the way. The whole volley is ONE animated element,
+ * so the budget counts volleys, not arrows. Values were picked once to look
+ * random; a literal table keeps the render stable and the budget exact.
+ */
+export interface Volley {
+  /** Sideways shift of the flight line, in container-width %. Kept within
+   *  −12…18 so both pulses of a trip happen on screen. */
+  lane: number;
+  /** Peak opacity, 0–1. */
+  peak: number;
+  /** Cycle length, seconds (the trip is its first two thirds). */
+  duration: number;
+  /** How far into its cycle the volley starts, seconds. */
+  offset: number;
+  arrows: readonly VolleyArrow[];
+  solo: boolean;
+}
+
+export const ARROW_VOLLEYS: readonly Volley[] = [
+  {
+    lane: -4,
+    peak: 0.6,
+    duration: 9.5,
+    offset: 0,
+    solo: false,
+    arrows: [
+      { ax: 0, ay: 0, size: 44, alpha: 1 },
+      { ax: -22, ay: 56, size: 28, alpha: 0.7 },
+      { ax: 18, ay: 92, size: 20, alpha: 0.45 },
+    ],
+  },
+  {
+    lane: 14,
+    peak: 0.5,
+    duration: 13,
+    offset: 6.5,
+    solo: false,
+    arrows: [
+      { ax: 0, ay: 0, size: 56, alpha: 1 },
+      { ax: 12, ay: 76, size: 34, alpha: 0.6 },
+    ],
+  },
+  {
+    lane: -11,
+    peak: 0.45,
+    duration: 11,
+    offset: 3,
+    solo: true,
+    arrows: [
+      { ax: 0, ay: 0, size: 30, alpha: 1 },
+      { ax: 16, ay: 38, size: 22, alpha: 0.75 },
+      { ax: -14, ay: 64, size: 18, alpha: 0.55 },
+      { ax: 6, ay: 92, size: 18, alpha: 0.35 },
+    ],
+  },
+  {
+    lane: 6,
+    peak: 0.55,
+    duration: 7.5,
+    offset: 4.5,
+    solo: true,
+    arrows: [
+      { ax: 0, ay: 0, size: 36, alpha: 1 },
+      { ax: -18, ay: 50, size: 24, alpha: 0.6 },
+    ],
+  },
+  {
+    lane: 18,
+    peak: 0.4,
+    duration: 15,
+    offset: 10,
+    solo: true,
+    arrows: [
+      { ax: 0, ay: 0, size: 48, alpha: 1 },
+      { ax: 20, ay: 62, size: 32, alpha: 0.65 },
+      { ax: -10, ay: 104, size: 22, alpha: 0.4 },
+    ],
+  },
+  {
+    lane: 0,
+    peak: 0.5,
+    duration: 12,
+    offset: 9,
+    solo: true,
+    arrows: [
+      { ax: 0, ay: 0, size: 24, alpha: 1 },
+      { ax: 10, ay: 32, size: 18, alpha: 0.6 },
+      { ax: -8, ay: 58, size: 18, alpha: 0.4 },
+    ],
+  },
+];
+
 /** Animated elements per effect: [all, thinned]. */
 export function animatedCounts(): Record<
-  'grid' | 'glow' | 'scan' | 'rails' | 'deltas',
+  'grid' | 'glow' | 'scan' | 'rails' | 'deltas' | 'arrows',
   { all: number; thinned: number }
 > {
   const thin = <T extends { solo: boolean }>(xs: readonly T[]) => xs.filter((x) => !x.solo).length;
@@ -276,5 +383,6 @@ export function animatedCounts(): Record<
     scan: { all: SCAN_COUNT, thinned: SCAN_COUNT },
     rails: { all: RAILS.length, thinned: thin(RAILS) },
     deltas: { all: DELTAS.length, thinned: thin(DELTAS) },
+    arrows: { all: ARROW_VOLLEYS.length, thinned: thin(ARROW_VOLLEYS) },
   };
 }

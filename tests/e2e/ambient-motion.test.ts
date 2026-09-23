@@ -48,10 +48,10 @@ test.describe('Ambient motion — /brand panel section', () => {
   test('starts with every effect off and a still preview', async ({ page }) => {
     await openBrandPanel(page);
     const chips = page.locator('[data-ambient-effect]');
-    await expect(chips).toHaveCount(5);
+    await expect(chips).toHaveCount(6);
     for (const chip of await chips.all())
       await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    for (const id of ['grid', 'glow', 'scan', 'rails', 'deltas']) {
+    for (const id of ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows']) {
       await expect(page.getByTestId(`ambient-strength-${id}`)).toBeDisabled();
     }
     await expect(page.getByTestId('ambient-pace')).toBeDisabled();
@@ -77,7 +77,7 @@ test.describe('Ambient motion — /brand panel section', () => {
     await expect(page.getByTestId('ambient-strength-glow')).toBeEnabled();
     await expect(page.getByTestId('ambient-strength-scan')).toBeDisabled();
     await expect(page.getByTestId('ambient-pace')).toBeEnabled();
-    await expect(page.locator('#ambient-state')).toHaveText(/2 of 5 on/);
+    await expect(page.locator('#ambient-state')).toHaveText(/2 of 6 on/);
 
     // The /brand preview follows live.
     const stage = page.getByTestId('brand-ambient-stage');
@@ -134,7 +134,7 @@ test.describe('Ambient motion — /brand panel section', () => {
 
   // accessibility.test.ts scans /brand with the panel closed, where its body is
   // display:none and axe skips it — so the section is scanned open here. One
-  // effect on leaves four rows disabled, covering both row states.
+  // effect on leaves five rows disabled, covering both row states.
   for (const theme of ['light', 'dark'] as const) {
     test(`has no axe violations with the panel open (${theme})`, async ({ page }) => {
       await page.addInitScript((t) => localStorage.setItem('theme', t), theme);
@@ -152,7 +152,7 @@ test.describe('Ambient motion — homepage hero', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(await htmlAttr(page, 'data-ambient')).toBeNull();
     await expect(page.locator('.hero .ambient')).toBeAttached();
-    for (const id of ['grid', 'glow', 'scan', 'rails', 'deltas']) {
+    for (const id of ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows']) {
       await expect(page.locator(`.hero .ambient__layer--${id}`)).toBeHidden();
     }
   });
@@ -224,6 +224,70 @@ test.describe('Ambient motion — homepage hero', () => {
     expect(step).toBeLessThan(1.5);
   });
 
+  test.describe('Delta Arrows', () => {
+    // Measured on /brand's preview stage (about 808×318 at 1218 wide), whose
+    // shape is far from the viewport's: without its size container, `cq`
+    // units fall back to the viewport and the arrows would still fly, but
+    // along the viewport's diagonal, which only a differently shaped layer
+    // tells apart. Frozen with getAnimations(), like the Glow Shift test.
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 1218, height: 900 });
+      await seed(page, { on: ['arrows'] });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      const stage = page.getByTestId('brand-ambient-stage');
+      await stage.scrollIntoViewIfNeeded();
+      await expect(stage.locator('.ambient__layer--arrows')).toBeVisible();
+    });
+
+    /** Freeze the stage's first volley at `f` of its cycle; read its lead's
+     *  tip and base (probe points added inside the rotated arrow) and the
+     *  layer's size, all as the visitor sees them. */
+    const frame = (page: Page, f: number) =>
+      page.evaluate((f) => {
+        const stage = document.querySelector('[data-testid="brand-ambient-stage"]')!;
+        const volley = stage.querySelector<HTMLElement>('.ambient__volley')!;
+        for (const a of volley.getAnimations()) {
+          a.pause();
+          a.currentTime = Number(a.effect!.getComputedTiming().duration) * f;
+        }
+        const lead = volley.querySelector<HTMLElement>('[data-lead]')!;
+        const probe = (top: string) => {
+          let el = lead.querySelector<HTMLElement>(`[data-probe="${top}"]`);
+          if (!el) {
+            el = document.createElement('span');
+            el.dataset.probe = top;
+            el.style.cssText = `position:absolute;left:50%;top:${top};width:0;height:0`;
+            lead.append(el);
+          }
+          const r = el.getBoundingClientRect();
+          return { x: r.x, y: r.y };
+        };
+        const layer = stage.querySelector('.ambient__layer--arrows')!.getBoundingClientRect();
+        // DeltaIcon's path: apex at y=12, base at y=52 of 64.
+        return { tip: probe('18.75%'), base: probe('81.25%'), w: layer.width, h: layer.height };
+      }, f);
+
+    const deg = (dx: number, dy: number) => (Math.atan2(-dy, dx) * 180) / Math.PI;
+
+    test("volleys fly bottom-left → top-right along the layer's own diagonal", async ({ page }) => {
+      const a = await frame(page, 0.2);
+      const b = await frame(page, 0.4);
+      const dx = b.tip.x - a.tip.x;
+      const dy = b.tip.y - a.tip.y;
+      expect(dx).toBeGreaterThan(0); // right
+      expect(dy).toBeLessThan(0); // and up
+      expect(Math.abs(deg(dx, dy) - deg(a.w, -a.h))).toBeLessThan(3);
+    });
+
+    test('each arrowhead points where it flies', async ({ page }) => {
+      const a = await frame(page, 0.2);
+      const b = await frame(page, 0.4);
+      const travel = deg(b.tip.x - a.tip.x, b.tip.y - a.tip.y);
+      const pointing = deg(a.tip.x - a.base.x, a.tip.y - a.base.y);
+      expect(Math.abs(pointing - travel)).toBeLessThan(3);
+    });
+  });
+
   test('in Hero scope, other Hero pages carry no hero layer', async ({ page }) => {
     await page.goto('/about/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.hero')).toBeAttached();
@@ -256,7 +320,7 @@ test.describe('Ambient motion — homepage hero', () => {
 });
 
 test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
-  const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas'];
+  const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
 
   /** Real signal, not a class: animations whose target is inside the page layer. */
   const pageLayer = (page: Page) =>
@@ -313,21 +377,21 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
     const top = await pageLayer(page);
-    expect(top.running).toBeLessThanOrEqual(28);
+    expect(top.running).toBeLessThanOrEqual(32);
     expect(top.covered).toBe(true);
     expect(top.belowHero).toBe(true);
 
-    expect(top.total).toBeLessThanOrEqual(28);
+    expect(top.total).toBeLessThanOrEqual(32);
 
     // The worst case: a tile boundary mid-screen (two tiles live) with the hero
-    // scrolled away. Its layer must stop, or the total would be 14 + 28.
+    // scrolled away. Its layer must stop, or the total would be 16 + 32.
     await page.evaluate(() => {
       const second = document.getElementById('ambient-page')!.children[1] as HTMLElement;
       window.scrollTo(0, second.getBoundingClientRect().top + window.scrollY - innerHeight / 2);
     });
-    await expect.poll(async () => (await pageLayer(page)).running).toBe(28);
-    // The hero has scrolled away, so its layer stops: still ≤28 all told.
-    await expect.poll(async () => (await pageLayer(page)).total).toBeLessThanOrEqual(28);
+    await expect.poll(async () => (await pageLayer(page)).running).toBe(32);
+    // The hero has scrolled away, so its layer stops: still ≤32 all told.
+    await expect.poll(async () => (await pageLayer(page)).total).toBeLessThanOrEqual(32);
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
@@ -356,7 +420,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
       await expect
         .poll(async () => (await pageLayer(page)).running, { message: path })
         .toBeGreaterThan(0);
-      expect((await pageLayer(page)).running).toBeLessThanOrEqual(28);
+      expect((await pageLayer(page)).running).toBeLessThanOrEqual(32);
     }
   });
 
@@ -371,8 +435,8 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
       const s = document.getElementById('ambient-page')!.children[6] as HTMLElement;
       window.scrollTo(0, s.getBoundingClientRect().top + window.scrollY - innerHeight / 2);
     });
-    await expect.poll(async () => (await pageLayer(page)).running).toBe(28);
-    await expect.poll(async () => (await pageLayer(page)).total).toBe(28);
+    await expect.poll(async () => (await pageLayer(page)).running).toBe(32);
+    await expect.poll(async () => (await pageLayer(page)).total).toBe(32);
   });
 
   test('placing the background causes no layout shift', async ({ page }) => {

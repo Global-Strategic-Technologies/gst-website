@@ -22,7 +22,7 @@
  * tests/unit/ambient-motion.test.ts pins the two together.
  */
 
-export const EFFECT_IDS = ['grid', 'glow', 'scan', 'rails', 'deltas'] as const;
+export const EFFECT_IDS = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'] as const;
 export type EffectId = (typeof EFFECT_IDS)[number];
 
 export const EFFECTS: ReadonlyArray<{ id: EffectId; label: string }> = [
@@ -31,6 +31,7 @@ export const EFFECTS: ReadonlyArray<{ id: EffectId; label: string }> = [
   { id: 'scan', label: 'Scan Sweep' },
   { id: 'rails', label: 'Data Rails' },
   { id: 'deltas', label: 'Delta Drift' },
+  { id: 'arrows', label: 'Delta Arrows' },
 ];
 
 export const STORAGE_KEY = 'ambient-motion';
@@ -58,6 +59,7 @@ export const DEFAULT_STRENGTH: Readonly<Record<EffectId, number>> = {
   scan: 40,
   rails: 50,
   deltas: 30,
+  arrows: 45,
 };
 
 export interface AmbientSettings {

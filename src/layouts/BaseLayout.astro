@@ -164,8 +164,15 @@ const isHomepage = routePath === '/' || routePath === '';
       // default list. Numbers are clamped here too: an invalid custom property
       // would make `opacity` fall back to 1, i.e. full strength.
       try {
-        const ids = ['grid', 'glow', 'scan', 'rails', 'deltas'];
-        const strengthDefaults = { grid: 45, glow: 35, scan: 40, rails: 50, deltas: 30 };
+        const ids = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
+        const strengthDefaults = {
+          grid: 45,
+          glow: 35,
+          scan: 40,
+          rails: 50,
+          deltas: 30,
+          arrows: 45,
+        };
         const defaultOn = [];
         const scopes = ['hero', 'page', 'site'];
         let saved = null;
