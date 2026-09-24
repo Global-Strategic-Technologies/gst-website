@@ -156,12 +156,12 @@ describe('gst_radar_brief_today', () => {
   describe('BL-031.95 Phase 3.A — capability-mirror invariant', () => {
     // The prompt's argsSchema mirrors the /hub/radar website's filter UI:
     // a single optional `category` field. The earlier `sinceHours`
-    // argument was removed in v0.0.2 because the underlying cache has a
-    // 24h TTL and the website surfaces no time filter. These tests lock
-    // the contract.
+    // argument was removed in v0.0.2: the snapshot is a cached view of
+    // the latest feed and the website surfaces no time filter. These tests
+    // lock the contract.
 
-    it('prompt is at v0.0.5 (Step 7 provenance caveat; v0.0.4 made the Step-2 discriminator structural so the degraded path works on the Worker)', () => {
-      expect(radarBriefTodayPrompt.version).toBe('0.0.5');
+    it('prompt is at v0.0.6 (cache-lifetime fact corrected to 6 hours; v0.0.5 added the Step 7 provenance caveat)', () => {
+      expect(radarBriefTodayPrompt.version).toBe('0.0.6');
     });
 
     /**
@@ -208,8 +208,8 @@ describe('gst_radar_brief_today', () => {
         .join('\n')
         .toLowerCase();
       // Pre-Phase-3 body said "within the last X hours" — that phrase
-      // should be gone. The body now references the cache's natural
-      // 24h TTL via "24-hour TTL" wording.
+      // should be gone. The body describes the snapshot as a cached view
+      // of the latest feed instead.
       expect(allText).not.toContain('within the last');
       expect(allText).not.toContain('sincehours');
     });

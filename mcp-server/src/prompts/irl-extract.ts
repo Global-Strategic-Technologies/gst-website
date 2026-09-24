@@ -28,7 +28,7 @@ import {
   authorialIntentLine,
   deliveredAsDocumentClause,
   embedIrlGeneratorSource,
-  embeddedTaxonomyFraming,
+  embeddedTaxonomyFramingForReconcile,
   IRL_SOURCE_EMBED_URI,
 } from './embed';
 import {
@@ -44,7 +44,7 @@ import { IRL_EXTRACT_RECORD_DIRECTIVE_V2 } from '../schemas/irl-extract-record';
 const PROMPT_NAME = 'gst_irl_extract';
 
 /** Hoisted so the registry field and the run-parameters line cannot drift. */
-const PROMPT_VERSION = '0.3.0';
+const PROMPT_VERSION = '0.4.0';
 
 /**
  * The tools whose input payloads the record projects. This prompt CALLS
@@ -150,7 +150,7 @@ export const irlExtractPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Distill a populated GST IRL into the portable extract record (v2) plus derived per-tool payloads — zero tool invocations, savable and pasteable into later sessions and other GST prompts. For the full extract-to-dossier sweep, use gst_irl_sweep.',
   version: PROMPT_VERSION,
-  lastReviewedAt: '2026-08-25',
+  lastReviewedAt: '2026-09-24',
   orchestrates: [...EXTRACT_PROJECTED_TOOLS, IRL_SOURCE_EMBED_URI] as const,
   argsSchema,
   build: (args) => ({
@@ -159,7 +159,7 @@ export const irlExtractPrompt: GstPrompt<typeof argsSchema> = {
         role: 'user',
         content: {
           type: 'text',
-          text: `${buildBody(args)}\n\n${embeddedTaxonomyFraming(true)}`,
+          text: `${buildBody(args)}\n\n${embeddedTaxonomyFramingForReconcile()}`,
         },
       },
       {

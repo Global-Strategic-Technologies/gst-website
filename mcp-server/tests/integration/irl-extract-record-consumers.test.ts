@@ -521,8 +521,11 @@ describe('the IRL extract record, end to end', () => {
       const body = rendered.content.type === 'text' ? rendered.content.text : '';
 
       expect(body).toContain('Section 04 technical-debt remediation figure');
-      expect(body).toContain('Do NOT use the P0 number');
-      expect(body).toContain('DO NOT substitute a placeholder');
+      // Quick-look renders the V2 MTTR rule (server 0.66.0) — the V1 wording
+      // named a dossier (J) list the brief does not have. Same two guards,
+      // V2 phrasing: P1 not P0, and null rather than a placeholder.
+      expect(body).toContain('not the P0 number');
+      expect(body).toContain('pass `mttrHours: null` instead of a placeholder');
     });
   });
 });

@@ -26,7 +26,7 @@ const BODY_ONESHOT = bodyOf({
 describe('gst_irl_extract — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlExtractPrompt.name).toBe('gst_irl_extract');
-    expect(irlExtractPrompt.version).toBe('0.3.0');
+    expect(irlExtractPrompt.version).toBe('0.4.0');
     expect(irlExtractPrompt.consumesTargetEvidence).toBeUndefined();
   });
 

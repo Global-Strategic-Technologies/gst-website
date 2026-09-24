@@ -37,7 +37,7 @@ import {
   authorialIntentLine,
   deliveredAsDocumentClause,
   embedIrlGeneratorSource,
-  embeddedTaxonomyFraming,
+  embeddedTaxonomyFramingForReconcile,
   IRL_SOURCE_EMBED_URI,
 } from './embed';
 import {
@@ -54,7 +54,7 @@ import {
 const PROMPT_NAME = 'gst_irl_sweep';
 
 /** Hoisted so the registry field and the run-parameters line cannot drift. */
-const PROMPT_VERSION = '0.4.0';
+const PROMPT_VERSION = '0.5.0';
 
 /**
  * The nine tools this prompt orchestrates. The old prompt's list minus
@@ -111,7 +111,7 @@ const ARRIVAL_AND_INFERENCE = [
 const SWEEP_STEPS = [
   '## Tool steps',
   '',
-  "Call each gate-passing tool ONCE with inputs extracted per the rules above. Base schemas only — no `_audit` blocks. `'unknown'` sentinels and `null` fields are welcome where the IRL is silent; that is the honest input, not a failure.",
+  "Call each gate-passing tool with inputs extracted per the rules above — once, except where its bullet below says otherwise (the ICG fetch-then-seed pair, one `search_regulations` call per framework). Base schemas only — no `_audit` blocks. `'unknown'` sentinels and `null` fields are welcome where the IRL is silent; that is the honest input, not a failure.",
   '',
   "- **`generate_diligence_agenda`**: all 13 dimensions, `'unknown'` where the IRL does not determine a value (`geographies: ['unknown']` for the array).",
   '- **`compute_techpar`**: `mode: "deepdive"` per the rule above; all money fields in annual dollars on a single currency basis (convert to USD first and state the conversion inline).',
@@ -127,15 +127,15 @@ const SWEEP_STEPS = [
   '',
   'Write these sections in order. Tool-backed sections render only when their tool ran.',
   '',
-  '- **(A) Target snapshot** — 3-4 sentences orienting the reader: the fill ratio first, then the inferred target name and engagement context, then what the target is and where it operates (§00 + §01).',
+  '- **(A) Target snapshot** — a short orienting paragraph: the fill ratio first, then the inferred target name and engagement context, then what the target is and where it operates (§00 + §01).',
   '- **(B) Diligence agenda** — topics and attention areas from `generate_diligence_agenda`, one bullet per topic. Close: "Open Diligence Wizard" deeplink.',
-  '- **(C) Architecture & paradigm assessment** — 2-3 paragraphs from `compute_techpar`: paradigm, R&D posture, cost drivers. Close: "Open TechPar Wizard" deeplink.',
+  '- **(C) Architecture & paradigm assessment** — from `compute_techpar`: paradigm, R&D posture, cost drivers. Close: "Open TechPar Wizard" deeplink.',
   '- **(D) Infrastructure cost governance** — maturity scores and the 3-5 highest-leverage recommendations from `assess_infrastructure_cost_governance`. Close: "Open ICG Wizard" deeplink.',
   '- **(E) Technical debt** — carrying cost, payback, and the 1-2 most expensive debt categories from `estimate_tech_debt_cost`; name any `extractionOnly` fields plainly. Close: "Open Tech Debt Calculator" deeplink.',
   '- **(F) Regulatory exposure** — one subsection per framework from `search_regulations`, quoting `keyRequirements` verbatim, citing frameworks by `name` + `effectiveDate` (the corpus carries no article numbers — do not invent any). Close each subsection with ITS deeplink ("Open in Regulatory Map") — they filter to different region + category combinations.',
   '- **(G) Comparable engagements** — 3-5 code-named matches from `search_portfolio`, one line each on why relevant + the lesson. Close: portfolio deeplink.',
   '- **(H) Market signal** — 2-3 bullets from `search_radar` on market timing. Close: "Open Radar Feed" deeplink.',
-  '- **(I) Synthesis & recommendation** — 3-5 sentences in the engagement voice, attributed per the inference rules, closing with 5-7 follow-up document requests using the VDR folder labels VERBATIM from the taxonomy below.',
+  '- **(I) Synthesis & recommendation** — a concise synthesis in the engagement voice, attributed per the inference rules, closing with 5-7 follow-up document requests using the VDR folder labels VERBATIM from the taxonomy below.',
   '- **(J) Gaps & assumptions** — see its own section below.',
 ].join('\n');
 
@@ -213,7 +213,7 @@ export const irlSweepPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Ingest a populated GST IRL and drive every applicable Hub tool to a unified engagement dossier. Trust-the-operator successor to gst_irl_ingestion: one optional argument, no provenance apparatus, one honest gap list. For the portable extract record without tool calls, use gst_irl_extract.',
   version: PROMPT_VERSION,
-  lastReviewedAt: '2026-08-25',
+  lastReviewedAt: '2026-09-24',
   orchestrates: [...SWEEP_ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => ({
@@ -222,7 +222,7 @@ export const irlSweepPrompt: GstPrompt<typeof argsSchema> = {
         role: 'user',
         content: {
           type: 'text',
-          text: `${buildBody(args)}\n\n${embeddedTaxonomyFraming(true)}`,
+          text: `${buildBody(args)}\n\n${embeddedTaxonomyFramingForReconcile()}`,
         },
       },
       {

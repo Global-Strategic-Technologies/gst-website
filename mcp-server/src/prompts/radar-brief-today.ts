@@ -15,14 +15,15 @@
  *
  * **BL-031.95 Phase 3 — capability mirror**: argsSchema mirrors the
  * /hub/radar website's filter UI (single `category` pill). The earlier
- * `sinceHours` argument was removed in v0.0.2 because the underlying
- * cache has a 24h TTL — items older than 24h aren't in the snapshot
- * regardless, and the website surfaces no time filter. Items are
- * inherently scoped to the snapshot's window; the body sorts by
- * `publishedAt` newest-first (matching the website's natural feed
- * order). If a tighter window becomes a real consumer need, the right
- * place to add it is BL-032 (live Inoreader transport) where a `since`
- * filter has more reach than 24h.
+ * `sinceHours` argument was removed in v0.0.2: the snapshot is a cached
+ * view of the latest feed (on the Worker the KV cache lifetime is 6 hours
+ * — `CACHE_TTL_SECONDS` in `content/radar-live-store.ts`, matching the
+ * refresh cron), and the website surfaces no time filter. Items are
+ * inherently scoped to the snapshot; the body sorts by `publishedAt`
+ * newest-first (matching the website's natural feed order). If a tighter
+ * window becomes a real consumer need, the right place to add it is the
+ * live Inoreader transport, where a `since` filter has more reach than
+ * one cached snapshot.
  */
 
 import { z } from 'zod';
@@ -59,8 +60,8 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Daily / pre-meeting digest of the most recent annotated FYI radar items, summarized in the GST Take voice.',
-  version: '0.0.5',
-  lastReviewedAt: '2026-08-11',
+  version: '0.0.6',
+  lastReviewedAt: '2026-09-24',
   orchestrates: ['gst://radar/fyi/latest'] as const,
   argsSchema,
   needsFyiSnapshot: true,
@@ -73,7 +74,7 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
           text: [
             authorialIntentLine(PROMPT_NAME),
             '',
-            `Produce a radar brief from the current FYI snapshot${args.category ? `, filtered to category=${args.category}` : ' across all GST categories'}. The cache has a 24-hour TTL so the snapshot inherently covers recent items; sort by \`publishedAt\` newest-first to match the /hub/radar website's natural feed order.`,
+            `Produce a radar brief from the current FYI snapshot${args.category ? `, filtered to category=${args.category}` : ' across all GST categories'}. The snapshot is a cached view of the latest feed, refreshed every 6 hours; sort by \`publishedAt\` newest-first to match the /hub/radar website's natural feed order.`,
             '',
             'Step 1. The `gst://radar/fyi/latest` snapshot is embedded in the next message. Treat its `items[]` array as the authoritative item set for this brief — do not invent items.',
             args.category
@@ -82,15 +83,15 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
             '',
             'Step 2. If the next message is a plain TEXT block rather than an embedded resource, no items are available: surface that text to the user verbatim and STOP. Do not fabricate items, and do not add remediation advice of your own — the text already states what applies to this deployment.',
             '',
-            'Step 3. Group the in-scope items by category. Within each category, surface 3-5 items at most (more than that is digest-overload — the analyst will read the full feed if they want comprehensive coverage). Sort within each group by `publishedAt` newest-first.',
+            'Step 3. Group the in-scope items by category. Within each category, surface only the highest-signal items — this is a digest, not the feed; the analyst will read the full feed if they want comprehensive coverage. Sort within each group by `publishedAt` newest-first.',
             '',
-            'Step 4. For each item, write 2-3 sentences in the GST Take voice — declarative, anchored to the deal-team relevance, no hedging. Lead with the why-it-matters, not the source. End each item with a one-line "what to watch" framing.',
+            'Step 4. For each item, write a short take in the GST Take voice — declarative, anchored to the deal-team relevance, no hedging. Lead with the why-it-matters, not the source. End each item with a one-line "what to watch" framing.',
             '',
-            'Step 5. Close with a "GST Take across the brief" paragraph (3-4 sentences) that surfaces the highest-signal pattern across the in-scope items — what story do these items collectively tell?',
+            'Step 5. Close with a "GST Take across the brief" paragraph that surfaces the highest-signal pattern across the in-scope items — what story do these items collectively tell?',
             '',
             args.category
-              ? `Step 6. Append an "Open in Hub" footer with the link \`https://globalstrategic.tech/hub/radar?category=${args.category}\` — opens \`/hub/radar\` filtered to the same category so the analyst can browse the full feed (BL-031.95 Phase 3.B). Use exactly that URL — do not URL-encode the category value (the filter values are already URL-safe slugs).`
-              : 'Step 6. Append an "Open in Hub" footer with the link `https://globalstrategic.tech/hub/radar` — opens the unfiltered Radar page so the analyst can browse the full feed (BL-031.95 Phase 3.B).',
+              ? `Step 6. Append an "Open in Hub" footer with the link \`https://globalstrategic.tech/hub/radar?category=${args.category}\` — opens \`/hub/radar\` filtered to the same category so the analyst can browse the full feed. Use exactly that URL — do not URL-encode the category value (the filter values are already URL-safe slugs).`
+              : 'Step 6. Append an "Open in Hub" footer with the link `https://globalstrategic.tech/hub/radar` — opens the unfiltered Radar page so the analyst can browse the full feed.',
             '',
             // BL-119 cycle-2 Finding 1. The brief reads as finished analytical
             // prose and is forwardable as-is, but every item in it is

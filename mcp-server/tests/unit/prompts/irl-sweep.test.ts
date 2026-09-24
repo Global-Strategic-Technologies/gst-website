@@ -45,7 +45,7 @@ const FULL_ONESHOT = bodyOf({ filledIrl: FILLED });
 describe('gst_irl_sweep — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlSweepPrompt.name).toBe('gst_irl_sweep');
-    expect(irlSweepPrompt.version).toBe('0.4.0');
+    expect(irlSweepPrompt.version).toBe('0.5.0');
     expect(irlSweepPrompt.consumesTargetEvidence).toBeUndefined();
   });
 

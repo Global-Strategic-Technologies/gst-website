@@ -37,7 +37,7 @@ describe('gst_irl_create', () => {
     // v0.0.7 = per-question removal (excludeRequests NN-II keys) + BL-044.5
     // directives: transactionContext fires authored skip-if tags; the one-shot
     // body server-computes the combined omission list.
-    expect(irlCreatePrompt.version).toBe('0.1.0');
+    expect(irlCreatePrompt.version).toBe('0.2.0');
     expect(irlCreatePrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlCreatePrompt.orchestrates).toEqual([IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME]);
   });
@@ -248,7 +248,7 @@ describe('gst_irl_create', () => {
       expect(lower).not.toContain('before the loi');
     });
 
-    it('embeds the supplied productSummary so the model can compress repeat questions', () => {
+    it('embeds the supplied productSummary so the model can annotate questions it already answers', () => {
       const summary = 'Pure-play SaaS, no on-prem deployment, EU healthcare only.';
       const text = bodyText(irlCreatePrompt, { productSummary: summary });
       expect(text).toContain(summary);
