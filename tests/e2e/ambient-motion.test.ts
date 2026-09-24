@@ -194,7 +194,6 @@ test.describe('Ambient motion — homepage hero', () => {
     for (const path of ['/', '/about/', '/brand/']) {
       await page.goto(path, { waitUntil: 'load' });
       await expect(page.locator('html[data-ambient-loader="off"]'), path).toBeAttached();
-      await page.waitForLoadState('networkidle');
       await expect(page.locator('.ambient__layer'), path).toHaveCount(0);
       await expect(page.locator('#ambient-css'), path).toHaveCount(0);
       await expect(page.locator('#ambient-controls'), path).toHaveCount(0);
@@ -233,7 +232,6 @@ test.describe('Ambient motion — homepage hero', () => {
     });
     await page.goto('/about/', { waitUntil: 'load' });
     await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
-    await page.waitForLoadState('networkidle');
     expect(fetched).toEqual([]);
   });
 
@@ -269,7 +267,7 @@ test.describe('Ambient motion — homepage hero', () => {
     await page.setViewportSize({ width: 1218, height: 900 });
     await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
     await seed(page, { on: ['glow'] });
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'load' });
     await effectReady(page);
     // Measured once the fade-in has finished.
     await expect

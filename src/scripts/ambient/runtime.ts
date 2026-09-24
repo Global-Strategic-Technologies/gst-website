@@ -124,6 +124,9 @@ function startPageBackground(layer: HTMLElement, ownLayers: HTMLElement[]): void
     if (!layer.firstElementChild) layer.append(spacer());
     const first = layer.firstElementChild as HTMLElement;
     resize.observe(first);
+    // A zero-height viewport (a collapsed frame) makes the spacers 0px tall;
+    // wait for the resize rather than divide by zero.
+    if (!first.offsetHeight) return;
 
     const need = Math.max(1, Math.ceil(layer.clientHeight / first.offsetHeight));
     while (layer.children.length < need) layer.append(spacer());

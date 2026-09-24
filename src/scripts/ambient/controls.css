@@ -1,11 +1,11 @@
 /*
- * The palette panel's Ambient Motion controls (BL-035, ADR-0039), moved from
- * AmbientMotionControls.astro's scoped block when the controls began to be
- * built on first open (controls.ts). Every rule is anchored on the
+ * The palette panel's Ambient Motion controls (BL-035, ADR-0039), built on the
+ * panel's first open by controls.ts (they were once a scoped Astro component,
+ * which is why these rules were written unscoped). Rules are anchored on the
  * `.ambient-controls` root: unscoped, a bare `.ambient-controls__reset` would
  * tie `.brutal-btn` in form.css and win or lose by load order.
  *
- * Imported with ?inline by controls.ts and inserted as a \3c style>, so no page
+ * Imported with ?inline by controls.ts and inserted as a style element, so no page
  * carries it; tests/unit/ambient-lazy-css-guard.test.ts holds that rule.
  */
 .ambient-controls .ambient-controls__chips {

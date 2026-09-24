@@ -47,7 +47,8 @@ function load(): void {
     })
     .catch((error: unknown) => {
       // Nothing was built: the runtime inserts its CSS and layers only once
-      // the import has resolved.
+      // the import has resolved. `requested` stays set on purpose: a failed
+      // chunk is not retried until the next page load.
       Sentry.captureException(error, { tags: { feature: 'ambient-motion' } });
       setState('skipped');
     });
@@ -68,14 +69,23 @@ function evaluate(live: boolean): void {
   if (reduce.matches || !hasSomewhereToDraw()) return setState('skipped');
   if (live) return load();
   setState('deferred');
-  afterLoadAndIdle(load);
+  // Decide again when the wait is over: motion may have been switched off, or
+  // reduced motion on, in the meantime.
+  afterLoadAndIdle(() => evaluate(true));
 }
 
-export function initAmbientLoader(): void {
+/** Start deciding; returns a function that stops watching (for tests). */
+export function initAmbientLoader(): () => void {
   evaluate(false);
-  new MutationObserver(() => evaluate(true)).observe(root, {
+  const onChange = () => evaluate(true);
+  const observer = new MutationObserver(onChange);
+  observer.observe(root, {
     attributes: true,
     attributeFilter: ['data-ambient', 'data-ambient-scope'],
   });
-  reduce.addEventListener('change', () => evaluate(true));
+  reduce.addEventListener('change', onChange);
+  return () => {
+    observer.disconnect();
+    reduce.removeEventListener('change', onChange);
+  };
 }

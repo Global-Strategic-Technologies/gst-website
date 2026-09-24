@@ -4,7 +4,7 @@
  * began to be built in JS (src/scripts/ambient/build.ts). Unscoped, because
  * that DOM carries no data-astro-cid.
  *
- * Imported with ?inline by runtime.ts and inserted as a \3c style>: Astro would
+ * Imported with ?inline by runtime.ts and inserted as a style element: Astro would
  * attach a plainly imported sheet to every page that owns the importing
  * script, and this must reach only browsers that opted in.
  * tests/unit/ambient-lazy-css-guard.test.ts holds that rule.
