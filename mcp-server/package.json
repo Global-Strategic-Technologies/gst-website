@@ -35,7 +35,7 @@
     "@cloudflare/workers-oauth-provider": "0.10.3",
     "@modelcontextprotocol/server": "2.0.0",
     "@sentry/cloudflare": "^10.74.0",
-    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/ratelimit": "^2.1.0",
     "@upstash/redis": "^1.38.4",
     "agents": "^0.23.0",
     "fflate": "^0.8.3",
