@@ -8,12 +8,10 @@ This document provides Claude with essential context about the GST Website proje
 
 ## 🔧 Claude Workflow Directives
 
-### 1. Plan Mode Default
+### 1. Plan Mode for Non-Trivial Work
 
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately - don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+- Use plan mode for work with 3+ implementation steps or an architectural decision — that is where the Design Review Gate (Directive 2) applies. Housekeeping and diagnostic questions don't need it; answer those directly and confirm scope before planning.
+- If implementation diverges from the approved plan, stop and re-plan rather than pushing through.
 
 ### 2. Design Review Gate (enforced by hook)
 
@@ -25,9 +23,7 @@ This document provides Claude with essential context about the GST Website proje
 
 ### 3. Subagent Strategy to Keep Main Context Window Clean
 
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One task per subagent for focused execution
+- Delegate broad research, exploration, and parallel analysis to subagents (one focused task each) so file dumps stay out of the main context.
 
 ### 4. Self-Improvement Loop
 
@@ -35,13 +31,11 @@ This document provides Claude with essential context about the GST Website proje
 - The `MEMORY.md` index is loaded automatically at the start of every session — that is how prior corrections are recalled without repeating them. There is no separate "review at session start" step to remember.
 - Write rules for yourself that prevent the same mistake; before saving, check for an existing memory that already covers it and update that file rather than duplicating.
 - **When a private lesson is really a repo convention, codify it here (or in the relevant doc) so every session sees it** — private memory is invisible to other sessions and collaborators.
-- **Retired**: the old `.claude/tasks/lessons.md` learning log (removed 2026-07-19). Its still-relevant lessons were migrated to memory; the two codified ones live as Directives 11 and 13. Recover the original via `git log -- .claude/tasks/lessons.md`.
 
 ### 5. Verification Before Done
 
 - Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
+- Diff behavior between `master` and your changes when relevant
 - Run unit and integration tests to verify correctness
 - **Do NOT run E2E tests unless explicitly told to do so** — except when the task itself is writing or fixing E2E tests, in which case running them _is_ the verification step (use `--project=chromium` for a fast single-browser check)
 
@@ -60,25 +54,20 @@ This document provides Claude with essential context about the GST Website proje
 - Fix critical findings before pushing. **Only the user can waive** (verdict `USER_WAIVED` + quoted waiver — appropriate for trivial docs-only diffs the user has already authorized).
 - Never push without explicit user authorization in the first place; an approved plan authorizes only the pushes it states.
 
-### 8. Demand Elegance (Balanced)
+### 8. Right-Sized Solutions
 
-- For non-trivial changes: pause and ask "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes - don't over-engineer
-- Challenge your own work before presenting it
+- Replace a fix you know is a hack with the proper one before presenting it; don't over-engineer obvious fixes. (plan-reviewer's Elegance pass checks design simplicity at the gate.)
 
 ### 9. Autonomous Bug Fixing
 
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests → then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
+- Given a bug report, failing test, or red CI run, diagnose from the logs and fix it without waiting for step-by-step direction.
+- A question about _why_ something happens is not a work order: answer it, then confirm scope with the user before changing code.
 
 ### 10. Technical Documentation Reference
 
-- For API docs, framework features, or web standards: query **Context7 MCP Server** first
-- Don't rely on training data alone for rapidly-evolving standards (Schema.org, Astro, etc.)
-- Fallback: WebSearch/WebFetch to official documentation sources
+- Fetch current docs rather than relying on training data for rapidly-evolving APIs and standards (Schema.org, Astro, etc.)
+- Third-party service APIs and SDKs (Stripe, Anthropic, Auth0, …): use the `get-api-docs` skill (chub)
+- Frameworks, libraries, and web standards: query the Context7 MCP server; fall back to WebSearch/WebFetch against official docs
 
 ### 11. Content Changes Must Include Test Updates
 
@@ -112,7 +101,6 @@ This document provides Claude with essential context about the GST Website proje
   ```
   npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs
   ```
-  Learned in BL-090: a two-argument call to a one-argument constructor sat green through the whole four-command sequence plus 1917 passing mcp tests
 - **Every commit is auto-formatted by the husky pre-commit hook** — lint-staged runs `eslint --fix` then `prettier --write` on staged files. Your staged files may look different in the final commit than in your working tree. This is intentional and documented
 - **`npm audit` policy**: production dependencies must stay at zero advisories (enforced via `--audit-level=moderate --omit=dev` in CI). Dev-only advisories are tolerated case-by-case
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
@@ -125,14 +113,12 @@ Claude Code's permission matcher evaluates compound commands **per-subcommand** 
 **Rules:**
 
 - **Compound commands are fine** when every part is an allowlisted family or read-only — use them where they read naturally (e.g. `git add X && git commit -F msg.txt` for atomic sequences).
-- **A permission prompt now signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over accumulating one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file (a 2026-07-22 cleanup removed ~250 dead one-shot entries).
-- **Quoted multiline content fragments matching** (observed behavior, 2026-07 investigation) — newlines act as subcommand separators, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
+- **A permission prompt signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file.
+- **Quoted multiline content fragments matching** — newlines act as subcommand separators, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
 - **Env-var prefixes on non-safe variables aren't stripped**: `FOO=bar cmd` prompts even when `cmd` is allowed. Set env inside scripts, or use an env-override the script reads.
 - **Never inline raw secrets in any shell command** (yours or ones you ask the user to run) — use env-var references so tokens stay out of scrollback, history, and transcripts. `wrangler secret put` reads from stdin.
 - **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
 - **Never attempt to work around a deny rule** — a denied shape is an operator decision, not an obstacle.
-
-> History: this directive previously mandated one-command-per-Bash-call on the premise that the matcher evaluated the entire command string as one unit. That premise was retired 2026-07-22 — current Claude Code matches per-subcommand (<https://code.claude.com/docs/en/permissions.md>), and the allowlist was rebuilt from dead exact strings to family rules, so natural compound commands no longer thrash the approval loop.
 
 ---
 
@@ -284,7 +270,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **`master` is the trunk** — production-ready; every PR targets it directly
 - **Feature branches** cut from `master`, named with a CI-covered family prefix: `feat/`, `fix/`, `feature/`, `docs/`, `chore/` (these families are wired into the CI push-trigger lists — a new prefix family must be added there too, see DEVELOPER_TOOLING.md)
 - **`dev` is retired** (dormant since 2026-05-31) — do not branch from or merge to it
-- **Merge commits, never squash** — PR merges use "Create a merge commit". **Enforced at the repo level since 2026-09-21** (squash and rebase merging are disabled in the repository settings). A squash rewrites SHAs, which strands any branch still holding the originals and produces conflicts with no real disagreement in them — see [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) for the PR #503/#504 case
+- **Merge commits, never squash** — PR merges use "Create a merge commit" (squash and rebase merging are disabled in the repository settings). A squash rewrites SHAs, which strands any branch still holding the originals and produces conflicts with no real disagreement in them — see [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) for the remedy
 - **Never `git push` without explicit user authorization** — an approved plan authorizes only the pushes it states; pushes are additionally gated by Directive 7
 
 ### PR Requirements
@@ -307,7 +293,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **Doc pointers**: see 📚 Testing & CI/CD above — TEST_STRATEGY for what to write, TEST_BEST_PRACTICES before touching E2E
 - **Unit**: fast, isolated, mocked · **Integration**: real dependencies, isolated data · **E2E**: critical user journeys only
 - **Coverage**: 70% line threshold on the covered scopes (see `vitest.config.ts` / mcp-server config for exact include lists)
-- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. **The mcp-server 5000ms flake is SOLVED** (BL-149, closed 2026-09-13): `unstable_dev` resolves when workerd is spawned, but the first `worker.fetch()` pays seconds of module-graph JIT, and a file that does not spend it in `beforeAll` (60s budget) bills it to its first `it` (5000ms default). **So a 5000ms timeout in a Worker-booting file is now a REAL signal — do not rerun and shrug.** Two standing rules: a new `unstable_dev` file must warm in `beforeAll` via `tests/helpers/warm-worker.ts`, and if a warm file still times out locally, purge `mcp-server/.wrangler` — accumulated local state took first-KV-touch from 73ms to 1216ms and is why this was always machine-dependent while CI never failed. The evidence-capture rules stand regardless: **capture the failing test name before you rerun**, because a green rerun destroys the only evidence — and **redirect the suite to a file rather than piping it through `grep`**, which discards the name a step earlier still. Ten unreproduced single-test mcp failures are on record; the first two are open for exactly that reason (`1 failed | 1973 passed`, 2026-08-04; `1 failed | 2391 passed`, 2026-08-17, lost to a grep pipe). **The third finally captured the name** (`1 failed | 2574 passed`, 2026-08-22): `protocol-era-worker.test.ts > serves a modern tools/list from a browser origin`, timed out at 5000ms — a `unstable_dev` test, but **not** the first run of that day, so cold-start does not explain it. **The fourth confirms that exact test** (`1 failed | 2703 passed`, 2026-08-28, during a code-review run): same test, same 5000ms timeout, and an isolated re-run went 10/10 green. **The fifth breaks the localization** (`1 failed | 2711 passed`, 2026-08-30): `oauth-introspection.test.ts > POST /oauth/introspect > requires the admin key (401 without it)`, again a 5000ms timeout, again green in isolation — a DIFFERENT `unstable_dev` file, in a run whose diff touched no OAuth or Worker code. So the earlier read that it had "localized to one test" was wrong: what is shared is the harness, not the test. **The sixth is the `protocol-era-worker` one again** (`1 failed | 2711 passed`, 2026-08-31, during a pre-push run whose diff touched no Worker or protocol code): same test as the third and fourth, same 5000ms timeout, green 10/10 on two isolated re-runs. **The seventh is `protocol-era-worker` a fourth time** (`1 failed | 2711 passed`, 2026-09-01, during the pre-PR validation for #444, whose diff touches no Worker or protocol code): same test, same 5008ms timeout, green 10/10 in isolation. Note the identical `2711 passed` total as the fifth and sixth — the suite size is unchanged, so the count is not a discriminator between runs. **The eighth names a THIRD file** (`1 failed | 2712 passed`, 2026-09-01, in the re-validation of the #444 review fixes, minutes after the seventh): `cors.test.ts > CORS — Phase 2 > OPTIONS preflight from allowed origin returns 204 with Allow-* headers`, 5044ms, green 7/7 in isolation — another `unstable_dev` file, and one the diff does not touch. Two different files failing in two consecutive full-suite runs on the same day is the strongest evidence yet that the harness is the subject and the test is incidental. **The ninth came from the code-reviewer's own re-validation** of the same tree, hours later (`protocol-era-worker`, the same browser-origin case, 5011ms, 5/5 green in isolation) — three full-suite runs on 2026-09-01 produced three flakes across two files, none of them in code the diff touched. **The tenth is `protocol-era-worker` a sixth time** (`1 failed | 2712 passed`, 2026-09-03, in the full-suite validation of the dependency-override change for #447, which touches no Worker source; the fourth `test:mcp` run of that day on the machine, so warm): same browser-origin case, 5000ms timeout, green 10/10 on three isolated re-runs. Tally so far: six on `protocol-era-worker`, one on `oauth-introspection`, one on `cors`, two unnamed — consistent with a harness-level problem that lands most often, but not only, on the heaviest `unstable_dev` file. Diagnose it as a `unstable_dev`-under-full-suite-load problem — a per-test fix would only move it. Diagnosed and closed by **BL-149** (filed 2026-09-02, closed 2026-09-13) — the measured evidence is in [WORKER_BOOT_LATENCY_BL-149.md](src/docs/development/_archive/WORKER_BOOT_LATENCY_BL-149.md). The narrative above is retained as the record of how it was found, not as a live caution; BL-106's standing caution is retired. Note the read it encodes — "diagnose it as an `unstable_dev`-under-full-suite-load problem" — was wrong: the cost is per-file first-use, and it reproduces alone with no runner in the process
+- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. In the mcp-server suite, a 5000ms timeout in a Worker-booting (`unstable_dev`) file is a real signal, not a flake to rerun: `unstable_dev` resolves when workerd spawns, but the first `worker.fetch()` pays seconds of module-graph JIT, which lands on the first `it` (5000ms default) unless the file spends it in `beforeAll` (60s budget). So a new `unstable_dev` file must warm in `beforeAll` via `tests/helpers/warm-worker.ts`, and if a warmed file still times out locally, purge `mcp-server/.wrangler` (accumulated local state inflates first-KV-touch; CI is unaffected). For any suite failure, **capture the failing test name before you rerun** — a green rerun destroys the evidence — and **redirect suite output to a file rather than piping it through `grep`**. Measurements: [WORKER_BOOT_LATENCY_BL-149.md](src/docs/development/_archive/WORKER_BOOT_LATENCY_BL-149.md)
 - **Pre-existing test debt is not a free pass** — small failing tests in your touched area get fixed in the current PR, not waved through
 - **Playwright: never set `permissions` at project level** in `playwright.config.ts` — desktop permissions crash mobile device contexts; grant per-test with `context.grantPermissions()` guarded by `browserName`
 
@@ -366,7 +352,3 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 1. Read the tool's `CONTRACT.md` + `USAGE.md` under `mcp-server/src/docs/tools/<tool>/` and [ARCHITECTURE.md](mcp-server/src/docs/ARCHITECTURE.md)
 2. **Tool↔prompt parity**: extending a tool's inputs must also extend its companion `gst_*` prompt (wire-shape adapters) and self-document id/enum args in `.describe()` so a cold LLM call can discover valid values
 3. Run `npm run test:mcp` (contract-parity and prompt-compat tests enforce much of this)
-
----
-
-**Last Updated**: July 19, 2026 — full accuracy overhaul + review-gate directives (2 & 7) added; directives renumbered 1–15 (old 4a→6, old 5–12 → 8–15)
