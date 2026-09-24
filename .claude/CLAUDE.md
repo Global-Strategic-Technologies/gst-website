@@ -252,12 +252,11 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 | -------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **plan-reviewer**                | MANDATORY before ExitPlanMode (Directive 2) — adversarial design review, writes plan-review marker |
 | **code-reviewer**                | MANDATORY before `git push` (Directive 7) — reviews the diff, writes impl-review marker            |
-| **javascript-typescript-expert** | Architecture decisions, performance optimization                                                   |
-| **test-automation-specialist**   | Implementing tests, designing test strategies                                                      |
-| **test-strategy-architect**      | Test pyramid design, coverage analysis, CI/CD workflows                                            |
-| **ui-ux-playwright-reviewer**    | E2E test strategy, Playwright patterns                                                             |
-| **performance-testing-expert**   | Load testing, performance regression detection                                                     |
-| **technical-debt-analyst**       | Refactoring, complexity analysis, debt reduction                                                   |
+| **javascript-typescript-expert** | TS architecture, cross-workspace types/schemas, type-check failures                                |
+| **test-automation-specialist**   | Writing/fixing Vitest & Playwright tests, test strategy, coverage, CI test workflows               |
+| **ui-ux-playwright-reviewer**    | Screenshot-backed visual/UX/accessibility review of a changed page or component                    |
+| **performance-testing-expert**   | Lighthouse CI regressions, performance budgets, MCP Worker latency vs SLO baselines                |
+| **technical-debt-analyst**       | Refactor scoping, debt triage, code/doc drift                                                      |
 
 ### Claude Skills
 
