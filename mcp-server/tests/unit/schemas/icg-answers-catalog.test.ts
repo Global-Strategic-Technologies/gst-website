@@ -2,8 +2,8 @@
  * The `assess_infrastructure_cost_governance` `answers` description is the
  * only place a cold client can discover valid ICG question IDs (the engine
  * silently drops unknown keys into `unknownAnswerKeys`). The catalog is
- * derived from `DOMAINS`, so this pins the derivation: every question ID and
- * no stale count.
+ * derived from `DOMAINS`, so this pins the derivation: every question ID,
+ * each under its domain.
  */
 import { ICGMcpInputsSchema } from '../../../src/schemas';
 import {

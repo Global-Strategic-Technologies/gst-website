@@ -408,9 +408,9 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   '97f5d64cf4662ff7555d153125121318ddcadf2984c5ef8fd11623ff8c4d33b1';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '7abb886675a7680fe22760e15aa29313849ac9b31f3d14e8b43fa17f381a9f8e';
+  '4519a0ebae0bb2ca3262aef19de9d032e0cd934580224099e8c25643951b1f69';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'af94cce5024a8958c4b7e77a3813b20650f8c3c8e6076a54bea2925285237ad1';
+  '62bc25a7c11c7e77eed23b28efc08e605e86c0106bab36b431a9c36092fef8bb';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '21e3f380e2b6f43f0c61574739ebd32a30782a683ab994d884008353f9374ab1';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -426,9 +426,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '21c62348d91aa3f09583cbe338c1aef5ad19ab4fdb41d3bc0779ac3929f53461';
+  '92142bee5feab4a62b247469f8e85894f682fdded19623d58a2f35cd7a989a0b';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '4596bb2dd8228f00830f6a6c250bf5162ae7c9673d26538976f03ff64d6f83df';
+  '0b1c38a9fe39f1676aba4a05a73d6fe9af8e58c89ee505313ac6505d80dcfdce';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
   '29f8690924b4a2ccea821819dbb6db67f7e7fc62841f93ef99d128f97d1d6bff';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
@@ -557,7 +557,7 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // PROMPT_VERSION.
 // Same branch, pre-push review round (still v0.30.3, rebaselined in place per
 // the BL-120 rule — these bytes were never served): the four one-shot arms
-// only. Steps 1, 4a and 6a stopped calling the optional `_audit` sibling
+// only. Steps 1, 1a, 4a and 6a stopped calling the optional `_audit` sibling
 // required; those steps render only in the one-shot full-body builder.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
   'b2fec00e65db4002664b4c18bbaa81c25828b6689deafbf8371d4ac8d668cceb';
