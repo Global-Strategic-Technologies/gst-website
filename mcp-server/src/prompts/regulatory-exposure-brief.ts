@@ -42,8 +42,8 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Compile applicable regulatory frameworks for a target, with summaries pulled from the search-result data + per-framework Regulatory Map URIs.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-08-20',
+  version: '0.2.0',
+  lastReviewedAt: '2026-09-24',
   // `list_regulation_facets` is a conditional recovery call — Step 1 reaches for
   // it only when a jurisdiction id fails to resolve — but the invariant is about
   // what the body CAN direct, not what a given run happens to reach. Omitting it

@@ -26,8 +26,8 @@ export const architectureLayerReviewPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     "Walk a target through GST's 5-layer architecture framework and surface risks per layer.",
-  version: '0.1.0',
-  lastReviewedAt: '2026-08-20',
+  version: '0.2.0',
+  lastReviewedAt: '2026-09-24',
   orchestrates: ['gst://library/business-architectures'] as const,
   consumesTargetEvidence: true,
   argsSchema,

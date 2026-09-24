@@ -143,7 +143,7 @@ const argsSchema = z.object({
   productSummary: stringFromWire(z.string().min(10).max(500).optional())
     .optional()
     .describe(
-      "One-paragraph product description if known. Lets the model compress questions it can answer from context (e.g., if productSummary clearly says 'pure SaaS, no hardware', Section 01 deployment questions can be tightened)."
+      "One-paragraph product description if known. Lets the model annotate questions the summary already answers (e.g., if productSummary clearly says 'pure SaaS, no hardware', Section 01 deployment questions get an 'already noted' annotation); every question is kept."
     ),
 });
 
@@ -268,7 +268,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
     ? `Voice: ${VOICE_CUES[args.transactionContext]}`
     : 'Voice: universal. No engagement-specific framing.';
   const productClause = args.productSummary
-    ? `The model already knows this about the product: "${args.productSummary}". Where a question is unambiguously answered by that summary, compress or annotate the bullet — do not drop sections wholesale.`
+    ? `The model already knows this about the product: "${args.productSummary}". Where a question is unambiguously answered by that summary, you may annotate the bullet (see below) — keep the bullet itself.`
     : 'No product summary provided. Emit the full IRL verbatim.';
 
   const sectionsClause =
@@ -310,7 +310,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
     '',
     'Step 1. Add a one-line greeting addressed to the recipient (use their name if supplied). Mention the engagement context (transaction, kickoff, value-creation cadence) in the same line. The article body that follows already opens with the universal recipient instructions ("respond per bullet, mark n/a rather than skip…") — do not duplicate them.',
     '',
-    `Step 2. Reproduce the IRL from the next message as the deliverable — do not summarize, restructure, or annotate the canonical bullets inline. ${sectionsClause} Keep the bullet ordering within each section. ${customClause} ${canonicalClause}${omissionClause}`,
+    `Step 2. Reproduce the IRL from the next message as the deliverable — do not summarize or restructure the canonical bullets (the one permitted addition is the \`productSummary\` annotation below). ${sectionsClause} Keep the bullet ordering within each section. ${customClause} ${canonicalClause}${omissionClause}`,
     '',
     'Step 3. Close with a single-line ask covering turnaround, point of contact, and preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
     '',
@@ -353,8 +353,8 @@ export const irlCreatePrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-08-28',
+  version: '0.2.0',
+  lastReviewedAt: '2026-09-24',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {

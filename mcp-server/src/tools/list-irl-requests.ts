@@ -29,7 +29,7 @@ const TOOL_DESCRIPTION = `List every canonical GST **Information Request List** 
 
 Returns \`{ requests, sectionCount, bulletCount }\` where each request is \`{ key, section, sectionTitle, text, skipIf? }\`:
   - \`key\` — the two-digit-section + two-digit-ordinal identifier (e.g. \`"02-03"\` = question 3 of section 02, rendered in the workbook Reference column as \`2-03\`). Pass these keys to \`generate_information_request_list_xlsx\`'s \`excludeRequests\` to remove specific questions.
-  - \`skipIf\` — present when the question carries an authored skip-if directive (BL-044.5): the engagement contexts that auto-remove it (e.g. \`{ "context": ["sell-side","buy-side","value-creation"] }\`).
+  - \`skipIf\` — present when the question carries an authored skip-if directive: the engagement contexts that auto-remove it (e.g. \`{ "context": ["sell-side","buy-side","value-creation"] }\`).
 
 **When to call this tool**: before excluding specific questions — to map a natural-language request ("drop the competitive-landscape question") to its exact key — or to predict which questions a given \`transactionContext\` will auto-skip.`;
 

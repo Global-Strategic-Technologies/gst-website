@@ -77,7 +77,7 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .enum(transactionContextValues)
     .optional()
     .describe(
-      "Engagement context. One of: sell-side · buy-side · value-creation · unknown. Labels the engagement in the workbook header AND fires the source's authored skip-if directives (BL-044.5) — questions tagged for the supplied context are auto-removed, leaving Reference-ID gaps. 'unknown' fires nothing. Call `list_irl_requests` to see which questions carry directives."
+      "Engagement context. One of: sell-side · buy-side · value-creation · unknown. Labels the engagement in the workbook header AND fires the source's authored skip-if directives — questions tagged for the supplied context are auto-removed, leaving Reference-ID gaps. 'unknown' fires nothing. Call `list_irl_requests` to see which questions carry directives."
     ),
   productSummary: z
     .string()
@@ -152,7 +152,7 @@ Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clie
 **Optional inputs** all degrade gracefully:
   - \`targetName\` → the company being diligenced; personalizes the "Target" header row + filename slug.
   - \`companyName\` / \`projectName\` → composed into the title cell as \`{companyName} {projectName} Information Request List\` (title only; distinct from \`targetName\`).
-  - \`transactionContext\` → labels the engagement in the header AND fires the source's authored skip-if directives (BL-044.5): questions tagged for the supplied context are auto-removed with Reference-ID gaps.
+  - \`transactionContext\` → labels the engagement in the header AND fires the source's authored skip-if directives: questions tagged for the supplied context are auto-removed with Reference-ID gaps.
   - \`includeSections\` → two-digit section numbers to keep (e.g. \`["00","03","09"]\`); omit for all.
   - \`excludeRequests\` → \`'NN-II'\` keys of individual questions to remove (e.g. \`["02-03"]\`); surviving Reference IDs keep intentional gaps. Discover keys via \`list_irl_requests\`.
   - \`customRequests\` → ad-hoc \`{ section, text }\` rows appended to individual sections.

@@ -7,7 +7,7 @@
 
 `gst_irl_sweep` ingests a populated GST IRL and drives every applicable Hub analysis tool to a unified engagement dossier. It is the **trust-the-operator successor** to `gst_irl_ingestion`: a populated IRL is ipso facto trusted input, so the prompt carries no provenance apparatus of any kind. No body hashing, no server-side caching, no citation-verification loops, no RUN-AUDIT blocks, no meta fences, no audit levels. The audit surface is one model-authored **(J) Gaps & assumptions** section. The portable extract record (v2, zero tool calls) is its **sibling prompt `gst_irl_extract`** — split out 2026-08-25 so each workflow does exactly one thing; the two share their arrival/completeness/gate/rule sections via `extraction-rules.ts`. The decision and its rationale live in the trust-the-operator ADR (written with the removal PR).
 
-## Contract (v0.2.0 — verified against `irl-sweep.ts`)
+## Contract (v0.5.0 — verified against `irl-sweep.ts`)
 
 One argument, optional:
 

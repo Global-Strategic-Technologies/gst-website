@@ -26,7 +26,7 @@ import { authorialIntentLine, irlEvidencePrecedence } from './embed';
 import {
   TECHPAR_MODE_RULE,
   INFRA_HOSTING_ANNUALIZATION_RULE,
-  MTTR_P1_RULE,
+  MTTR_P1_RULE_V2,
 } from './extraction-rules';
 
 const argsSchema = z.object({
@@ -47,8 +47,8 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'First-look brief for an unfamiliar target. Combines ICG, TechPar, Tech Debt, and regulatory exposure into one digestible page.',
-  version: '0.3.0',
-  lastReviewedAt: '2026-09-17',
+  version: '0.4.0',
+  lastReviewedAt: '2026-09-24',
   orchestrates: [
     'assess_infrastructure_cost_governance',
     'compute_techpar',
@@ -89,7 +89,7 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '    b. For any answer that is NOT knowable from available data, use the schema\'s explicit unknown value `-1` ("Not sure"). NEVER skip a question — `-1` is the contractually correct value for "I don\'t know," and the engine treats it as a real signal that surfaces investigation recommendations.',
             `    c. Pass \`companyStage: '${args.stage}'\` directly — the ICG MCP wrapper accepts the canonical funding-stage taxonomy (seed | series-a | series-b | series-c | pe | enterprise) and translates to ICG's native cohort labels locally. No manual mapping needed.`,
             '',
-            `Step 2 — Unit-economics benchmark (\`compute_techpar\`). Pass \`stage: '${args.stage}'\` (the same canonical value); TechPar's MCP wrapper translates locally. Use the supplied arr; choose reasonable defaults for capexView and growthRate where not derivable. **The tool REQUIRES a \`mode\`, which has no default; send the \`_audit\` sibling too — it is optional, and validated when present, so a wrong one is rejected** — an unstated mode produced a 1.9× \`rdOpEx\` divergence and an inverted zone verdict across two runs of one target elsewhere in this workspace. Which mode you run depends on the branch:`,
+            `Step 2 — Unit-economics benchmark (\`compute_techpar\`). Pass \`stage: '${args.stage}'\` (the same canonical value); TechPar's MCP wrapper translates locally. Use the supplied arr; choose reasonable defaults for capexView and growthRate where not derivable. **The tool REQUIRES a \`mode\`, which has no default; send the \`_audit\` sibling too — it is optional, and validated when present, so a wrong one is rejected** — the two modes derive \`rdOpEx\` differently, so the choice moves the zone verdict. Which mode you run depends on the branch:`,
             '',
             '  **2a — No evidence in context → `mode: "quick"`.** Nothing supplies the Section 02 component figures (`engCost` / `prodCost` / `toolingCost`), so `deepdive` would synthesize R&D OpEx from nothing. Pass `rdOpEx` derived from the form inputs and stage norms, and disclose that derivation in the brief; pass `null` for the three components, which `quick` discards. Supply the audit sibling in exactly this shape — it is the canonical partner-supplied form of `_audit`, produced by `buildPartnerSuppliedTechParAudit(\'quick\')` in `schemas/techpar-audit.ts`, so this block and the helper cannot disagree:',
             '',
@@ -115,9 +115,9 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '',
             `  **3b — No evidence in context.** Pass \`mttrSource: "irl-absent"\` with \`mttrHours: null\`, and \`incidentsSource: "irl-absent"\` with \`incidents: null\`. The tool then elides both line items and returns \`extractionOnly: ["mttrHours", "incidents"]\`; Step 5(4) renders the tech-debt read as extraction-only for those fields rather than quoting a fabricated carrying cost. **Never emit a synthesized zero under \`irl-stated\`** — the tool rejects \`irl-stated\` paired with \`mttrHours: 0\` as suspicious, and a fabricated MTTR passes through a linear multiplier and produces an unrecoverable false carrying-cost number. The other eight inputs may still come from productType + stage norms, biased toward conservative midpoints, and every one of them is disclosed under "Assumptions / unknowns".`,
             '',
-            `  **3c — Evidence in context.** Resolve MTTR and the incident count from the record's Section 04 facts and pass \`irl-stated\` with the real numbers, citing the covering reference. ${MTTR_P1_RULE}`,
+            `  **3c — Evidence in context.** Resolve MTTR and the incident count from the record's Section 04 facts and pass \`irl-stated\` with the real numbers, citing the covering reference. ${MTTR_P1_RULE_V2}`,
             '',
-            '  **Adaptation note for 3c**: as in Step 2b, the rule above names a dossier Tech Debt section and a (J) gap list. Neither exists here — mark the field extraction-only inside the brief\'s tech-debt section and put the follow-up under "Assumptions / unknowns". A Section 04 fact the record does not cover stays on the 3b branch: `irl-open` or `irl-absent` plus `null`, never a norm.',
+            '  **Adaptation note for 3c**: as in Step 2b, the rule above names a dossier Tech Debt section and a Gaps & assumptions list. Neither exists here — mark the field extraction-only inside the brief\'s tech-debt section and put the follow-up under "Assumptions / unknowns". A Section 04 fact the record does not cover stays on the 3b branch: `irl-open` or `irl-absent` plus `null`, never a norm.',
             '',
             `Step 4 — Regulatory exposure (\`search_regulations\`). Filter by jurisdiction matching ${args.hqJurisdiction} (look up the canonical jurisdiction id via list_regulation_facets if uncertain) and call the tool once per relevant data category likely to apply to a ${args.productType} business (data-privacy is almost always applicable; ai-governance if AI features; cybersecurity for critical infra; industry-compliance for regulated verticals).`,
             '',
@@ -128,7 +128,7 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '  (4) Tech-debt range — annualCost, debtPctArr, paybackMonths, plus DORA tier. **If the tool returned `extractionOnly: [...]`, render those fields as extraction-only and say what is missing** — do NOT quote a carrying cost as though MTTR and incident counts were known when they were passed as null.',
             '  (4a) Assumptions / unknowns — a single consolidated list for the whole brief: every ICG answer left at `-1`, every TechPar field supplied from stage norms rather than evidence (with the Section reference that would have answered it and the effect of leaving it zeroed), and every tech-debt field returned as extraction-only with the concrete follow-up. When target evidence WAS in context, state for each resolved figure whether its citation is verified this session or carried asserted-not-verified from the record.',
             '  (5) Regulatory exposure — list of applicable frameworks (name + jurisdiction + 1-line summary) for the supplied hqJurisdiction.',
-            '  (6) Open in Hub — embed the `deeplink` field from each Tool result as a clickable link, labeled "Open ICG", "Open TechPar", "Open Tech Debt", "Open Regulatory Map". All four Tool wrappers now emit a `deeplink` URL that opens the corresponding /hub/ page populated with the same inputs/results (TechPar shipped under BL-031.95 Phase 1, the others under Commit 0.5). If a tool response is missing `deeplink` (older server build), omit that link silently — never invent a URL.',
+            '  (6) Open in Hub — embed the `deeplink` field from each Tool result as a clickable link, labeled "Open ICG", "Open TechPar", "Open Tech Debt", "Open Regulatory Map". Each `deeplink` opens the corresponding /hub/ page populated with the same inputs/results. If a tool response is missing `deeplink`, omit that link — never invent a URL.',
             '',
             'Voice: declarative, terse, deal-team-ready. Output should read as if a senior consultant wrote it after a 20-minute review.',
           ].join('\n'),

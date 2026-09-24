@@ -143,7 +143,7 @@ FYI (curated) items age out under a **dual cap** enforced Worker-side, so a cura
 
 - **Age cap** — `FYI_MAX_AGE_DAYS = 30`: an item is dropped once its **annotation** (`annotatedAt`) is more than 30 days old. Age is measured from the annotation date, not the article's publish date.
 - **Count cap** — `FYI_MAX_COUNT = 15`: at most the **newest 15** surviving items (by annotation date) render.
-- Both caps are applied by `filterFreshFyi` (`mcp-server/src/content/radar-transform.ts`) inside `readFyiLive` (`radar-live-store.ts`) — the single choke point every live consumer routes through (website `/radar/snapshot`, `search_radar`, `get_latest_insights`, the `gst://radar/fyi` Resource, the hourly cron).
+- Both caps are applied by `filterFreshFyi` (`mcp-server/src/content/radar-transform.ts`) inside `readFyiLive` (`radar-live-store.ts`) — the single choke point every live consumer routes through (website `/radar/snapshot`, `search_radar`, `get_latest_insights`, the `gst://radar/fyi` Resource, the 6-hourly cron).
 - The filter runs at **read time** against the current clock; the Upstash cache stores the **raw** annotated items, so an item ages out the moment it crosses 30 days — the 6h cache no longer delays expiry.
 - **The FYI tier may render empty** if every annotation is older than 30 days. That is the intended consequence of the age cap — there is no "keep newest N even if stale" fallback.
 - Removing annotations (highlights/notes) in Inoreader still removes the item on the next refresh.
@@ -215,7 +215,7 @@ The legacy `gst-radar-tokens` Upstash database (which held `inoreader:*` keys wh
 
 ## Inoreader Budget (shared 200 req/day)
 
-Post-BL-032.8 Phase B the website makes **no direct Inoreader calls** — the MCP Worker is the single caller (hourly cron refresh + cache-amortized live radar tools), and the website's `/hub/radar` reads the Worker's `/radar/snapshot` endpoint at SSR time. The authoritative budget model (per-key caps, 6h Upstash cache, circuit breaker, spend accounting) lives in [ARCHITECTURE.md § Rate limiting & Inoreader budget](../../../mcp-server/src/docs/ARCHITECTURE.md#rate-limiting--inoreader-budget) — this doc deliberately does not duplicate the numbers.
+Post-BL-032.8 Phase B the website makes **no direct Inoreader calls** — the MCP Worker is the single caller (6-hourly cron refresh + cache-amortized live radar tools), and the website's `/hub/radar` reads the Worker's `/radar/snapshot` endpoint at SSR time. The authoritative budget model (per-key caps, 6h Upstash cache, circuit breaker, spend accounting) lives in [ARCHITECTURE.md § Rate limiting & Inoreader budget](../../../mcp-server/src/docs/ARCHITECTURE.md#rate-limiting--inoreader-budget) — this doc deliberately does not duplicate the numbers.
 
 Local development consumes **zero** Inoreader budget on either path: the website dev server reads the staging Worker's already-warmed snapshot, and the local stdio MCP server reads the seeded mock snapshot — both described in § Working Offline below. (The pre-Phase-B website-side dev cache — `src/lib/inoreader/client.ts` + `cache.ts` with a 24h-TTL file cache — was deleted in `606f4848`; its `.cache/inoreader/` directory is now used exclusively by the stdio MCP snapshot.)
 

@@ -22,6 +22,7 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 import { irlEvidencePrecedence } from '../../src/prompts/embed';
+import { IRL_BODY_CACHE_LIFETIME_TEXT } from '../../src/cache/irl-body-cache';
 import { minimalArgsFor } from '../helpers/prompt-args';
 
 /** A sentence distinctive enough that a paraphrase counts as absence — which is the point. */
@@ -134,7 +135,7 @@ describe('irlEvidencePrecedence — clause present ⇔ consumesTargetEvidence', 
     expect(clause).toMatch(/ASSERTED, not verified/i);
     expect(clause).toContain('validate_irl_provenance');
     expect(clause).toContain('prepare_irl_body');
-    expect(clause).toMatch(/four hours/i);
+    expect(clause).toContain(IRL_BODY_CACHE_LIFETIME_TEXT);
     expect(clause).toContain('_meta.generatedAt');
     expect(clause).toContain('_meta.promptVersion');
   });

@@ -94,10 +94,27 @@ const CategoryOrArray = z
   .optional();
 
 export const RegulationSearchInputSchema = z.object({
-  jurisdiction: StringOrStringArray,
-  category: CategoryOrArray,
-  query: z.string().optional(),
-  limit: z.number().int().positive().max(120).default(20),
+  jurisdiction: StringOrStringArray.describe(
+    'Jurisdiction code, or an array of codes (matched as OR). Lowercase ISO 3166-1 alpha-2 for countries ("us", "gb", "sg"), lowercase subdivision codes for states/provinces ("us-ca", "ca-qc"), plus the aggregates "eu" and "global". `list_regulation_facets` returns every code present. Omit for all jurisdictions.'
+  ),
+  category: CategoryOrArray.describe(
+    'Category, or an array of categories (matched as OR). One of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity". Combined with `jurisdiction` as AND. Omit for all categories.'
+  ),
+  query: z
+    .string()
+    .optional()
+    .describe(
+      'Case-insensitive free text matched against framework id, name, curated aliases (e.g. "EU AI Act", "UK GDPR", "SB 24-205"), and summary. When supplied, non-matching frameworks are dropped and results are ranked by relevance (exact id/name/alias first; a summary-only mention last).'
+    ),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(120)
+    .default(20)
+    .describe(
+      'Maximum matches to return (1-120, default 20). Response size grows steeply with this value; keep it near the default and narrow by category. `totalMatched` in the response reports how many matched before this cap.'
+    ),
 });
 
 export const RegulationFacetsInputSchema = z.object({});

@@ -32,17 +32,47 @@ export const DEPLOY_FREQUENCY_VALUES = [
 
 export const DeployFrequencySchema = z.enum(DEPLOY_FREQUENCY_VALUES);
 
+// `incidents` and `mttrHours` carry no `.describe()` here: the MCP audit schema
+// (`mcp-server/src/schemas/tech-debt-audit.ts`) replaces both fields with
+// nullable, described versions, so text on these would never reach tools/list.
 export const TechDebtInputsSchema = z.object({
-  teamSize: z.number().int().positive(),
-  salary: z.number().positive(),
-  maintenanceBurdenPct: z.number().min(0).max(100),
-  deployFrequency: DeployFrequencySchema,
+  teamSize: z.number().int().positive().describe('Engineering headcount.'),
+  salary: z
+    .number()
+    .positive()
+    .describe('Average annual fully-loaded cost per engineer, in dollars (e.g. 180000).'),
+  maintenanceBurdenPct: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe(
+      'Percent of engineering capacity spent on maintenance / debt servicing, as 0-100 (25 = a quarter of capacity), not a 0-1 fraction.'
+    ),
+  deployFrequency: DeployFrequencySchema.describe(
+    `Deployment cadence; sets the DORA-aligned velocity multiplier. One of: ${DEPLOY_FREQUENCY_VALUES.join(' · ')}.`
+  ),
   incidents: z.number().int().min(0),
   mttrHours: z.number().min(0),
-  remediationBudget: z.number().nonnegative(),
-  arr: z.number().nonnegative(),
-  remediationPct: z.number().min(0).max(100),
-  contextSwitchOn: z.boolean(),
+  remediationBudget: z
+    .number()
+    .nonnegative()
+    .describe('Capital available for debt paydown, in dollars; the numerator of `paybackMonths`.'),
+  arr: z
+    .number()
+    .nonnegative()
+    .describe('Annual recurring revenue, in dollars; used for `debtPctArr`.'),
+  remediationPct: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe(
+      'Expected reduction in debt-carrying cost if the remediation is executed, as 0-100. 0 means no savings, so `paybackMonths` has no finite value.'
+    ),
+  contextSwitchOn: z
+    .boolean()
+    .describe(
+      'Whether to add the context-switch overhead surcharge: 23% of the direct maintenance cost, added to the carrying cost.'
+    ),
 });
 
 export type DeployFrequency = z.infer<typeof DeployFrequencySchema>;

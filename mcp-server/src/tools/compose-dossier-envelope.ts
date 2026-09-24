@@ -56,21 +56,21 @@ import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-document meta JSON fence, (J) gap list, (K) provenance footer) as markdown the model transcribes verbatim into the dossier.
 
-**Why call this tool**: prior runs showed the model treats markdown directives in the prompt body as descriptive context, not as a procedure to execute. The meta fence, (J), and (K) were silently elided from otherwise high-quality dossiers. This tool closes that gap with the same architectural pattern that solved the dimension-layer fabrication risk — externalize the structure so the model has to assemble it before composing the dossier.
-
-**When to call**: AS THE FINAL STEP of \`gst_irl_ingestion\` in \`mode: full\`, BEFORE composing the dossier prose. You must have already (a) run the wrong-IRL pre-flight to compute fillRatio, (b) evaluated every inclusion gate, (c) gathered every load-bearing claim with its IRL citation, and (d) enumerated the gap-list entries by category.
+**When to call**: as the final step of \`gst_irl_ingestion\` in \`mode: full\`, before composing the dossier prose. The inputs are that run's results, so the fillRatio pre-flight, the inclusion-gate evaluation, the load-bearing claims with their IRL citations, and the categorized gap entries must already exist. The IRL body must already be in the server cache: call \`prepare_irl_body\` first (unless the prompt pre-populated it) and pass its hash as \`irlBodyHash\`.
 
 **Input contract** (see the input schema for full details):
-- \`promptName\`, \`promptVersion\`, \`modelVersion\`, \`mode\`, \`auditLevel\`, \`transactionContext\` — meta-fence header. \`auditLevel\` also selects which blocks come back (see Output).
+- \`promptName\`, \`promptVersion\`, \`modelVersion\`, \`mode\`, \`auditLevel\`, \`transactionContext\` — meta-fence header. \`auditLevel\` also selects which blocks come back (see Output). \`promptVersion\` is optional; the server substitutes its own value.
 - \`fillRatio\` — output of the wrong-IRL pre-flight (percent + substantiveCells + totalCells + status enum).
 - \`gatesPassed\`, \`gatesElided\`, \`conditionalTriggersFired\`, \`forceToolsApplied\` — meta-fence body.
 - \`claims\` — EVERY load-bearing claim the dossier will make (NRR figures, ARR, TechPar verdicts, ICG scores, Tech Debt carry, regulatory frameworks, comparable engagement code names, etc.). Each carries the claim label + IRL citation + tier. The tool renders (K) from these.
 - \`gaps\` — categorized gap entries you have already identified. The tool auto-APPENDS \`tier-mismatch:\`, \`tier-fabrication:\`, and \`provenance-gap:\` entries based on the citation verdicts; do NOT pre-populate those categories.
-- \`irlBodyHash\` — copy verbatim from the prompt body's \`**Body-binding hash:**\` directive. Tool verifies \`sha256(cachedBody).slice(0,16) === irlBodyHash\`.
+- \`irlBodyHash\` — the hash \`prepare_irl_body\` returned, or the prompt body's \`**Body-binding hash:**\` directive when the prompt pre-populated the cache. The tool reads the body from the cache under this hash and verifies \`sha256(cachedBody).slice(0,16) === irlBodyHash\`.
 
 **Output**: the markdown blocks the run's \`auditLevel\` calls for, which the model pastes verbatim into the dossier — \`gapListMarkdown\` at every level, \`provenanceFooterMarkdown\` at \`enhanced\` and above, \`metaFenceMarkdown\` at \`debug\`. A block that is absent was withheld deliberately; do not reconstruct it. Also returned: a \`provenanceVerification\` summary (count of verified / verified-fuzzy / partner-supplied / unverified / auto-appended-gaps / tierMismatches / tierFabrications) and \`emitInstructions\` with the transcription discipline.
 
-**Re-calling**: if you discover additional gaps or claims after a first call, re-call the tool with the updated arrays rather than editing the markdown by hand.`;
+**Re-calling**: if you discover additional gaps or claims after a first call, re-call the tool with the updated arrays rather than editing the markdown by hand.
+
+**Errors** (\`structuredContent.error\`; the message in \`content\` names the fix): \`cache-miss\` — no cached body for \`irlBodyHash\`, call \`prepare_irl_body\` and retry; \`hash-mismatch\` — the cached body does not hash to \`irlBodyHash\`; \`invalid-input\` — a framework-partition, certification-scope, map-absent, or \`requireVerbatimBody\` rule rejected the payload; \`internal-error\` otherwise.`;
 
 /**
  * Handler exported so integration tests can exercise the full pipeline

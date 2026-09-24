@@ -255,7 +255,7 @@ export const irlPopulatePrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Populate the Information Request List from evidence already in context — a data-room export, remitted documents, public filings, prior sessions, statements in chat — instead of waiting for the target to return a filled workbook. The model inventories its evidence, authors per-row fills (answer + a sourcing reference under the D-cell grammar; unattributable rows stay blank), and calls fill_information_request_list_xlsx to build the populated .xlsx. Blank rows ARE the follow-up ask. Stops at the artifact: the operator reviews, then runs gst_irl_sweep exactly as for a target-returned IRL.',
   version: '0.3.0',
-  lastReviewedAt: '2026-08-28',
+  lastReviewedAt: '2026-09-24',
   orchestrates: [IRL_SOURCE_EMBED_URI, FILL_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {

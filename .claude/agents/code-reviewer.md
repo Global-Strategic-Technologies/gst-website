@@ -11,11 +11,9 @@ When invoked:
 
 1. Run `git diff master...HEAD` (plus `git status --short` for anything uncommitted) to see the full change set under review
 2. Focus on modified files; read enough surrounding code to judge fit, not just the hunks
-3. Begin review immediately
 
 Review checklist — general:
 
-- Code is clear and readable; functions and variables well-named
 - No duplicated code — and no NEW code duplicating an existing utility/component/schema/helper (hunt for reuse: `src/utils/`, `src/data/common/`, `mcp-server/src/lib/`, existing test helpers)
 - Proper error handling; input validation implemented
 - No exposed secrets or API keys; no secrets inlined in shell commands

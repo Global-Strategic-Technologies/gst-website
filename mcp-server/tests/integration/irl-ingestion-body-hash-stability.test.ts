@@ -406,15 +406,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // third path. A hash suite that moves fewer scenarios than the change touches
 // is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  'adaacf00c96d2211f46860381e225247c86fe8ffd0367ecfc7cd06e4908aeaee';
+  '97f5d64cf4662ff7555d153125121318ddcadf2984c5ef8fd11623ff8c4d33b1';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '1878996b99711638ef62f24511d6d06c37739637e885ebc3c3c4cf54ddf07475';
+  '4519a0ebae0bb2ca3262aef19de9d032e0cd934580224099e8c25643951b1f69';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'ebc181f3acf322ebcd7663f3fa741da7456c3fd4dd0888b1bf529aaf74c22653';
+  '62bc25a7c11c7e77eed23b28efc08e605e86c0106bab36b431a9c36092fef8bb';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'f4a44edc97bf352faf9ab11114f4601d0e68992b8f86fca43b770ff2a40f1657';
+  '21e3f380e2b6f43f0c61574739ebd32a30782a683ab994d884008353f9374ab1';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'e5ee7d589fee52d1a5ec8baf72678a2c9bc3c5f9e464a29fe16bb130b1c2cc14';
+  '088a4528b20a9a1b749d1499f6c2d6657078df1cb4deb6fc15467a479fe1d989';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -426,11 +426,11 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '212641718e525b47169f3c2652aae462d0a25c2cec8bec42dc5384c7d0dcff23';
+  '92142bee5feab4a62b247469f8e85894f682fdded19623d58a2f35cd7a989a0b';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '9966b62d4ba5e56f75a436f73142d5c590510f7d471e0f8b701a62ff71d8e913';
+  '0b1c38a9fe39f1676aba4a05a73d6fe9af8e58c89ee505313ac6505d80dcfdce';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  'a65bcdbe121b6507fe43e4b7cf4fc061c865c61d25c6410721c8553d05589153';
+  '29f8690924b4a2ccea821819dbb6db67f7e7fc62841f93ef99d128f97d1d6bff';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '5c1e16b8ae8224663618bf1f851871d37e991ae592928d167d5a6ee06691c798';
+  'bd25344a1051bea200423695d880ba8cc629cdfa9dd38c87866edc8568fe00e7';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  'bd10965aa9d6eeb54b0d426e3d90956875506656a858c361b4bceb2f97ba0e89';
+  'b602c277266569e7c26eda9490b8be6647a308f28a052c6b3c3cd7396fa65f21';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  '285afc33a1cfd84cf6c7258309e25af6960e67e832a557c773e890465cac8ac6';
+  '2c161ea4269e65c6f5facad6c7f96ef18c607877a5455c230c16fbf24c94598d';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -460,7 +460,7 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '3aeab49b50703524b5f24546c8dfe26d44e190f38306734c3bceeba02f7fbf71';
+  'f329641bd7cf3797241054fffeb013db5a251a774ea95388db76adae4ec0cdc5';
 // IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
 // drift, and WHICH six is the check:
 //
@@ -544,14 +544,29 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // FOUR one-shot bodies. `ICG_SEEDING_RULES` no longer claims the engine
 // penalizes -1 more harshly than 0 (each domain floors at 0); only the
 // one-shot full-body builder renders Step 5's seeding rules.
+// Prompt audit (server 0.66.0, prompt v0.30.2 -> v0.30.3, 2026-09-24): ALL
+// SIXTEEN. A wording-only pass — backlog-ID archaeology, "no longer / now"
+// phrasing, volume markers and sentence-count caps removed, the per-section
+// deeplink close stated once, the stale `claude-opus-4-7` model-id example,
+// a stray backtick, and the interactive Step 4 naming the internal
+// `Bl076BodyCacheMissError` class where the wire code is `cache-miss`. No
+// directive added or removed, so PATCH (the v0.30.0 -> v0.30.1 grade).
+// Sixteen is expected, not incidental: every arm renders at least one edited
+// literal — the one-shot body its Step 1b/4a/6/8 prose, the interactive body
+// its Step 4, and both extract-only arms the ungated RUN_AUDIT_DIRECTIVE plus
+// PROMPT_VERSION.
+// Same branch, pre-push review round (still v0.30.3, rebaselined in place per
+// the BL-120 rule — these bytes were never served): the four one-shot arms
+// only. Steps 1, 1a, 4a and 6a stopped calling the optional `_audit` sibling
+// required; those steps render only in the one-shot full-body builder.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  'b2516b983c7211f939bd215e74d0f592ff923ec39136acb3e74cdbd1b6763769';
+  'b2fec00e65db4002664b4c18bbaa81c25828b6689deafbf8371d4ac8d668cceb';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  '52650b7e75d7a605ac4b596592eb9af228401b9f5126660d0a5b0f37e21489eb';
+  'e3db606519c1f320fa7e8a185119ff03fe9cb13070e27365595c6703710952a8';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  'cf8f58c98a40995bca54af939da2f4761799f4bc39c21b31d377dafdeac5e7d9';
+  'bbc41c7c4a465a524f955dbcd51074d5dc9a435866a87373aac86fd7b2b0c808';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  '215363ffe86c2dd058b309cd42628e64d60efe375ec0a1d77805caeb0de91ccd';
+  '623907710d8e23659ef76f917761da3caf920f0a1d9818ae198f51e2b96e32f9';
 
 interface Scenario {
   name: string;
@@ -743,9 +758,7 @@ describe('gst_irl_ingestion — prompt-body hash stability', () => {
             "     `mcp-server/BREAKING_CHANGES.md`'s most recent entry.",
             '  2. Update the corresponding EXPECTED_HASH_* constant at the top of',
             '     this file to the actual value above.',
-            '  3. Regenerate the live-exercise transcript in',
-            '     `mcp-server/tests/examples/irl-ingestion.golden.md` against the new body.',
-            '  4. Bump `mcp-server/src/prompts/irl-ingestion.ts` `version` field if',
+            '  3. Bump `mcp-server/src/prompts/irl-ingestion.ts` `version` field if',
             '     not already bumped, and `mcp-server/package.json` version per the',
             '     semver-as-contract discipline.',
             '',
