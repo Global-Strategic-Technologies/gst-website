@@ -113,6 +113,13 @@ describe('gst_irl_sweep — arrival + inference (the one-arg surface)', () => {
     expect(FULL).toContain('ask the user to paste it');
   });
 
+  it('frames the embedded taxonomy as reference data, not something to reproduce', () => {
+    // The generator-side framing ("reproduce it as-is") contradicted a body
+    // that reconciles replies against the taxonomy and never reproduces it.
+    expect(FULL).toContain('without checking it against another source');
+    expect(FULL).not.toContain('reproduce it as-is');
+  });
+
   it('infers target name preamble-first (> Target:, then row 0-01) with the ask-in-conversation fallback', () => {
     expect(FULL).toContain('`> Target:`');
     expect(FULL).toContain('0-01');

@@ -160,7 +160,7 @@ describe('gst_radar_brief_today', () => {
     // the latest feed and the website surfaces no time filter. These tests
     // lock the contract.
 
-    it('prompt is at v0.0.6 (cache-lifetime fact corrected to 6 hours; v0.0.5 added the Step 7 provenance caveat)', () => {
+    it('prompt is at v0.0.6 (the wrong 24-hour cache-lifetime claim removed; v0.0.5 added the Step 7 provenance caveat)', () => {
       expect(radarBriefTodayPrompt.version).toBe('0.0.6');
     });
 

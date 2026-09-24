@@ -70,7 +70,7 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
               ? '  The user supplied a pre-generated agendaJson — use it directly:\n```json\n' +
                 args.agendaJson +
                 '\n```'
-              : `  Call \`generate_diligence_agenda\` with the supplied parameters AND the required \`_audit\` sibling. The audit shape is **per dimension**, and which shape a dimension takes depends on where its value actually came from.
+              : `  Call \`generate_diligence_agenda\` with the supplied parameters AND the \`_audit\` sibling (optional, but validated when present — send it). The audit shape is **per dimension**, and which shape a dimension takes depends on where its value actually came from.
 
   **Evidence branch.** When canonical target evidence in context covers a dimension — most often an IRL extract record fact — cite THAT: \`"citation": "Section NN — <the fact's verbatim excerpt>"\`, with the section derived from the fact's reference (\`0-03\` → \`Section 00\`), graded honestly as tier "1" when the excerpt contains the enum value as a whole-token literal and tier "2" for a one-step derivation (which is most of them). The excerpt must be at least 20 characters of substantive content and the separator is an EM-DASH (—). The tool validates this shape and returns a structured diagnostic naming the field to fix.
 

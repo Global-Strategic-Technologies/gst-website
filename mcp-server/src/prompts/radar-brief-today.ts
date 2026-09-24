@@ -74,7 +74,7 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
           text: [
             authorialIntentLine(PROMPT_NAME),
             '',
-            `Produce a radar brief from the current FYI snapshot${args.category ? `, filtered to category=${args.category}` : ' across all GST categories'}. The snapshot is a cached view of the latest feed, refreshed every 6 hours; sort by \`publishedAt\` newest-first to match the /hub/radar website's natural feed order.`,
+            `Produce a radar brief from the current FYI snapshot${args.category ? `, filtered to category=${args.category}` : ' across all GST categories'}. The snapshot is a periodically refreshed cached view of the latest feed; sort by \`publishedAt\` newest-first to match the /hub/radar website's natural feed order.`,
             '',
             'Step 1. The `gst://radar/fyi/latest` snapshot is embedded in the next message. Treat its `items[]` array as the authoritative item set for this brief — do not invent items.',
             args.category

@@ -298,7 +298,7 @@ export async function readWireLive(
  * the current clock on every read. An item therefore ages out the moment it
  * crosses the cutoff, without waiting for the 6h TTL. Every live Worker
  * consumer (website `/radar/snapshot`, `search_radar`, `get_latest_insights`,
- * the `gst://radar/fyi` Resource, the hourly cron) routes through here, so
+ * the `gst://radar/fyi` Resource, the 6-hourly cron) routes through here, so
  * this is the single enforcement point.
  *
  * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.

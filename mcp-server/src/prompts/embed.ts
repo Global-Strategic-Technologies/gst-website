@@ -25,6 +25,7 @@ import type { EmbeddedResource, TextContent } from '@modelcontextprotocol/server
 import { loadLibraryByUri } from '../content/library-loader';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import type { SnapshotTier } from '../content/radar-transform';
+import { IRL_BODY_CACHE_LIFETIME_TEXT } from '../cache/irl-body-cache';
 
 /** Result of an embed helper — either an embedded Resource or a structured-error text block. */
 export type EmbedResult = EmbeddedResource | TextContent;
@@ -250,7 +251,8 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
  *
  * **The staleness sentence is load-bearing, not a hedge.** The record is
  * context-borne with no server copy, and the IRL body cache behind
- * `irlBodyHash` expires after 4 h — so in a later session the record's
+ * `irlBodyHash` is evicted (stdio LRU) or expires (Worker TTL,
+ * `IRL_BODY_CACHE_TTL_SECONDS`) — so in a later session the record's
  * citations are asserted, not verified, until the paired body is re-seeded and
  * validated. Saying which of the two applies is also what gives
  * `_meta.generatedAt` / `_meta.promptVersion` a reader on the consumer side.
@@ -259,7 +261,9 @@ export function irlEvidencePrecedence(): string {
   return [
     '**Canonical GST target evidence takes precedence over synthesis.** If any is present in this context — a filled IRL, an IRL extract record (a `record: irl-extract` JSON document), or a target document the user supplied — resolve every input from it before synthesizing anything, matching on the IRL request text each fact carries. Cite the reference. Synthesize only what the evidence does not cover, and say what you synthesized. Never overwrite a stated figure with a norm; when a form argument and the evidence disagree, the argument wins and the output says so.',
     '',
-    "**Verified vs asserted — state which you have.** An extract record's citations are ASSERTED, not verified, unless the paired filled IRL has been validated in THIS session via `validate_irl_provenance`. Only a record carrying `_meta.irlBodyHash` can be validated; a record without one (`_meta.recordVersion` `2.0`) stays asserted — use it as given and say so. For a hashed record, the server-side body cache behind `_meta.irlBodyHash` expires after four hours, so a record arriving in a later session will not resolve by hash. To upgrade a hashed record: call `prepare_irl_body` with the paired body to re-seed, then `validate_irl_provenance` in its hash form. If you cannot — no paired body, or you chose not to — the record is still usable; say in the output that its citations are asserted-not-verified, and carry `_meta.generatedAt` and `_meta.promptVersion` so the reader knows how old the extraction is and what produced it.",
+    "**Verified vs asserted — state which you have.** An extract record's citations are ASSERTED, not verified, unless the paired filled IRL has been validated in THIS session via `validate_irl_provenance`. Only a record carrying `_meta.irlBodyHash` can be validated; a record without one (`_meta.recordVersion` `2.0`) stays asserted — use it as given and say so. For a hashed record, the server-side body cache entry behind `_meta.irlBodyHash` is not permanent — it can be " +
+      IRL_BODY_CACHE_LIFETIME_TEXT +
+      ' — so a record arriving in a later session may not resolve by hash. To upgrade a hashed record: call `prepare_irl_body` with the paired body to re-seed, then `validate_irl_provenance` in its hash form. If you cannot — no paired body, or you chose not to — the record is still usable; say in the output that its citations are asserted-not-verified, and carry `_meta.generatedAt` and `_meta.promptVersion` so the reader knows how old the extraction is and what produced it.',
   ].join('\n');
 }
 

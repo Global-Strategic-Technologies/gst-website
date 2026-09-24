@@ -63,6 +63,11 @@ describe('gst_irl_extract — trust surface and structure', () => {
     expect(BODY).not.toMatch(/[Dd]o not ask for confirmation/);
   });
 
+  it('frames the embedded taxonomy as reference data, not something to reproduce', () => {
+    expect(BODY).toContain('without checking it against another source');
+    expect(BODY).not.toContain('reproduce it as-is');
+  });
+
   it('carries the infraHostingAnnual selection rule (BL-163 item 2)', () => {
     expect(BODY).toContain(INFRA_HOSTING_ANNUALIZATION_RULE);
   });
