@@ -43,6 +43,12 @@ import type { CacheStore } from '../lib/upstash-cache-store';
  */
 export const IRL_BODY_CACHE_MAX_BYTES = 200_000;
 
+/** The cap as tool descriptions print it ("200,000"), thousands-grouped without relying on locale data. */
+export const IRL_BODY_CACHE_MAX_BYTES_TEXT = String(IRL_BODY_CACHE_MAX_BYTES).replace(
+  /\B(?=(\d{3})+(?!\d))/g,
+  ','
+);
+
 /**
  * Default Upstash TTL for Worker-mode entries. 4 hours absorbs operator
  * coffee break + standup + iteration without surfacing confusing cache-miss
@@ -52,6 +58,14 @@ export const IRL_BODY_CACHE_TTL_SECONDS = 4 * 60 * 60;
 
 /** Stdio LRU cap. 16 entries covers a deep iteration session for one operator. */
 export const IN_MEMORY_LRU_CAPACITY = 16;
+
+/**
+ * Model-facing wording for how a cached body stops being available. The two
+ * transports differ — the stdio LRU has no time limit, only the Worker's
+ * Upstash entry expires — so every tool description that mentions expiry
+ * shares this one phrase rather than stating "4 hours" as if it held for both.
+ */
+export const IRL_BODY_CACHE_LIFETIME_TEXT = `evicted (stdio LRU capacity exceeded) or expired (Worker TTL, ${IRL_BODY_CACHE_TTL_SECONDS / 3600} hours)`;
 
 /**
  * Upstash key prefix for IRL body cache entries.

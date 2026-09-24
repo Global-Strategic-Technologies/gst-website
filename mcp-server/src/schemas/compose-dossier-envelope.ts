@@ -38,6 +38,7 @@ import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
 import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
+import { IRL_BODY_CACHE_LIFETIME_TEXT } from '../cache/irl-body-cache';
 import { IRL_SOURCE_VALUES } from './irl-source';
 import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import {
@@ -231,10 +232,10 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .string()
     .regex(
       MODEL_VERSION_REGEX,
-      'modelVersion must match a vendor-family-version shape (e.g., "claude-opus-4-7", "gpt-4-turbo", "mistral-large-2407") — bare sentinels like "unknown" / "claude" are rejected.'
+      'modelVersion must match a vendor-family-version shape (e.g., "claude-opus-5", "gpt-4-turbo", "mistral-large-2407") — bare sentinels like "unknown" / "claude" are rejected.'
     )
     .describe(
-      'Your model id at invocation time, e.g., "claude-opus-4-7". The tool validates the shape (lowercase, contains at least one digit chunk) to reject obvious hallucinations; the model is the only party that knows this value so it cannot be server-derived.'
+      'Your model id at invocation time, e.g., "claude-opus-5". The tool validates the shape (lowercase, contains at least one digit chunk) to reject obvious hallucinations; the model is the only party that knows this value so it cannot be server-derived.'
     ),
   mode: z.enum(modeValues).describe('Execution mode the prompt args specified.'),
   auditLevel: z
@@ -338,7 +339,7 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
       'irlBodyHash must be exactly 16 lowercase hex characters (sha256.slice(0,16) of the verbatim IRL body).'
     )
     .describe(
-      'The canonical 16-hex `sha256(filledIrl).slice(0,16)` hash and now the SOLE body reference on this tool. Call `prepare_irl_body({ filledIrl })` first — it caches the body server-side keyed by this hash and returns it. Pass the returned `irlBodyHash` here. If you skip `prepare_irl_body` and call `compose_dossier_envelope` first, the server returns `Bl076BodyCacheMissError` directing you to `prepare_irl_body`. Hash sourcing rules (`pass-bound` vs `pass-internal` for the verification block) are unchanged — see the prompt directive.'
+      `The canonical 16-hex \`sha256(filledIrl).slice(0,16)\` hash — the only reference this tool takes to the IRL body. Obtain it from \`prepare_irl_body({ filledIrl })\`, which caches the body server-side under this hash, or from the prompt body's \`**Body-binding hash:**\` directive when the prompt pre-populated the cache. A hash the cache does not hold returns error \`cache-miss\` — the body was never prepared, or was ${IRL_BODY_CACHE_LIFETIME_TEXT}; call \`prepare_irl_body\` and retry. Hash sourcing rules (\`pass-bound\` vs \`pass-internal\`) are in the prompt directive.`
     ),
   irlSource: z
     .enum(irlSourceValues)
@@ -969,7 +970,7 @@ export class Bl076BodyCacheMissError extends Error {
         `prepare_irl_body before any consumer (compose_dossier_envelope, ` +
         `validate_irl_provenance) can re-hydrate it for provenance verification. ` +
         `If you already called prepare_irl_body, the cache entry may have ` +
-        `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL, 4 hours); re-call ` +
+        `been ${IRL_BODY_CACHE_LIFETIME_TEXT}; re-call ` +
         `prepare_irl_body with the same body to re-seed and retry. ` +
         'A cache miss is EXPECTED when you are working from an IRL extract record carried ' +
         'over from an earlier session: the record travels through the conversation, the ' +

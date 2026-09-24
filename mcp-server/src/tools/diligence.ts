@@ -41,17 +41,9 @@ export function buildDiligenceDeeplink(inputs: ValidatedUserInputs): string {
 
 const TOOL_DESCRIPTION = `Generate a prescriptive due-diligence "Inquisitor's Script" for a target M&A or investment opportunity.
 
-**USAGE RULE — \`'unknown'\` sentinel discipline (READ FIRST)**
+**Choosing values**: pass a dimension's enum value only when the user states it or it maps one-to-one from their words ("B2B SaaS" → \`productType: "b2b-saas"\`, "Series B" → \`transactionType: "venture-series"\`); otherwise pass \`'unknown'\`. \`'unknown'\` never eliminates a question — it widens the agenda — whereas a guessed value conditions the agenda on a fact nobody established. The dimensions are independent: \`productType: "b2b-saas"\` does not imply a \`businessModel\` (many B2B SaaS companies are services-led or usage-based), \`growthStage\` does not imply \`scaleIntensity\`, \`techArchetype\` does not imply \`transformationState\`, and \`operatingModel\` is not derivable from product or stage.
 
-For every one of the 13 input dimensions, follow this hierarchy:
-
-1. If the user **directly states** the value, map it to the enum and pass it (e.g., "B2B SaaS" → \`productType: "b2b-saas"\`).
-2. If the value is a **literal one-to-one extraction** from the user's words (e.g., "Series B" → \`transactionType: "venture-series"\`, "modern cloud-native stack" → \`techArchetype: "modern-cloud-native"\`), map and pass.
-3. **Otherwise, pass \`'unknown'\`.** The engine treats \`'unknown'\` as a non-eliminating value that widens the agenda conservatively. This is the supported design.
-
-**Indirect inference is forbidden.** Specifically: do NOT infer \`businessModel\` from \`productType\` ("b2b-saas" does not imply "productized-platform" — many B2B SaaS companies are services-led or usage-based); do NOT infer \`scaleIntensity\` from \`growthStage\` (many scaling-stage companies are still small-scale); do NOT infer \`transformationState\` from \`techArchetype\` ("modern-cloud-native" does not imply "stable"); do NOT infer \`operatingModel\` from anything (org structure is not derivable from product or stage). When in doubt, pass \`'unknown'\`.
-
-**Low-context prompts** ("no info yet", "early-stage curiosity", "hypothetical target", "draft something I can show a prospect"): set ALL 13 fields to \`'unknown'\` (and \`geographies: ['unknown']\`) and call the tool. Do NOT refuse, do NOT ask for more info first. The engine returns a wide low-confidence agenda specifically for this case, with an \`unknownDimensionCount\` ≥7 callout. This is by design.
+**Little or no context** (a hypothetical target, an early exploratory ask): all 13 fields may be \`'unknown'\` (with \`geographies: ['unknown']\`) — call the tool rather than refusing or asking for more information first. The tool accepts that and returns a wide agenda whose \`unknownDimensionCount\` shows how little it was conditioned on.
 
 ---
 
@@ -61,10 +53,12 @@ Given a 13-field profile of the deal (transaction type, product type, tech arche
 - Attention-area summaries flagged for the deal profile.
 - A trigger map showing which input dimensions caused which questions to surface.
 - Aggregate metadata (totalQuestions, generatedAt timestamp, an inputSummary echo).
-- \`unknownDimensionCount\` — number of input dimensions where the agent supplied the \`'unknown'\` sentinel (BL-031.95 Phase 2). When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold).
+- \`unknownDimensionCount\` — number of the 13 dimensions passed as \`'unknown'\`. At 7 or more, the agenda is conditioned on little of the deal and is low-confidence; the tool adds no callout of its own.
 - \`deeplink\` — URL to open the diligence wizard with these inputs pre-populated (for PDF / export / share via the website page). URL state takes precedence over the wizard's localStorage on page-load init.
 
 **\`'unknown'\` value contract** (technical detail): every enum field accepts the string \`'unknown'\` as a sentinel. \`'unknown'\` does NOT eliminate any trigger — it widens the agenda conservatively. For \`geographies\`, pass \`['unknown']\` (the array still must have ≥1 element).
+
+Optional \`_audit\` block: per-dimension provenance (tier + IRL citation) used by the IRL-ingestion prompts. When supplied, cross-field calibration rules run first, and a violation returns \`isError\` with \`error: "audit-failed"\` and a per-rule fix list in \`content\` — correct the payload and retry. Omit it for ad-hoc calls.
 
 This is the same engine that powers https://globalstrategic.tech/hub/tools/diligence-machine — calling it via MCP eliminates the browser round-trip.`;
 

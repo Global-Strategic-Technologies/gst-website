@@ -105,7 +105,7 @@ export const FillIrlXlsxInputSchema = z.object({
     .enum(transactionContextValues)
     .optional()
     .describe(
-      "Engagement context. One of: sell-side · buy-side · value-creation · unknown. Labels the engagement in the workbook header AND fires the source's authored skip-if directives (BL-044.5) — questions tagged for the supplied context are auto-removed, leaving Reference-ID gaps. 'unknown' fires nothing. Call `list_irl_requests` to see which questions carry directives."
+      "Engagement context. One of: sell-side · buy-side · value-creation · unknown. Labels the engagement in the workbook header AND fires the source's authored skip-if directives — questions tagged for the supplied context are auto-removed, leaving Reference-ID gaps. 'unknown' fires nothing. Call `list_irl_requests` to see which questions carry directives."
     ),
   companyName: z
     .string()

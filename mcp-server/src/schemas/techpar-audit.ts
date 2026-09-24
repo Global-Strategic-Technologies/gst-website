@@ -163,7 +163,7 @@ const monetaryFieldAuditSchema = z.object({
   ytdMathCheck: ytdMathCheckSchema
     .optional()
     .describe(
-      'Phase 2A arithmetic consistency check. Required when annualizationSource = "ytd-annualized-with-period". Supply the IRL\'s monthly anchor + reported YTD; the handler verifies monthlyAnchor × ytdMonths matches the reported YTD within 10%, catching wrong-period declarations before they cascade into a partner-misleading dossier number.'
+      'Arithmetic consistency check. Required when annualizationSource = "ytd-annualized-with-period". Supply the IRL\'s monthly anchor + reported YTD; the handler verifies monthlyAnchor × ytdMonths matches the reported YTD within 10%, catching wrong-period declarations before they cascade into a partner-misleading dossier number.'
     ),
   citation: citationSchema.describe(
     'IRL provenance citation. Form: "Section NN — <excerpt>". For partner-supplied form input, use "Section -- — partner-supplied form input — <field>". For `irl-absent`, name the blank bullet ("Section 02 — tooling cost bullet left blank by the target") or "Section -- — <why no figure exists>".'

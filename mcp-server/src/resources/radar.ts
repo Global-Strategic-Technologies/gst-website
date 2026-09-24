@@ -176,7 +176,7 @@ export function registerRadarResources(
     {
       title: 'GST Radar — FYI (latest annotated)',
       description:
-        'Latest annotated highlights from the GST Radar feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
+        'Latest annotated highlights from the GST Radar feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or the 6-hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
     withResourceMetrics(
@@ -193,7 +193,7 @@ export function registerRadarResources(
     {
       title: 'GST Radar — Wire (latest across all categories)',
       description:
-        'Latest items from the merged GST Radar Wire feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
+        'Latest items from the merged GST Radar Wire feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or the 6-hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
     withResourceMetrics(

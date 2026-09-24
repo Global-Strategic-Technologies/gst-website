@@ -21,6 +21,7 @@
  */
 
 import { z } from 'zod';
+import { IRL_BODY_CACHE_MAX_BYTES_TEXT } from '../cache/irl-body-cache';
 
 const FILLED_IRL_MIN_BYTES = 200;
 
@@ -29,8 +30,8 @@ export const PrepareIrlBodyInputSchema = z.object({
     .string()
     .min(FILLED_IRL_MIN_BYTES)
     .describe(
-      'The verbatim IRL markdown body — exactly the bytes you intend to pass to `compose_dossier_envelope.filledIrl`. ' +
-        'Must be ≥200 chars (matches the `compose_dossier_envelope` constraint).'
+      'The verbatim IRL markdown body, byte-for-byte as supplied — the server caches exactly these bytes and hashes them without normalization. ' +
+        `Must be ≥${FILLED_IRL_MIN_BYTES} characters; bodies over ${IRL_BODY_CACHE_MAX_BYTES_TEXT} bytes are rejected with \`invalid-input\`.`
     ),
 });
 

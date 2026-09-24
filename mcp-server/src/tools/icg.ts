@@ -17,7 +17,7 @@ import {
   encodeState,
   type ICGState,
 } from '../../../src/utils/icg-engine';
-import { DOMAINS } from '../../../src/data/infrastructure-cost-governance/domains';
+import { DOMAINS, TOTAL_QUESTIONS } from '../../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../src/data/infrastructure-cost-governance/recommendations';
 import {
   ICGMcpInputsSchema,
@@ -46,7 +46,7 @@ export function buildResultsState(inputs: ICGInputs): ICGState {
 
 const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governance maturity.
 
-**Structure-discovery usage (READ FIRST)**: When the user asks ABOUT the ICG framework rather than asking you to assess a specific company — e.g. "what does the ICG framework cover?", "what are the ICG domains?", "how would I assess ICG maturity?" — call this tool with \`answers: {}\` (empty object, no \`companyStage\`). The response's \`domainScores[].name\` field returns the canonical 6 domain names (with all scores at 0). Use this to ground framework descriptions in the actual taxonomy. **Do NOT describe the framework from memory** — GST's ICG framework has 6 specific domains, and describing them from training-knowledge has produced fabricated domain names in soak testing.
+**Framework questions**: the ICG framework's ${DOMAINS.length} domains and ${TOTAL_QUESTIONS} questions are GST-specific, so answer questions about the framework itself (what it covers, its domains, how maturity is assessed) from this tool rather than from memory. Call it with \`answers: {}\` and no \`companyStage\`: \`domainScores[].name\` returns the canonical domain names (all scores 0), and the \`answers\` parameter description lists every question.
 
 ---
 
@@ -55,7 +55,7 @@ Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four matu
 - \`overallScore\` (0-100) and \`maturityLevel\` ('Reactive' | 'Aware' | 'Optimizing' | 'Strategic')
 - Per-domain scores with foundational-flag status — each entry's \`name\` field is the canonical domain name (use these names verbatim; do not paraphrase or substitute)
 - Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering). Each recommendation carries \`triggerQuestionAnswered: boolean\` — \`true\` when the trigger question was explicitly answered (any value 0-3 or -1), \`false\` when the key was absent and the engine defaulted to 0. Use this to distinguish confirmed gaps from assumed gaps in summarized output.
-- Aggregate counts (answered, total, "Not sure" responses)
+- Aggregate counts (answered, total, "Not sure" responses) and \`unknownAnswerKeys\` — submitted keys that are not ICG question IDs (dropped from scoring; non-empty means a typo)
 - \`deeplink\` — URL to open the ICG wizard with these answers pre-populated (for PDF / export / share via the website page)
 - \`stageContext\` — when \`companyStage\` is supplied, echoes the native value the engine used and the canonical funding-stage equivalents
 

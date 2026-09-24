@@ -111,13 +111,17 @@ Every field is optional; `{}` produces the full canonical workbook.
 
 ## `prepare_irl_body` — field overview
 
-| Field       | Type                       | Required | Constraint  |
-| ----------- | -------------------------- | -------- | ----------- |
-| `filledIrl` | string (markdown IRL body) | **yes**  | ≥ 200 chars |
+| Field       | Type                       | Required | Constraint                                                |
+| ----------- | -------------------------- | -------- | --------------------------------------------------------- |
+| `filledIrl` | string (markdown IRL body) | **yes**  | ≥ 200 chars; ≤ `IRL_BODY_CACHE_MAX_BYTES` (200,000 bytes) |
 
 Returns `{ irlBodyHash: string /* 16 lowercase hex */, byteLength: number, mintedAt?: string /* ISO-8601 */ }`.
 
-The hash is `sha256(filledIrl).slice(0, 16)` with **no normalization** — byte-for-byte. Same body in, same hash out. Do not hand-compute it: `compose_dossier_envelope` accepts only the value this tool returns, and a guessed hash produces a cache miss rather than a mismatch you can debug.
+The tool's job is to **cache** the body server-side and return the handle to it: `compose_dossier_envelope` and body-by-hash `validate_irl_provenance` calls read the body back under this hash, so the body is never re-emitted as tool arguments. The hash is `sha256(filledIrl).slice(0, 16)` with **no normalization** — byte-for-byte. Same body in, same hash out. Do not hand-compute it: the consumers accept only a hash the cache holds, and a guessed hash produces `cache-miss` rather than a mismatch you can debug.
+
+A cached body does not live forever: it is evicted once the stdio LRU's capacity (16 entries) is exceeded, or expires after the Worker TTL (`IRL_BODY_CACHE_TTL_SECONDS`, 4 hours). Re-call the tool with the same body to re-seed. The tool description states this through the shared `IRL_BODY_CACHE_LIFETIME_TEXT` phrase in `src/cache/irl-body-cache.ts`, so the transport split is worded once.
+
+**Errors**: `invalid-input` when the body exceeds the 200,000-byte cache cap (trim and retry — this is deliberately not `cache-miss`, which would tell a client to retry the call that just failed); `internal-error` when the cache write fails.
 
 ### `mintedAt` — the STORED timestamp, and why it is optional
 
@@ -291,7 +295,7 @@ The counters fail **quiet** by design (a counter fault must not fail a tool call
 
 ## Hidden semantics
 
-- **`compose_dossier_envelope` hard-fails without the cache write.** A hash that is well-formed but not in the cache returns `Bl076BodyCacheMissError` naming the missing key and directing the caller to `prepare_irl_body`. The cache is an LRU on stdio and TTL-bounded on the Worker, so a long-running session can lose an entry it seeded earlier; the fix is always to re-seed, never to retry the same call.
+- **`compose_dossier_envelope` hard-fails without the cache write.** A hash that is well-formed but not in the cache returns error `cache-miss` (raised internally as `Bl076BodyCacheMissError`) naming the missing key and directing the caller to `prepare_irl_body`. The cache is an LRU on stdio and TTL-bounded on the Worker, so a long-running session can lose an entry it seeded earlier; the fix is always to re-seed, never to retry the same call.
 - **`validate_irl_provenance` and `compose_dossier_envelope` both need Upstash on the Worker.** They resolve their bindings lazily, so an unbound deployment still lists and serves every other tool — the failure is scoped to these two rather than to `tools/list`.
 - **`compose_dossier_envelope` records the run's IRL verdicts to Analytics Engine, once per run** (BL-157, [ADR-0034](../../../../../src/docs/adr/0034-irl-verdict-events-emit-from-compose.md)). A successful compose emits one `wrong_irl_detected` event carrying the **server-derived** fill-ratio status (none when `substantiveCells > totalCells`), plus one `gate_elided` per `gatesElided[]` entry. Tool names not in the orchestrated set are dropped. A re-call in the same run emits nothing, and a rejected compose emits nothing. Nothing about this is visible in the tool result.
 - **Provenance verification is not advisory.** `compose_dossier_envelope` runs the same engine `validate_irl_provenance` exposes, over every entry in `claims`, and appends what it finds to the gap list. Calling `validate_irl_provenance` first is a way to see the verdicts before they are written into the deliverable, not a way to avoid the check.
