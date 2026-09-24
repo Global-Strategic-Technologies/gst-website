@@ -1133,7 +1133,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **Why it still matters after BL-112.** BL-112 measured every tool, but a measurement is not a limit: **no client ceiling is documented anywhere in this repo**. The one empirical datum — 143,027 characters — is an observation _of a failure_, so the true ceiling is unknown and strictly below it. Every budget shipped in `tool-response-budget.test.ts` is therefore policy. This probe is the only thing that could turn "a client's ceiling" into a number, and two open bounding decisions wait on it: `search_regulations` (355,728 B at its schema max, ~2.5× the failing observation) and `search_portfolio` (127,709 B and unbounded by ADR-0005).
 
-**Also open, related**: `search_radar_cache` is documented as "removed in mcp-server@0.2.0" and is still registered at 0.47.0 — a deprecated alias that BL-112 had to budget precisely because the coverage rule keys on what is registered rather than on what ought to exist.
+**Also open, related**: `search_radar_cache` was documented as "removed in mcp-server@0.2.0" and is still registered (at 0.47.0, and since) — its description now says only that it is scheduled for removal. It is a deprecated alias that BL-112 had to budget precisely because the coverage rule keys on what is registered rather than on what ought to exist.
 
 ---
 

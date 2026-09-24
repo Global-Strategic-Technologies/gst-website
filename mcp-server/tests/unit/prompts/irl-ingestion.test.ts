@@ -119,7 +119,10 @@ describe('gst_irl_ingestion', () => {
     // primary output is a subject-keyed portable record rather than a set of
     // consumer-shaped payload fences, and it makes one `prepare_irl_body` call
     // on the deferred arm so the travelling artifact has auditable provenance.
-    expect(irlIngestionPrompt.version).toBe('0.30.2');
+    // v0.30.3: wording-only pass (server 0.66.0) — backlog-ID archaeology,
+    // "no longer / now" phrasing, volume markers and sentence-count caps
+    // removed; the per-section deeplink close stated once; no directive added.
+    expect(irlIngestionPrompt.version).toBe('0.30.3');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -540,18 +543,22 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('Step 8 sections C/D/E/F/G/H each carry MUST-close Open-in-Hub directives', () => {
+    it('Step 8 sections C/D/E/F/G/H each carry a close-with-deeplink Open-in-Hub directive', () => {
       // v0.0.3 hoisted the close-with-deeplink directive to the FIRST
-      // sentence of each section description with 'MUST close ... this
-      // is non-optional' framing — the model's prior 'soft-suggestion'
-      // interpretation dropped the links silently.
+      // sentence of each section description — the model's prior
+      // 'soft-suggestion' interpretation dropped the links silently. v0.30.3
+      // dropped the per-section 'MUST ... non-optional' emphasis: the rule
+      // and its reason are stated once under Voice + format directives, so
+      // these assert placement (first sentence, per section), not volume.
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toMatch(/\*\*\(C\).+\*\*.+MUST close.+Open TechPar Wizard/s);
-      expect(text).toMatch(/\*\*\(D\).+\*\*.+MUST close.+Open ICG Wizard/s);
-      expect(text).toMatch(/\*\*\(E\).+\*\*.+MUST close.+Open Tech Debt Calculator/s);
-      expect(text).toMatch(/\*\*\(F\).+\*\*.+MUST close.+Open in Regulatory Map/s);
-      expect(text).toMatch(/\*\*\(G\).+\*\*.+MUST close.+Open Hub: Comparable engagement view/s);
-      expect(text).toMatch(/\*\*\(H\).+\*\*.+MUST close.+Open Radar Feed/s);
+      expect(text).toMatch(/\*\*\(C\).+\*\*.+[Cc]lose (with|each).+Open TechPar Wizard/s);
+      expect(text).toMatch(/\*\*\(D\).+\*\*.+[Cc]lose (with|each).+Open ICG Wizard/s);
+      expect(text).toMatch(/\*\*\(E\).+\*\*.+[Cc]lose (with|each).+Open Tech Debt Calculator/s);
+      expect(text).toMatch(/\*\*\(F\).+\*\*.+[Cc]lose (with|each).+Open in Regulatory Map/s);
+      expect(text).toMatch(
+        /\*\*\(G\).+\*\*.+[Cc]lose (with|each).+Open Hub: Comparable engagement view/s
+      );
+      expect(text).toMatch(/\*\*\(H\).+\*\*.+[Cc]lose (with|each).+Open Radar Feed/s);
     });
   });
 
@@ -1100,9 +1107,13 @@ describe('gst_irl_ingestion', () => {
       expect(text).not.toContain('SKIP `prepare_irl_body`');
     });
 
-    it('interactive body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {
+    it('interactive body names the wire error code `cache-miss` as the cache-miss diagnostic', () => {
+      // The tool surfaces `structuredContent.error: 'cache-miss'`; the
+      // `Bl076BodyCacheMissError` class name never reaches the model, so
+      // naming it sent the model looking for a string it would not see.
       const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('Bl076BodyCacheMissError');
+      expect(text).toContain('a `cache-miss` error directing you to call `prepare_irl_body` first');
+      expect(text).not.toContain('Bl076BodyCacheMissError');
     });
   });
 

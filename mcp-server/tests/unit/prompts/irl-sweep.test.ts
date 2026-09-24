@@ -45,7 +45,7 @@ const FULL_ONESHOT = bodyOf({ filledIrl: FILLED });
 describe('gst_irl_sweep — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlSweepPrompt.name).toBe('gst_irl_sweep');
-    expect(irlSweepPrompt.version).toBe('0.4.0');
+    expect(irlSweepPrompt.version).toBe('0.5.0');
     expect(irlSweepPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -111,6 +111,13 @@ describe('gst_irl_sweep — arrival + inference (the one-arg surface)', () => {
   it('trusts whichever arrival channel is present and asks only when none is', () => {
     expect(FULL).toContain('Use it as given');
     expect(FULL).toContain('ask the user to paste it');
+  });
+
+  it('frames the embedded taxonomy as reference data, not something to reproduce', () => {
+    // The generator-side framing ("reproduce it as-is") contradicted a body
+    // that reconciles replies against the taxonomy and never reproduces it.
+    expect(FULL).toContain('without checking it against another source');
+    expect(FULL).not.toContain('reproduce it as-is');
   });
 
   it('infers target name preamble-first (> Target:, then row 0-01) with the ask-in-conversation fallback', () => {

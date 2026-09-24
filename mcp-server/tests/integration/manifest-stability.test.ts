@@ -263,7 +263,18 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // gst_irl_sweep 0.3.0 → 0.4.0, gst_irl_extract 0.2.0 → 0.3.0,
 // gst_target_quick_look 0.2.0 → 0.3.0, gst_irl_ingestion 0.30.1 → 0.30.2.
 // No URI moved.
-const EXPECTED_MANIFEST_HASH = '795298c3bb8404b6f77bed42fb5710ffd3d547f06fa94f1113ab559396c56f4e';
+//
+// Prompt audit (server 0.66.0, 2026-09-24): ELEVEN version bumps, no rename.
+// Every prompt whose rendered bytes changed; gst_irl_populate is the one that
+// did not (checked by render, not inferred). MINOR where an instruction
+// changed — gst_target_quick_look 0.3.0 → 0.4.0, gst_irl_create 0.1.0 → 0.2.0,
+// gst_irl_sweep 0.4.0 → 0.5.0, gst_irl_extract 0.3.0 → 0.4.0,
+// gst_architecture_layer_review / gst_comparable_engagements_memo /
+// gst_diligence_handoff_memo / gst_diligence_kickoff /
+// gst_regulatory_exposure_brief 0.1.0 → 0.2.0; PATCH where only wording or a
+// fact changed — gst_irl_ingestion 0.30.2 → 0.30.3, gst_radar_brief_today
+// 0.0.5 → 0.0.6. No URI moved.
+const EXPECTED_MANIFEST_HASH = '7286e5a349798caf91404e2efee97960e08f6a5a7f8b318af20a8929bcc855af';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

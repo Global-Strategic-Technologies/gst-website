@@ -37,11 +37,11 @@ const TOOL_DESCRIPTION = `Verify that citations the model emitted (in \`_audit\`
 
 **Inputs** (\`filledIrl\` is optional; supply EITHER):
 
-- \`filledIrl\` — the populated IRL body, same shape as the \`gst_irl_ingestion\` prompt arg. Legacy path; still works.
+- \`filledIrl\` — the populated IRL body, same shape as the \`gst_irl_ingestion\` prompt arg. Use it when the body is not in the server cache (e.g. an interactive or xlsx-reconstruction run).
 - \`irlBodyHash\` — the 16-hex \`sha256(body).slice(0,16)\` value (same shape as \`compose_dossier_envelope.irlBodyHash\`). When supplied alone, the server re-hydrates the body from the shared IRL body cache (populated by \`prepare_irl_body\` or the prompt-render pre-pop path). Use this path to avoid emitting the full body twice in the precheck loop — material wall-clock savings on bodies > ~10KB.
 - \`citations\` — array of \`{ path, citation }\` pairs. \`path\` identifies the claim site in your dossier (e.g., \`_audit.revenueRange.citation\`, \`section-C.headline\`); \`citation\` is the string you emitted (e.g., \`"Section 00 row 10 — Recurring revenue $2.64M CAD/mo Apr-2026"\`).
 
-At least one of \`filledIrl\` / \`irlBodyHash\` MUST be supplied. \`filledIrl\` takes precedence when both are present (legacy compatibility).
+Supply at least one of \`filledIrl\` / \`irlBodyHash\` (\`invalid-input\` otherwise); when both are present, \`filledIrl\` is used. A hash the cache does not hold returns \`cache-miss\` — call \`prepare_irl_body\` and retry.
 
 **Outputs**: per-citation verdict in one of four buckets:
 
@@ -50,7 +50,7 @@ At least one of \`filledIrl\` / \`irlBodyHash\` MUST be supplied. \`filledIrl\` 
 - \`partner-supplied\` — citation uses the \`Section --\` + \`partner-supplied form input\` sentinel (kickoff/handoff prompts that don't ingest an IRL). No verification expected.
 - \`unverified\` — neither verbatim nor fuzzy match. Treat as residual fabrication: surface in (J) gap list as \`provenance-gap\` and either remove the dossier claim or replace it with an honest "open" marker.
 
-The tool is pure (no engine call, no Hub URLs). Call it during your (K) provenance footer + provenance-citation self-check pass.`;
+The tool is read-only (no engine call, no Hub URLs; it only reads the IRL body cache). Call it during your (K) provenance footer + provenance-citation self-check pass.`;
 
 /**
  * Handler exported so integration tests can exercise the full pipeline

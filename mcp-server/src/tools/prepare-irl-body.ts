@@ -16,6 +16,8 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
+  IRL_BODY_CACHE_LIFETIME_TEXT,
+  IRL_BODY_CACHE_MAX_BYTES_TEXT,
   IrlBodyCacheSizeExceededError,
   IrlBodyCacheWriteFailedError,
 } from '../cache/irl-body-cache';
@@ -29,19 +31,21 @@ import {
 } from '../schemas/prepare-irl-body';
 import { toolOk, toolFail } from './_result';
 
-const TOOL_DESCRIPTION = `Compute the canonical \`irlBodyHash\` for a \`filledIrl\` body so you can submit it to \`compose_dossier_envelope\`.
+const TOOL_DESCRIPTION = `Cache a filled IRL markdown body on the server and return its canonical \`irlBodyHash\` — the handle \`compose_dossier_envelope\` and \`validate_irl_provenance\` use to read the body back, so the body is never re-emitted as tool arguments.
 
-**CALL THIS TOOL FIRST**, before \`compose_dossier_envelope\`. Do NOT guess or hand-compute sha256 — LLMs do not produce reliable hashes in-head. The 16-hex hash returned here is the only value \`compose_dossier_envelope\` will accept for this body; submitting any other value will trigger \`IrlBodyHashMismatchError\` and force a retry.
+Call this before \`compose_dossier_envelope\` (which takes only the hash) and before any \`validate_irl_provenance\` call that passes \`irlBodyHash\` instead of \`filledIrl\`. Use the returned hash rather than computing sha256 yourself: an in-head hash is unreliable, and a hash the cache does not hold makes those tools fail with \`cache-miss\`. A cached body is eventually ${IRL_BODY_CACHE_LIFETIME_TEXT}; after that, call this tool again with the same body.
 
 **Inputs**:
-- \`filledIrl\`: the verbatim IRL markdown body — EXACTLY the bytes you intend to pass to \`compose_dossier_envelope.filledIrl\`. Must be ≥200 chars.
+- \`filledIrl\`: the verbatim IRL markdown body, byte-for-byte as supplied (≥200 characters, at most ${IRL_BODY_CACHE_MAX_BYTES_TEXT} bytes). Do not reformat it or collapse newlines — the hash is over the exact bytes.
 
 **Outputs**:
 - \`irlBodyHash\`: 16-hex-char prefix of sha256(filledIrl). Pass this verbatim to \`compose_dossier_envelope.irlBodyHash\`.
 - \`byteLength\`: UTF-8 byte length of the body, for your own bookkeeping.
 - \`mintedAt\` (may be absent): ISO-8601 timestamp the server holds for this body's provenance record. It is the STORED value — the store is first-write-wins, so on a repeat call within the cache window you get the ORIGINAL mint time, not this call's clock. Copy it verbatim into an IRL extract record's \`_meta.generatedAt\` and set \`generatedAtSource: "server-witnessed"\`. **Absent means the provenance write did not land** — fall back to your own timestamp with \`generatedAtSource: "model-asserted"\`; do not claim a witness you were not given.
 
-The hash is deterministic: same body in, same hash out. No normalization is applied — byte-for-byte sha256.`;
+The hash is deterministic: same body in, same hash out. No normalization is applied — byte-for-byte sha256.
+
+**Errors**: \`invalid-input\` when the body exceeds the ${IRL_BODY_CACHE_MAX_BYTES_TEXT}-byte cache cap (trim it and retry); \`internal-error\` when the cache write fails.`;
 
 export async function handlePrepareIrlBodyTool(
   payload: PrepareIrlBodyInput,

@@ -165,7 +165,7 @@ function withUnknown<T extends readonly [string, ...string[]]>(
  * `mcp-server/src/docs/tools/diligence/CONTRACT.md` per-field detail.
  */
 const UNKNOWN_DESC =
-  " Pass `'unknown'` (BL-031.95 Phase 2 sentinel) when the agent cannot derive this from supplied context — the engine treats `'unknown'` as a non-eliminating value, widening the agenda conservatively rather than guessing.";
+  " Pass `'unknown'` when this cannot be derived from supplied context — the engine treats `'unknown'` as a non-eliminating value, widening the agenda conservatively rather than guessing.";
 
 export const UserInputsSchema = z.object({
   transactionType: z.enum(withUnknown(TRANSACTION_TYPE_IDS)).describe(
@@ -208,7 +208,7 @@ export const UserInputsSchema = z.object({
   growthStage: z
     .enum(withUnknown(GROWTH_STAGE_IDS))
     .describe(
-      'Company maturity coarse bucketing (`early` / `scaling` / `mature`). Distinct from BL-031.87 funding-stage canonical taxonomy — `growthStage` captures velocity, not funding-cohort. Combines with other inputs to gate stage-specific questions.' +
+      'Company maturity coarse bucketing (`early` / `scaling` / `mature`). Distinct from the funding-stage values (`seed` … `enterprise`) taken by `compute_techpar` and `assess_infrastructure_cost_governance` — `growthStage` captures velocity, not funding-cohort. Combines with other inputs to gate stage-specific questions.' +
         UNKNOWN_DESC
     ),
   companyAge: z

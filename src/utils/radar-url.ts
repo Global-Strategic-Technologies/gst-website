@@ -12,8 +12,8 @@
  *
  * **Capability-mirror invariant (Phase 3.A)**: this encoder accepts only
  * `category` because that is the only filter the `/hub/radar` website
- * surfaces. The MCP tool's input schema is the strict mirror; the cache
- * itself has a 24h TTL so a `since`-style filter has no website
+ * surfaces. The MCP tool's input schema is the strict mirror; the website
+ * has no time filter, so a `since`-style filter would have no
  * counterpart to deep-link into. If a future website filter ships, the
  * encoder + decoder grow in lockstep with the website surface.
  */

@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { CanonicalStageSchema } from '../../src/data/common/funding-stages';
 import { CompanyStageSchema, ICGInputsSchema } from '../../src/schemas/icg';
+import { DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
 import { StageSchema as TechParStageSchema, TechParInputsSchema } from '../../src/schemas/techpar';
 import projectsRaw from '../../src/data/ma-portfolio/projects.json';
 import { getUniqueThemes } from '../../src/utils/filterLogic';
@@ -146,7 +147,7 @@ import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-transform'
 export const RadarCategoryEnum = z
   .enum(RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]])
   .describe(
-    'Radar category. One of: pe-ma | enterprise-tech | ai-automation | security. Mirrors the four filter pills on the /hub/radar website page (the only filter the website surfaces; the cache itself has a 24h TTL so a `since` filter would be redundant against the website UX).'
+    'Radar category. One of: pe-ma | enterprise-tech | ai-automation | security. Mirrors the four filter pills on the /hub/radar website page, which is the only filter the page offers.'
   );
 export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
 
@@ -190,10 +191,10 @@ export const SearchPortfolioInputSchema = z.object({
       'Free-text query, case-insensitive. Matches against codeName, industry, summary, and the technologies array. Mirrors the website search input on /ma-portfolio. Omit or pass empty string for no search filter.'
     ),
   theme: StringOrStringArray.default(['all']).describe(
-    `Theme filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Mirrors the website Theme chip row. **The complete set of valid values is:** ${PORTFOLIO_THEMES.map((t) => `"${t}"`).join(', ')}. Use them verbatim — anything else matches zero projects. \`list_portfolio_facets\` returns the same list at runtime. **Batched usage**: when IRL Section 01 + the target profile suggest multiple themes, pass them as an array — \`theme: ["Finance", "Software"]\` returns matches across both in a single call. Do NOT call \`search_portfolio\` once per theme. A multi-theme call's \`deeplink\` omits the theme filter (the website chips are single-select).`
+    `Theme filter. Accepts a single string OR an array of strings. Pass "all" (the default) — or omit — to skip filtering. Mirrors the website Theme chip row. **The complete set of valid values is:** ${PORTFOLIO_THEMES.map((t) => `"${t}"`).join(', ')}. Use them verbatim — anything else matches zero projects. \`list_portfolio_facets\` returns the same list at runtime. An array returns the union of matches for every listed theme in one call, so several themes need one call rather than one per theme. A multi-theme call's \`deeplink\` omits the theme filter (the website chips are single-select).`
   ),
   engagement: StringOrStringArray.default(['all']).describe(
-    'Engagement-category filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row. **Natural-language mapping**: "GST advised on selling X" / "X was sold to Y" / "X exited to Y" → `Sell-Side`; "GST did diligence on X for an acquirer" / "X was acquired by Y" / "we bought X" / "we are evaluating acquiring X" → `Buy-Side`. When the user\'s phrasing is genuinely ambiguous about which side GST was on (e.g. "GST worked on the X transaction"), pass BOTH in a single call as `engagement: ["Buy-Side", "Sell-Side"]` and surface the split in synthesis — do NOT default to one side and do NOT run two separate calls. A both-sides call\'s `deeplink` omits the engagement filter (the website chips are single-select).'
+    'Engagement-category filter: which side of the transaction GST advised. Accepts a single string or an array of strings. Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `engagementCategories` in `list_portfolio_facets` (currently "Buy-Side" or "Sell-Side"). `Buy-Side` = GST advised the acquirer or investor on a company being bought; `Sell-Side` = GST advised the seller, or the company being sold or exited. When the request does not say which side GST was on, pass both as `engagement: ["Buy-Side", "Sell-Side"]` — one call returns both sets. Mirrors the website Engagement chip row. A both-sides call\'s `deeplink` omits the engagement filter (the website chips are single-select).'
   ),
 });
 
@@ -218,12 +219,25 @@ const TECHPAR_STAGE_DESCRIPTION =
   'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); TechPar-native values (seed | series_a | series_bc | pe | enterprise) are accepted for backward compatibility. TechPar collapses canonical series-b + series-c into series_bc.';
 
 /**
+ * The ICG question catalog, derived from `DOMAINS` so the `answers` description
+ * — the only place a cold LLM call can discover valid question IDs before its
+ * first call — cannot drift from the engine's own question set. Same
+ * derive-don't-hand-write rule as `PORTFOLIO_THEMES` above.
+ */
+const ICG_QUESTION_CATALOG = DOMAINS.flatMap((d) =>
+  d.questions.map((q) => `${q.id} (${d.name}): ${q.text}`)
+).join(' · ');
+
+const ICG_ANSWERS_DESCRIPTION = `Map of ICG question ID → maturity answer. Scores: 0 = Not in place, 1 = Ad hoc, 2 = Established, 3 = Optimized, -1 = Not sure (costs a point until its domain score floors at 0). Omitted IDs score 0, and recommendations they trigger come back with \`triggerQuestionAnswered: false\`. Keys not in this list are ignored and echoed in \`unknownAnswerKeys\`. Pass \`{}\` to read the framework structure. Valid IDs: ${ICG_QUESTION_CATALOG}.`;
+
+/**
  * MCP-layer input schema for `assess_infrastructure_cost_governance`.
  * Wraps `ICGInputsSchema` and replaces `companyStage` with a union
  * accepting canonical or native values. Wrapper resolves to native
  * before invoking the ICG engine.
  */
 export const ICGMcpInputsSchema = ICGInputsSchema.extend({
+  answers: ICGInputsSchema.shape.answers.describe(ICG_ANSWERS_DESCRIPTION),
   companyStage: z
     .union([CanonicalStageSchema, CompanyStageSchema])
     .optional()

@@ -1134,27 +1134,24 @@ afterEach(async () => {
 
 **For Implementation:**
 
-1. **test-strategy-architect**
-   - Help design test structure and CI/CD workflows
-   - Create vitest and playwright configurations
-   - Design test data factories
-
-2. **test-automation-specialist**
+1. **test-automation-specialist**
    - Create comprehensive test suites
    - Implement E2E tests with Playwright
    - Setup test data generation
+   - Help design test structure and CI/CD workflows
+   - Create vitest and playwright configurations
 
-3. **javascript-typescript-expert**
+2. **javascript-typescript-expert**
    - Review test code for best practices
    - Optimize test performance
    - Handle TypeScript configuration
 
-4. **code-reviewer**
+3. **code-reviewer**
    - Review test code quality
    - Ensure test readability
    - Validate test coverage
 
-5. **performance-testing-expert**
+4. **performance-testing-expert**
    - Monitor test execution speed
    - Identify slow tests
    - Optimize test performance

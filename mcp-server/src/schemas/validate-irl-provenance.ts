@@ -37,6 +37,7 @@
  */
 
 import { z } from 'zod';
+import { IRL_BODY_CACHE_LIFETIME_TEXT } from '../cache/irl-body-cache';
 
 // ─── Schema ─────────────────────────────────────────────────────────────
 
@@ -97,7 +98,8 @@ export const ValidateIrlProvenanceInputObject = z.object({
     .describe(
       'Body-by-hash mode. When the operator supplies `filledIrl` as a `gst_irl_ingestion` prompt arg, the prompt-build wrapper pre-populates the IRL body cache. The model copies the `**Body-binding hash:**` directive verbatim into this field and omits `filledIrl`. ' +
         'The model can also pass the hash returned by `prepare_irl_body` to skip emitting the full body twice in the precheck loop. ' +
-        'Server re-hydrates from cache for citation matching. Falls back to `Bl076BodyCacheMissError` if the cache write did not land (operator should retry, or call `prepare_irl_body` to re-seed). For interactive / xlsx-reconstruction mode where the cache is not pre-populated, omit this field and supply `filledIrl` instead.'
+        `Server re-hydrates from cache for citation matching. A hash the cache does not hold returns error \`cache-miss\` — the write did not land, or the body was ${IRL_BODY_CACHE_LIFETIME_TEXT}; call \`prepare_irl_body\` to re-seed and retry. ` +
+        'For interactive / xlsx-reconstruction mode where the cache is not pre-populated, omit this field and supply `filledIrl` instead.'
     ),
   citations: z
     .array(citationEntrySchema)

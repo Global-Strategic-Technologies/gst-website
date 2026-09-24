@@ -65,6 +65,7 @@ import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
 import { boundWireItems } from '../../../src/utils/radar-feed-bounds';
 import {
+  FYI_MAX_COUNT,
   oldestItemDaysAgo,
   projectItemForModel,
   RADAR_CATEGORIES,
@@ -92,10 +93,10 @@ const GetLatestInsightsInputSchema = z.object({
     .max(30)
     .optional()
     .describe(
-      'Number of FYI items to return (1-30, default 10). FYI items are the GST-annotated tier with highlight + GST Take.'
+      `Maximum number of FYI items to return (1-30, default 10). At most ${FYI_MAX_COUNT} FYI items exist at any time, so values above ${FYI_MAX_COUNT} return the same set as ${FYI_MAX_COUNT}.`
     ),
   category: RadarCategoryEnum.optional().describe(
-    'Optional category filter. Omit for all categories.'
+    'Optional category filter. One of "pe-ma" / "enterprise-tech" / "ai-automation" / "security". Omit for all categories.'
   ),
 });
 type GetLatestInsightsInput = z.infer<typeof GetLatestInsightsInputSchema>;
@@ -112,15 +113,15 @@ Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation"
 
 Failure modes return \`isError: true\` with a machine-readable \`error\` field in \`structuredContent\` (\`config-missing\` | \`token-missing\` | \`token-stale\` | \`inoreader-rate-limit\` | \`upstream-error\` | \`network-timeout\` | \`service-unavailable\`) — so agents can distinguish "Inoreader stale token, retry later" from "Inoreader rate limit, circuit broken" from "transient network error." \`content[0].text\` carries the human-readable message. A broken circuit only returns an error when there is ALSO no cached snapshot to serve; otherwise you get cached results flagged \`degraded\`.
 
-Per-key budget: 5 requests/minute and 50 requests/day (BL-032 Phase 3 radar tier — activates with this tool). The website's /hub/radar page shares the underlying 200/day Inoreader budget; treat radar tool calls as expensive.`;
+Per-key budget: 5 requests/minute and 50 requests/day, shared with \`get_latest_insights\`. The website's /hub/radar page shares the underlying 200/day Inoreader budget; treat radar tool calls as expensive.`;
 
-const GET_LATEST_INSIGHTS_DESCRIPTION = `Convenience wrapper returning the N most recent FYI items (the GST-annotated tier — highlight text + GST Take).
+const GET_LATEST_INSIGHTS_DESCRIPTION = `Return the most recent FYI items — the GST-annotated tier of the Radar feed, each carrying highlight text and a GST Take — newest first.
 
-Equivalent to \`search_radar\` filtered to FYI items only. Use this when you want a quick "what's GST flagging right now" digest; use \`search_radar\` when you need the full Wire+FYI surface or category filtering.
+Use this for a quick "what is GST flagging right now" digest. Use \`search_radar\` instead when you need the Wire tier (unannotated news items) or a \`deeplink\` to /hub/radar; this tool returns neither.
 
-Input: \`limit\` (1-30, default 10), optional \`category\`. Output: \`items[]\` of SnapshotItem shape with annotations populated.
+Input: \`limit\` (1-30, default 10) and optional \`category\`. The FYI tier holds at most the ${FYI_MAX_COUNT} freshest annotated items, so a \`limit\` above ${FYI_MAX_COUNT} returns no more than ${FYI_MAX_COUNT}. Output: \`items[]\` (the \`search_radar\` match shape without its \`tier\` field; \`summary\` is plain text), \`returned\`, \`oldestItemDaysAgo\` (null when empty), and \`liveInfo\` (\`fetchedAt\`, \`cacheHit\`, \`degraded\`, plus \`retryAfterSeconds\` when degraded). An empty \`items\` array with no error means there are no fresh FYI items, not a failure.
 
-Same Inoreader budget + circuit-breaker semantics as \`search_radar\`.`;
+Shares \`search_radar\`'s Inoreader budget, per-key rate limit, circuit-breaker behavior (cached results flagged \`degraded\`), and failure codes.`;
 
 // ---------------------------------------------------------------------------
 // Helpers

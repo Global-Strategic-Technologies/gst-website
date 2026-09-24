@@ -37,7 +37,9 @@ Given raw business values (team size, average salary, maintenance burden %, depl
 - \`doraLabel\` and DORA velocity multiplier (V) — derived from deployment frequency
 - \`deeplink\` — URL to open the Tech Debt Calculator with sliders pre-positioned to these inputs (for PDF / export / share via the website page)
 
-The MCP tool accepts raw values directly. The website stores the same raw values as canonical state, so deep-links round-trip exactly without slider-granularity quantization.`;
+The MCP tool accepts raw values directly. The website stores the same raw values as canonical state, so deep-links round-trip exactly without slider-granularity quantization.
+
+\`mttrHours\` and \`incidents\` accept null when the source material does not state a monthly figure — pass null rather than a placeholder. A null is computed as 0 (eliding that cost line) and listed in \`extractionOnly\` (always present; empty when nothing was missing), so the result can be marked incomplete. \`paybackMonths\` is null whenever monthly savings are 0 (for example \`remediationPct\` 0), because there is no payback. The optional \`_audit\` block declares where the MTTR and incident figures came from; when supplied, a figure whose declared source is \`irl-open\`, \`irl-absent\`, or \`irl-scope-mismatch\` must be null, and a violation returns \`error: "audit-failed"\` with a per-rule fix list — correct the payload and retry. Supplied sources are echoed as \`mttrSource\` / \`incidentsSource\`.`;
 
 /**
  * Convert raw MCP inputs to CalcState. Since CalcState now holds raw business

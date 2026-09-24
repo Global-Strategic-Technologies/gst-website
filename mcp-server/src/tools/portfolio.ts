@@ -46,7 +46,7 @@ import { toolOk } from './_result';
 // and the schema fails the import (and surfaces in the build log).
 const PROJECTS: Project[] = ProjectsArraySchema.parse(projectsRaw);
 
-const SEARCH_DESCRIPTION = `**Authoritative source for any GST portfolio question.** Conversation memory and cross-chat references are NOT authoritative — anonymized codenames mentioned in prior chats are unverified unless validated by calling this tool in the current turn. Call this tool BEFORE citing any project codename, even when the user doesn't explicitly mention GST. (BL-032 K.2.e.4: Claude Desktop's "Relevant chats" feature surfaced a hallucinated codename as authoritative for a new query; the anonymized-codename naming convention makes hallucinations indistinguishable from real codenames at first glance.)
+const SEARCH_DESCRIPTION = `The authoritative source for GST portfolio engagements. Portfolio codenames are anonymized and look alike, so a codename recalled from conversation memory or an earlier chat cannot be told apart from an invented one; verify any codename with this tool in the current turn before citing it, whether or not the user mentions GST.
 
 ---
 
@@ -58,7 +58,7 @@ Returns every match plus a \`deeplink\` URL that opens /ma-portfolio pre-filtere
 
 const FACETS_DESCRIPTION = `List the distinct facet values present in the portfolio dataset.
 
-Returns the deduplicated themes, engagement categories, growth stages, and years across all ${PROJECTS.length} projects — useful before composing a filtered \`search_portfolio\` query.`;
+Returns the deduplicated themes, engagement categories, growth stages, and years across all ${PROJECTS.length} projects. \`themes\` and \`engagementCategories\` are the valid values for \`search_portfolio\`'s \`theme\` and \`engagement\` filters; \`growthStages\` and \`years\` are descriptive only — \`search_portfolio\` cannot filter on them, so read them from the returned project records.`;
 
 /**
  * Build a portfolio deep-link from the resolved input by delegating to the

@@ -26,7 +26,7 @@ const BODY_ONESHOT = bodyOf({
 describe('gst_irl_extract — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlExtractPrompt.name).toBe('gst_irl_extract');
-    expect(irlExtractPrompt.version).toBe('0.3.0');
+    expect(irlExtractPrompt.version).toBe('0.4.0');
     expect(irlExtractPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -61,6 +61,11 @@ describe('gst_irl_extract — trust surface and structure', () => {
     expect(BODY).toContain('Use it as given');
     expect(BODY).toContain('A submission with no accompanying chat message is a normal invocation');
     expect(BODY).not.toMatch(/[Dd]o not ask for confirmation/);
+  });
+
+  it('frames the embedded taxonomy as reference data, not something to reproduce', () => {
+    expect(BODY).toContain('without checking it against another source');
+    expect(BODY).not.toContain('reproduce it as-is');
   });
 
   it('carries the infraHostingAnnual selection rule (BL-163 item 2)', () => {

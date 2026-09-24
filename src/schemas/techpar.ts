@@ -148,7 +148,7 @@ export const TechParInputsSchema = z.object({
     .number()
     .nonnegative()
     .describe(
-      'Annual infrastructure / cloud hosting cost (dollars). Must be > 0 for the engine to return a non-null result. BL-031.95: renamed from `infraHosting` (which stored monthly with internal × 12); now all six money fields share annual units.'
+      'Annual infrastructure / cloud hosting cost (dollars) — an annual figure, not monthly, like every money field on this tool. Must be > 0 for the engine to return a non-null result.'
     ),
   infraPersonnel: z.number().nonnegative().describe('Annual infra personnel cost (dollars).'),
   rdOpEx: z
