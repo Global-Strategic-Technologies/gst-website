@@ -622,6 +622,8 @@ A `beforeAll` could relocate only about 250ms, which is 20–30× too small to e
 
 **Third sighting (2026-09-17, `feat/audit-provenance`, a diff with no CSS):** the same case, 5000ms, in a `test:run` started right after a full `test:mcp` run (127s) on the same machine. The file took 6797ms for 47 tests, so the other 46 shared about 1.8s — the time went to that one case, with no sign of whole-file descheduling. It passed 47/47 on three isolated re-runs.
 
+**Fourth sighting (2026-09-24, `feat/opus-5-bl-035`, a diff that changed only numbers in a TS data table):** the same case, 5000ms (reported 5555ms). The `test:run` ran straight after `astro check` and `lint`, with two Astro dev servers up on the same machine. The file took 6932ms for 47 tests, so the other 46 shared about 1.4s. The time again went to that one case, matching the third sighting. In isolation the case takes 560ms (the cold first `.css` lint), against 7–85ms for its siblings. It passed 47/47 on three isolated re-runs.
+
 ### "I bumped vitest, but the old major is still in the lockfile"
 
 **Symptom:** `package.json` declares the new range, and `npm install` says "up to date". But `package-lock.json` still has the old version, for example a nested `mcp-server/node_modules/vitest@4.1.11` under a `^5.0.0` declaration. `npm prune` and wiping `node_modules` don't remove it either, because `npm install` rebuilds it from the lockfile.
