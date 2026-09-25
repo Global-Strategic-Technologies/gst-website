@@ -309,10 +309,9 @@ moves.)
 /* Hover changes the FILL only — no transform, no shadow, and no ink shift
    (STYLES_GUIDE § anti-patterns). The `color` here is not decorative: without
    it global.css's `a:hover` wins on specificity and repaints the label in
-   --color-primary, which in most palettes IS --sash-bg (--color-primary-bright,
-   ADR-0040) — the band's own fill. The label would not shift hue, it would
-   disappear (~1.3:1 against the 82% mix, both themes). Guarded by an
-   ink-invariance assertion in the sash E2E suite. */
+   --color-primary, which IS --sash-bg — the band's own fill. The label would
+   not shift hue, it would disappear (~1.3:1 against the 82% mix, every palette,
+   both themes). Guarded by an ink-invariance assertion in the sash E2E suite. */
 .brutal-sash:hover,
 .brutal-sash:focus-visible {
   background: color-mix(in srgb, var(--sash-bg) 82%, var(--bg-dark));
@@ -325,12 +324,13 @@ moves.)
    field is what makes the split legible without reading the copy. Measured and
    shown as a frozen /brand hover specimen, per this file's own colorway
    ruling.
-   `color` is restated here, and it is LIVE in palette 6: a field's rest ink is
-   --sash-bg (--color-primary-bright), and the global `a:hover` would set
-   --color-primary. In most palettes those are one colour and the leak is a
-   no-op; in palette 6 (ADR-0040) they differ — neon versus text-safe green —
-   and without this line the hovered label would turn dark green on the dark
-   band. */
+   `color` is restated here as DEFENCE, not because the leak bites today: a
+   field's rest ink is already --sash-bg, which is --color-primary, which is
+   exactly what the global `a:hover` would set — so the leak is a no-op on this
+   band and the mutation that fails for `.brutal-sash` passes here. It is kept
+   because the day --sash-bg stops being --color-primary, or a palette
+   re-points it, the no-op becomes a real defect silently. Do not mistake this
+   for a rule under test. */
 .brutal-sash-under__field:hover,
 .brutal-sash-under__field:focus-visible {
   background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));

@@ -33,8 +33,6 @@ describe('Palette data integrity', () => {
     const coreTokens = [
       '--color-primary',
       '--color-primary-dark',
-      '--color-primary-bright',
-      '--color-primary-bright-dark',
       '--color-secondary',
       '--color-success',
       '--color-warning',

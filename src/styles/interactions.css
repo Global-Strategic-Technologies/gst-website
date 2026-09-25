@@ -47,9 +47,9 @@
 }
 
 .control-active {
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
-  border-color: var(--color-primary-bright);
+  border-color: var(--color-primary);
 }
 
 /* Accent Background States */
@@ -154,10 +154,8 @@ details[open] > summary .delta-chevron {
 }
 
 .brutal-interactive:focus-visible {
-  /* The border IS the focus ring, so it keeps the text-safe primary against
-     the page; only the fill under the dark ink goes bright (ADR-0040). */
   border-color: var(--color-primary);
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
   outline: none;
 }

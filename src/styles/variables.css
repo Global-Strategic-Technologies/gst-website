@@ -12,14 +12,6 @@
   --color-primary: #05cd99;
   --color-primary-rgb: 5, 205, 153;
   --color-primary-dark: #04a87a;
-  /* The primary wherever it pairs with a DARK colour (ADR-0040): a fill under
-     dark ink (and the border framing it), text on a constant-dark surface, and
-     decorative glows. Every other use — text, icons, focus rings, borders and
-     standalone indicators on light surfaces — stays --color-primary. Equal to
-     it here and in every palette whose primary is light enough for both jobs;
-     a palette with a dark, text-safe primary re-points these to a bright one. */
-  --color-primary-bright: var(--color-primary);
-  --color-primary-bright-dark: var(--color-primary-dark);
   --color-secondary: light-dark(#cc8800, #ffaa33);
   --color-secondary-dark: #ffaa33;
   --color-tertiary: light-dark(#02724f, #05cd99);
@@ -261,13 +253,12 @@
   --footer-border: light-dark(rgba(26, 26, 26, 0.1), rgba(153, 153, 153, 0.15));
   --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
 
-  /* Announcement sash (.brutal-sash) — the band and its ink. The band is
-     --color-primary-bright (it sits under dark ink, ADR-0040); the ink is dark,
-     and no palette currently re-points it (every bright primary is light enough
-     for it — see palettes.css § Announcement sash ink for when a palette would
-     need to). variables.css owns the base value, palettes.css the per-palette
-     override. */
-  --sash-bg: var(--color-primary-bright);
+  /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
+     --color-primary; the ink is dark, and no palette currently re-points it
+     (every primary is light enough for it — see palettes.css § Announcement
+     sash ink for when a palette would need to). variables.css owns the base
+     value, palettes.css the per-palette override. */
+  --sash-bg: var(--color-primary);
   --sash-ink: var(--bg-dark);
   /* The badge chip's fill (2026-08-28, operator direction): the secondary
      accent, under constant --bg-dark ink. Re-pointed per palette in

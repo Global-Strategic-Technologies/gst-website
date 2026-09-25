@@ -242,7 +242,7 @@ Brutalist Segmented Control
    over the container's glass would leave it barely distinguishable from its
    inactive neighbour. The frosted treatment stays on the container around it. */
 .brutal-segmented__btn--active {
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
 }
 

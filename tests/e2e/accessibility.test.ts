@@ -506,12 +506,12 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
     }
   }
 
-  // Palette 6 (ADR-0040): the one palette whose primary is split into a
-  // text-safe green and a neon for dark pairings, so the one where pairing the
-  // wrong one shows. Light and dim light are where its primary works hardest
-  // (dark theme uses one neon for both). The brand-teal exemption is OFF: it
-  // matches text by the live --color-primary, and on this palette that is the
-  // green whose failures this scan exists to catch (ADR-0035 § 1 is teal-only).
+  // Palette 6 (Phosphor): the one alternative palette scanned. Its neon primary
+  // is the brightest light-theme primary of any palette (1.94:1 on white), so
+  // it is where a faint brand colour first turns into unreadable text. Primary
+  // text is exempted exactly as brand teal is (ADR-0035 § 1) — the exemption
+  // matches the live --color-primary and still fails anything under 1.5:1 —
+  // so the scan measures everything else in the palette.
   const PALETTE_6_ROUTES = ['/', '/services/', '/hub/tools/techpar/', '/brand/'];
   for (const [stored, bodyBg] of [
     ['light', 'rgb(255, 255, 255)'],
@@ -545,10 +545,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
           .toBe(bodyBg);
         if (pg.setup) await pg.setup(page);
 
-        const results = await checkA11y(page, {
-          ...(pg.exclude ? { exclude: pg.exclude } : {}),
-          exemptBrandTealText: false,
-        });
+        const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
         expect(results.critical, formatViolations(results.critical)).toHaveLength(0);
         expect(
           results.serious,

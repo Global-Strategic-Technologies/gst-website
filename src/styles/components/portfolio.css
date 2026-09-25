@@ -116,9 +116,9 @@ Brutalist Project Card
 .brutal-project-card__cta {
   width: 100%;
   padding: 0.875rem var(--spacing-lg);
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
-  border: 2px solid var(--color-primary-bright);
+  border: 2px solid var(--color-primary);
   cursor: pointer;
   font-size: 0.7rem;
   font-weight: 700;

@@ -5,15 +5,14 @@ First-visit language suggestion band (BL-153, hand-off §2)
 Rendered by LanguageBand.astro directly under the site header, in flow. The
 hand-off's CSS, verbatim where the system does not own the value and via the
 token where it does (`--touch-target-min` for the 44px mobile buttons,
-`--spacing-lg` for the README's `1rem`). `--color-primary-bright` and
-`--bg-dark` are identical in both themes, so the band needs no dark-mode rules;
-the pair passes AA in every palette. Bright, not --color-primary: every colour
-here pairs with near-black, and a palette's text-safe primary may not (ADR-0040).
+`--spacing-lg` for the README's `1rem`). `--color-primary` and `--bg-dark`
+are identical in both themes, so the band needs no dark-mode rules; the
+teal-on-near-black pair passes AA.
 
 ============================== */
 
 .lang-band {
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
   border-bottom: 2px solid var(--bg-dark);
 }
@@ -41,7 +40,7 @@ here pairs with near-black, and a palette's text-safe primary may not (ADR-0040)
    floor — an accepted residual (spacing-token-floor.test.ts). */
 .lang-band__code {
   background: var(--bg-dark);
-  color: var(--color-primary-bright);
+  color: var(--color-primary);
   padding: 0.0625rem 0.375rem;
   margin-right: var(--spacing-sm);
   font-size: var(--text-2xs);
@@ -57,7 +56,7 @@ here pairs with near-black, and a palette's text-safe primary may not (ADR-0040)
 
 .lang-band__accept {
   background: var(--bg-dark);
-  color: var(--color-primary-bright);
+  color: var(--color-primary);
   text-decoration: none;
   min-height: 36px;
   padding: 0 var(--spacing-md);

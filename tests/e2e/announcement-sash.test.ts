@@ -722,8 +722,8 @@ test.describe('Announcement sash', () => {
    *
    * This exists because it was FALSE in production. `global.css` sets
    * `a:hover { color: var(--color-primary) }` at (0,1,1), which out-ranks
-   * `.brutal-sash { color: var(--sash-ink) }` at (0,1,0) — and `--sash-bg` was
-   * `--color-primary` then (it is `--color-primary-bright` now, ADR-0040). So the main band's label
+   * `.brutal-sash { color: var(--sash-ink) }` at (0,1,0) — and `--sash-bg` IS
+   * `--color-primary`, never re-pointed per palette. So the main band's label
    * hovered into exactly the colour of its own fill: not a hue shift, a
    * disappearance (~1.3:1 against the 82% mix, every palette, both themes).
    * The gallery could not have caught it — on the under-band the same leak is
@@ -747,10 +747,8 @@ test.describe('Announcement sash', () => {
     ];
     // palette-1 re-points --color-primary (and so --sash-bg) to a different
     // hue, so it exercises the leak against a non-default fill; the default
-    // exercises the shipped case. palette-6 is the one palette whose --sash-bg
-    // (its bright primary) differs from --color-primary, the colour a leaked
-    // a:hover would paint (ADR-0040). No palette re-points --sash-ink since BL-165.
-    for (const palette of ['', 'palette-1', 'palette-6']) {
+    // exercises the shipped case. No palette re-points --sash-ink since BL-165.
+    for (const palette of ['', 'palette-1']) {
       await page.evaluate((cls) => {
         document.documentElement.className = cls;
       }, palette);

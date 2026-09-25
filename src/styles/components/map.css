@@ -235,7 +235,7 @@ Brutalist Timeline
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 1px var(--spacing-xs);
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
   border-radius: 0;
 }
@@ -316,8 +316,8 @@ Brutalist Map Controls
   /* Filled by default rather than on hover: outlined, this was --color-primary on a
      light surface at 2.06:1. Its own :hover already defined the compliant pair, and
      production's .brutal-project-card__cta ships the same shape as its default. */
-  background: var(--color-primary-bright);
-  border: 2px solid var(--color-primary-bright);
+  background: var(--color-primary);
+  border: 2px solid var(--color-primary);
   border-radius: 0;
   font-family: var(--font-family-mono);
   font-size: 0.7rem;
@@ -379,9 +379,9 @@ Brutalist Map Controls
 }
 
 .brutal-quick-zoom:active {
-  background: var(--color-primary-bright);
+  background: var(--color-primary);
   color: var(--bg-dark);
-  border-color: var(--color-primary-bright);
+  border-color: var(--color-primary);
 }
 
 .brutal-map-hint {
