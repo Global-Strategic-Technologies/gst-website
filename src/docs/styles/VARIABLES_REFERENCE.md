@@ -312,7 +312,7 @@ These variables exist for page sections and UI components that need distinct lig
 
 ### Announcement Sash
 
-The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow all six palettes and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
+The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow every palette and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
 
 | Variable          | Value                    | Usage                                           |
 | ----------------- | ------------------------ | ----------------------------------------------- |

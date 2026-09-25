@@ -26,7 +26,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 1. Use CSS variables for all colors, spacing, and typography — see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 2. Use typography utility classes — see [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md)
-3. Test in both light and dark themes and all 6 palettes
+3. Test in both light and dark themes and every palette
 4. Check responsive behavior at 768px and 480px breakpoints
 
 **Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
@@ -39,7 +39,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 ## In-repo Control Examples
 
-**The brand page is the living control-example surface for this design system — start there before building anything visual.** It renders real tokens and real component classes at runtime and reacts to the theme toggle and all six palettes, so what you see is what the system currently produces, not a static mockup.
+**The brand page is the living control-example surface for this design system — start there before building anything visual.** It renders real tokens and real component classes at runtime and reacts to the theme toggle and every palette, so what you see is what the system currently produces, not a static mockup.
 
 - **Page**: [src/pages/brand.astro](../../pages/brand.astro) — composition, section layout, and the specimen styling
 - **Specimen components**: [src/components/brand/](../../components/brand/) — color swatches with live token values (`BrandColors`, `ColorSpecimens`), the typography/spacing/transition ladders (`BrandTypography`), real production component specimens and state matrices (`BrandComponents`, `BrandUILibrary`), accessibility patterns (`BrandAccessibility`), and the palette editor (`PalettePanel`)
@@ -155,7 +155,7 @@ Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 ```
 src/styles/
 ├── variables.css           # Design tokens + utility classes (flex-center, text-label, etc.)
-├── palettes.css            # Alternative color palette definitions (6 palettes, light + dark theme)
+├── palettes.css            # Alternative color palette definitions (light + dark theme)
 ├── typography.css          # 11 semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .nav-link, .button-text-*)
 ├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .control-*, .focus-outline-*)
 ├── global.css              # Page layout, utilities, responsive rules — imports component modules below
@@ -1141,7 +1141,7 @@ Colors must use CSS variables so dark theme works automatically.
 
 > **This is mechanically enforced.** Since July 28, 2026 a hardcoded color is a stylelint **error** — it fails `npm run lint:css`, the pre-commit hook, and CI. The rule covers `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`, and the color slot of `border`/`background`/`outline` shorthands. Any value that references a token passes, including `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)`. Mechanics: [DEVELOPER_TOOLING.md § stylelint configuration notes](../development/DEVELOPER_TOOLING.md).
 >
-> **Need a tint that has no token?** Reach for `color-mix(in srgb, var(--color-success) 12%, transparent)` before minting one — it stays correct across themes and all six palettes, which a frozen `rgba(46, 139, 87, 0.12)` does not. For neutral washes use the `--surface-*-bg` family; for modal/drawer backdrops use `--scrim-15…60`; for frosted edges use `--frost-highlight`/`--frost-edge`.
+> **Need a tint that has no token?** Reach for `color-mix(in srgb, var(--color-success) 12%, transparent)` before minting one — it stays correct across themes and every palette, which a frozen `rgba(46, 139, 87, 0.12)` does not. For neutral washes use the `--surface-*-bg` family; for modal/drawer backdrops use `--scrim-15…60`; for frosted edges use `--frost-highlight`/`--frost-edge`.
 >
 > **Two documented exceptions**, both legal because custom-property declarations are never checked by the rule:
 >
@@ -1310,7 +1310,7 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [ ] If new component-specific variables needed: added to both `:root` and `html.dark-theme` in `variables.css`
 - [ ] Tested in light theme
 - [ ] Tested in dark theme
-- [ ] Tested in all 6 palettes (PalettePanel pop-out — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System)
+- [ ] Tested in every palette (PalettePanel pop-out — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System)
 - [ ] Responsive at 768px breakpoint
 - [ ] Responsive at 480px breakpoint
 - [ ] Focus states visible in both themes

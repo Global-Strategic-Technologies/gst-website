@@ -99,7 +99,7 @@ __detail, and below 512 it is the strip's second line.
 
 Colour comes from three tokens: --sash-bg and --sash-ink (variables.css; no
 palette re-points the ink today — see palettes.css) draw the bands, borders and hover — the
-derivations use color-mix, so they follow all six palettes and both themes
+derivations use color-mix, so they follow every palette and both themes
 with no extra CSS — and --sash-badge-bg (the secondary accent, re-pointed for
 palette-1 and palette-4) fills the badge chip under constant --bg-dark ink, measured at
 every palette × theme when the chip left the two-token pair (2026-08-28).

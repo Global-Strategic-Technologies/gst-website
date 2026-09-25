@@ -42,7 +42,7 @@ Theme and palette are classes on the **`<html>` element, never `<body>`**:
 
 - `html.theme-dim` — gray surfaces for the active scheme (dim light / dim dark). Root-only too.
 
-- `html.palette-0` … `html.palette-5` — six alternative brand palettes that
+- `html.palette-0` … `html.palette-6` — alternative brand palettes that
   re-point `--color-primary` and friends. Any UI built from tokens follows them
   for free; any hardcoded color does not.
 
@@ -52,7 +52,7 @@ Two rules cover almost everything:
 
 1. **Every color, space, font-size, radius, and transition comes from a
    `var(--token)`.** Hardcoded values are a lint error in this repo, and they
-   break dark mode and all six palettes.
+   break dark mode and every palette.
 2. **Reach for a `.brutal-*` class before writing CSS.** Style your own layout
    glue with tokens.
 
