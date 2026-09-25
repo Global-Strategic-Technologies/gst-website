@@ -154,30 +154,39 @@ describe('ink tokens — palette-0 (expanded tokens only)', () => {
   });
 });
 
+const DIM_SURFACES = ['#ebebeb', '#e6e6e6', '#dcdcdc']; // page, the measured floor, alt
+const DIM_DARK_SURFACES = ['#1c1c1c', '#202020', '#262626'];
+
+function assertDim(label: string, ink: string) {
+  const i = hexToRgb(ink);
+  for (const s of DIM_SURFACES) {
+    const bg = hexToRgb(s);
+    expect(contrast(i, bg), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(4.5);
+    const chip = i.map((v, k) => v * 0.12 + bg[k] * 0.88);
+    expect(contrast(i, chip), `${label}: ${ink} on its 12% tint over ${s}`).toBeGreaterThanOrEqual(
+      4.5
+    );
+  }
+}
+
+function assertDimDark(label: string, ink: string) {
+  for (const s of DIM_DARK_SURFACES) {
+    expect(contrast(hexToRgb(ink), hexToRgb(s)), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(
+      4.5
+    );
+  }
+}
+
 /* Dim light (ADR-0038): the page turns gray, so each ink is re-measured against
  * BOTH dim-light surfaces and against its 12% tint composited over each — the
  * chip case on a gray page. An ink with no dim override must pass on its own. */
 describe('ink tokens — dim light', () => {
-  const DIM_SURFACES = ['#ebebeb', '#e6e6e6', '#dcdcdc']; // page, the measured floor, alt
   const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
   const dimP0 = block(
     palettes,
     'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
   );
   const dimVars = block(variables, 'html.theme-dim');
-
-  function assertDim(label: string, ink: string) {
-    const i = hexToRgb(ink);
-    for (const s of DIM_SURFACES) {
-      const bg = hexToRgb(s);
-      expect(contrast(i, bg), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(4.5);
-      const chip = i.map((v, k) => v * 0.12 + bg[k] * 0.88);
-      expect(
-        contrast(i, chip),
-        `${label}: ${ink} on its 12% tint over ${s}`
-      ).toBeGreaterThanOrEqual(4.5);
-    }
-  }
 
   it.each(ALT_PALETTES)('palette-%i inks clear the dim-light bars', (n) => {
     for (const x of PALETTE_SCOPED) {
@@ -207,17 +216,6 @@ describe('ink tokens — dim light', () => {
  * the plain surface — dark chips are not re-measured (ADR-0035). Palette 0's dark
  * error is the one ink that needed its own dim-dark value. */
 describe('ink tokens — dim dark', () => {
-  const DIM_DARK_SURFACES = ['#1c1c1c', '#202020', '#262626'];
-
-  function assertDimDark(label: string, ink: string) {
-    for (const s of DIM_DARK_SURFACES) {
-      expect(
-        contrast(hexToRgb(ink), hexToRgb(s)),
-        `${label}: ${ink} on ${s}`
-      ).toBeGreaterThanOrEqual(4.5);
-    }
-  }
-
   it.each(ALT_PALETTES)('palette-%i dark inks clear the dim-dark bar', (n) => {
     for (const x of PALETTE_SCOPED) {
       // Dark inks are var(--altN-color-X); the literal is the dark-block base.
@@ -227,12 +225,113 @@ describe('ink tokens — dim dark', () => {
     }
   });
 
-  it("palette-0's dim-dark error override clears the dim-dark bar", () => {
+  it('palette-0 dark inks clear the dim-dark bar', () => {
     const dimDarkP0 = block(
       palettes,
       'html.theme-dim.dark-theme:not(.palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
     );
-    assertDimDark('dim-dark palette-0 error', decl(dimDarkP0, '--color-error-ink')!);
+    // Its own inks are each light-dark()'s dark half, unless dim dark re-points
+    // one (only error needs to).
+    for (const x of ALL_INKS) {
+      const ink =
+        decl(dimDarkP0, `--color-${x}-ink`) ?? lightDark(decl(variables, `--color-${x}-ink`))[1];
+      assertDimDark(`dim-dark palette-0 ${x}`, ink);
+    }
+    // The expanded tokens come from the alt0 dark literals.
+    for (const x of EXPANDED) {
+      const base = decl(darkBlock, `--alt0-color-${x}`);
+      expect(base, `--alt0-color-${x} missing from html.dark-theme`).toMatch(/^#[0-9a-f]{6}$/i);
+      assertDimDark(`dim-dark palette-0 expanded ${x}`, base!);
+    }
+  });
+});
+
+/* Palette 6 has two greens (ADR-0040). Its neon cannot carry text (1.94:1 on
+ * white) and a text-safe green cannot carry the dark ink that sits on primary
+ * fills, so --color-primary is the text-safe green and --color-primary-bright
+ * the neon. Brand teal's ADR-0035 exemption does not extend to it: its primary
+ * is held to the ink bars, plus the primary button's hover backdrop (a 25% tint
+ * of the neon, buttons.css), the worst surface its text meets. */
+describe('primary — palette 6 two greens (ADR-0040)', () => {
+  const p6 = block(palettes, 'html.palette-6');
+  const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
+  const hex = (body: string, name: string): string => {
+    const v = decl(body, name);
+    expect(v, name).toMatch(/^#[0-9a-f]{6}$/i);
+    return v!;
+  };
+  const bright = hex(rootBlock, '--alt6-color-primary-bright');
+  const brightDark = hex(rootBlock, '--alt6-color-primary-bright-dark');
+  const tintOver = (pct: number, surface: string) =>
+    hexToRgb(bright).map((v, k) => v * pct + hexToRgb(surface)[k] * (1 - pct));
+
+  it('maps primary, primary-dark and both bright tokens', () => {
+    expect(decl(p6, '--color-primary')).toBe('var(--alt6-color-primary)');
+    expect(decl(p6, '--color-primary-dark')).toBe('var(--alt6-color-primary-dark)');
+    expect(decl(p6, '--color-primary-bright')).toBe('var(--alt6-color-primary-bright)');
+    expect(decl(p6, '--color-primary-bright-dark')).toBe('var(--alt6-color-primary-bright-dark)');
+  });
+
+  it.each(['--alt6-color-primary', '--alt6-color-primary-dark'])(
+    'light %s clears the ink bars and the primary-button hover backdrop',
+    (name) => {
+      const ink = hex(rootBlock, name);
+      assertLightInk(`palette-6 ${name}`, ink, ink);
+      for (const s of ['#ffffff', '#f5f5f5']) {
+        expect(
+          contrast(hexToRgb(ink), tintOver(0.25, s)),
+          `${name} ${ink} on a 25% ${bright} tint over ${s}`
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  );
+
+  it.each(['--alt6-color-primary', '--alt6-color-primary-dark'])(
+    'dim light re-points %s to a value that clears the dim bars',
+    (name) => {
+      const ink = hex(dimAlt, name);
+      assertDim(`dim palette-6 ${name}`, ink);
+      expect(
+        contrast(hexToRgb(ink), tintOver(0.25, '#dcdcdc')),
+        `dim ${name} ${ink} on a 25% ${bright} tint over #dcdcdc`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  );
+
+  it('the dark ink reads on both bright fills, including its dim-dark lift', () => {
+    for (const fill of [bright, brightDark]) {
+      for (const ink of ['#0a0a0a', '#1c1c1c']) {
+        expect(contrast(hexToRgb(ink), hexToRgb(fill)), `${ink} on ${fill}`).toBeGreaterThanOrEqual(
+          4.5
+        );
+      }
+    }
+  });
+
+  it('dark theme keeps one neon for both jobs', () => {
+    expect(decl(darkBlock, '--alt6-color-primary-bright')).toBe('var(--alt6-color-primary)');
+    expect(decl(darkBlock, '--alt6-color-primary-bright-dark')).toBe(
+      'var(--alt6-color-primary-dark)'
+    );
+    const dark = hex(darkBlock, '--alt6-color-primary');
+    for (const s of ['#0a0a0a', '#141414', ...DIM_DARK_SURFACES]) {
+      expect(contrast(hexToRgb(dark), hexToRgb(s)), `${dark} on ${s}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+describe('primary-bright defaults to primary (ADR-0040)', () => {
+  it('equals primary in variables.css, so palettes 0-5 are unchanged', () => {
+    expect(decl(variables, '--color-primary-bright')).toBe('var(--color-primary)');
+    expect(decl(variables, '--color-primary-bright-dark')).toBe('var(--color-primary-dark)');
+  });
+
+  it('only palette 6 re-points it', () => {
+    for (const n of ALT_PALETTES) {
+      const mapped = decl(block(palettes, `html.palette-${n}`), '--color-primary-bright');
+      if (n === 6) expect(mapped).toBe('var(--alt6-color-primary-bright)');
+      else expect(mapped, `palette-${n} re-points --color-primary-bright`).toBeUndefined();
+    }
   });
 });
 

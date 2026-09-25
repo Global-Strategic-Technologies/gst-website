@@ -673,14 +673,18 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
   }
 
   /* "Copy key" is the page's one primary action. Brand teal stays, but as the
-     FILL with dark ink: teal text on its own tint is 1.83:1 (ADR-0035). */
+     FILL with dark ink: teal text on its own tint is 1.83:1 (ADR-0035). A fill
+     under dark ink is --color-primary-bright (ADR-0040). */
   .cred-footer .brutal-btn--primary {
-    background: var(--color-primary);
+    background: var(--color-primary-bright);
+    /* The frame follows the fill it surrounds (ADR-0040); .brutal-btn--primary
+       would otherwise draw it in the text-safe primary. */
+    border-color: var(--color-primary-bright);
     color: var(--text-light-primary);
   }
 
   .cred-footer .brutal-btn--primary:hover:not(:disabled) {
-    background: var(--color-primary-dark);
+    background: var(--color-primary-bright-dark);
   }
 
   .btn-row {

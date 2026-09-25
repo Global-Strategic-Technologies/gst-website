@@ -67,6 +67,9 @@ export const PALETTE_CONCEPTS: Record<number, string> = Object.fromEntries(
 export const TOKEN_TIPS: Record<string, string> = {
   '--color-primary': 'Brand accent \u2014 links, buttons, active states, hub cards',
   '--color-primary-dark': 'Hover/pressed variant of primary',
+  '--color-primary-bright':
+    'Primary wherever it pairs with dark — fills under dark text, text on near-black, glows (ADR-0040)',
+  '--color-primary-bright-dark': 'Hover/pressed variant of primary-bright',
   '--color-tertiary':
     'Accessible text accent on light surfaces \u2014 card chips, metric highlights (WCAG AA)',
   '--color-tertiary-dark': 'Hover/pressed variant of tertiary',

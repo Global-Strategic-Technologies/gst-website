@@ -33,6 +33,8 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 **Need a specific color/spacing value:** Look it up in [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md). Use the variable, never a hardcoded value.
 
+**Primary next to something dark** (a fill under dark text, text on near-black, a glow): use `--color-primary-bright`, not `--color-primary` — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Primary paired with dark ([ADR-0040](../adr/0040-primary-has-a-bright-variant-for-dark-pairings.md)).
+
 **Dark theme broken:** You almost certainly hardcoded a color. Replace it with `var(--variable-name)`.
 
 ---

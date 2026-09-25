@@ -4,25 +4,27 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 
 **Source of truth**: `src/styles/variables.css`. This reference is kept in exact parity with it by `tests/integration/docs-variables-sync.test.ts` (run via `npm run test:docs`) — every `:root` token must be documented here, and every documented token must exist there.
 
-**What dark theme does and does not touch.** `html.dark-theme` sets `color-scheme: dark`, which is what makes every `light-dark()` token resolve to its dark value — the block itself carries only `color-scheme` and the RGB-triplet overrides (see [Adding New Variables](#adding-new-variables)). Surfaces and text switch that way: `--text-primary`, `--bg-light`, `--bg-light-alt`. **Two tokens do not.** `--color-primary` holds the same teal in both themes — it is the brand constant, and the **alternative palettes**, not the theme, are what re-point it, so never author a dark variant of it. As text on a light surface it is only 2.06:1, but brand teal text deliberately stays `--color-primary` (it has no `-ink` token) — see [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md) and the status `-ink` tokens below. `--border-light` has no dark counterpart value; dark borders come from the `--border-dark-subtle` / `--border-dark-default` / `--border-dark-prominent` scale, normally paired as `light-dark(var(--border-light), var(--border-dark-default))` — a bare `--border-light` on a dark surface is invisible. (`--color-secondary` and `--color-tertiary` are different again: they genuinely carry per-theme values, listed below.) Verify with `node .design-sync/dark-probe.mjs`, which prints exactly which tokens switch.
+**What dark theme does and does not touch.** `html.dark-theme` sets `color-scheme: dark`, which is what makes every `light-dark()` token resolve to its dark value — the block itself carries only `color-scheme` and the RGB-triplet overrides (see [Adding New Variables](#adding-new-variables)). Surfaces and text switch that way: `--text-primary`, `--bg-light`, `--bg-light-alt`. **Two tokens do not.** `--color-primary` holds the same teal in both themes — it is the brand constant, and the **alternative palettes**, not the theme, are what re-point it, so never author a dark variant of it. As text on a light surface it is only 2.06:1, but brand teal text deliberately stays `--color-primary` (it has no `-ink` token) — see [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md) and the status `-ink` tokens below. Where the primary pairs with a DARK colour — a fill under dark ink, text on near-black, a glow — use `--color-primary-bright` instead; it equals `--color-primary` except in a palette whose primary is a text-safe dark shade ([ADR-0040](../adr/0040-primary-has-a-bright-variant-for-dark-pairings.md)). `--border-light` has no dark counterpart value; dark borders come from the `--border-dark-subtle` / `--border-dark-default` / `--border-dark-prominent` scale, normally paired as `light-dark(var(--border-light), var(--border-dark-default))` — a bare `--border-light` on a dark surface is invisible. (`--color-secondary` and `--color-tertiary` are different again: they genuinely carry per-theme values, listed below.) Verify with `node .design-sync/dark-probe.mjs`, which prints exactly which tokens switch.
 
 ---
 
 ## Primary Colors
 
-| Variable                     | Value                                | Usage                                                                    |
-| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
-| `--color-primary`            | `#05cd99`                            | Primary accent — links, borders, buttons, active states                  |
-| `--color-primary-rgb`        | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below                       |
-| `--color-primary-dark`       | `#04a87a`                            | Darker shade for emphasis                                                |
-| `--color-secondary`          | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                                 |
-| `--color-secondary-dark`     | `#ffaa33`                            | Secondary dark variant                                                   |
-| `--color-tertiary`           | `#02724f` (light) / `#05cd99` (dark) | Tertiary accent (deep teal)                                              |
-| `--color-tertiary-dark`      | `#01633f` (light) / `#04a87a` (dark) | Tertiary dark variant                                                    |
-| `--color-editors-pick`       | `#b26622` (light) / `#d4923a` (dark) | Editor's Pick accent                                                     |
-| `--color-editors-pick-hover` | `#d4923a` (light) / `#b26622` (dark) | Editor's Pick hover state (inverted)                                     |
-| `--color-editors-pick-ink`   | `#8a4a12` (light) / `#d4923a` (dark) | Editor's Pick as TEXT ink (ADR-0035); root-only, no palette re-points it |
-| `--color-secondary-ink`      | `#8a5a00` (light) / `#ffaa33` (dark) | Secondary as TEXT ink (ADR-0035); per-palette                            |
+| Variable                      | Value                                | Usage                                                                                                                                                         |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-primary`             | `#05cd99`                            | Primary accent — links, borders, buttons, active states                                                                                                       |
+| `--color-primary-rgb`         | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below                                                                                                            |
+| `--color-primary-dark`        | `#04a87a`                            | Darker shade for emphasis                                                                                                                                     |
+| `--color-primary-bright`      | `var(--color-primary)`               | Primary where it pairs with dark: fills under dark ink, text on near-black, glows ([ADR-0040](../adr/0040-primary-has-a-bright-variant-for-dark-pairings.md)) |
+| `--color-primary-bright-dark` | `var(--color-primary-dark)`          | Hover/pressed variant of `--color-primary-bright`                                                                                                             |
+| `--color-secondary`           | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                                                                                                                      |
+| `--color-secondary-dark`      | `#ffaa33`                            | Secondary dark variant                                                                                                                                        |
+| `--color-tertiary`            | `#02724f` (light) / `#05cd99` (dark) | Tertiary accent (deep teal)                                                                                                                                   |
+| `--color-tertiary-dark`       | `#01633f` (light) / `#04a87a` (dark) | Tertiary dark variant                                                                                                                                         |
+| `--color-editors-pick`        | `#b26622` (light) / `#d4923a` (dark) | Editor's Pick accent                                                                                                                                          |
+| `--color-editors-pick-hover`  | `#d4923a` (light) / `#b26622` (dark) | Editor's Pick hover state (inverted)                                                                                                                          |
+| `--color-editors-pick-ink`    | `#8a4a12` (light) / `#d4923a` (dark) | Editor's Pick as TEXT ink (ADR-0035); root-only, no palette re-points it                                                                                      |
+| `--color-secondary-ink`       | `#8a5a00` (light) / `#ffaa33` (dark) | Secondary as TEXT ink (ADR-0035); per-palette                                                                                                                 |
 
 ## Primary Color Opacity Scale
 
@@ -305,7 +307,6 @@ These variables exist for page sections and UI components that need distinct lig
 | `--footer-text`          | `rgba(26,26,26, 0.85)`     | `rgba(153,153,153, 0.85)`  |
 | `--footer-border`        | `rgba(26,26,26, 0.1)`      | `rgba(153,153,153, 0.15)`  |
 | `--cta-box-text`         | `rgba(26,26,26, 0.85)`     | `rgba(200,200,200, 0.8)`   |
-| `--stat-item-border`     | `var(--color-primary)`     | `var(--color-primary-20)`  |
 | `--about-image-bg`       | `var(--bg-dark-tertiary)`  | `var(--bg-dark-secondary)` |
 | `--about-image-border`   | `var(--bg-dark-secondary)` | `#2a2a2a`                  |
 | `--about-image-text`     | `#404040`                  | `#808080`                  |
@@ -314,13 +315,13 @@ These variables exist for page sections and UI components that need distinct lig
 
 The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow every palette and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
 
-| Variable          | Value                    | Usage                                           |
-| ----------------- | ------------------------ | ----------------------------------------------- |
-| `--sash-bg`       | `var(--color-primary)`   | The band. Colour is never a variant of the sash |
-| `--sash-ink`      | `var(--bg-dark)`         | The label, and the under-band's background      |
-| `--sash-badge-bg` | `var(--color-secondary)` | The badge chip's fill, under `--bg-dark` ink    |
+| Variable          | Value                         | Usage                                                                      |
+| ----------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| `--sash-bg`       | `var(--color-primary-bright)` | The band, under dark ink (ADR-0040). Colour is never a variant of the sash |
+| `--sash-ink`      | `var(--bg-dark)`              | The label, and the under-band's background                                 |
+| `--sash-badge-bg` | `var(--color-secondary)`      | The badge chip's fill, under `--bg-dark` ink                               |
 
-No palette re-points `--sash-ink`: since BL-165 every palette's primary is light enough for the dark ink in both themes (palettes 1, 3 and 5 had their light-theme fills lightened for exactly this). A future palette whose light-theme primary is dark would add `--sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark))` — note the token names read backwards, `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `--sash-badge-bg` is re-pointed for two palettes whose light-theme secondary measures under 4.5:1 against the chip's dark ink: `palette-1` (`#a6a6a6`, its dark-theme secondary promoted to both themes, replacing `#595959`) and `palette-4` (`#60a5fa`, replacing `#1d4ed8` — light theme only in effect, since that is already its dark-theme secondary).
+No palette re-points `--sash-ink`: since BL-165 every palette's bright primary is light enough for the dark ink in both themes (palettes 1, 3 and 5 had their light-theme fills lightened for exactly this; palette 6's text-safe primary is dark, but its bright one is neon). A future palette whose light-theme bright primary is dark would add `--sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark))` — note the token names read backwards, `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `--sash-badge-bg` is re-pointed for two palettes whose light-theme secondary measures under 4.5:1 against the chip's dark ink: `palette-1` (`#a6a6a6`, its dark-theme secondary promoted to both themes, replacing `#595959`) and `palette-4` (`#60a5fa`, replacing `#1d4ed8` — light theme only in effect, since that is already its dark-theme secondary).
 
 ### Miscellaneous
 
@@ -475,25 +476,26 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ## Alternative Palette Variables (`palettes.css`)
 
-Six alternative color palettes override the core tokens when applied to `<html>`. Defined in `src/styles/palettes.css`.
+The alternative color palettes override the core tokens when applied to `<html>`. Defined in `src/styles/palettes.css`.
 
 ### Palette Alt-Color Definitions
 
 Each palette defines light and dark theme variants for 6 core colors + 3 expanded tokens:
 
-| Variable Pattern            | Description                        |
-| --------------------------- | ---------------------------------- |
-| `--altN-color-primary`      | Primary brand accent for palette N |
-| `--altN-color-primary-dark` | Hover/pressed variant              |
-| `--altN-color-secondary`    | Secondary emphasis                 |
-| `--altN-color-success`      | Positive outcomes                  |
-| `--altN-color-warning`      | Caution indicators                 |
-| `--altN-color-error`        | Errors/critical states             |
-| `--altN-color-authority`    | Institutional credibility accent   |
-| `--altN-color-distinguish`  | Differentiation accent             |
-| `--altN-color-subdued`      | Muted neutral                      |
+| Variable Pattern              | Description                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--altN-color-primary`        | Primary brand accent for palette N                                                                                                                                                                 |
+| `--altN-color-primary-dark`   | Hover/pressed variant                                                                                                                                                                              |
+| `--altN-color-primary-bright` | Primary for dark pairings — only a palette whose primary is text-safe and dark sets it (palette 6, [ADR-0040](../adr/0040-primary-has-a-bright-variant-for-dark-pairings.md)); with `-bright-dark` |
+| `--altN-color-secondary`      | Secondary emphasis                                                                                                                                                                                 |
+| `--altN-color-success`        | Positive outcomes                                                                                                                                                                                  |
+| `--altN-color-warning`        | Caution indicators                                                                                                                                                                                 |
+| `--altN-color-error`          | Errors/critical states                                                                                                                                                                             |
+| `--altN-color-authority`      | Institutional credibility accent                                                                                                                                                                   |
+| `--altN-color-distinguish`    | Differentiation accent                                                                                                                                                                             |
+| `--altN-color-subdued`        | Muted neutral                                                                                                                                                                                      |
 
-Where N = 0–5. Palette 0 only overrides the 3 expanded tokens (production palette keeps core colors from `variables.css`). Palettes 1–5 override all 9 tokens plus derived accent/border/opacity scales.
+Where N = 0–6. Palette 0 only overrides the 3 expanded tokens (production palette keeps core colors from `variables.css`). Palettes 1–6 override all 9 tokens; the opacity scales follow from `--color-primary-rgb`.
 
 ### Palette Override Classes
 
@@ -505,7 +507,7 @@ html.palette-1 {
 }
 ```
 
-Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--accent-light-bg-hover`, `--accent-border-light`, `--accent-border-medium`, and `--stat-item-border`.
+Also overrides `--color-primary-rgb`, `--color-tertiary` / `-tertiary-dark` and the seven `-ink` tokens; palettes 1 and 4 re-point `--sash-badge-bg`, and palette 6 `--color-primary-bright` / `-bright-dark`.
 
 ### Tool Derivation
 

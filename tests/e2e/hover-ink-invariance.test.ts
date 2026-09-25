@@ -9,9 +9,9 @@
  *
  * at specificity (0,1,1), which out-ranks any single-class rule at (0,1,0). So
  * a component that sets its own `color` on a bare class and never restates it
- * under `:hover` loses its ink the moment a pointer touches it — and because
- * `--color-primary` is also `--sash-bg` and the fill of every component below,
- * what it loses it to is EXACTLY THE COLOUR IT IS PAINTED ON. The label does
+ * under `:hover` loses its ink the moment a pointer touches it — and in every
+ * palette whose primary is also its bright fill (ADR-0040), what it loses it to
+ * is EXACTLY THE COLOUR IT IS PAINTED ON. The label does
  * not shift hue; it disappears. `sash.css` is `@import`ed from `global.css`, so
  * source order cannot save any of them.
  *
@@ -30,10 +30,12 @@ import { test, expect, type Page } from '@playwright/test';
 
 /**
  * Each case names an anchor that paints a solid brand fill, and how to bring it
- * into a hoverable state. `--sash-bg` is never re-pointed per palette
- * (palettes.css), so the default palette is the case that matters; the sash
- * suite covers the re-pointed palettes for its own bands.
+ * into a hoverable state. Each runs in the default palette, where primary and
+ * its bright fill are one colour, and in palette 6, where they differ
+ * (ADR-0040) and a leaked `a:hover` ink would land dark green on neon.
  */
+const PALETTES = ['0', '6'] as const;
+
 const CASES = [
   {
     name: 'skip-nav (the WCAG 2.4.1 bypass link)',
@@ -60,39 +62,43 @@ const CASES = [
 ] as const;
 
 test.describe('Hover ink invariance', () => {
-  for (const testCase of CASES) {
-    test(`${testCase.name} keeps its ink on hover`, async ({ page }) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await page.goto(testCase.route);
+  for (const testCase of CASES)
+    for (const palette of PALETTES) {
+      test(`${testCase.name} keeps its ink on hover (palette ${palette})`, async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        // Stored before navigation, as BaseLayout's inline script reads it.
+        await page.addInitScript((id) => localStorage.setItem('palette', id), palette);
+        await page.goto(testCase.route);
+        if (palette !== '0') await expect(page.locator(`html.palette-${palette}`)).toHaveCount(1);
 
-      // Measure the SETTLED colour. `.brutal-segmented__btn` transitions
-      // `color`, so sampling straight after hover() catches an animation frame
-      // — the first run of this guard read rgba(13,13,13,0.93) mid-fade and
-      // reported a difference that was real but not the one being asserted.
-      // Suppressing transitions is the instrument, not a workaround: the
-      // property under test is the END state the cascade produces.
-      await page.addStyleTag({
-        content: '*, *::before, *::after { transition: none !important; }',
+        // Measure the SETTLED colour. `.brutal-segmented__btn` transitions
+        // `color`, so sampling straight after hover() catches an animation frame
+        // — the first run of this guard read rgba(13,13,13,0.93) mid-fade and
+        // reported a difference that was real but not the one being asserted.
+        // Suppressing transitions is the instrument, not a workaround: the
+        // property under test is the END state the cascade produces.
+        await page.addStyleTag({
+          content: '*, *::before, *::after { transition: none !important; }',
+        });
+        await testCase.reveal(page);
+
+        const node = page.locator(testCase.selector).first();
+        await expect(node, 'the case still exists to be checked').toHaveCount(1);
+
+        const rest = await node.evaluate((el) => getComputedStyle(el).color);
+        await node.hover();
+        const hovered = await node.evaluate((el) => ({
+          color: getComputedStyle(el).color,
+          background: getComputedStyle(el).backgroundColor,
+        }));
+
+        expect(hovered.color, `${testCase.selector}: ink must not move on hover`).toBe(rest);
+        // The consequence, stated separately so a failure says WHY it matters:
+        // the leak lands the ink on its own fill.
+        expect(
+          hovered.color,
+          `${testCase.selector}: ink must not become the fill it sits on`
+        ).not.toBe(hovered.background);
       });
-      await testCase.reveal(page);
-
-      const node = page.locator(testCase.selector).first();
-      await expect(node, 'the case still exists to be checked').toHaveCount(1);
-
-      const rest = await node.evaluate((el) => getComputedStyle(el).color);
-      await node.hover();
-      const hovered = await node.evaluate((el) => ({
-        color: getComputedStyle(el).color,
-        background: getComputedStyle(el).backgroundColor,
-      }));
-
-      expect(hovered.color, `${testCase.selector}: ink must not move on hover`).toBe(rest);
-      // The consequence, stated separately so a failure says WHY it matters:
-      // the leak lands the ink on its own fill.
-      expect(
-        hovered.color,
-        `${testCase.selector}: ink must not become the fill it sits on`
-      ).not.toBe(hovered.background);
-    });
-  }
+    }
 });

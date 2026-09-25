@@ -6,12 +6,12 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
 
 .cta-button {
   display: inline-block;
-  background: var(--color-primary);
+  background: var(--color-primary-bright);
   color: var(--bg-dark);
   padding: var(--spacing-lg) var(--spacing-2xl);
   text-decoration: none;
   font-weight: 700;
-  border: 2px solid var(--color-primary);
+  border: 2px solid var(--color-primary-bright);
   transition: all var(--transition-normal);
   font-family: var(--font-family-mono);
   font-size: 0.95rem;

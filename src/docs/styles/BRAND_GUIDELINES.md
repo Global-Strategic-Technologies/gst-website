@@ -252,15 +252,15 @@ Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) m
 
 The default palette and its alternatives are defined in `src/styles/palettes.css`, enabling stakeholders to preview the entire site in alternative brand directions. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern, and persisted via `localStorage('palette')`.
 
-| ID  | Name                     | Primary          | Secondary         | Character                                |
-| --- | ------------------------ | ---------------- | ----------------- | ---------------------------------------- |
-| 0   | **Current** (production) | Teal `#05cd99`   | Amber `#CC8800`   | The baseline                             |
-| 1   | **Monolith**             | Gray `#8e8e8e`   | Gray `#595959`    | Black and white, grayscale everything    |
-| 2   | **Redline**              | Red `#ff2424`    | Yellow `#ffd400`  | Eye-bleeding signal red, loud on purpose |
-| 3   | **Admiralty**            | Blue `#5a8af2`   | Amber `#ff9f1c`   | Navy depth, signal blue, cold cyan edge  |
-| 4   | **Blaze**                | Orange `#ff6a00` | Blue `#1d4ed8`    | Safety orange against electric blue      |
-| 5   | **Ultraviolet**          | Purple `#c145ff` | Lime `#a3e635`    | Vivacious violet, nightclub energy       |
-| 6   | **Phosphor**             | Green `#1fd65f`  | Fuchsia `#ff4fd8` | Terminal phosphor, fuchsia and crimson   |
+| ID  | Name                     | Primary                                     | Secondary         | Character                                |
+| --- | ------------------------ | ------------------------------------------- | ----------------- | ---------------------------------------- |
+| 0   | **Current** (production) | Teal `#05cd99`                              | Amber `#CC8800`   | The baseline                             |
+| 1   | **Monolith**             | Gray `#8e8e8e`                              | Gray `#595959`    | Black and white, grayscale everything    |
+| 2   | **Redline**              | Red `#ff2424`                               | Yellow `#ffd400`  | Eye-bleeding signal red, loud on purpose |
+| 3   | **Admiralty**            | Blue `#5a8af2`                              | Amber `#ff9f1c`   | Navy depth, signal blue, cold cyan edge  |
+| 4   | **Blaze**                | Orange `#ff6a00`                            | Blue `#1d4ed8`    | Safety orange against electric blue      |
+| 5   | **Ultraviolet**          | Purple `#c145ff`                            | Lime `#a3e635`    | Vivacious violet, nightclub energy       |
+| 6   | **Phosphor**             | Green `#097030` (text) / `#1fd65f` (bright) | Fuchsia `#ff4fd8` | Terminal phosphor, fuchsia and crimson   |
 
 **Adding a palette:** also add it to the `:not(.palette-1, …, .palette-6)` lists in `palettes.css` § Dim-light inks, or it inherits palette 0's dim ink values ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)), and to the `ALT_PALETTES` list in `tests/integration/ink-token-contrast.test.ts`, which measures its inks. The PalettePanel tabs, including the mobile header grid, size themselves from `src/data/palettes.ts`.
 
@@ -345,6 +345,8 @@ All text and UI element pairings must meet WCAG 2.1 AA contrast minimums:
 | Non-text UI elements (borders, icons, focus indicators) | 3:1                    |
 
 **Fill versus ink ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))**: brand and status colours are fill and border colours. Used as text on a light surface they fail AA — `--color-primary` 2.06:1, `--color-secondary`/`--color-warning` 2.96:1 — so text uses the `-ink` tokens. **Brand teal is exempt by decision**: `--color-primary` text, delta icons and focus rings stay teal, accepting 2.06:1 on light surfaces, because a darker substitute reads as a different brand colour. Inks are unchanged in dark theme. `tests/integration/ink-token-contrast.test.ts` guards every ink in every palette, including dim light and dim dark.
+
+**Primary paired with dark ([ADR-0040](../adr/0040-primary-has-a-bright-variant-for-dark-pairings.md))**: where the primary pairs with a dark colour — a fill under dark ink (with the border framing it), text on a constant-dark surface, a decorative glow — use `--color-primary-bright`. Everywhere else, including fills that carry light text, use `--color-primary`. The two are the same colour in every palette except Phosphor, whose neon cannot carry text (1.94:1 on white) and whose text-safe `#097030` cannot carry dark ink. `tests/integration/primary-pairing-guard.test.ts` enforces the pairing.
 
 **`--text-muted` usage**: Opacity is `0.65` in light theme and `0.6` in dark, yielding ~5.4:1 on `#ffffff` and ~4.7:1 on `#0a0a0a`. Both clear the 4.5:1 AA floor for normal text, but only just — so restrict `--text-muted` to large text (≥ 18px), labels, captions, placeholder text, and decorative/disabled elements. For sustained normal-sized body text, use `--text-secondary` or higher. The live per-theme ratios are rendered on `/brand` under Accessibility → Color Contrast Ratios.
 

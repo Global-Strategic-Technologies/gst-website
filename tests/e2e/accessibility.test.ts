@@ -506,6 +506,58 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
     }
   }
 
+  // Palette 6 (ADR-0040): the one palette whose primary is split into a
+  // text-safe green and a neon for dark pairings, so the one where pairing the
+  // wrong one shows. Light and dim light are where its primary works hardest
+  // (dark theme uses one neon for both). The brand-teal exemption is OFF: it
+  // matches text by the live --color-primary, and on this palette that is the
+  // green whose failures this scan exists to catch (ADR-0035 § 1 is teal-only).
+  const PALETTE_6_ROUTES = ['/', '/services/', '/hub/tools/techpar/', '/brand/'];
+  for (const [stored, bodyBg] of [
+    ['light', 'rgb(255, 255, 255)'],
+    ['dim-light', 'rgb(235, 235, 235)'],
+  ] as const) {
+    for (const pg of PAGES.filter((p) => PALETTE_6_ROUTES.includes(p.path))) {
+      test(`${pg.name} (palette 6, ${stored}) has no critical or serious violations`, async ({
+        page,
+      }) => {
+        await page.addInitScript((t) => {
+          try {
+            localStorage.setItem('palette', '6');
+            localStorage.setItem('theme', t);
+          } catch {
+            // Storage blocked: the class assertion below fails loudly instead.
+          }
+        }, stored);
+        if (pg.waitFor) {
+          await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
+          await page
+            .locator(pg.waitFor)
+            .first()
+            .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
+        } else {
+          await page.goto(pg.path, { waitUntil: 'load' });
+        }
+        await expect(page.locator('html')).toHaveClass(/(^|\s)palette-6(\s|$)/);
+        await expect(page.locator('html')).not.toHaveClass(/(^|\s)dark-theme(\s|$)/);
+        await expect
+          .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+          .toBe(bodyBg);
+        if (pg.setup) await pg.setup(page);
+
+        const results = await checkA11y(page, {
+          ...(pg.exclude ? { exclude: pg.exclude } : {}),
+          exemptBrandTealText: false,
+        });
+        expect(results.critical, formatViolations(results.critical)).toHaveLength(0);
+        expect(
+          results.serious,
+          `Serious a11y violations on ${pg.name} (palette 6, ${stored}):\n${formatViolations(results.serious)}`
+        ).toHaveLength(0);
+      });
+    }
+  }
+
   for (const theme of THEMES) {
     for (const pg of PAGES) {
       const scanName = theme === 'light' ? pg.name : `${pg.name} (dark)`;
