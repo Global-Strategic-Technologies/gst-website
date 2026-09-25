@@ -107,7 +107,7 @@ import { palettes } from '../../data/palettes';
     <div
       class="palette-panel__mobile-header"
       id="panel-mobile-header"
-      style={`--palette-columns: ${palettes.length * 6}; --palette-button-span: ${palettes.length * 2}`}
+      style={`--palette-columns: ${palettes.length * 3}; --palette-button-span: ${palettes.length}`}
     >
     </div>
     <div class="palette-panel__header">
@@ -603,8 +603,8 @@ import { palettes } from '../../data/palettes';
     }
 
     /* Mobile header: palette numbers on row 1, the three delta buttons on
-       row 2. Six tracks per palette (counts set inline from palettes.length),
-       so each number spans 6 and each delta button spans a third of the row,
+       row 2. Three tracks per palette (counts set inline from palettes.length),
+       so each number spans 3 and each delta button spans a third of the row,
        for any number of palettes. */
     .palette-panel__mobile-header {
       display: grid;
@@ -627,7 +627,7 @@ import { palettes } from '../../data/palettes';
     }
 
     .palette-panel__mobile-header .palette-panel__tab {
-      grid-column: span 6;
+      grid-column: span 3;
     }
 
     .palette-panel__mobile-header .palette-panel__tab--active {

@@ -670,8 +670,8 @@ test.describe('Ambient motion — the rail Motion button', () => {
     const columns = await page.evaluate(
       () => getComputedStyle(document.getElementById('panel-mobile-header')!).gridTemplateColumns
     );
-    // Six tracks per palette, so the three delta buttons split row 2 evenly.
-    expect(columns.split(/\s+/).filter(Boolean)).toHaveLength(palettes.length * 6);
+    // Three tracks per palette, so the three delta buttons split row 2 evenly.
+    expect(columns.split(/\s+/).filter(Boolean)).toHaveLength(palettes.length * 3);
     const buttonTops = await page.evaluate(() =>
       ['.palette-panel__popout', '.palette-panel__motion', '.palette-panel__theme-toggle'].map(
         (sel) =>

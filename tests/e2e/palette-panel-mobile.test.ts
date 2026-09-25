@@ -167,15 +167,15 @@ test.describe('Mobile Header Controls', () => {
     expect(exists).toBe(true);
   });
 
-  // Six tracks per palette: each number spans 6, each of the three delta
+  // Three tracks per palette: each number spans 3, each of the three delta
   // buttons a third of the row.
-  test('grid layout has six columns per palette', async ({ page }) => {
+  test('grid layout has three columns per palette', async ({ page }) => {
     const columns = await page.evaluate(() => {
       const header = document.getElementById('panel-mobile-header');
       return header ? getComputedStyle(header).gridTemplateColumns : '';
     });
     const colCount = columns.split(/\s+/).filter(Boolean).length;
-    expect(colCount).toBe(palettes.length * 6);
+    expect(colCount).toBe(palettes.length * 3);
   });
 
   test('palette tab tap switches palette', async ({ page }) => {
