@@ -45,10 +45,21 @@ const EXPANDED = ['authority', 'distinguish', 'subdued'] as const;
 const ALT_PALETTES = [1, 2, 3, 4, 5, 6];
 
 /** The declarations inside the first block whose selector text matches exactly. */
+/** The declarations inside the first block whose selector matches, ignoring the
+ *  whitespace Prettier inserts when it wraps a long `:not(…)` list over lines. */
 function block(css: string, selector: string): string {
-  const start = css.indexOf(`${selector} {`);
-  if (start === -1) throw new Error(`no block for ${selector}`);
-  return css.slice(start, css.indexOf('}', start));
+  const pattern = [...selector]
+    .map((ch) => {
+      if (ch === ' ') return '\\s+';
+      const lit = ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (ch === '(' || ch === ',') return `${lit}\\s*`;
+      if (ch === ')') return `\\s*${lit}`;
+      return lit;
+    })
+    .join('');
+  const match = new RegExp(`(?:^|[\\s}])${pattern}\\s*\\{`).exec(css);
+  if (!match) throw new Error(`no block for ${selector}`);
+  return css.slice(match.index, css.indexOf('}', match.index + match[0].length));
 }
 function decl(body: string, name: string): string | undefined {
   return new RegExp(`${name}:\\s*([^;]+);`).exec(body)?.[1].trim();
