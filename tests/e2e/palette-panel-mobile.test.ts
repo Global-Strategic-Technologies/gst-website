@@ -8,6 +8,7 @@ import {
   clickMobileThemeToggle,
   setPopoutState,
 } from './helpers/palette';
+import { palettes } from '../../src/data/palettes';
 
 test.beforeEach(async ({ page }) => {
   await setMobileViewport(page);
@@ -145,11 +146,11 @@ test.describe('Mobile Header Controls', () => {
     await openMobileSheet(page);
   });
 
-  test('mobile header contains 6 palette tabs', async ({ page }) => {
+  test('mobile header contains one tab per palette', async ({ page }) => {
     const count = await page.evaluate(
       () => document.querySelectorAll('#panel-mobile-header .palette-panel__tab').length
     );
-    expect(count).toBe(6);
+    expect(count).toBe(palettes.length);
   });
 
   test('mobile header contains theme toggle', async ({ page }) => {
@@ -166,13 +167,14 @@ test.describe('Mobile Header Controls', () => {
     expect(exists).toBe(true);
   });
 
-  test('grid layout is 6 columns', async ({ page }) => {
+  // Two tracks per palette: each number spans 2, each delta button half the row.
+  test('grid layout has two columns per palette', async ({ page }) => {
     const columns = await page.evaluate(() => {
       const header = document.getElementById('panel-mobile-header');
       return header ? getComputedStyle(header).gridTemplateColumns : '';
     });
     const colCount = columns.split(/\s+/).filter(Boolean).length;
-    expect(colCount).toBe(6);
+    expect(colCount).toBe(palettes.length * 2);
   });
 
   test('palette tab tap switches palette', async ({ page }) => {

@@ -41,6 +41,8 @@ const PALETTE_SCOPED = [
 ] as const;
 const ALL_INKS = [...PALETTE_SCOPED, 'editors-pick'] as const;
 const EXPANDED = ['authority', 'distinguish', 'subdued'] as const;
+/** Every alternative palette (palette 0 is the default and is tested separately). */
+const ALT_PALETTES = [1, 2, 3, 4, 5, 6];
 
 /** The declarations inside the first block whose selector text matches exactly. */
 function block(css: string, selector: string): string {
@@ -109,7 +111,7 @@ describe('ink tokens — default palette (variables.css)', () => {
   });
 });
 
-describe.each([1, 2, 3, 4, 5])('ink tokens — palette-%i', (n) => {
+describe.each(ALT_PALETTES)('ink tokens — palette-%i', (n) => {
   const paletteBlock = block(palettes, `html.palette-${n}`);
 
   it.each(PALETTE_SCOPED)('maps --color-%s-ink to its own palette value', (x) => {
@@ -150,7 +152,7 @@ describe('ink tokens — dim light', () => {
   const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
   const dimP0 = block(
     palettes,
-    'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5)'
+    'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
   );
   const dimVars = block(variables, 'html.theme-dim');
 
@@ -167,7 +169,7 @@ describe('ink tokens — dim light', () => {
     }
   }
 
-  it.each([1, 2, 3, 4, 5])('palette-%i inks clear the dim-light bars', (n) => {
+  it.each(ALT_PALETTES)('palette-%i inks clear the dim-light bars', (n) => {
     for (const x of PALETTE_SCOPED) {
       const ink =
         decl(dimAlt, `--alt${n}-color-${x}-ink`) ?? decl(rootBlock, `--alt${n}-color-${x}-ink`);
@@ -187,6 +189,40 @@ describe('ink tokens — dim light', () => {
       assertDim(`dim palette-0 expanded ${x}`, alt0!);
     }
     assertDim('dim editors-pick', lightDark(decl(dimVars, '--color-editors-pick-ink'))[0]);
+  });
+});
+
+/* Dim dark (ADR-0038): surfaces lift to #1c1c1c / #202020 / #262626, and stop at
+ * #262626 because every palette's dark inks still clear 4.5:1 there. The bar is
+ * the plain surface — dark chips are not re-measured (ADR-0035). Palette 0's dark
+ * error is the one ink that needed its own dim-dark value. */
+describe('ink tokens — dim dark', () => {
+  const DIM_DARK_SURFACES = ['#1c1c1c', '#202020', '#262626'];
+
+  function assertDimDark(label: string, ink: string) {
+    for (const s of DIM_DARK_SURFACES) {
+      expect(
+        contrast(hexToRgb(ink), hexToRgb(s)),
+        `${label}: ${ink} on ${s}`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+
+  it.each(ALT_PALETTES)('palette-%i dark inks clear the dim-dark bar', (n) => {
+    for (const x of PALETTE_SCOPED) {
+      // Dark inks are var(--altN-color-X); the literal is the dark-block base.
+      const base = decl(darkBlock, `--alt${n}-color-${x}`);
+      expect(base, `--alt${n}-color-${x} missing from html.dark-theme`).toMatch(/^#[0-9a-f]{6}$/i);
+      assertDimDark(`dim-dark palette-${n} ${x}`, base!);
+    }
+  });
+
+  it("palette-0's dim-dark error override clears the dim-dark bar", () => {
+    const dimDarkP0 = block(
+      palettes,
+      'html.theme-dim.dark-theme:not(.palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
+    );
+    assertDimDark('dim-dark palette-0 error', decl(dimDarkP0, '--color-error-ink')!);
   });
 });
 

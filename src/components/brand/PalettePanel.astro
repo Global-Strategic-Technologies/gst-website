@@ -77,7 +77,12 @@ import { palettes } from '../../data/palettes';
     <div class="palette-panel__grab-handle" id="panel-grab-handle" aria-hidden="true">
       <span class="palette-panel__grab-bar"></span>
     </div>
-    <div class="palette-panel__mobile-header" id="panel-mobile-header"></div>
+    <div
+      class="palette-panel__mobile-header"
+      id="panel-mobile-header"
+      style={`--palette-count: ${palettes.length}; --palette-columns: ${palettes.length * 2}`}
+    >
+    </div>
     <div class="palette-panel__header">
       <span class="brutal-label" id="panel-palette-name">0. Current</span>
       <button
@@ -517,10 +522,13 @@ import { palettes } from '../../data/palettes';
       touch-action: none;
     }
 
-    /* Mobile header — 6-column grid: numbers on row 1, deltas on row 2 */
+    /* Mobile header: palette numbers on row 1, the two delta buttons on row 2.
+       Two tracks per palette (counts set inline from palettes.length), so each
+       number spans 2 and each delta button spans half the row, for any number
+       of palettes. */
     .palette-panel__mobile-header {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(var(--palette-columns), 1fr);
       gap: var(--spacing-xs);
       padding: 0 var(--spacing-lg) var(--spacing-sm);
     }
@@ -537,6 +545,10 @@ import { palettes } from '../../data/palettes';
       justify-content: center;
     }
 
+    .palette-panel__mobile-header .palette-panel__tab {
+      grid-column: span 2;
+    }
+
     .palette-panel__mobile-header .palette-panel__tab--active {
       border-color: var(--color-primary);
       border-bottom-width: 2px;
@@ -545,7 +557,7 @@ import { palettes } from '../../data/palettes';
     /* Delta buttons span half the row each */
     .palette-panel__mobile-header .palette-panel__theme-toggle,
     .palette-panel__mobile-header .palette-panel__popout {
-      grid-column: span 3;
+      grid-column: span var(--palette-count);
     }
 
     /* Popout icon: down triangle = off, upright = on */
