@@ -44,7 +44,6 @@ const EXPANDED = ['authority', 'distinguish', 'subdued'] as const;
 /** Every alternative palette (palette 0 is the default and is tested separately). */
 const ALT_PALETTES = [1, 2, 3, 4, 5, 6];
 
-/** The declarations inside the first block whose selector text matches exactly. */
 /** The declarations inside the first block whose selector matches, ignoring the
  *  whitespace Prettier inserts when it wraps a long `:not(…)` list over lines. */
 function block(css: string, selector: string): string {
