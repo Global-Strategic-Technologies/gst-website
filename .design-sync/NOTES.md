@@ -405,8 +405,8 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
     **The chrome cards are different**: their scaffold is ours, and the class sits on the
     card's own root `<html>` — both reasons answered — so seven ship as dark twins, verified
     by `extract-chrome.mjs --check` (`--bg-light` → `#0a0a0a`).
-- **The six palettes are VERIFIED (by measurement).** Run `node .design-sync/palette-probe.mjs`
-  — it applies `html.palette-0…5` to a real card and checks `--color-primary` plus a painted
+- **The palettes are VERIFIED (by measurement) through palette 5; palette 6 (2026-09-25) is verified at its first re-sync.** Run `node .design-sync/palette-probe.mjs`
+  — it applies every `html.palette-N` to a real card and checks `--color-primary` plus a painted
   element (`.brutal-progress-bar__fill`). Result 2026-08-16: palette-0 (the default) leaves
   the primary at `#05cd99` as designed; 1–5 re-point both the token and the fill
   (`#1e40af`, `#7c3aed`, `#b45309`, `#059669`, `#166534`). Same root-only constraint as dark

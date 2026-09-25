@@ -28,7 +28,7 @@ does not apply here.
 What we publish instead is three things:
 
 1. **The CSS design system.** `src/styles/` flattened into one stylesheet — every token,
-   `html.dark-theme`, all six `html.palette-N` blocks, and the full `.brutal-*` class
+   `html.dark-theme`, every `html.palette-N` block, and the full `.brutal-*` class
    vocabulary — plus four guideline docs from [`src/docs/styles/`](../styles/README.md).
 2. **Ten specimen galleries.** React components that render GST _markup + classes_
    (`ButtonSpecimen`, `TypographySpecimen`, `CardSpecimen`, `DataSpecimen`,
@@ -122,7 +122,7 @@ and regenerated — never commit them.
 | `.design-sync/lib/inline-urls.mjs` | Shared `url()` → data-URI inliner used by `build-css.mjs` (assets under `public/`) and `extract-chrome.mjs` (assets under `dist/client/`)                                                          |
 | `.design-sync/ds-entry.mjs`        | Zero-export bundle entry stub                                                                                                                                                                      |
 | `.design-sync/dark-probe.mjs`      | Verifies dark mode still switches tokens                                                                                                                                                           |
-| `.design-sync/palette-probe.mjs`   | Verifies the six palettes still re-point `--color-primary` and a painted element                                                                                                                   |
+| `.design-sync/palette-probe.mjs`   | Verifies every palette still re-points `--color-primary` and a painted element                                                                                                                     |
 | `.design-sync/tsconfig.json`       | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
 | `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**; standing rules only, no per-run logs                                                                           |
 
@@ -142,10 +142,10 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   card and prints which tokens switch. Expected: `--text-primary`, `--bg-light`,
   `--bg-light-alt` and body color switch; `--color-primary` and `--border-light` do not
   (teal is theme-invariant; `--border-light` is a light-only token).
-- **Palettes**: `node .design-sync/palette-probe.mjs` — applies `html.palette-0…5` to the
+- **Palettes**: `node .design-sync/palette-probe.mjs` — applies every `html.palette-N` to the
   same card and checks that `--color-primary` AND a painted element (the progress-bar
-  fill) re-point under 1–5 and stay put under 0 (the default palette). Verified 2026-08-16:
-  all six behave as expected against the shipped bundle.
+  fill) re-point under each alternative and stay put under 0 (the default palette). Verified 2026-08-16
+  for palettes 0–5 against the shipped bundle; palette 6 (2026-09-25) is verified at its first re-sync.
 - **Names — guarded in CI.** `tests/integration/design-sync-guards.test.ts` (part of
   `npm run test:docs`, a required check) asserts every class, BEM sub-element, modifier
   and token named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in

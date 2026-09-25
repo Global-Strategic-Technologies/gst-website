@@ -1,9 +1,9 @@
 import { palettes, PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '@/data/palettes';
 
 describe('Palette data integrity', () => {
-  it('should export exactly 6 palettes (ids 0-5)', () => {
-    expect(palettes).toHaveLength(6);
-    expect(palettes.map((p) => p.id)).toEqual([0, 1, 2, 3, 4, 5]);
+  it('should export exactly 7 palettes (ids 0-6)', () => {
+    expect(palettes).toHaveLength(7);
+    expect(palettes.map((p) => p.id)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   it('each palette should have non-empty name and concept', () => {
@@ -15,9 +15,9 @@ describe('Palette data integrity', () => {
     }
   });
 
-  it('PALETTE_NAMES should have entries for ids 0-5', () => {
-    expect(Object.keys(PALETTE_NAMES)).toHaveLength(6);
-    for (let i = 0; i <= 5; i++) {
+  it('PALETTE_NAMES should have entries for ids 0-6', () => {
+    expect(Object.keys(PALETTE_NAMES)).toHaveLength(7);
+    for (let i = 0; i <= 6; i++) {
       expect(PALETTE_NAMES[i]).toBeTruthy();
       expect(typeof PALETTE_NAMES[i]).toBe('string');
     }

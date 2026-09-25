@@ -326,7 +326,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 1. **Model page**: [src/page-templates/HubPage.astro](src/page-templates/HubPage.astro) with its one-line route wrapper [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy that shape (BaseLayout + composed components, copy from a catalog, `locale` prop), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
 2. Design-system tokens only — no hardcoded colors, spacing, font sizes (stylelint enforces colors; see STYLES_GUIDE)
-3. Verify in light AND dark theme AND all 6 palettes (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
+3. Verify in light AND dark theme AND every palette (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
 4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
 5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
 6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
@@ -337,7 +337,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 1. Palette definitions: `src/styles/palettes.css` (CSS variable overrides per `html.palette-N`)
 2. Palette metadata: `src/data/palettes.ts` (names, concepts, token tips)
 3. Palette JS logic: `src/scripts/palette-manager.ts` (switching, color editing, panel controls)
-4. To add a new palette: add `--altN-*` variables in `palettes.css` (light + dark), add `html.palette-N` override block, add it to the `:not()` lists in `palettes.css` § Dim-light inks (ADR-0038), add entry to `palettes.ts`
+4. To add a new palette: add `--altN-*` variables in `palettes.css` (light + dark), add `html.palette-N` override block, add it to the `:not()` lists in `palettes.css` § Dim-light inks (ADR-0038) and to `ALT_PALETTES` in `tests/integration/ink-token-contrast.test.ts`, add entry to `palettes.ts`
 5. PalettePanel renders site-wide from `BaseLayout.astro`; visible on `/brand` always, other pages via pop-out toggle
 
 ### Updating Portfolio Data

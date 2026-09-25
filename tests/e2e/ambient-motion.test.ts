@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y } from './helpers/a11y';
+import { palettes } from '../../src/data/palettes';
 
 /**
  * Hero ambient motion (BL-035, ADR-0039): the /brand palette-panel section
@@ -669,7 +670,17 @@ test.describe('Ambient motion — the rail Motion button', () => {
     const columns = await page.evaluate(
       () => getComputedStyle(document.getElementById('panel-mobile-header')!).gridTemplateColumns
     );
-    expect(columns.split(/\s+/).filter(Boolean)).toHaveLength(6);
+    // Six tracks per palette, so the three delta buttons split row 2 evenly.
+    expect(columns.split(/\s+/).filter(Boolean)).toHaveLength(palettes.length * 6);
+    const buttonTops = await page.evaluate(() =>
+      ['.palette-panel__popout', '.palette-panel__motion', '.palette-panel__theme-toggle'].map(
+        (sel) =>
+          Math.round(
+            document.querySelector(`#panel-mobile-header ${sel}`)!.getBoundingClientRect().top
+          )
+      )
+    );
+    expect(new Set(buttonTops).size, 'the three delta buttons share one row').toBe(1);
 
     await clone.click();
     await expect.poll(() => sectionInView(page)).toBe(true);

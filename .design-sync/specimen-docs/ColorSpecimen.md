@@ -6,7 +6,7 @@ category: Specimens
 It exists so you can see what each color token resolves to.
 
 Every color in a GST design comes from a token. Hardcoded colors are a lint error in the
-source repo, and they break both dark mode and all six alternative palettes.
+source repo, and they break both dark mode and every alternative palette.
 
 | Need                                | Token                                                                             |
 | ----------------------------------- | --------------------------------------------------------------------------------- |
@@ -25,8 +25,8 @@ source repo, and they break both dark mode and all six alternative palettes.
 
 **Need a tint with no token?** Use
 `color-mix(in srgb, var(--color-success) 12%, transparent)` — it stays correct across
-themes and all six palettes, which a frozen `rgba()` does not.
+themes and every palette, which a frozen `rgba()` does not.
 
 Theme and palette are classes on `<html>`: `html.dark-theme` (which flips every
-`light-dark()` token) and `html.palette-0` … `html.palette-5`. Token-built UI follows
+`light-dark()` token) and `html.palette-0` … `html.palette-6`. Token-built UI follows
 both automatically.
