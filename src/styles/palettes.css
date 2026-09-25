@@ -539,9 +539,11 @@ html.theme-dim:not(.dark-theme) {
      ADR-0035 § 1, down to the 1.5:1 floor that keeps it legible). On the gray
      dim-light surfaces #1fd65f drops to 1.41, so dim light deepens it just
      enough to clear the floor on every dim surface and tint (worst 1.62) while
-     dark ink still reads on it as a fill (7.39). */
+     dark ink still reads on it as a fill (7.39). Success follows the primary
+     in this palette, so it deepens with it. */
   --alt6-color-primary: #18b64f;
   --alt6-color-primary-dark: #16aa49;
+  --alt6-color-success: #18b64f;
 }
 
 html.theme-dim:not(

@@ -277,6 +277,11 @@ describe('primary — palette 6 dim light', () => {
     }
   });
 
+  it('success deepens with it, as it follows the primary in this palette', () => {
+    expect(decl(rootBlock, '--alt6-color-success')).toBe(decl(rootBlock, '--alt6-color-primary'));
+    expect(decl(dimAlt, '--alt6-color-success')).toBe(decl(dimAlt, '--alt6-color-primary'));
+  });
+
   it('its tints follow the dim primary', () => {
     const g = hexToRgb(decl(dimAlt, '--alt6-color-primary')!);
     expect(decl(dimP6, '--color-primary-rgb')).toBe(g.join(', '));
