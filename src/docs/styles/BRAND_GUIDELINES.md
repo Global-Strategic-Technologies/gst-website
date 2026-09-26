@@ -250,19 +250,19 @@ Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) m
 
 ## Alternative Palette System
 
-The default palette and its alternatives are defined in `src/styles/palettes.css`, enabling stakeholders to preview the entire site in alternative brand directions. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern, and persisted via `localStorage('palette')`.
+The default palette and its alternatives are defined in `src/styles/palettes.css`. All seven are live: **the site's look rotates daily** ([ADR-0040](../adr/0040-daily-look-rotation.md)). The palette follows the weekday, Monday = 0 through Sunday = 6, and the theme follows the week of the month: days 1–7 light, 8–14 dim light, 15–21 dim dark, 22 to the end dark. Both use the visitor's local clock. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern.
 
-| ID  | Name                     | Primary          | Secondary         | Character                                |
-| --- | ------------------------ | ---------------- | ----------------- | ---------------------------------------- |
-| 0   | **Current** (production) | Teal `#05cd99`   | Amber `#CC8800`   | The baseline                             |
-| 1   | **Monolith**             | Gray `#8e8e8e`   | Gray `#595959`    | Black and white, grayscale everything    |
-| 2   | **Redline**              | Red `#ff2424`    | Yellow `#ffd400`  | Eye-bleeding signal red, loud on purpose |
-| 3   | **Admiralty**            | Blue `#5a8af2`   | Amber `#ff9f1c`   | Navy depth, signal blue, cold cyan edge  |
-| 4   | **Blaze**                | Orange `#ff6a00` | Blue `#1d4ed8`    | Safety orange against electric blue      |
-| 5   | **Ultraviolet**          | Purple `#c145ff` | Lime `#a3e635`    | Vivacious violet, nightclub energy       |
-| 6   | **Phosphor**             | Green `#1fd65f`  | Fuchsia `#ff4fd8` | Terminal phosphor, fuchsia and crimson   |
+| ID  | Name                 | Primary          | Secondary         | Character                                |
+| --- | -------------------- | ---------------- | ----------------- | ---------------------------------------- |
+| 0   | **Current** (Monday) | Teal `#05cd99`   | Amber `#CC8800`   | The baseline                             |
+| 1   | **Monolith**         | Gray `#8e8e8e`   | Gray `#595959`    | Black and white, grayscale everything    |
+| 2   | **Redline**          | Red `#ff2424`    | Yellow `#ffd400`  | Eye-bleeding signal red, loud on purpose |
+| 3   | **Admiralty**        | Blue `#5a8af2`   | Amber `#ff9f1c`   | Navy depth, signal blue, cold cyan edge  |
+| 4   | **Blaze**            | Orange `#ff6a00` | Blue `#1d4ed8`    | Safety orange against electric blue      |
+| 5   | **Ultraviolet**      | Purple `#c145ff` | Lime `#a3e635`    | Vivacious violet, nightclub energy       |
+| 6   | **Phosphor**         | Green `#1fd65f`  | Fuchsia `#ff4fd8` | Terminal phosphor, fuchsia and crimson   |
 
-**Adding a palette:** also add it to the `:not(.palette-1, …, .palette-6)` lists in `palettes.css` § Dim-light inks, or it inherits palette 0's dim ink values ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)), and to the `ALT_PALETTES` list in `tests/integration/ink-token-contrast.test.ts`, which measures its inks. The PalettePanel tabs, including the mobile header grid, size themselves from `src/data/palettes.ts`.
+**Adding a palette:** decide its weekday in `DAY_TO_PALETTE` (`src/scripts/daily-look.ts`; seven palettes fill the seven days, and `tests/unit/daily-look.test.ts` fails until the new one has a place, see ADR-0040). Also add it to the `:not(.palette-1, …, .palette-6)` lists in `palettes.css` § Dim-light inks, or it inherits palette 0's dim ink values ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)), and to the `ALT_PALETTES` list in `tests/integration/ink-token-contrast.test.ts`, which measures its inks. The PalettePanel tabs, including the mobile header grid, size themselves from `src/data/palettes.ts`.
 
 In every alternative palette the status colours are drawn from the palette itself rather than generic green/yellow/red: success follows the primary, warning the secondary, and error the palette's accent (grayscale in Monolith). Tell statuses apart by label, not by hue alone, in those palettes.
 
@@ -270,13 +270,20 @@ Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-da
 
 **How to preview:** Open the PalettePanel on the `/brand` page (right-edge tab bar). Click the middle delta icon to "pop out" the panel to all pages.
 
-**Important:** Palette 0 is the production palette. Alternative palettes are for stakeholder review only — they are not deployed to production.
+### Picks, colour edits and the rotation
+
+- **A pick lasts until midnight.** Choosing a palette tab, the panel's theme button or the footer toggle overrides the rotation for the rest of that local day. The next day's first page load shows the rotation again. Palette and theme are tracked separately: picking a theme leaves the palette on the rotation, and the reverse. Each pick is stored with a date stamp (`localStorage` `palette` + `palette-date`, `theme` + `theme-date`).
+- **Picks saved before the rotation launched count as expired**, so every visitor starts on the rotation.
+- **Colour edits belong to the palette they were made on.** They show only while that palette is on screen, and switching palettes wipes them, as before.
+- **Launch cleared existing colour edits**, because they carried no palette tag.
+- **A palette's edits come back on its weekday only if the site wasn't opened in between.** Opening it on another palette's day clears them.
+- An open tab does not switch at midnight; the change applies on the next page load.
 
 ---
 
 ## Ambient Motion
 
-The homepage hero, and optionally the whole homepage or every page, can carry a quiet, CSS-only motion layer behind its content ([ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md), BL-035). Like the alternative palettes, **it is a review tool: no visitor sees it** until they switch it on in their own browser.
+The homepage hero, and optionally the whole homepage or every page, can carry a quiet, CSS-only motion layer behind its content ([ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). **It is on for every visitor by default** (since 2026-09-25): all six effects, on every page, at pace 110, with strengths Grid Pulse 15, Glow Shift 40, Scan Sweep 5, Data Rails 20, Delta Drift 30 and Delta Arrows 45. Each browser can change or switch it off in the palette panel.
 
 | Effect       | What moves                                                                       |
 | ------------ | -------------------------------------------------------------------------------- |
@@ -289,18 +296,18 @@ The homepage hero, and optionally the whole homepage or every page, can carry a 
 
 **How to use it.** Wherever the PalettePanel appears (always on `/brand`, and on any page once it is popped out), click the **Motion** button on the panel's right-edge rail. It is a delta with two speed strokes, and it is lit while any effect is on. It opens the panel and jumps to the **Ambient Motion** section, the last section, below the colour swatches. On a phone, open the sheet first; the Motion button is in its header row.
 
-- Toggle any number of effects; there is no "off" choice, since nothing selected means a still hero.
+- Toggle any number of effects; there is no "off" choice, since nothing selected means a still hero. Switching every effect off is remembered, so that browser stays still. **Reset motion** forgets the choice and returns to the default.
 - Set each effect's strength. 50 reproduces the approved prototype.
 - **Pace** speeds up or slows down all of them together.
 - **Scope** sets where it draws:
-  - **Hero** (the default): the homepage hero only.
+  - **Hero**: the homepage hero only.
   - **Homepage**: the hero plus a background behind the rest of the homepage.
-  - **Every page**: that background on every page of the site.
+  - **Every page** (the default): that background on every page of the site.
 
   The background scrolls with the page and repeats every screen, so a long page is as lively as a short one. Opaque sections (hero bands, CTA boxes, portfolio cards) cover it, as a background should, and it starts below the hero on any page that has one.
 
 - The live preview is under UI Component Library → Marketing Components → Hero Ambient Motion. The same settings apply to the homepage (`/`, `/es/`, `/pt/`).
-- Motion starts just after the page has loaded and fades in, so it never slows the page's first paint. A browser that never switched it on downloads none of it, and the panel's Motion controls load when the panel first opens.
+- Motion starts just after the page has loaded and fades in, so it never slows the page's first paint. A browser that switched it off, or prefers reduced motion, downloads none of it, and the panel's Motion controls load when the panel first opens.
 
 **Rules the layer keeps.**
 

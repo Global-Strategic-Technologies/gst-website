@@ -1,6 +1,6 @@
-# ADR-0039: Ambient motion is a per-browser design setting, off for visitors
+# ADR-0039: Ambient motion is a per-browser design setting, on for visitors by default
 
-- **Status**: Accepted (2026-09-22)
+- **Status**: Accepted (2026-09-22). Amended 2026-09-25: public default and go-live (§ Amendment)
 - **Source initiative**: BL-035 (Dynamic Visual Effects). The design prototypes are kept in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards plus the palette-panel section, from the design canvas).
 
 ## Context
@@ -43,7 +43,7 @@ Two things stood in the way.
   - This is ADR-0038's pinning pattern, strengthened from comparing literals to comparing behaviour.
 - The inline script clamps every number. An invalid custom property would make `opacity` fall back to 1, so a corrupt stored value would otherwise mean full strength.
 
-**Only a browser that opted in loads any of it** (2026-09-23; this reverses the rejection of a script-built layer, below). Built as static markup and CSS, the feature cost every visitor about 8 KB gzipped per page (the hidden tile template, the panel's Motion section, the background script and 1.9 KB of render-blocking CSS) and pushed first paint back about 150ms, for motion almost nobody sees.
+**Only a browser that opted in loads any of it** (2026-09-23; this reverses the rejection of a script-built layer, below. Since the 2026-09-25 amendment every browser is opted in by default, and only one that switched motion off, or prefers reduced motion, loads none of it). Built as static markup and CSS, the feature cost every visitor about 8 KB gzipped per page (the hidden tile template, the panel's Motion section, the background script and 1.9 KB of render-blocking CSS) and pushed first paint back about 150ms, for motion almost nobody sees.
 
 - **Placeholders.** [`AmbientEffect.astro`](../../components/AmbientEffect.astro) (the hero's `backdrop` slot and the /brand stage) and [`AmbientPage.astro`](../../components/AmbientPage.astro) (first child of `<main>`) render empty boxes. Their scoped styles keep only what must hold before any script runs: the effect box fills its parent and never takes part in layout, reduced motion hides it, and the page layer is hidden.
 - **The loader** ([`src/scripts/ambient/loader.ts`](../../scripts/ambient/loader.ts)) is bundled into `palette-manager.ts`, which every page already loads; a standalone module could not be inlined, since Astro refuses to inline a script that has a dynamic import. It reads the attributes the head script set and imports the runtime only when motion is on, reduced motion is off, and the page has something the chosen scope would draw (Hero scope on a page with no hero layer loads nothing). It publishes its decision as `<html data-ambient-loader="off|deferred|loading|loaded|skipped">`, which the E2E suite waits on.
@@ -54,7 +54,7 @@ Two things stood in the way.
 
 **The key is separate from `palette-overrides`**, so a palette change never resets motion, and the two Reset buttons never clear each other.
 
-**Visitors see nothing.** `DEFAULT_SETTINGS.on` and the inline script's fallback are both `[]`, and a unit test pins them equal. Only a browser that opted in from the palette panel shows motion, on its homepage (`/`, `/es/`, `/pt/`) and on the live /brand preview. This is what keeps BL-035's stakeholder-review gate honest while the effects are fully built. Shipping a public default is a change to those two literals.
+**Visitors saw nothing, until the 2026-09-25 amendment below.** `DEFAULT_SETTINGS.on` and the inline script's fallback were both `[]`, and a unit test pins them equal. Only a browser that opted in from the palette panel showed motion, on its homepage (`/`, `/es/`, `/pt/`) and on the live /brand preview. That kept BL-035's stakeholder-review gate honest while the effects were fully built, and shipping a public default was a change to those two literals.
 
 **The budget is kept by thinning, not by limiting how many effects can be selected.**
 
@@ -111,5 +111,26 @@ Two things stood in the way.
 - **The section's shared controls come from `form.css`, which loads site-wide:** the toggles are `.brutal-choice-btn` and the sliders `.brutal-slider*`, not `.brutal-filter-chip`, whose `filter.css` is split out to four pages. Its own rules (`controls.css`) arrive with the controls and are anchored on `.ambient-controls`, so they never depend on load order against `form.css`.
 - **The Motion button** (a delta with two speed strokes) lives on the panel's edge rail. It is lit by `html[data-ambient]` with no script, so it reports the selection even under reduced motion, where the layer itself is hidden. On a phone it sits in the open sheet's header, so it jumps past the swatches but does not help anyone open the sheet.
 - **Revisit when:**
-  - A public default is wanted: flip the two pinned literals, then re-measure Lighthouse on `/`. Every visitor would then fetch the runtime after `load`; the deferred start keeps it off the first render.
   - An effect is added: extend `EFFECT_IDS`, both default maps, and the tables, and keep the budget test green.
+
+## Amendment — 2026-09-25: public default and go-live
+
+The operator chose the settings every visitor sees, which closed BL-035's stakeholder-review gate (the stanza is pruned from the backlog):
+
+- **All six effects on**, strengths Grid Pulse 15, Glow Shift 40, Scan Sweep 5, Data Rails 20, Delta Drift 30 and Delta Arrows 45.
+- **Scope Every page**, pace 110.
+
+The two pinned literals changed together (`DEFAULT_SETTINGS` and `DEFAULT_STRENGTH` in `ambient-motion.ts`, and their copies in BaseLayout's inline block). The inline fallback scope had been `scopes[0]`, which was right only while Hero was the default. It is now its own `defaultScope` literal, pinned to `DEFAULT_SETTINGS.scope` by the unit test instead of by list order.
+
+- **Opting out is remembered.** A browser that switches every effect off stores `{"on":[]}` and stays still. **Reset motion** removes the stored choice, so it returns that browser to the public default rather than to "nothing on". Reduced motion still hides every layer, whatever is stored.
+- **Measured** 2026-09-25: Lighthouse mobile, performance only, median of 3, on the static builds of this branch and `master`, served identically and run interleaved. The branch's fresh profile gets the public default and that day's rotated look ([ADR-0040](0040-daily-look-rotation.md): palette 4, dark).
+
+  |          | master | public default |
+  | -------- | ------ | -------------- |
+  | `/`      | 93     | 92             |
+  | `/about` | 89     | 88             |
+  - Inside the 2-point limit on both. First paint moved from 2.33s to 2.40–2.41s, and LCP from 2.71s to 2.86s on `/` and from 3.30s to 3.45s on `/about`. CLS is 0 on both builds.
+  - Every visitor now fetches the runtime (2.6 KB) and builder (1.7 KB) after `load`; the deferred start keeps them off the first render.
+
+- **E2E** runs under a baseline storage state that switches motion off (`tests/e2e/helpers/storage-baseline.ts`), so specs stay independent of the default. The default itself is tested in `tests/e2e/ambient-motion.test.ts` § the public default, with an axe scan on `/` while it runs.
+- **Revisit when** the defaults change. Change both pinned literals together and re-measure `/`.

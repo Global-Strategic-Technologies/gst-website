@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Twelve cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Fifteen cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -57,6 +57,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Slice 2** became [`src/docs/architecture/`](../architecture/README.md) — README + five layer files, 13 mermaid diagrams, each rendered with a pinned build before commit because nothing in CI renders mermaid; the medium is a directory-scoped convention by [ADR-0037](../adr/0037-architecture-reference-diagrams-are-mermaid.md). Layer 4 is stated thin (one operator) rather than manufactured; Layer 5 is the richer one. The README carries the per-section table proving each maintained reference is linked rather than redrawn, and the rule that no tool/prompt/resource count appears in the directory.
 >   - Two index drifts fixed on the way: `src/docs/README.md` published `adr/` as 30 docs when 35 existed (now 37); the BL-155 stanza's link to this item was retargeted at the ADR.
 > - **2026-09-22**: 1 stanza (BL-165, alternative palettes 1–5 reworked) closed and pruned the day it was filed. Last pre-prune revision: `805924b1`.
+> - **2026-09-25**: 1 stanza (BL-035, Dynamic Visual Effects) closed when the operator put ambient motion live with their own settings, which closed its stakeholder-review gate. Last pre-prune revision: `cae611d6`. Its live content was already in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md): the budget, the Lighthouse tables, and the scope and reduced-motion rules. That ADR's amendment records the public default and the go-live measurement.
 >   - **Palettes:** 1 Monolith (black/white/grayscale), 2 Redline (red), 3 Admiralty (navy), 4 Blaze (orange), 5 Ultraviolet (purple). Palette 0 kept every token value. The operator approved the direction on a design canvas first.
 >   - **Operator decisions that superseded the stanza's text:** status colours are derived from each palette (success = primary, warning = secondary, error = accent; grayscale in Monolith), not green/yellow/red; no per-palette contrast guard (the axe sweep still covers palette 0 only).
 >   - **Measured, not guarded:** every light ink clears ADR-0035's 4.75:1 on `#f5f5f5` and 4.5:1 on its 12% tint; every dark base clears 4.5:1 on `#0a0a0a`/`#1a1a1a`; the sash band and badge chip clear 4.5:1 in both themes.
@@ -1335,48 +1336,6 @@ Consequences:
 ---
 
 ## Exploration
-
-### BL-035: Dynamic Visual Effects Prototype
-
-**Source**: design prototypes in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards + the palette-panel section, drawn 2026-09-22); decisions in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md). The original `DYNAMIC_VISUAL_EFFECTS.md` source never existed in the repo | **Effort**: built 2026-09-22 | **Status**: 🟨 **Built — awaiting stakeholder review.** No visitor sees motion until a browser opts in from the palette panel
-
-**As a** site visitor, **I want** subtle ambient motion in the homepage hero section **so that** the page feels alive and signals an active, technology-forward brand.
-
-#### Acceptance Criteria
-
-- [x] The effect layer (`src/scripts/ambient/`, placed through `src/components/AmbientEffect.astro`) is built. It ships **all five** drawn candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, plus a sixth, **Delta Arrows**, added 2026-09-23 at the operator's request, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
-- [x] Rendered behind all content: in the homepage hero by default (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), plus a live preview on /brand. Two opt-in scopes (operator decision): **Homepage** adds a background behind the rest of the homepage, and **Every page** adds it site-wide. It scrolls with the page and repeats every screen
-- [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
-- [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)
-- [x] Works with both themes, both dim states and all 6 palettes. Colour is `--color-primary` only
-- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 after the lazy-loading change (only a browser that opted in loads the effect, after `load`; the panel's controls load on first open), performance only, median of 3, on static builds served identically (master from the earlier run that day):
-
-  |          | master | visitor default | Every page, all six on |
-  | -------- | ------ | --------------- | ---------------------- |
-  | `/`      | 93     | 93              | 93                     |
-  | `/about` | 89     | 89              | 89                     |
-  - CLS is 0 in every case. The first build of the page background measured CLS 0.62, from the layer jumping below the hero; it is now hidden until placed, and an E2E test holds CLS at 0.
-  - Before that change `/` was 91–92 at the visitor default, at the 2-point limit; the lazy loading brought it back to master's 93, with first paint about 0.1–0.2s and LCP about 0.15s earlier.
-  - With everything on, a CDP sample at a tile boundary shows no main-thread layout, so the animation stays on the compositor.
-  - Cost to every visitor: about 8 KB gzipped per page before the lazy-loading change, 6.2–6.3 KB less after it (7.5 KB less on /brand). An opted-in browser fetches 4.4 KB after `load`, and the controls' 3.0 KB on the panel's first open
-
-- [ ] Stakeholder review before proceeding to production polish. **Owner: operator.** Shipping a public default means flipping two literals that a test pins together (ADR-0039)
-
-#### Technical Context
-
-- **Brand alignment:** brutalism rejects ornament, so the effects are geometric, monochrome and restrained ("data field", not "bubbles").
-- **Budget:**
-  - Hero: at most 16 animated elements, whatever is selected (15 until the operator raised it for Delta Arrows on 2026-09-23). One effect alone shows its full table (≤14); with two or more on, each thins to its share: the prototype's Combined subset (14) plus two Delta Arrows volleys, 16 in total. A volley of 2–4 deltas is one animated element. `tests/unit/ambient-effect-budget.test.ts` counts the tables.
-  - Homepage and Every page scopes: ≤16 in view, ≤32 running. Only on-screen tiles hold the effect, and any layer that has scrolled away stops. This relaxes the cap from per-page to per-screen, by operator decision (ADR-0039), and the E2E suite asserts it.
-- **Technical constraints (met):**
-  - CSS keyframes on `transform`/`opacity` only
-  - no JS animation loop
-  - no external dependency
-  - `pointer-events: none` and `aria-hidden="true"`
-- **Settings:** stored in `localStorage['ambient-motion']`, separate from `palette-overrides`, so a palette change never resets motion. They are applied before first paint by BaseLayout's inline script, which `tests/unit/ambient-motion.test.ts` executes against the module.
-- **Decision framework:** Go (passes all 6 criteria) / No-go (archive, document findings) / Kill (requires external dependencies or exceeds 8h). The five measurable criteria pass; the stakeholder review decides Go.
-
----
 
 ### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
 

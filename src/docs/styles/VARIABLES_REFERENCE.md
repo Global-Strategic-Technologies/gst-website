@@ -313,11 +313,11 @@ These variables exist for page sections and UI components that need distinct lig
 
 The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow every palette and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
 
-| Variable          | Value                    | Usage                                           |
-| ----------------- | ------------------------ | ----------------------------------------------- |
-| `--sash-bg`       | `var(--color-primary)`   | The band. Colour is never a variant of the sash |
-| `--sash-ink`      | `var(--bg-dark)`         | The label, and the under-band's background      |
-| `--sash-badge-bg` | `var(--color-secondary)` | The badge chip's fill, under `--bg-dark` ink    |
+| Variable          | Value                              | Usage                                           |
+| ----------------- | ---------------------------------- | ----------------------------------------------- |
+| `--sash-bg`       | `var(--color-primary)`             | The band. Colour is never a variant of the sash |
+| `--sash-ink`      | `var(--bg-dark)`; `#0a0a0a` in dim | The label, and the under-band's background      |
+| `--sash-badge-bg` | `var(--color-secondary)`           | The badge chip's fill, under `--bg-dark` ink    |
 
 No palette re-points `--sash-ink`: since BL-165 every palette's primary is light enough for the dark ink in both themes (palettes 1, 3 and 5 had their light-theme fills lightened for exactly this). A future palette whose light-theme primary is dark would add `--sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark))` — note the token names read backwards, `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `--sash-badge-bg` is re-pointed for two palettes whose light-theme secondary measures under 4.5:1 against the chip's dark ink: `palette-1` (`#a6a6a6`, its dark-theme secondary promoted to both themes, replacing `#595959`) and `palette-4` (`#60a5fa`, replacing `#1d4ed8` — light theme only in effect, since that is already its dark-theme secondary).
 
@@ -492,7 +492,7 @@ Each palette defines light and dark theme variants for 6 core colors + 3 expande
 | `--altN-color-distinguish`  | Differentiation accent             |
 | `--altN-color-subdued`      | Muted neutral                      |
 
-Where N = 0–6. Palette 0 only overrides the 3 expanded tokens (production palette keeps core colors from `variables.css`). Palettes 1–6 override all 9 tokens; the opacity scales follow from `--color-primary-rgb`.
+Where N = 0–6. Palette 0 only overrides the 3 expanded tokens (the base palette keeps core colors from `variables.css`). Palettes 1–6 override all 9 tokens; the opacity scales follow from `--color-primary-rgb`.
 
 ### Palette Override Classes
 

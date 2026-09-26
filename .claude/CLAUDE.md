@@ -337,7 +337,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 1. Palette definitions: `src/styles/palettes.css` (CSS variable overrides per `html.palette-N`)
 2. Palette metadata: `src/data/palettes.ts` (names, concepts, token tips)
 3. Palette JS logic: `src/scripts/palette-manager.ts` (switching, color editing, panel controls)
-4. To add a new palette: add `--altN-*` variables in `palettes.css` (light + dark), add `html.palette-N` override block, add it to the `:not()` lists in `palettes.css` § Dim-light inks (ADR-0038) and to `ALT_PALETTES` in `tests/integration/ink-token-contrast.test.ts`, add entry to `palettes.ts`
+4. To add a new palette: add `--altN-*` variables in `palettes.css` (light + dark), add `html.palette-N` override block, add it to the `:not()` lists in `palettes.css` § Dim-light inks (ADR-0038) and to `ALT_PALETTES` in `tests/integration/ink-token-contrast.test.ts`, add entry to `palettes.ts`, and decide its weekday per ADR-0040 — `DAY_TO_PALETTE` in `src/scripts/daily-look.ts` has seven slots for seven palettes, and `tests/unit/daily-look.test.ts` fails until the new palette has a place
 5. PalettePanel renders site-wide from `BaseLayout.astro`; visible on `/brand` always, other pages via pop-out toggle
 
 ### Updating Portfolio Data
