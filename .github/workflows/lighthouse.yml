@@ -76,7 +76,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: changes
+    # always(): if `changes` itself fails, a plain `needs` would SKIP this job,
+    # and a skipped required check counts as passing. The first step turns
+    # that into a failure instead.
+    if: always()
     steps:
+      - name: Require a successful change detection
+        if: needs.changes.result != 'success'
+        run: |
+          echo "::error::The changes job did not succeed (${{ needs.changes.result }}), so Lighthouse cannot decide whether to run."
+          exit 1
+
       - uses: actions/checkout@v7
         if: needs.changes.outputs.run == 'true'
 
@@ -252,7 +262,11 @@ jobs:
       # The audits above are `continue-on-error` so both presets and the summary
       # always run; THIS step turns a failed audit into a failed check. Only
       # `error`-level assertions fail `lhci autorun` — in both configs that is
-      # CLS alone (max 0.1); FCP/LCP/TBT/TTI are `warn`.
+      # CLS alone (max 0.1); FCP/LCP/TBT/TTI are `warn`. A failed UPLOAD only
+      # warns (autorun.js, failOnUploadFailure unset), so it cannot block. A
+      # healthcheck or collect failure (Chrome or dev-server startup) does fail
+      # the step. That's deliberate: a gate that couldn't measure must not pass,
+      # and a re-run is the remedy.
       - name: Enforce Lighthouse assertions
         if: always() && needs.changes.outputs.run == 'true'
         run: |

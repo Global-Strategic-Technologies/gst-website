@@ -120,7 +120,7 @@ test.describe('Project Details Viewing Journey', () => {
         (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
       });
       // Wait for modal to close before next iteration
-      await expect(modal).not.toBeVisible({ timeout: 5000 });
+      await expect(modal).not.toBeVisible({ timeout: 2000 });
     }
   });
 

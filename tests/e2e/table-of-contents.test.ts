@@ -146,6 +146,39 @@ test.describe('TableOfContents Component', () => {
     });
   });
 
+  // The list is hidden (visibility) until the script has injected sublists,
+  // and collapsible TOCs are server-rendered collapsed, so neither step
+  // shifts layout after first paint (Lighthouse CLS on /brand, 2026-09-26).
+  // These pin the other side of that fix: the list does come back.
+  test.describe('Layout-Shift Ready Gate', () => {
+    test('marks the TOC ready and shows the list after load', async ({ page }) => {
+      await page.goto('/hub/library/business-architectures/', { waitUntil: 'load' });
+      const toc = page.locator('nav.toc').first();
+      await expect(toc).toHaveAttribute('data-toc-ready', '');
+      await expect(toc.locator('.toc__list')).toBeVisible();
+    });
+
+    test('without JavaScript a collapsible TOC shows its full list on mobile', async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({
+        javaScriptEnabled: false,
+        viewport: { width: 480, height: 800 },
+      });
+      try {
+        const page = await context.newPage();
+        await page.goto('/brand/', { waitUntil: 'load' });
+        const toc = page.locator('[data-testid="brand-toc"]');
+        // Server-rendered collapsed, but the collapse only applies when
+        // scripting is on. A no-JS reader has no way to expand it.
+        await expect(toc).toHaveClass(/is-collapsed/);
+        await expect(toc.locator('.toc__list')).toBeVisible();
+      } finally {
+        await context.close();
+      }
+    });
+  });
+
   test.describe('Accessibility & Data Attributes', () => {
     test('should render separators with aria-hidden="true"', async ({ page }) => {
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });

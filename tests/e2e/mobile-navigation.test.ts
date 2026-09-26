@@ -160,24 +160,31 @@ test.describe('Mobile Navigation Journey', () => {
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
-    // On the iPhone 12 viewport the first project's details are taller than
-    // the dialog, so the dialog must become a scroll container. If it never
-    // does, the modal is clipping content on mobile, which is the bug this
-    // test exists to catch.
-    await page.waitForFunction(
-      () => {
-        const el = document.querySelector('[data-testid="project-modal"]');
-        return !!el && el.scrollHeight > el.clientHeight;
-      },
-      { timeout: 5000 }
-    );
-
-    const scrolled = await page.evaluate(() => {
+    // What prevents clipping on mobile is the CONTRACT: the dialog fits inside
+    // the viewport and scrolls vertically. That's asserted unconditionally.
+    // Whether the first project's content overflows depends on which entry
+    // happens to be first (new entries are prepended), so the actual scroll
+    // is exercised only when there is something to scroll.
+    const box = await page.evaluate(() => {
       const el = document.querySelector('[data-testid="project-modal"]') as HTMLElement;
-      el.scrollTop = 100;
-      return el.scrollTop;
+      return {
+        overflowY: getComputedStyle(el).overflowY,
+        height: el.getBoundingClientRect().height,
+        viewport: window.innerHeight,
+        overflows: el.scrollHeight > el.clientHeight,
+      };
     });
-    expect(scrolled).toBeGreaterThan(0);
+    expect(['auto', 'scroll']).toContain(box.overflowY);
+    expect(box.height).toBeLessThanOrEqual(box.viewport);
+
+    if (box.overflows) {
+      const scrolled = await page.evaluate(() => {
+        const el = document.querySelector('[data-testid="project-modal"]') as HTMLElement;
+        el.scrollTop = 100;
+        return el.scrollTop;
+      });
+      expect(scrolled).toBeGreaterThan(0);
+    }
   });
 
   test('should have readable text on mobile', async ({ page }) => {
