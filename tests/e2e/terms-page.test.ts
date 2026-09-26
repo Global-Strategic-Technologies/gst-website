@@ -7,7 +7,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { clickThemeToggle } from './helpers/theme';
+import { cycleThemeTo } from './helpers/theme';
 
 test.describe('Terms Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -95,8 +95,7 @@ test.describe('Terms Page', () => {
       return window.getComputedStyle(el).color;
     });
 
-    await clickThemeToggle(page);
-    await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
+    await cycleThemeTo(page, 'dark');
 
     const darkColor = await heading.evaluate((el) => {
       return window.getComputedStyle(el).color;

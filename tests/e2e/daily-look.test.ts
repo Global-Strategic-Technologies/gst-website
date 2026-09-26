@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { AMBIENT_OFF, EMPTY_STATE, seedStorage } from './helpers/storage-baseline';
-import { clickThemeToggle } from './helpers/theme';
+import { clickThemeToggle, waitForTheme } from './helpers/theme';
 
 /**
  * The daily look rotation (ADR-0040): with no pick stamped today, the palette
@@ -91,18 +91,18 @@ test.describe('Daily look rotation', () => {
   });
 
   test('a footer toggle pick holds today', async ({ page }) => {
-    await at(page, '2026-06-10T12:00:00Z'); // dim light → the footer flips to dark
+    await at(page, '2026-06-10T12:00:00Z'); // dim light → the footer steps to dim dark
     await motionOff(page);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('html[data-ambient-loader]')).toBeAttached();
     await clickThemeToggle(page);
-    await expect(page.locator('html')).toHaveClass(/(^|\s)dark-theme(\s|$)/);
+    await waitForTheme(page, 'dim-dark');
     expect(
       await page.evaluate(() => [localStorage.getItem('theme'), localStorage.getItem('theme-date')])
-    ).toEqual(['dark', '2026-06-10']);
+    ).toEqual(['dim-dark', '2026-06-10']);
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    expect(await look(page)).toEqual({ palette: 2, theme: 'dark' });
+    expect(await look(page)).toEqual({ palette: 2, theme: 'dim-dark' });
   });
 
   test('yesterday’s pick and an unstamped pick both yield to the rotation', async ({ page }) => {

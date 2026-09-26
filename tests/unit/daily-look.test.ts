@@ -142,6 +142,7 @@ describe("BaseLayout's inline look block matches the module", () => {
   const reset = () => {
     localStorage.clear();
     html.className = '';
+    html.removeAttribute('style');
   };
   beforeEach(() => {
     reset();
@@ -219,6 +220,10 @@ describe("BaseLayout's inline look block matches the module", () => {
         expect([...html.classList].sort()).toEqual(expected(stored, now));
         // And readState agrees with the module's theme.
         expect(readState(html)).toBe(resolveLook(stored, now).theme);
+        // Both theme deltas start turned for that state (theme-buttons.ts).
+        expect(html.style.getPropertyValue('--theme-rotation')).toBe(
+          `${resolveLook(stored, now).theme * -90}deg`
+        );
       });
     }
   }

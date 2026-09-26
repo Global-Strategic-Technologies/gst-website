@@ -4,7 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { clickThemeToggle } from './helpers/theme';
+import { clickThemeToggle, currentTheme, nextTheme, waitForTheme } from './helpers/theme';
 import { setupAnalyticsMocking } from './helpers/analytics';
 
 test.describe('Google Analytics E2E Tests', () => {
@@ -230,52 +230,32 @@ test.describe('Google Analytics E2E Tests', () => {
       const themeToggle = page.locator('[data-testid="theme-toggle"]');
       await expect(themeToggle).toBeVisible();
 
-      const initialTheme = await page.evaluate(() => {
-        return document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light';
-      });
-
+      // From the baseline's light pick, one click is one step of the
+      // four-state cycle (ADR-0038) — and the event reports that state.
+      expect(await currentTheme(page)).toBe('light');
       await clickThemeToggle(page);
-
-      // Wait for theme to change
-      await page.waitForFunction((theme) => {
-        const isDark = document.documentElement.classList.contains('dark-theme');
-        const newTheme = isDark ? 'dark' : 'light';
-        return newTheme !== theme;
-      }, initialTheme);
+      await waitForTheme(page, 'dim-light');
 
       // Verify theme_toggle event was tracked
       const events = await page.evaluate(() => (window as any).gtagEvents || []);
       const toggleEvent = events.find((e: any) => e.eventName === 'theme_toggle');
       expect(toggleEvent).toBeDefined();
-      expect(['light', 'dark']).toContain(toggleEvent?.eventData.theme);
+      expect(toggleEvent?.eventData.theme).toBe('dim-light');
     });
 
     test('should track theme preference changes', async ({ page }) => {
       await gotoAndSetupAnalytics(page, '/');
 
       // Get initial theme
-      const initialTheme = await page.evaluate(() => {
-        return document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light';
-      });
+      const initialTheme = await currentTheme(page);
 
       // Toggle theme
       const themeToggle = page.locator('[data-testid="theme-toggle"]');
       if (await themeToggle.isVisible()) {
         await clickThemeToggle(page);
 
-        // Wait for theme state to change
-        await page.waitForFunction(
-          (prev) =>
-            (document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light') !== prev,
-          initialTheme
-        );
-
-        // Verify theme changed
-        const newTheme = await page.evaluate(() => {
-          return document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light';
-        });
-
-        expect(newTheme).not.toBe(initialTheme);
+        // Wait for the next state of the cycle
+        await waitForTheme(page, nextTheme(initialTheme));
       }
     });
   });

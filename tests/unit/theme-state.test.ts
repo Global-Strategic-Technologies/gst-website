@@ -7,7 +7,6 @@ import {
   readState,
   storageValue,
   STORAGE_VALUES,
-  toggleBinary,
   type ThemeState,
 } from '../../src/scripts/theme-state';
 
@@ -36,12 +35,8 @@ describe('theme-state (ADR-0038)', () => {
     }
   });
 
-  it('the panel cycles light → dim light → dim dark → dark → light', () => {
+  it('both buttons cycle light → dim light → dim dark → dark → light', () => {
     expect(STATES.map(nextState)).toEqual([1, 2, 3, 0]);
-  });
-
-  it('the footer flip ignores the dim states', () => {
-    expect(STATES.map(toggleBinary)).toEqual([3, 3, 0, 0]);
   });
 
   it('storage values are the four states, lightest first', () => {

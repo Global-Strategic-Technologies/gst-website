@@ -131,6 +131,15 @@ describe('Analytics Utility Functions', () => {
       });
     });
 
+    it('should track the dim states of the four-state cycle', () => {
+      trackThemeToggle('dim-light');
+
+      expect(gtagMock).toHaveBeenCalledWith('event', 'theme_toggle', {
+        event_category: 'ui',
+        theme: 'dim-light',
+      });
+    });
+
     it('should track light theme toggle', () => {
       trackThemeToggle('light');
 

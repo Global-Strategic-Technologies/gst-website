@@ -6,15 +6,7 @@
 import { PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '../data/palettes';
 import { rgbToHex, hexToRgb, parseAlpha } from '../utils/palette-utils';
 import * as Sentry from '@sentry/browser';
-import {
-  applyState,
-  nextState,
-  quarterTurns,
-  readState,
-  storageValue,
-  STATE_LABELS,
-  type ThemeState,
-} from './theme-state';
+import { cycleTheme, syncThemeButtons } from './theme-buttons';
 import { initAmbientLoader } from './ambient/loader';
 import { rememberChoice } from './daily-look';
 
@@ -415,10 +407,6 @@ function dropStaleOverrides(): void {
 dropStaleOverrides();
 
 new MutationObserver(() => {
-  // Runs for EVERY class change — the footer toggle, the /brand responsive
-  // frames and the panel alike — so the panel's theme buttons always show the
-  // real state, not their own click history.
-  syncThemeButtons();
   // Colour edits persist across pages AND theme changes (operator decision,
   // 2026-09-22) until the reader picks a different palette. Unrelated class
   // changes, e.g. the popout or theme toggles, must not wipe them.
@@ -427,29 +415,6 @@ new MutationObserver(() => {
   lastLookKey = key;
   resetAllOverrides();
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-// ── Theme button state (ADR-0038) ──────────────────────────
-// The delta turns 90° counter-clockwise per state. `themeTurns` only ever
-// grows, so 3 → 0 keeps turning the same way instead of spinning back, and an
-// outside jump (e.g. the footer's light → dark) advances by the quarter turns
-// between the two states.
-
-let lastThemeState: ThemeState = readState(document.documentElement);
-let themeTurns: number = lastThemeState;
-
-function syncThemeButtons(): void {
-  const state = readState(document.documentElement);
-  themeTurns += quarterTurns(lastThemeState, state);
-  lastThemeState = state;
-  const label = `Theme: ${STATE_LABELS[state]}. Switch to ${STATE_LABELS[nextState(state)].toLowerCase()}`;
-  document.querySelectorAll<HTMLElement>('.palette-panel__theme-toggle').forEach((btn) => {
-    btn.dataset.themeState = String(state);
-    btn.dataset.themeTurns = String(themeTurns);
-    btn.style.setProperty('--theme-rotation', `${themeTurns * -90}deg`);
-    btn.setAttribute('aria-label', label);
-    btn.title = label;
-  });
-}
 
 // ── DOM Ready ──────────────────────────────────────────────
 
@@ -542,19 +507,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Shared action: toggle theme ─────────────────────────
+  // Same cycle, same turn count as the footer toggle (theme-buttons.ts).
   function handleThemeToggle(): void {
-    const state = nextState(readState(document.documentElement));
-    applyState(document.documentElement, state);
-    try {
-      // Today's pick: holds until local midnight (ADR-0040)
-      rememberChoice('theme', storageValue(state));
-    } catch {
-      Sentry.addBreadcrumb({
-        category: 'palette-manager',
-        message: 'localStorage write failed',
-        level: 'warning',
-      });
-    }
+    cycleTheme('palette-manager');
   }
 
   // ── Shared action: toggle popout ────────────────────────

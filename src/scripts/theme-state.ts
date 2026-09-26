@@ -44,15 +44,10 @@ export function applyState(el: Element, state: ThemeState): void {
   el.classList.toggle(DIM_CLASS, state === 1 || state === 2);
 }
 
-/** The panel's cycle: light → dim light → dim dark → dark → light. */
+/** The cycle both theme buttons (footer + panel) step through:
+ *  light → dim light → dim dark → dark → light. */
 export function nextState(state: ThemeState): ThemeState {
   return ((state + 1) % 4) as ThemeState;
-}
-
-/** The footer's binary flip, which ignores the dim states: the light side
- *  (0, 1) goes to dark, the dark side (2, 3) goes to light. */
-export function toggleBinary(state: ThemeState): ThemeState {
-  return state <= 1 ? 3 : 0;
 }
 
 export function storageValue(state: ThemeState): ThemeStorageValue {

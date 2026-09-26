@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { clickThemeToggle } from './helpers/theme';
+import { cycleThemeTo } from './helpers/theme';
 import { setupAnalyticsMocking } from './helpers/analytics';
 
 /**
@@ -106,16 +106,7 @@ test.describe('About Page - Founder Section', () => {
 
   test.describe('Founder Photo Theme Variants', () => {
     test('should show light theme photo by default', async ({ page }) => {
-      const isDarkMode = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
-
-      if (isDarkMode) {
-        await clickThemeToggle(page);
-        await page.waitForFunction(
-          () => !document.documentElement.classList.contains('dark-theme')
-        );
-      }
+      await cycleThemeTo(page, 'light');
 
       const lightPhoto = page.locator('.founder-portrait-light');
       await expect(lightPhoto).toBeVisible({ timeout: 5000 });
@@ -125,14 +116,7 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark theme photo when dark mode is enabled', async ({ page }) => {
-      const initialIsDark = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
-
-      if (!initialIsDark) {
-        await clickThemeToggle(page);
-        await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
-      }
+      await cycleThemeTo(page, 'dark');
 
       const darkPhoto = page.locator('.founder-portrait-dark');
       await expect(darkPhoto).toBeVisible({ timeout: 5000 });
@@ -150,13 +134,7 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark signature in dark theme', async ({ page }) => {
-      const initialIsDark = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
-      if (!initialIsDark) {
-        await clickThemeToggle(page);
-        await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
-      }
+      await cycleThemeTo(page, 'dark');
 
       // Verify via computed style — toBeVisible() is unreliable here because
       // lazy-loaded signature images may have zero dimensions in Firefox/WebKit
