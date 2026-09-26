@@ -44,7 +44,7 @@ describe('theme-state (ADR-0038)', () => {
     expect([...STORAGE_VALUES]).toEqual(STATES.map(storageValue));
   });
 
-  it('quarter turns are always counter-clockwise, 0–3', () => {
+  it('quarter turns always step forward, 0–3', () => {
     expect(quarterTurns(0, 1)).toBe(1);
     expect(quarterTurns(3, 0)).toBe(1);
     expect(quarterTurns(0, 3)).toBe(3);

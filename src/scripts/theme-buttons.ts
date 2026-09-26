@@ -8,7 +8,7 @@
  * in BaseLayout.astro sets the same property for the restored state before
  * first paint, so neither delta spins on load.
  *
- * The delta turns 90° counter-clockwise per state. `themeTurns` only ever
+ * The delta turns 90° clockwise per state. `themeTurns` only ever
  * grows, so 3 → 0 keeps turning the same way instead of spinning back, and an
  * outside jump (e.g. the /brand frames or a test seeding classes) advances by
  * the quarter turns between the two states.
@@ -56,7 +56,7 @@ export function syncThemeButtons(): void {
   const state = readState(document.documentElement);
   themeTurns += quarterTurns(lastThemeState, state);
   lastThemeState = state;
-  document.documentElement.style.setProperty('--theme-rotation', `${themeTurns * -90}deg`);
+  document.documentElement.style.setProperty('--theme-rotation', `${themeTurns * 90}deg`);
   document.querySelectorAll<HTMLElement>(BUTTONS).forEach((btn) => {
     const label = labelFor(btn, state);
     btn.dataset.themeState = String(state);

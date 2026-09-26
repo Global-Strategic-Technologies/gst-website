@@ -54,7 +54,8 @@ export function storageValue(state: ThemeState): ThemeStorageValue {
   return STORAGE_VALUES[state];
 }
 
-/** Quarter turns between two states, always counter-clockwise (0–3). */
+/** Quarter turns between two states, always forward through the cycle
+ *  (0–3) — the delta turns clockwise by this many (theme-buttons.ts). */
 export function quarterTurns(from: ThemeState, to: ThemeState): number {
   return (to - from + 4) % 4;
 }

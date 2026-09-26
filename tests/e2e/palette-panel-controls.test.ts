@@ -552,9 +552,7 @@ test.describe('Palette Panel Controls', () => {
         stored: localStorage.getItem('theme'),
       }));
 
-    test('cycles four states, persists each, and turns counter-clockwise every click', async ({
-      page,
-    }) => {
+    test('cycles four states, persists each, and turns clockwise every click', async ({ page }) => {
       await page.addInitScript(() => {
         try {
           // Top frame only: /brand's same-origin responsive-demo iframes run init
@@ -572,7 +570,7 @@ test.describe('Palette Panel Controls', () => {
         await expect(themeButton(page)).toHaveAttribute('data-theme-state', String((i + 1) % 4));
         expect(await htmlTheme(page)).toEqual(step);
         // Asserted on the counter, not the computed transform: a matrix reads
-        // −360° and 0° identically, so the fourth quarter turn would vanish.
+        // 360° and 0° identically, so the fourth quarter turn would vanish.
         await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i + 1));
       }
     });
@@ -634,7 +632,7 @@ test.describe('Palette Panel Controls', () => {
         await expect(footer).toHaveAttribute('data-theme-turns', String(i));
         await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i));
         // One rotation, inherited by both icons.
-        const deg = `${i * -90}deg`;
+        const deg = `${i * 90}deg`;
         expect(await inherited('#themeToggle .theme-toggle-icon')).toBe(deg);
         expect(await inherited('#panel-theme-toggle .palette-panel__icon')).toBe(deg);
         await expect(page.locator('#themeToggle .theme-toggle-icon')).toHaveCSS('rotate', deg);

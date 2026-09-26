@@ -72,8 +72,8 @@ describe('theme-buttons (ADR-0038)', () => {
       expect(btn.dataset.themeState).toBe('2');
       expect(btn.dataset.themeTurns).toBe('2');
     }
-    // Matches the head script's pre-paint value (state × -90), so no load spin.
-    expect(rotation()).toBe('-180deg');
+    // Matches the head script's pre-paint value (state × 90), so no load spin.
+    expect(rotation()).toBe('180deg');
   });
 
   it('both buttons agree after every step of the cycle, and the turns only grow', async () => {
@@ -88,11 +88,11 @@ describe('theme-buttons (ADR-0038)', () => {
       expect(panel().dataset.themeState).toBe(state);
       expect(footer().dataset.themeTurns).toBe(String(i));
       expect(panel().dataset.themeTurns).toBe(String(i));
-      expect(rotation()).toBe(`${i * -90}deg`);
+      expect(rotation()).toBe(`${i * 90}deg`);
       seen.push([footer().dataset.themeTurns!, panel().dataset.themeTurns!, rotation()]);
     }
-    // 3 → 0 kept turning counter-clockwise instead of spinning back.
-    expect(seen[3]).toEqual(['4', '4', '-360deg']);
+    // 3 → 0 kept turning clockwise instead of spinning back.
+    expect(seen[3]).toEqual(['4', '4', '360deg']);
   });
 
   it('an outside class change advances by the quarter turns between the states', async () => {
@@ -100,10 +100,10 @@ describe('theme-buttons (ADR-0038)', () => {
     setState(2);
     await flush();
     expect(panel().dataset.themeTurns).toBe('2');
-    setState(1); // backwards jump: 1 → still counter-clockwise, 3 quarter turns
+    setState(1); // backwards jump: 1 → still clockwise, 3 quarter turns
     await flush();
     expect(panel().dataset.themeTurns).toBe('5');
-    expect(rotation()).toBe('-450deg');
+    expect(rotation()).toBe('450deg');
   });
 
   it('the footer uses its translated labels; the panel keeps the English one', async () => {

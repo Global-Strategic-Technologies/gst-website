@@ -86,7 +86,7 @@ const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props
 
   /* :global() needed — .theme-toggle-icon is on a DeltaIcon child component
      whose rendered <svg> gets DeltaIcon's scope, not ThemeToggleButton's */
-  /* Turns 90° counter-clockwise per theme state, in step with the palette
+  /* Turns 90° clockwise per theme state, in step with the palette
      panel's delta: both inherit --theme-rotation from <html> (theme-buttons.ts,
      ADR-0038). The individual `rotate` property, not `transform`, so the
      hold-pulse keyframes' scale composes with it instead of replacing it. */

@@ -61,7 +61,7 @@ test.describe('Theme Toggle Journey', () => {
     expect(backgrounds.size).toBe(4);
   });
 
-  test('the footer delta turns 90° counter-clockwise per click', async ({ page }) => {
+  test('the footer delta turns 90° clockwise per click', async ({ page }) => {
     const rotation = () =>
       page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue('--theme-rotation').trim()
@@ -69,12 +69,12 @@ test.describe('Theme Toggle Journey', () => {
     expect(await rotation()).toBe('0deg');
     for (let i = 1; i <= 4; i++) {
       await clickThemeToggle(page);
-      await expect.poll(rotation).toBe(`${i * -90}deg`);
+      await expect.poll(rotation).toBe(`${i * 90}deg`);
     }
     // Light again, but a full turn on — it keeps turning the same way.
     expect(await currentTheme(page)).toBe('light');
     // The icon itself carries the rotation, not just the variable.
-    await expect(page.locator('#themeToggle .theme-toggle-icon')).toHaveCSS('rotate', '-360deg');
+    await expect(page.locator('#themeToggle .theme-toggle-icon')).toHaveCSS('rotate', '360deg');
   });
 
   test('should maintain theme across navigation', async ({ page }) => {
