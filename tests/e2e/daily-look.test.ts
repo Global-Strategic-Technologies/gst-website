@@ -45,12 +45,42 @@ test.describe('Daily look rotation', () => {
     ['2026-06-30T12:00:00Z', 'Tue 30th (the fourth bucket runs to the end)', 1, 'dark'],
   ] as const;
 
+  // Both theme deltas (footer + palette panel) point at the week's position,
+  // one clockwise quarter turn per state (theme-buttons.ts, ADR-0038).
+  const POINTING = {
+    light: [0, 'up'],
+    'dim-light': [90, 'right'],
+    'dim-dark': [180, 'down'],
+    dark: [270, 'left'],
+  } as const;
+
   for (const [iso, label, palette, theme] of MATRIX) {
-    test(`a first visit on ${label} gets palette ${palette}, ${theme}`, async ({ page }) => {
+    const [deg, direction] = POINTING[theme];
+    test(`a first visit on ${label} gets palette ${palette}, ${theme}, deltas pointing ${direction}`, async ({
+      page,
+    }) => {
       await at(page, iso);
       await motionOff(page);
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       expect(await look(page)).toEqual({ palette, theme });
+
+      // The footer icon renders turned — the pixels, not just the variable.
+      await expect(page.locator('#themeToggle .theme-toggle-icon')).toHaveCSS(
+        'rotate',
+        `${deg}deg`
+      );
+      // The panel icon inherits the same rotation (the panel is closed on '/',
+      // so read the inherited value rather than a rendered angle).
+      const panelRotation = await page.evaluate(() =>
+        getComputedStyle(document.querySelector('#panel-theme-toggle .palette-panel__icon')!)
+          .getPropertyValue('--theme-rotation')
+          .trim()
+      );
+      expect(panelRotation).toBe(`${deg}deg`);
+      // And both buttons report the week's state once their script has run.
+      const state = String(deg / 90);
+      await expect(page.getByTestId('theme-toggle')).toHaveAttribute('data-theme-state', state);
+      await expect(page.locator('#panel-theme-toggle')).toHaveAttribute('data-theme-state', state);
     });
   }
 
