@@ -62,7 +62,7 @@ npm run test:e2e:debug # Playwright debug → step through E2E tests
 tests/
 ├── unit/
 │   ├── data-validation.test.ts
-│   ├── abbreviate.test.ts
+│   ├── filterLogic.test.ts
 │   └── ...
 ├── integration/
 │   ├── portfolio-filtering.test.ts

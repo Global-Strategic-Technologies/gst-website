@@ -79,9 +79,8 @@ For **Astro static sites**, the pyramid is inverted from traditional SPAs:
 **Files to test:**
 - `src/data/ma-portfolio/projects.json` - Data validation (schema)
 - Utility scripts:
-  - `abbreviate-arr.js` - Array abbreviation logic
   - `convert-excel.js` - Data transformation
-  - `sort-projects.js` - Sorting algorithms
+  - `src/utils/filterLogic.ts` - Portfolio filtering and categorization
 
 **Test Examples:**
 ```typescript
@@ -96,10 +95,10 @@ describe('Projects Data', () => {
   });
 });
 
-// tests/unit/abbreviate.test.ts
-describe('Abbreviate Utility', () => {
-  it('should abbreviate company names correctly', () => {
-    expect(abbreviate(['Company', 'Name'])).toBe('CN');
+// tests/unit/filterLogic.test.ts
+describe('categorizeGrowthStage', () => {
+  it('buckets a scaling-stage label as growth', () => {
+    expect(categorizeGrowthStage('Scale-up')).toBe('growth');
   });
 });
 ```
@@ -433,8 +432,7 @@ c:\Code\gst-website\
 ├── tests/
 │   ├── unit/
 │   │   ├── data-validation.test.ts
-│   │   ├── abbreviate.test.ts
-│   │   ├── sort-projects.test.ts
+│   │   ├── filterLogic.test.ts
 │   │   └── convert-excel.test.ts
 │   ├── integration/
 │   │   ├── portfolio-filtering.test.ts
@@ -1064,7 +1062,7 @@ afterEach(async () => {
 
 ### Phase 2: Unit Tests ✅ COMPLETE (68 tests)
 - [x] Test data validation (projects.json schema) - 20 tests
-- [x] Test utility functions (abbreviate, sort, convert) - 48 tests
+- [x] Test utility functions (abbreviate, sort, convert) - 48 tests (the `abbreviate`/`sort`/`searchLogic` utils were deleted as dead code on 2026-09-26 — nothing outside their own tests imported them)
 - [x] Test data transformations
 - [x] Achieve 70% unit test coverage - **Exceeded**
 
