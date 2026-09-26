@@ -13,12 +13,13 @@ test.describe('Theme Toggle Journey', () => {
     await expect(themeToggle).toBeVisible();
   });
 
-  test('should start in light mode by default', async ({ page }) => {
+  test('should start in the baseline light pick', async ({ page }) => {
     const isDarkMode = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')
     );
 
-    // Initial state should be light (no dark-theme class)
+    // The visitor default follows the date (ADR-0040); every spec starts from
+    // the baseline's light pick instead (storage-baseline.ts).
     expect(isDarkMode).toBe(false);
   });
 
@@ -148,10 +149,11 @@ test.describe('Theme Toggle Journey', () => {
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
     }
 
-    // Wait for localStorage to be set (theme toggle handler writes it)
-    await page.waitForFunction(() => localStorage.getItem('theme') !== null);
+    // The baseline storage already holds 'light' (storage-baseline.ts), so
+    // wait for the toggle's own write rather than for any value.
+    await page.waitForFunction(() => localStorage.getItem('theme') === 'dark');
     const theme = await page.evaluate(() => localStorage.getItem('theme'));
-    expect(theme).toBeTruthy();
+    expect(theme).toBe('dark');
 
     // Reload page
     await page.reload();
