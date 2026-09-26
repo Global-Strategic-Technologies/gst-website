@@ -920,9 +920,12 @@ screen worth printing. Add the block when a tool's on-screen result **is** the a
 
 ```css
 @media print {
-  /* Hide interactive elements */
-  .site-header,
-  footer,
+  /* Hide interactive elements. Header and Footer already hide themselves in
+     print. Chrome rendered by OTHER components (Breadcrumb, HubHeader, map
+     controls) needs :global(): a scoped selector never matches another
+     component's markup. tests/unit/scoped-selector-foreign-element.test.ts
+     flags a scoped class this file never renders. */
+  :global(.breadcrumb),
   .actions,
   [data-view='landing'],
   [data-view='wizard'] {

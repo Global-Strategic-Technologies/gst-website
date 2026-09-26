@@ -1529,18 +1529,19 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     color: var(--color-warning-ink);
   }
 
-  .tp-delta {
+  /* Built by utils/techpar/chart.ts via innerHTML, so no scoped cid: :global(). */
+  :global(.tp-delta) {
     font-family: var(--font-family-mono);
     font-size: var(--text-xs);
     font-weight: var(--font-weight-bold);
     margin-left: var(--spacing-xs);
   }
 
-  .tp-delta--improve {
+  :global(.tp-delta--improve) {
     color: var(--color-primary);
   }
 
-  .tp-delta--worsen {
+  :global(.tp-delta--worsen) {
     color: var(--color-warning-ink);
   }
 
@@ -2811,7 +2812,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   @media print {
     /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* ── Hide interactive chrome ─────────────────────────────── */
-    .site-header,
+    /* Breadcrumb and subtitle are rendered by BaseLayout/HubHeader, so they need
+       :global(). Header and Footer hide themselves in print. */
+    :global(.breadcrumb),
+    :global(.hub-header__subtitle),
     .tool-tab-bar,
     .tp-nav-row,
     .tp-arr-chip,
@@ -2823,10 +2827,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     .tp-baseline-controls,
     .tp-scenario-list,
     .tp-cross-link,
-    .tp-bench-wrap,
-    .hub-header__back,
-    .hub-header__sub,
-    footer {
+    .tp-bench-wrap {
       display: none !important;
     }
 

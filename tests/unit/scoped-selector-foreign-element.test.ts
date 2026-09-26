@@ -42,6 +42,28 @@ import { stripComments, walkStyleSources } from '../integration/helpers/css-pars
  *  - a class passed via a spread at the call site (`<Foo {...attrs} />`)
  *  - only the first `class:list` attribute on a tag is read
  *  - `is:global` style blocks, which are unscoped and cannot fall into the trap
+ *
+ * SECOND RULE — the element the file never renders. A scoped rule whose
+ * rightmost compound names no class that appears anywhere in the file's
+ * frontmatter, template or scripts (a plain text search) targets markup some
+ * other file renders — a child component, the layout, another module's
+ * `innerHTML` — or markup that does not exist at all. Either way no element
+ * carries the cid. Its first run found the tool pages' print rules for
+ * `.print-report-header*` (PrintReportHeader's markup), `.breadcrumb` /
+ * `.hub-header` (BaseLayout's / HubHeader's), the non-existent
+ * `.hub-header__back`, the script-built `.no-results-message`, and eleven more.
+ * A BEM modifier `block--mod` counts as present when `block` is, and one
+ * present class vouches for the rest of its compound, because another module
+ * toggling a state class onto this file's element is legitimate.
+ *
+ * KNOWN GAPS of the second rule (uncaught, not guessed at):
+ *  - a text search, not a render: a class named ONLY in the file's own
+ *    `createElement` / `innerHTML` code counts as present, yet that element is
+ *    unscoped too (no cid), so its scoped rule is just as dead
+ *  - a class mentioned only in a comment, an unrelated string or a
+ *    querySelector counts as present
+ *  - a class assembled at runtime (`'tp-' + x`) is not recognised, so a rule for
+ *    it would be flagged (none today; wrap it in `:global()`)
  */
 
 export interface Finding {
@@ -113,13 +135,60 @@ export const findForeignTargets = (css: string, componentClasses: Set<string>): 
   return findings;
 };
 
+/** Classes in a selector's rightmost compound, `:not()`/`:is()`/`:where()`/`:global()` excluded. */
+const rightmostClasses = (selector: string): string[] => {
+  const compounds = splitTop(selector.replace(/\s*([>+~])\s*/g, ' '), /\s/).filter(Boolean);
+  const last = compounds[compounds.length - 1];
+  if (!last || last.startsWith(':global(')) return [];
+  let bare = last;
+  for (const g of [':not(', ':is(', ':where(', ':has(', ':global(']) bare = removeGroups(bare, g);
+  return [...bare.matchAll(/\.([\w-]+)/g)].map((m) => m[1]);
+};
+
+/**
+ * Selectors whose rightmost compound targets an element this file never
+ * renders: NONE of the compound's classes appears in `markupAndScripts` (the
+ * file's frontmatter, template and scripts). Such an element can only reach the
+ * page through some other file's markup (a child component's, a layout's,
+ * another module's `innerHTML`) or not at all, and none of those carry this
+ * file's cid.
+ *
+ * One present class is enough, and a BEM modifier `block--mod` counts as
+ * present when its `block` is: the element is then rendered here and carries
+ * the cid, and the remaining classes are runtime states that another module
+ * may legitimately toggle (`.palette-panel.is-open` from palette-manager.ts,
+ * `.tp-deep-wrap--on` from techpar/dom.ts).
+ */
+export const findUnreferencedTargets = (css: string, markupAndScripts: string): Finding[] => {
+  const mentioned = (cls: string): boolean =>
+    new RegExp(`(?<![\\w-])${cls.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`).test(
+      markupAndScripts
+    );
+  const present = (cls: string): boolean =>
+    mentioned(cls) || (cls.includes('--') && mentioned(cls.slice(0, cls.indexOf('--'))));
+  const findings: Finding[] = [];
+  for (const selector of ruleSelectors(css)) {
+    const classes = rightmostClasses(selector);
+    if (classes.length && !classes.some(present)) findings.push({ selector, cls: classes[0] });
+  }
+  return findings;
+};
+
+/**
+ * A `<style>` block opens at the start of a line. Anchoring matters: a comment
+ * that mentions "`<style>` rules" (the IRL generator's script, the radar and
+ * PrintReportHeader docblocks) otherwise opens a match that runs to the real
+ * block's `</style>`, swallowing every line of script or markup in between.
+ */
+const STYLE_BLOCK = /^[ \t]*<style\b([^>/]*)>([\s\S]*?)<\/style>/gm;
+
 /** Split an Astro file into frontmatter, scoped style text, and template markup. */
 const splitAstro = (source: string) => {
   const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source);
   const frontmatter = fm ? fm[1] : '';
   const rest = fm ? source.slice(fm[0].length) : source;
   const styles: string[] = [];
-  for (const m of rest.matchAll(/<style([^>]*)>([\s\S]*?)<\/style>/g)) {
+  for (const m of rest.matchAll(STYLE_BLOCK)) {
     if (!/\bis:global\b/.test(m[1])) styles.push(m[2]);
   }
   // Self-closing tags first. `<script is:inline set:html={…} />` otherwise opens
@@ -127,10 +196,16 @@ const splitAstro = (source: string) => {
   // between — which hid HubMcpPage's whole icon catalog from the scan.
   const template = rest
     .replace(/<(script|style)\b[^>]*\/>/g, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
+    .replace(STYLE_BLOCK, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/g, '')
     .replace(/<!--[\s\S]*?-->/g, '');
-  return { frontmatter, styles: styles.join('\n'), template };
+  // Everything that can put a class on an element this file renders:
+  // frontmatter, template and scripts — i.e. the file minus its style blocks.
+  const markupAndScripts = source
+    .replace(/<style\b[^>]*\/>/g, '')
+    .replace(STYLE_BLOCK, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  return { frontmatter, styles: styles.join('\n'), template, markupAndScripts };
 };
 
 /** Scan component tags with brace/quote tracking, since attribute expressions contain `>`. */
@@ -207,6 +282,12 @@ export const scanAstro = (
     for (const c of staticClasses(tag.attrs)) componentClasses.add(c);
   }
   return componentClasses.size ? findForeignTargets(styles, componentClasses) : [];
+};
+
+/** Scoped rules in one Astro file whose rightmost class the file never renders or scripts. */
+export const scanAstroUnreferenced = (source: string): Finding[] => {
+  const { styles, markupAndScripts } = splitAstro(source);
+  return styles.trim() ? findUnreferencedTargets(styles, markupAndScripts) : [];
 };
 
 const astroFile = (template: string, css: string): string =>
@@ -318,6 +399,83 @@ describe('scoped rules do not target a class only a child component receives', (
     expect(
       offenders,
       `these scoped selectors target a class the file only passes to a child component, so they match nothing — anchor with \`<ancestor> :global(.cls)\`, use a type selector for a native element, or delete:\n  ${offenders.join('\n  ')}`
+    ).toEqual([]);
+  });
+});
+
+describe('scoped rules do not target a class the file never renders', () => {
+  const page = (template: string, css: string, script = ''): string =>
+    `---\nimport PrintReportHeader from './PrintReportHeader.astro';\n---\n${template}\n${script}\n<style>\n${css}\n</style>\n`;
+
+  it('flags a scoped rule for a class only a child component renders (the print-report-header case)', () => {
+    const src = page('<PrintReportHeader title="x" />', '.print-report-header { display: none; }');
+    expect(scanAstroUnreferenced(src).map((f) => f.cls)).toEqual(['print-report-header']);
+  });
+
+  it('flags a class that exists nowhere (the techpar .hub-header__back case)', () => {
+    const src = page(
+      '<main class="tool"></main>',
+      '@media print { .hub-header__back { display: none; } }'
+    );
+    expect(scanAstroUnreferenced(src).map((f) => f.cls)).toEqual(['hub-header__back']);
+  });
+
+  it('reads only the rightmost compound, and one rendered class vouches for its state classes', () => {
+    const src = page(
+      '<div class="grid"></div>',
+      '.gone .grid { gap: 0; } .grid.is-open { gap: 1px; } .ghost.is-open { gap: 2px; }'
+    );
+    expect(scanAstroUnreferenced(src).map((f) => f.selector)).toEqual(['.ghost.is-open']);
+  });
+
+  it('treats a BEM modifier as rendered when its block is (toggled by another module)', () => {
+    const src = page(
+      '<div class="grid"></div>',
+      '.grid--wide { gap: 0; } .ghost--wide { gap: 0; }'
+    );
+    expect(scanAstroUnreferenced(src).map((f) => f.selector)).toEqual(['.ghost--wide']);
+  });
+
+  it('counts a class the file adds from its own script', () => {
+    const src = page(
+      '<div class="grid"></div>',
+      '.is-open { gap: 1px; }',
+      "<script>document.querySelector('.grid')?.classList.add('is-open');</script>"
+    );
+    expect(scanAstroUnreferenced(src)).toEqual([]);
+  });
+
+  it('accepts a :global() rightmost compound and ignores :not() arguments', () => {
+    const src = page(
+      '<nav class="bar"></nav>',
+      '.bar :global(.breadcrumb) { display: none; } .bar:not(.elsewhere) { color: red; }'
+    );
+    expect(scanAstroUnreferenced(src)).toEqual([]);
+  });
+
+  it('does not treat a longer class name as a mention of a shorter one', () => {
+    const src = page('<div class="card-title"></div>', '.card { color: red; }');
+    expect(scanAstroUnreferenced(src).map((f) => f.cls)).toEqual(['card']);
+  });
+
+  it('no .astro file in src has a scoped rule for a class it never renders or scripts', () => {
+    const REPO = process.cwd();
+    const abs: string[] = [];
+    walkStyleSources(join(REPO, 'src'), abs);
+    const astro = abs.filter((p) => p.endsWith('.astro'));
+    expect(astro.length, 'no .astro files scanned — the walk is broken').toBeGreaterThan(100);
+
+    const offenders: string[] = [];
+    for (const file of astro) {
+      for (const f of scanAstroUnreferenced(readFileSync(file, 'utf-8'))) {
+        offenders.push(
+          `${relative(REPO, file).split('\\').join('/')}: \`${f.selector}\` (.${f.cls})`
+        );
+      }
+    }
+    expect(
+      offenders,
+      `these scoped selectors target a class the file never renders, so they carry a cid no element has — delete the rule if it never applied (STYLES_GUIDE: render before reviving), move it to a src/styles/components/*.css module, or anchor with \`<ancestor> :global(.cls)\`:\n  ${offenders.join('\n  ')}`
     ).toEqual([]);
   });
 });

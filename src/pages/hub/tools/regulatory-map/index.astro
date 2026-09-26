@@ -1977,64 +1977,31 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin-bottom: 2px;
   }
 
-  /* Print-only elements (hidden on screen) */
-  .print-report-header,
+  /* Print-only footer (hidden on screen). The print header is the
+     PrintReportHeader component, which hides and styles itself. */
   .print-report-footer {
     display: none;
   }
 
   @media print {
-    /* Hide interactive chrome */
+    /* Hide interactive chrome. The map controls, hint and sheet handle are
+       rendered by MapVisualizer / CompliancePanel, and the breadcrumb by
+       BaseLayout, so they need :global(). */
     :global(.site-header),
     :global(footer),
     .regulation-filters,
-    .map-controls,
-    .map-quick-zoom,
+    :global(.map-controls),
+    :global(.map-quick-zoom),
     .brutal-map-cta,
-    .brutal-map-hint,
+    :global(.brutal-map-hint),
     .brutal-bottom-sheet__overlay,
-    .brutal-bottom-sheet__handle,
+    :global(.brutal-bottom-sheet__handle),
     .back-link,
-    :global(.hub-header__breadcrumb) {
+    :global(.breadcrumb) {
       display: none !important;
     }
 
-    /* Show print header/footer */
-    .print-report-header {
-      display: flex !important;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding: 0 0 var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
-      border-bottom: 3px solid var(--color-primary);
-    }
-
-    .print-report-header__brand {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-      font-family: var(--font-family-mono);
-      font-size: 14pt;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--text-primary);
-    }
-
-    .print-report-header__title {
-      font-family: var(--font-family-mono);
-      font-size: 11pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-
-    .print-report-header__date {
-      font-family: var(--font-family-mono);
-      font-size: 9pt;
-      color: var(--text-muted);
-    }
-
+    /* Show print footer */
     .print-report-footer {
       display: block !important;
       margin-top: var(--spacing-2xl);

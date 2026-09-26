@@ -2,20 +2,20 @@
 /**
  * PrintReportHeader — branded header rendered only when a page is printed.
  *
- * Hidden on screen (display: none) and revealed inside an @media print
- * block across 10 pages. Use this component anywhere a printed export
- * needs the standard GST brand + title + generation-date strip at the
- * top of page 1.
+ * Hidden on screen (display: none) and revealed by its own @media print
+ * block. Use this component anywhere a printed export needs the standard
+ * GST brand + title + generation-date strip at the top of page 1.
  *
- * Class names are intentionally kept unhashed (via `:global()` on every
- * selector in the scoped <style> block) because two tool pages
- * (hub/tools/tech-debt-calculator and hub/tools/regulatory-map) override
- * individual elements of this component inside their own scoped
- * `@media print` blocks with tool-specific typography. Those overrides
- * depend on matching the canonical unhashed class names.
- *
- * Do not rename or add new class names here without auditing the two
- * override sites first.
+ * This component owns all of its styling, screen and print. Every selector
+ * below is `:global()`, so a caller that genuinely needs a per-page
+ * variant can target the plain class names — but only through `:global()`
+ * (or a plain stylesheet): a caller's SCOPED `.print-report-header` rule
+ * compiles to the caller's cid, which this markup never carries, so it
+ * silently matches nothing. The tech-debt-calculator and regulatory-map
+ * pages carried such overrides for their whole life without one of them
+ * ever applying; they were deleted on 2026-09-26 (the guard in
+ * tests/unit/scoped-selector-foreign-element.test.ts now fails on that
+ * shape).
  */
 import DeltaIcon from './DeltaIcon.astro';
 import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
