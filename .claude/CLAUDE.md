@@ -274,7 +274,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 ### PR Requirements
 
-- Required status checks (branch ruleset): **E2E Tests (Playwright)**, **Unit & Integration Tests**, **Lint & Type Check**, **Verify doc links** — plus branch up-to-date (strict policy). A PR stuck BLOCKED after "Update branch": close + reopen (see DEVELOPER_TOOLING.md § push-trigger notes)
+- Required status checks (branch ruleset): **E2E Tests (Playwright)**, **Unit & Integration Tests**, **Lint & Type Check**, **Verify doc links**, and **`lighthouse`** (CLS ≤ 0.1 gate — required once added in the ruleset UI; see DEVELOPER_TOOLING.md) — plus branch up-to-date (strict policy). A PR stuck BLOCKED after "Update branch": close + reopen (see DEVELOPER_TOOLING.md § push-trigger notes)
 - Review gates (Directives 2 & 7) precede the PR; CI enforces the rest
 
 ## 📊 Data Management

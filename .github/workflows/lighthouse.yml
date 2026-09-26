@@ -2,21 +2,16 @@ name: Lighthouse CI
 
 permissions:
   contents: read
-  statuses: write
 
 on:
   pull_request:
     branches: [master]
-    # Skip Lighthouse on PRs that don't change anything user-facing — docs,
-    # workflow files, and MCP-server-only changes can't move performance
-    # scores. Reduces noise on docs PRs (the BL-045/046 candidate filing
-    # ran a full 5-min audit for zero signal). If EVERY changed path
-    # matches the ignore list, the workflow is skipped; mixed PRs still
-    # run Lighthouse.
-    paths-ignore:
-      - '**/*.md'
-      - '.github/**'
-      - 'mcp-server/**'
+    # NO workflow-level `paths-ignore` (removed 2026-09-26). A path-ignored
+    # workflow never reports at all, so once `lighthouse` is a REQUIRED check it
+    # would leave every docs-only PR waiting forever for a status that never
+    # comes. The same skip now lives in the `changes` job below, which lets the
+    # `lighthouse` job run its steps as skipped and still report success — the
+    # house "dummy skip" pattern from test.yml.
   workflow_dispatch:
     inputs:
       reason:
@@ -29,28 +24,89 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Gate job. Skips Lighthouse on PRs that can't move a performance score —
+  # docs, workflow files, and MCP-server-only changes (the BL-045/046 candidate
+  # filing ran a full 5-min audit for zero signal). If EVERY changed path is in
+  # the ignore set the audit is skipped; mixed PRs still run it. Manual
+  # dispatches always run.
+  # ─────────────────────────────────────────────────────────────────────
+  changes:
+    name: Detect Performance-Relevant Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # pull-requests: read lets dorny/paths-filter use the GitHub API on PR
+    # events (no checkout needed), as in test.yml.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          predicate-quantifier: 'every'
+          list-files: json
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!.github/**'
+              - '!mcp-server/**'
+      - id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ steps.filter.outputs.code }}" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Log gate decision
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "code=${{ steps.filter.outputs.code }}"
+          echo "run=${{ steps.decide.outputs.run }}"
+          echo "matched files: ${{ steps.filter.outputs.code_files }}"
+
   lighthouse:
+    # The required-check context is this `name:` — keep it `lighthouse`; the
+    # branch ruleset and DEVELOPER_TOOLING.md § PR requirements name it.
+    name: lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: changes
     steps:
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.run == 'true'
 
       - uses: actions/setup-node@v7
+        if: needs.changes.outputs.run == 'true'
         with:
           node-version: '22'
           cache: 'npm'
 
       - run: npm ci
+        if: needs.changes.outputs.run == 'true'
 
       # ── Desktop audit ──────────────────────────────────────
+      # `continue-on-error` stays so the mobile audit and the summary still run
+      # after a desktop failure; the `Enforce` step at the end is the gate.
+      # `shell: bash` is load-bearing: it adds `-o pipefail`. GitHub's default
+      # shell is `bash -e` WITHOUT pipefail, so `lhci … | tee` would report tee's
+      # exit code and the step outcome would be `success` on a failed assertion.
+      # No LHCI_GITHUB_APP_TOKEN: per-URL commit statuses would collide between
+      # the desktop and mobile runs (same `lhci/url<path>` context) and can land
+      # on a non-head SHA; `temporary-public-storage` needs no token.
       - name: Run Lighthouse CI (desktop)
+        id: lhci_desktop
+        if: needs.changes.outputs.run == 'true'
         continue-on-error: true
+        shell: bash
         run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output-desktop.txt
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Save desktop scores
-        if: always()
+        if: always() && needs.changes.outputs.run == 'true'
         run: |
           node -e "
             const fs = require('fs');
@@ -94,18 +150,20 @@ jobs:
 
       # ── Mobile audit ───────────────────────────────────────
       - name: Clear desktop LHCI artifacts
-        if: always()
+        if: always() && needs.changes.outputs.run == 'true'
         run: rm -rf .lighthouseci
 
+      # Same `continue-on-error` + `shell: bash` (pipefail) reasoning as desktop.
       - name: Run Lighthouse CI (mobile)
+        id: lhci_mobile
+        if: needs.changes.outputs.run == 'true'
         continue-on-error: true
+        shell: bash
         run: npx lhci autorun --config=lighthouserc.mobile.cjs 2>&1 | tee lhci-output-mobile.txt
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Combined summary ───────────────────────────────────
       - name: Generate summary
-        if: always()
+        if: always() && needs.changes.outputs.run == 'true'
         run: |
           node -e "
             const fs = require('fs');
@@ -189,3 +247,21 @@ jobs:
 
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
           "
+
+      # ── Gate ───────────────────────────────────────────────
+      # The audits above are `continue-on-error` so both presets and the summary
+      # always run; THIS step turns a failed audit into a failed check. Only
+      # `error`-level assertions fail `lhci autorun` — in both configs that is
+      # CLS alone (max 0.1); FCP/LCP/TBT/TTI are `warn`.
+      - name: Enforce Lighthouse assertions
+        if: always() && needs.changes.outputs.run == 'true'
+        run: |
+          echo "desktop=${{ steps.lhci_desktop.outcome }} mobile=${{ steps.lhci_mobile.outcome }}"
+          if [ "${{ steps.lhci_desktop.outcome }}" = "failure" ] || [ "${{ steps.lhci_mobile.outcome }}" = "failure" ]; then
+            echo "::error::Lighthouse assertions failed — see the desktop/mobile assertion output in the job summary."
+            exit 1
+          fi
+
+      - name: Skipped (no performance-relevant changes)
+        if: needs.changes.outputs.run != 'true'
+        run: echo "Skipped — this PR only touches docs, workflows, or mcp-server/."

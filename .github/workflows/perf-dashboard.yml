@@ -35,8 +35,6 @@ jobs:
       - name: Run Lighthouse CI (desktop)
         continue-on-error: true
         run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output-desktop.txt
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract desktop metrics
         run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics-desktop.json
@@ -48,8 +46,6 @@ jobs:
       - name: Run Lighthouse CI (mobile)
         continue-on-error: true
         run: npx lhci autorun --config=lighthouserc.mobile.cjs 2>&1 | tee lhci-output-mobile.txt
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract mobile metrics
         run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics-mobile.json

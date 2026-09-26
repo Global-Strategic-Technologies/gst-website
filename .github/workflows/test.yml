@@ -19,8 +19,7 @@ on:
     # the PR branch, which arrives as `synchronize` (ignored) — on a branch
     # family absent from this push list, the new head gets zero check runs and
     # the PR is BLOCKED by the strict up-to-date ruleset (observed on PR #316).
-    branches:
-      [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
+    branches: [master, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
   pull_request:
     branches: [master]
     # Deliberately NOT listening to `synchronize` — push covers every commit
@@ -69,9 +68,10 @@ jobs:
       # `code` — true if this push/PR touches non-docs files (see filters)
       # `duplicate` — true if a prior workflow run already completed
       #   successfully with the same tree hash (content-identical). The
-      #   canonical case: push to dev passes, PR dev→master fires the
-      #   same workflow on a synthetic merge SHA whose tree is identical,
-      #   so the new run is a duplicate of work already validated.
+      #   canonical case: a push to an up-to-date feature branch passes,
+      #   then opening its PR fires the same workflow on a synthetic merge
+      #   SHA whose tree is identical, so the new run is a duplicate of
+      #   work already validated.
       # `should_run` — true only when BOTH code changed AND no duplicate
       #   exists. Downstream jobs key off this single output.
       code: ${{ steps.filter.outputs.code }}
@@ -115,10 +115,11 @@ jobs:
         with:
           # For push events, compare against the previous commit on the
           # SAME branch. The action's default base is the repository's
-          # default branch (master), which for a push to dev means the
-          # diff spans ALL unmerged commits — not just this push. That
-          # caused every push to dev to look like a full code change
-          # regardless of what the push actually touched. Setting base
+          # default branch (master), which for a push to a feature branch
+          # means the diff spans ALL unmerged commits — not just this push.
+          # That made every push to the (since-retired) `dev` branch look
+          # like a full code change regardless of what the push actually
+          # touched. Setting base
           # to the pushed branch triggers paths-filter's "same branch"
           # codepath: diff against `github.event.before`. Ignored on
           # pull_request events (per the action's docs).
@@ -297,10 +298,11 @@ jobs:
         # pipeline captures tee's exit code (always 0), masking vitest
         # failures and making the workflow report `success` while tests
         # are red. Same bug as test-mcp-server.yml; both fixed in the same
-        # commit (2026-05-27 audit). The Lighthouse / perf-dashboard
-        # workflows have the same `| tee` shape but are intentionally
-        # exit-tolerant (perf regressions are advisory signals, not
-        # gating) — left alone.
+        # commit (2026-05-27 audit). lighthouse.yml has the same `| tee`
+        # shape and solves it the other way — `shell: bash` (which adds
+        # `-o pipefail`) on each audit step plus a final enforce step, since
+        # CLS gates merges there. perf-dashboard.yml stays exit-tolerant: it
+        # is a trend dashboard, not a gate.
         #
         # PIPESTATUS[0] is bash-specific — `shell: bash` is required.
         shell: bash
@@ -342,6 +344,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes, lint-and-typecheck, unit-and-integration]
+    # Point /hub/radar at the offline radar stub (scripts/radar-stub.mjs,
+    # started below) so the Radar content E2E runs in CI instead of skipping on
+    # the empty state. Playwright's webServer inherits process.env and the page
+    # is SSR, so `astro:env` reads these per request. The bearer is a
+    # placeholder: the stub never checks it; RadarFeed only needs it non-empty
+    # to reach the fetch. Values match RADAR.md § Working Offline.
+    env:
+      MCP_RADAR_SNAPSHOT_URL: http://127.0.0.1:8787/radar/snapshot
+      MCP_KEY_WEBSITE_RADAR: stub-bearer-not-a-real-secret
 
     steps:
       - name: Checkout code
@@ -393,6 +404,21 @@ jobs:
       - name: Build application
         if: needs.changes.outputs.should_run == 'true'
         run: npm run build
+
+      - name: Start radar snapshot stub
+        if: needs.changes.outputs.should_run == 'true'
+        run: |
+          nohup node scripts/radar-stub.mjs > radar-stub.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$MCP_RADAR_SNAPSHOT_URL" > /dev/null; then
+              echo "radar stub ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::radar stub did not answer on $MCP_RADAR_SNAPSHOT_URL within 30s"
+          cat radar-stub.log
+          exit 1
 
       - name: Run E2E tests (Chromium)
         if: needs.changes.outputs.should_run == 'true'

@@ -24,6 +24,15 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, firefox, webkit]
+    # Point /hub/radar at the offline radar stub (scripts/radar-stub.mjs,
+    # started below) so the Radar content E2E runs in CI instead of skipping on
+    # the empty state. Playwright's webServer inherits process.env and the page
+    # is SSR, so `astro:env` reads these per request. The bearer is a
+    # placeholder: the stub never checks it; RadarFeed only needs it non-empty
+    # to reach the fetch. Values match RADAR.md § Working Offline.
+    env:
+      MCP_RADAR_SNAPSHOT_URL: http://127.0.0.1:8787/radar/snapshot
+      MCP_KEY_WEBSITE_RADAR: stub-bearer-not-a-real-secret
 
     steps:
       - name: Checkout code
@@ -59,6 +68,20 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Start radar snapshot stub
+        run: |
+          nohup node scripts/radar-stub.mjs > radar-stub.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$MCP_RADAR_SNAPSHOT_URL" > /dev/null; then
+              echo "radar stub ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::radar stub did not answer on $MCP_RADAR_SNAPSHOT_URL within 30s"
+          cat radar-stub.log
+          exit 1
 
       - name: Run E2E tests (${{ matrix.project }})
         run: npx playwright test --project=${{ matrix.project }}
