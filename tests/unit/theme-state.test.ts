@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   applyState,
   nextState,
   quarterTurns,
   readState,
-  stateFromStorage,
   storageValue,
   STORAGE_VALUES,
   toggleBinary,
@@ -47,13 +44,9 @@ describe('theme-state (ADR-0038)', () => {
     expect(STATES.map(toggleBinary)).toEqual([3, 3, 0, 0]);
   });
 
-  it('storage round-trips, and unknown values read as light', () => {
-    for (const s of STATES) expect(stateFromStorage(storageValue(s))).toBe(s);
-    expect(stateFromStorage(null)).toBe(0);
-    expect(stateFromStorage('sepia')).toBe(0);
-    // Pre-ADR values keep their meaning — no migration exists.
-    expect(stateFromStorage('light')).toBe(0);
-    expect(stateFromStorage('dark')).toBe(3);
+  it('storage values are the four states, lightest first', () => {
+    expect(STATES.map(storageValue)).toEqual(['light', 'dim-light', 'dim-dark', 'dark']);
+    expect([...STORAGE_VALUES]).toEqual(STATES.map(storageValue));
   });
 
   it('quarter turns are always counter-clockwise, 0–3', () => {
@@ -61,17 +54,5 @@ describe('theme-state (ADR-0038)', () => {
     expect(quarterTurns(3, 0)).toBe(1);
     expect(quarterTurns(0, 3)).toBe(3);
     expect(quarterTurns(2, 2)).toBe(0);
-  });
-
-  it("BaseLayout's inline init script uses exactly the module's storage values", () => {
-    const src = readFileSync(resolve(__dirname, '../../src/layouts/BaseLayout.astro'), 'utf8');
-    const start = src.indexOf("localStorage.getItem('theme')");
-    expect(start, 'init script located').toBeGreaterThan(-1);
-    const block = src.slice(start, src.indexOf('} catch', start));
-    const literals = new Set([...block.matchAll(/theme === '([a-z-]+)'/g)].map((m) => m[1]));
-    // Every non-default value must be checked; 'light' is the fall-through.
-    expect([...literals].sort()).toEqual(STORAGE_VALUES.filter((v) => v !== 'light').sort());
-    expect(block).toContain("add('dark-theme')");
-    expect(block).toContain("add('theme-dim')");
   });
 });

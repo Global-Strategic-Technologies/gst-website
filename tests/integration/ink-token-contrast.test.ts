@@ -288,6 +288,112 @@ describe('primary — palette 6 dim light', () => {
   });
 });
 
+/* Tertiary is the text-safe partner of each palette's primary: active nav
+ * links, breadcrumbs, tags, labels (BL-096). The daily rotation (ADR-0040)
+ * shows every palette in every theme, so it is measured on each theme's
+ * surfaces, and on the primary's 15% tint (the tag chip) over the page ground
+ * the chips sit on. Light and dim light share the light value unless dim light
+ * re-points it; dark and dim dark share the dark value. */
+describe('tertiary — every palette, every theme (ADR-0040)', () => {
+  const THEMES = {
+    light: { plain: ['#ffffff', '#f5f5f5'], chip: ['#ffffff', '#f5f5f5'] },
+    dimLight: { plain: ['#ebebeb', '#e6e6e6', '#dcdcdc'], chip: ['#ebebeb'] },
+    dark: { plain: ['#0a0a0a', '#141414'], chip: ['#0a0a0a', '#141414'] },
+    dimDark: { plain: ['#1c1c1c', '#202020', '#262626'], chip: ['#1c1c1c'] },
+  };
+  const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
+
+  /** A literal hex, following one var(--altN-…) hop within the same block. */
+  const resolve = (body: string, value: string | undefined): string => {
+    const ref = /^var\((--[a-z0-9-]+)\)$/.exec(value ?? '');
+    const hex = ref ? decl(body, ref[1]) : value;
+    expect(hex, `unresolved: ${value}`).toMatch(/^#[0-9a-f]{6}$/i);
+    return hex!;
+  };
+  const assertOn = (
+    label: string,
+    ink: string,
+    primary: string,
+    { plain, chip }: { plain: string[]; chip: string[] }
+  ) => {
+    const i = hexToRgb(ink);
+    const p = hexToRgb(primary);
+    // Where tertiary IS the primary (every alt palette's dark theme), it is
+    // brand-colour text: exempt from AA like teal (ADR-0035 § 1, extended by
+    // ADR-0040), held only to the 1.5:1 floor that keeps it legible.
+    const bar = ink.toLowerCase() === primary.toLowerCase() ? 1.5 : 4.5;
+    for (const s of plain)
+      expect(contrast(i, hexToRgb(s)), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(bar);
+    for (const s of chip) {
+      const bg = hexToRgb(s);
+      const t = p.map((v, k) => v * 0.15 + bg[k] * 0.85);
+      expect(
+        contrast(i, t),
+        `${label}: ${ink} on ${primary}'s 15% tint over ${s}`
+      ).toBeGreaterThanOrEqual(bar);
+    }
+  };
+
+  it.each(ALT_PALETTES)('palette-%i tertiary clears every surface in all four themes', (n) => {
+    const light = resolve(rootBlock, decl(rootBlock, `--alt${n}-color-tertiary`));
+    const lightPrimary = resolve(rootBlock, decl(rootBlock, `--alt${n}-color-primary`));
+    assertOn(`palette-${n} light`, light, lightPrimary, THEMES.light);
+
+    const dim = decl(dimAlt, `--alt${n}-color-tertiary`) ?? light;
+    const dimPrimary = decl(dimAlt, `--alt${n}-color-primary`) ?? lightPrimary;
+    assertOn(`palette-${n} dim light`, dim, dimPrimary, THEMES.dimLight);
+
+    const dark = resolve(darkBlock, decl(darkBlock, `--alt${n}-color-tertiary`));
+    const darkPrimary = resolve(darkBlock, decl(darkBlock, `--alt${n}-color-primary`));
+    assertOn(`palette-${n} dark`, dark, darkPrimary, THEMES.dark);
+    assertOn(`palette-${n} dim dark`, dark, darkPrimary, THEMES.dimDark);
+  });
+
+  it('palette-0 tertiary clears every surface in all four themes', () => {
+    const [light, dark] = lightDark(decl(variables, '--color-tertiary'));
+    const primary = decl(variables, '--color-primary')!;
+    const dimP0 = block(
+      palettes,
+      'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
+    );
+    assertOn('palette-0 light', light, primary, THEMES.light);
+    assertOn(
+      'palette-0 dim light',
+      decl(dimP0, '--color-tertiary') ?? light,
+      primary,
+      THEMES.dimLight
+    );
+    assertOn('palette-0 dark', dark, primary, THEMES.dark);
+    assertOn('palette-0 dim dark', dark, primary, THEMES.dimDark);
+  });
+});
+
+/* The sash ink sits ON the primary band, so it must not lift with --bg-dark in
+ * the dim states. The weakest use is the band's detail text at 85% opacity
+ * (sash.css), measured over every palette's primary in both schemes. */
+describe('sash ink — constant on the band in every theme (ADR-0040)', () => {
+  const dim = block(variables, 'html.theme-dim');
+  it('dim pins --sash-ink to #0a0a0a rather than the lifted --bg-dark', () => {
+    expect(decl(dim, '--sash-ink')).toBe('#0a0a0a');
+  });
+
+  it.each([0, ...ALT_PALETTES])('palette-%i: 85% detail text clears 4.5:1 on its band', (n) => {
+    const ink = hexToRgb('#0a0a0a');
+    const primaries =
+      n === 0
+        ? [decl(variables, '--color-primary')!]
+        : [
+            decl(rootBlock, `--alt${n}-color-primary`)!,
+            decl(darkBlock, `--alt${n}-color-primary`)!,
+          ];
+    for (const primary of primaries) {
+      const band = hexToRgb(primary);
+      const text = ink.map((v, k) => v * 0.85 + band[k] * 0.15);
+      expect(contrast(text, band), `detail on ${primary}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
 describe('ink tokens — editors-pick is root-only', () => {
   it('no palette re-points --color-editors-pick or its ink', () => {
     // Mirrors the base: giving the ink a palette dependency its fill lacks would

@@ -22,6 +22,7 @@ const { locale = DEFAULT_LOCALE } = Astro.props;
   import { trackThemeToggle } from '../utils/analytics';
   import * as Sentry from '@sentry/browser';
   import { applyState, readState, storageValue, toggleBinary } from '../scripts/theme-state';
+  import { rememberChoice } from '../scripts/daily-look';
 
   const themeToggle = document.getElementById('themeToggle');
 
@@ -58,7 +59,8 @@ const { locale = DEFAULT_LOCALE } = Astro.props;
       applyState(document.documentElement, state);
       const isDark = state === 3;
       try {
-        localStorage.setItem('theme', storageValue(state));
+        // Today's pick: holds until local midnight (ADR-0040)
+        rememberChoice('theme', storageValue(state));
       } catch {
         Sentry.addBreadcrumb({
           category: 'theme-toggle',

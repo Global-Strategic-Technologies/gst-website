@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { clickThemeToggle } from './helpers/theme';
+import { todayKey } from './helpers/storage-baseline';
 
 test.describe('Theme Toggle Journey', () => {
   test.beforeEach(async ({ page }) => {
@@ -154,6 +155,8 @@ test.describe('Theme Toggle Journey', () => {
     await page.waitForFunction(() => localStorage.getItem('theme') === 'dark');
     const theme = await page.evaluate(() => localStorage.getItem('theme'));
     expect(theme).toBe('dark');
+    // The pick is stamped with today's date, so it holds until midnight (ADR-0040).
+    expect(await page.evaluate(() => localStorage.getItem('theme-date'))).toBe(todayKey());
 
     // Reload page
     await page.reload();
