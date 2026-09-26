@@ -27,6 +27,14 @@
  *      tool at once. New parity wirings are one-line additions to the
  *      frontmatter; no test-code changes.
  *
+ *   4. **Registry parity.** Every contract lists the tools it documents in a
+ *      `tools:` frontmatter list (a module registering two tools, e.g.
+ *      `search_portfolio` + `list_portfolio_facets`, has one contract). The
+ *      union of those lists must equal the live `tools/list` of the stdio
+ *      server — the surface with every tool — in BOTH directions. Discovery
+ *      starts from the registry, not the docs: a tool registered with no
+ *      contract fails here, which a docs-driven walk could never notice.
+ *
  * **Why integration**: this test reads real files and imports real
  * schemas. Unit-isolating each step would defeat the point — the
  * contract IS its real-file shape, and the schema IS the real runtime
@@ -35,6 +43,16 @@
 
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import {
+  LATEST_PROTOCOL_VERSION,
+  type JSONRPCMessage,
+  type JSONRPCResponse,
+  type JSONRPCErrorResponse,
+} from '@modelcontextprotocol/server';
+import { createServer } from '../../src/server';
+import { registerLocalOnlyTools } from '../../src/tools/_local-only';
+import { stdioSnapshotReader } from '../../src/content/radar-snapshot-reader-stdio';
+import { createPairedTransports } from '../helpers/paired-transport';
 
 /** Repo root: this file lives at `mcp-server/tests/integration/`. */
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
@@ -42,6 +60,8 @@ const CONTRACTS_DIR = resolve(REPO_ROOT, 'mcp-server', 'src', 'docs', 'tools');
 
 interface Frontmatter {
   readonly tool: string;
+  /** Every registered tool name this contract documents (`tool` is one of them). */
+  readonly tools: ReadonlyArray<string>;
   readonly version: string;
   readonly lastAuthored: string;
   readonly schema: string;
@@ -63,8 +83,9 @@ interface DiscoveredContract {
  * parsed fields + the body content (without the frontmatter block).
  *
  * Deliberately a small home-grown parser: the frontmatter shape is fully
- * under our control (single-line scalars + a single optional list of
- * `tableHeading` / `schemaExport` pairs), and pulling `gray-matter` /
+ * under our control (single-line scalars, a list of bare scalars for
+ * `tools`, and an optional list of `tableHeading` / `schemaExport` pairs),
+ * and pulling `gray-matter` /
  * `yaml` would add a dependency for ~20 lines of logic. If the shape
  * grows (nested arrays, multi-line strings, etc.), swap in `yaml` then.
  */
@@ -90,19 +111,26 @@ function parseFrontmatter(raw: string): { fm: Frontmatter; body: string } {
     const key = scalarMatch[1];
     const value = scalarMatch[2];
     if (value === '') {
-      // List value follows on subsequent indented lines.
-      const list: Array<Record<string, string>> = [];
+      // List value follows on subsequent indented lines: either a list of
+      // `- key: value` objects (`enumParity`) or of bare scalars (`tools`).
+      const list: Array<Record<string, string> | string> = [];
       i++;
       let current: Record<string, string> | null = null;
       while (i < lines.length && lines[i].startsWith(' ')) {
         const itemLine = lines[i];
         const itemStart = itemLine.match(/^\s+-\s+([a-zA-Z][a-zA-Z0-9]*):\s*(.+)$/);
+        const itemScalar = itemLine.match(/^\s+-\s+(\S.*)$/);
         const itemContinue = itemLine.match(/^\s+([a-zA-Z][a-zA-Z0-9]*):\s*(.+)$/);
         if (itemStart) {
           current = { [itemStart[1]]: stripQuotes(itemStart[2]) };
           list.push(current);
+        } else if (itemScalar) {
+          current = null;
+          list.push(stripQuotes(itemScalar[1].trim()));
         } else if (itemContinue && current) {
           current[itemContinue[1]] = stripQuotes(itemContinue[2]);
+        } else {
+          throw new Error(`unparseable frontmatter list line: ${itemLine}`);
         }
         i++;
       }
@@ -241,6 +269,91 @@ describe('contract-parity: frontmatter required fields', () => {
       existsSync(abs),
       `schema path "${contract.frontmatter.schema}" does not exist (referenced from ${contract.relPath})`
     ).toBe(true);
+  });
+});
+
+/**
+ * The live tool registry, read through a real `tools/list` round-trip on the
+ * stdio surface (`createServer` + `registerLocalOnlyTools`, mirroring
+ * `src/index.ts` and `protocol-roundtrip.test.ts`). The stdio surface is the
+ * superset: the Worker omits the two stdio-only radar tools.
+ */
+async function listRegisteredTools(): Promise<string[]> {
+  const server = createServer({}, { radarReader: stdioSnapshotReader });
+  registerLocalOnlyTools(server);
+  const { client, server: serverHalf } = createPairedTransports();
+  await server.connect(serverHalf);
+
+  let nextId = 1;
+  const rpc = (
+    method: string,
+    params: unknown
+  ): Promise<JSONRPCResponse | JSONRPCErrorResponse> => {
+    const id = nextId++;
+    return new Promise((resolveMsg) => {
+      client.onmessage = (msg: JSONRPCMessage) => {
+        if ('id' in msg && msg.id === id) resolveMsg(msg as JSONRPCResponse | JSONRPCErrorResponse);
+      };
+      void client.send({ jsonrpc: '2.0', id, method, params } as JSONRPCMessage);
+    });
+  };
+
+  const init = await rpc('initialize', {
+    protocolVersion: LATEST_PROTOCOL_VERSION,
+    capabilities: {},
+    clientInfo: { name: 'contract-parity', version: '0.0.0' },
+  });
+  if ('error' in init) throw new Error(`initialize failed: ${init.error.message}`);
+  await client.send({
+    jsonrpc: '2.0',
+    method: 'notifications/initialized',
+    params: {},
+  } as JSONRPCMessage);
+
+  const res = await rpc('tools/list', {});
+  if ('error' in res) throw new Error(`tools/list failed: ${res.error.message}`);
+  const names = (res.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
+  await server.close();
+  return names.sort();
+}
+
+describe('contract-parity: registry (live tools/list ↔ contract `tools:` lists)', () => {
+  it.each(contracts)(
+    '$relPath declares a non-empty `tools:` list containing its `tool`',
+    (contract) => {
+      expect(Array.isArray(contract.frontmatter.tools), 'missing `tools:` frontmatter list').toBe(
+        true
+      );
+      expect(contract.frontmatter.tools.length).toBeGreaterThan(0);
+      for (const t of contract.frontmatter.tools) expect(typeof t).toBe('string');
+      expect(contract.frontmatter.tools).toContain(contract.frontmatter.tool);
+    }
+  );
+
+  it('no tool is claimed by two contracts', () => {
+    const all = contracts.flatMap((c) => c.frontmatter.tools ?? []);
+    const dupes = all.filter((t, i) => all.indexOf(t) !== i);
+    expect(dupes).toEqual([]);
+  });
+
+  it('the union of contract `tools:` lists equals the live registry, both directions', async () => {
+    const registered = await listRegisteredTools();
+    // Vacuity guard: an empty or truncated registry would make both
+    // directions trivially pass for whatever subset it happened to return.
+    expect(registered.length).toBeGreaterThan(10);
+
+    const documented = new Set(contracts.flatMap((c) => c.frontmatter.tools ?? []));
+    const undocumented = registered.filter((t) => !documented.has(t));
+    const unregistered = [...documented].filter((t) => !registered.includes(t)).sort();
+
+    expect(
+      undocumented,
+      'these tools are registered but no CONTRACT.md lists them in its `tools:` frontmatter'
+    ).toEqual([]);
+    expect(
+      unregistered,
+      'these CONTRACT.md `tools:` entries name tools that are not registered'
+    ).toEqual([]);
   });
 });
 

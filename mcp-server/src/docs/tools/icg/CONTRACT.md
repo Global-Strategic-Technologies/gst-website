@@ -1,5 +1,7 @@
 ---
 tool: assess_infrastructure_cost_governance
+tools:
+  - assess_infrastructure_cost_governance
 version: v1
 lastAuthored: 2026-04-28
 schema: src/schemas/icg.ts

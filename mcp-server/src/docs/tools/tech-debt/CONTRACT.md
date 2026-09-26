@@ -1,5 +1,7 @@
 ---
 tool: estimate_tech_debt_cost
+tools:
+  - estimate_tech_debt_cost
 version: v1
 lastAuthored: 2026-04-28
 schema: src/schemas/tech-debt.ts

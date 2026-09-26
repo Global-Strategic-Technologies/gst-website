@@ -763,7 +763,7 @@ describe('tool response budgets (BL-112)', () => {
     // `compose_dossier_envelope` re-hydrates the IRL body from this cache by hash
     // (ADR-0002); without it the handler cannot resolve the body and errors.
     const server = createServer(baseEnv, { irlBodyCache: new InMemoryIrlBodyCache() });
-    registerLocalOnlyTools(server); // mirror src/index.ts — the stdio surface is the only one with all 17
+    registerLocalOnlyTools(server); // mirror src/index.ts — the stdio surface is the only one with all 18
     const pair = createPairedTransports();
     client = pair.client;
     await server.connect(pair.server);

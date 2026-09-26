@@ -1,5 +1,8 @@
 ---
 tool: search_portfolio
+tools:
+  - search_portfolio
+  - list_portfolio_facets
 version: v1
 lastAuthored: 2026-09-17
 schema: mcp-server/src/schemas.ts
