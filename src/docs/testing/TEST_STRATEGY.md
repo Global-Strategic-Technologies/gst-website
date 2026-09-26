@@ -608,7 +608,7 @@ name: Test Suite
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
   pull_request:
     branches: [master]
 

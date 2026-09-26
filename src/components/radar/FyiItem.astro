@@ -24,10 +24,10 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
       <div class="fyi-item__meta">
         <span class="editors-pick-tag">Editor's Pick</span>
         <span class="source">{item.source}</span>
-        <span class="date">{dateStr}</span>
+        <span>{dateStr}</span>
       </div>
       <div class="fyi-item__headline">
-        <DeltaIcon size={14} class="fyi-item__toggle delta-chevron" />
+        <DeltaIcon size={14} class="delta-chevron" />
         <h3 class="fyi-item__title">
           <a
             href={item.url}
@@ -124,7 +124,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     color: var(--color-primary);
   }
 
-  /* `.fyi-item__toggle` deliberately has no rule. It once carried an optical
+  /* The toggle icon has no class of its own. `.fyi-item__toggle` once carried an optical
      nudge (`margin-top: -0.125rem`) that never applied: the class rides a
      <DeltaIcon> call, so this file's cid never lands on the rendered <svg> —
      the scoped-rule / foreign-element trap in STYLES_GUIDE. Measured at
@@ -133,8 +133,10 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
      headline row already centres the icon with `align-items: center`, which
      halves any negative margin (the nudge rendered as 1px, not 2px), and the
      delta rotates 180deg on open, so one fixed offset cannot suit both states.
-     The class is left on the icon as a semantic hook that nothing selects; the
-     row's flex rules and the global `.delta-chevron` position it. */
+     The class stayed on as a hook nothing selected until the orphan-class scan
+     (BL-116) first saw real FyiItem markup (radar stub in CI, 2026-09-26) and it
+     was stripped; the row's flex rules and the global `.delta-chevron` position
+     the icon. */
 
   /* Expanded body */
   .fyi-item__body {

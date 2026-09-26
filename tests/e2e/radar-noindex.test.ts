@@ -33,9 +33,10 @@ test.describe('Radar page indexability', () => {
   test('should still render its shell content', async ({ page }) => {
     // Guards the other direction: a page that 404s or renders blank would also
     // "not be indexed", and the assertion above alone cannot tell the
-    // difference. Asserts on the SHELL (header + filter pills), not the feed —
-    // the feed is islanded and CI binds no MCP_KEY_WEBSITE_RADAR, so items
-    // never render here. Feed behaviour is covered in radar-page.test.ts.
+    // difference. Asserts on the SHELL (header + filter pills), not the feed.
+    // The feed is islanded and only renders when the radar snapshot stub is
+    // bound (CI's E2E jobs bind it; a local run may not). Feed behaviour is
+    // covered in radar-page.test.ts.
     await expect(page.locator('.hub-header')).toBeVisible();
     await expect(page.locator('.filter-btn[data-filter="all"]')).toBeVisible();
   });

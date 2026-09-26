@@ -187,11 +187,11 @@ const PAGES: A11yPage[] = [
     // The feed is a `server:defer` island (ADR-0012), so this waits for it to
     // RESOLVE before scanning — otherwise axe audits the aria-hidden skeleton.
     //
-    // Scope note, so nobody reads this as more coverage than it is: CI binds no
-    // MCP_KEY_WEBSITE_RADAR, so the island resolves to `.radar-empty` and the
-    // scan covers the shell — breadcrumb, headings, the filter pills (real
-    // interactive controls), the empty state and the CTA. `FyiItem`/`WireItem`
-    // only render with a bearer; use `npm run radar:stub` to cover those too.
+    // Scope note: CI starts the radar stub and binds a placeholder bearer
+    // (test.yml), so there the island resolves to real `FyiItem`/`WireItem`
+    // markup and the scan covers it along with the shell. A local run without
+    // `npm run radar:stub` resolves to `.radar-empty` and covers only the
+    // shell (breadcrumb, headings, filter pills, empty state, CTA).
     waitFor: RADAR_SETTLED_SELECTOR,
     exclude: [
       // FyiItem nests its article <a> inside the <details> <summary>, which axe

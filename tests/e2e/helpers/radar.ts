@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * The island has RESOLVED when one of these exists — real items, or the empty
@@ -25,19 +25,19 @@ export const RADAR_SETTLE_TIMEOUT_MS = 15000;
  * island to have RESOLVED, in either direction: real items, or the empty
  * state it renders when the fetch yields nothing.
  *
- * There is NO seeded feed data. `tests/e2e/global-setup.ts` is an explicit
- * no-op, and `npm run radar:seed` populates only the local *stdio* MCP
- * snapshot, which the website never reads — the site fetches the Worker over
- * HTTP. So items appear only when `MCP_KEY_WEBSITE_RADAR` is bound and the
- * Worker responds; CI binds no such secret and renders the empty state.
- * That is why content-dependent assertions must branch on hasRadarContent().
+ * Where the items come from: the site fetches the Worker's snapshot over HTTP,
+ * and only when `MCP_KEY_WEBSITE_RADAR` is bound. `npm run radar:seed` does
+ * NOT help — it populates only the local *stdio* MCP snapshot, which the
+ * website never reads.
  *
- * **To make those assertions actually RUN**: `npm run radar:stub` serves a
- * fixed offline snapshot; point `MCP_RADAR_SNAPSHOT_URL` at it and set any
- * non-empty `MCP_KEY_WEBSITE_RADAR` in `.env`. Without that, the tests proving
- * `?category=` genuinely filters the feed never execute anywhere — which is
- * how that deep-link stayed broken unnoticed for months. See
- * [RADAR.md § Working Offline](../../../src/docs/hub/RADAR.md).
+ * - **CI** starts `scripts/radar-stub.mjs` and points `MCP_RADAR_SNAPSHOT_URL`
+ *   at it with a placeholder bearer (test.yml, test-cross-browser.yml), so the
+ *   feed always has items there, and `requireRadarContent()` makes
+ *   content-dependent assertions mandatory.
+ * - **Locally**, run `npm run radar:stub` and set the same two variables in
+ *   `.env` to run those assertions; without them the page renders its empty
+ *   state and `requireRadarContent()` skips. See
+ *   [RADAR.md § Working Offline](../../../src/docs/hub/RADAR.md).
  */
 /**
  * Navigate to a Radar URL and wait for it to be usable.
@@ -77,6 +77,44 @@ export async function hasRadarContent(page: Page): Promise<boolean> {
   const fyiCount = await page.locator('.fyi-item').count();
   const wireCount = await page.locator('.wire-item').count();
   return fyiCount > 0 || wireCount > 0;
+}
+
+/**
+ * Gate for a test that needs feed items. Call it after `gotoRadar`.
+ *
+ * In CI the radar stub always serves a snapshot, so an empty feed there is a
+ * regression (stub not started, env not passed through, or the fetch broken)
+ * and fails the test. Locally, without the stub, the test skips with a reason
+ * instead of passing having asserted nothing.
+ */
+export async function requireRadarContent(page: Page): Promise<void> {
+  const hasContent = await hasRadarContent(page);
+  if (process.env.CI) {
+    expect(
+      hasContent,
+      'CI serves the radar stub, so the feed must have items (test.yml "Start radar snapshot stub")'
+    ).toBe(true);
+    return;
+  }
+  test.skip(
+    !hasContent,
+    'No radar content: start `npm run radar:stub` (RADAR.md § Working Offline)'
+  );
+}
+
+/**
+ * Distinct `data-category` values among the rendered items, in DOM order.
+ * Tests read categories from here rather than hardcoding them, because the
+ * snapshot decides which categories actually hold items.
+ */
+export async function renderedCategories(page: Page): Promise<string[]> {
+  return page.evaluate(() => [
+    ...new Set(
+      Array.from(document.querySelectorAll<HTMLElement>('[data-category]'))
+        .map((el) => el.dataset.category)
+        .filter((c): c is string => !!c)
+    ),
+  ]);
 }
 
 /**

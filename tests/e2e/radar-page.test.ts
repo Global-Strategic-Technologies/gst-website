@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import {
   gotoRadar,
   hasRadarContent,
+  requireRadarContent,
+  renderedCategories,
   clickCategoryFilter,
   getVisibleItemCount,
   waitForCategoryFilterApplied,
@@ -68,6 +70,11 @@ test.describe('Radar Page', () => {
     });
 
     test('should show either live feed items or fallback message', async ({ page }) => {
+      // In CI the radar stub serves a snapshot (test.yml), so this test only
+      // takes the content branch there and the empty-state branch goes
+      // unexercised. That is accepted: every local run without the stub still
+      // takes the fallback branch, and CI trades it for mandatory content
+      // checks everywhere else in this file.
       // Wait for either content items or fallback to render
       // Increased timeout — under parallel contention the SSR may be slower
       await page.waitForFunction(
@@ -101,11 +108,7 @@ test.describe('Radar Page', () => {
 
   test.describe('Content Behavior', () => {
     test('external links should open in new tab with security attributes', async ({ page }) => {
-      const hasContent = await hasRadarContent(page);
-      if (!hasContent) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
 
       const externalLinks = page.locator('a[target="_blank"]');
       const linkCount = await externalLinks.count();
@@ -122,11 +125,7 @@ test.describe('Radar Page', () => {
     });
 
     test('data-category attributes should match known category IDs', async ({ page }) => {
-      const hasContent = await hasRadarContent(page);
-      if (!hasContent) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
 
       const validCategories = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security'];
       const categoryValues = await page.evaluate(() =>
@@ -142,11 +141,10 @@ test.describe('Radar Page', () => {
     });
 
     test("FYI items should display Editor's Pick tags", async ({ page }) => {
-      const fyiItems = page.locator('.fyi-item');
-      if ((await fyiItems.count()) === 0) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
+      // Every snapshot the site renders carries FYI picks (the stub serves two
+      // per category), so content without them is a rendering regression.
+      expect(await page.locator('.fyi-item').count()).toBeGreaterThan(0);
 
       const pickTags = page.locator('.fyi-item .editors-pick-tag');
       const tagCount = await pickTags.count();
@@ -179,37 +177,16 @@ test.describe('Radar Page', () => {
     test('clicking a category should activate it, deactivate "All", and hide non-matching items', async ({
       page,
     }) => {
-      const hasContent = await hasRadarContent(page);
-      if (!hasContent) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
 
       const totalBefore = await getVisibleItemCount(page);
-      if (totalBefore === 0) {
-        test.skip();
-        return;
-      }
+      expect(totalBefore).toBeGreaterThan(0);
 
-      // Find a category that has items but doesn't contain ALL items
-      const categories = ['enterprise-tech', 'pe-ma', 'ai-automation', 'security'];
-      let targetCategory: string | null = null;
-
-      for (const cat of categories) {
-        const catCount = await page.evaluate(
-          (c) => document.querySelectorAll(`[data-category="${c}"]`).length,
-          cat
-        );
-        if (catCount > 0 && catCount < totalBefore) {
-          targetCategory = cat;
-          break;
-        }
-      }
-
-      if (!targetCategory) {
-        test.skip();
-        return;
-      }
+      // Pick a category from the RENDERED items: with two or more present,
+      // any one of them holds some items but not all of them.
+      const categories = await renderedCategories(page);
+      expect(categories.length, 'filtering needs two rendered categories').toBeGreaterThan(1);
+      const targetCategory = categories[0];
 
       // 1. Click the category filter
       await clickCategoryFilter(page, targetCategory);
@@ -256,28 +233,19 @@ test.describe('Radar Page', () => {
     });
 
     test('clicking "All" should reset filter — before/after state comparison', async ({ page }) => {
-      const hasContent = await hasRadarContent(page);
-      if (!hasContent) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
 
       const totalBefore = await getVisibleItemCount(page);
-      if (totalBefore === 0) {
-        test.skip();
-        return;
-      }
+      expect(totalBefore).toBeGreaterThan(0);
 
-      // Apply a filter first
-      await clickCategoryFilter(page, 'enterprise-tech');
+      // Apply a filter first, on a category read from the rendered items
+      const categories = await renderedCategories(page);
+      expect(categories.length, 'filtering needs two rendered categories').toBeGreaterThan(1);
+      await clickCategoryFilter(page, categories[0]);
       const filteredCount = await getVisibleItemCount(page);
 
-      // Verify filter actually reduced the visible items (not a no-op)
-      // If enterprise-tech IS the only category, filtering won't reduce — skip
-      if (filteredCount >= totalBefore) {
-        test.skip();
-        return;
-      }
+      // With a second category rendered, the filter must hide something
+      expect(filteredCount).toBeGreaterThan(0);
       expect(filteredCount).toBeLessThan(totalBefore);
 
       // Click "All" to reset
@@ -305,40 +273,40 @@ test.describe('Radar Page', () => {
     });
 
     test('switching between categories should update visible items each time', async ({ page }) => {
-      const hasContent = await hasRadarContent(page);
-      if (!hasContent) {
-        test.skip();
-        return;
-      }
+      await requireRadarContent(page);
 
-      // Click enterprise-tech
-      await clickCategoryFilter(page, 'enterprise-tech');
+      // Two distinct categories read from the rendered items, so the switch
+      // moves between categories that both actually hold items.
+      const categories = await renderedCategories(page);
+      expect(categories.length, 'switching needs two rendered categories').toBeGreaterThan(1);
+      const [first, second] = categories;
 
-      const etActiveButtons = await page.evaluate(() =>
+      await clickCategoryFilter(page, first);
+
+      const firstActiveButtons = await page.evaluate(() =>
         Array.from(document.querySelectorAll('.filter-btn.active')).map(
           (el) => (el as HTMLElement).dataset.filter
         )
       );
-      expect(etActiveButtons).toEqual(['enterprise-tech']);
+      expect(firstActiveButtons).toEqual([first]);
 
-      // Click security — different category
-      await clickCategoryFilter(page, 'security');
+      // Switch to the second category
+      await clickCategoryFilter(page, second);
 
-      const secActiveButtons = await page.evaluate(() =>
+      const secondActiveButtons = await page.evaluate(() =>
         Array.from(document.querySelectorAll('.filter-btn.active')).map(
           (el) => (el as HTMLElement).dataset.filter
         )
       );
-      expect(secActiveButtons).toEqual(['security']);
+      expect(secondActiveButtons).toEqual([second]);
 
-      // Verify: enterprise-tech items now hidden (computed style)
-      const etVisibleAfterSwitch = await getVisibleItemCount(page, 'enterprise-tech');
-      expect(etVisibleAfterSwitch).toBe(0);
+      // Verify: the first category's items are now hidden (computed style)
+      expect(await getVisibleItemCount(page, first)).toBe(0);
 
-      // Verify: only security items are visible
-      const secVisible = await getVisibleItemCount(page, 'security');
-      const totalVisible = await getVisibleItemCount(page);
-      expect(totalVisible).toBe(secVisible);
+      // Verify: only the second category's items are visible, and some are
+      const secondVisible = await getVisibleItemCount(page, second);
+      expect(secondVisible).toBeGreaterThan(0);
+      expect(await getVisibleItemCount(page)).toBe(secondVisible);
     });
   });
 
@@ -505,7 +473,7 @@ test.describe('Radar Page', () => {
      */
     test('activates the matching pill', async ({ page }) => {
       // Genuinely key-independent: the hydration path runs whether or not the
-      // feed has items, so this half always executes — including in CI.
+      // feed has items, so this half executes with or without the stub.
       // Read a real category off the rendered pills rather than hardcoding one;
       // the keys are data-driven (CATEGORIES in lib/inoreader/transform) and a
       // stale literal fails as a missing-locator, which reads like a broken
@@ -522,20 +490,14 @@ test.describe('Radar Page', () => {
     });
 
     test('filters the feed to the deep-linked category', async ({ page }) => {
-      // test.skip() rather than a bare `if`, matching this file's idiom: a
-      // silent guard reports PASSED in CI having executed no meaningful
-      // assertion, which hides the coverage gap instead of showing it.
-      if (!(await hasRadarContent(page))) {
-        test.skip();
-        return;
-      }
+      // Mandatory in CI (the radar stub serves content there); skipped, not
+      // silently passed, on a local run without the stub.
+      await requireRadarContent(page);
 
       // Derive the category from a RENDERED ITEM, not from the pill list. The
       // pills come from CATEGORIES and are independent of what the snapshot
       // contains, so picking the first pill can select a category with zero
-      // items and fail for a data reason. This never fires in CI (no bearer),
-      // which is exactly what would make it a latent trap for anyone running
-      // Playwright with the secret bound.
+      // items and fail for a data reason.
       const category = await page.locator('[data-category]').first().getAttribute('data-category');
       expect(category, 'content present but no [data-category] items').toBeTruthy();
 
