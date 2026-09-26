@@ -68,8 +68,16 @@ const clientConfig = JSON.stringify({
 });
 ---
 
+{/*
+  Collapsible TOCs are server-rendered collapsed, so on mobile the first paint
+  already matches the settled state. Previously the script collapsed an
+  expanded list after paint, and on /brand, where the TOC sits above the
+  content at ≤768px, that shifted the whole column (CLS 0.34). Every rule keyed
+  on these classes lives inside the mobile media query, so they do nothing on
+  desktop.
+*/}
 <nav
-  class:list={['toc', extraClass]}
+  class:list={['toc', extraClass, collapsible && 'toc--collapsible is-collapsed']}
   aria-label={ariaLabel}
   data-toc-config={clientConfig}
   {...(testId ? { 'data-testid': testId } : {})}
@@ -194,7 +202,6 @@ const clientConfig = JSON.stringify({
 
       // ── Collapsible (mobile) ────────────────────────────
       if (config.collapsible) {
-        nav.classList.add('toc--collapsible');
         const heading = nav.querySelector<HTMLElement>('.toc__heading');
         const mobileQuery = window.matchMedia('(max-width: 768px)');
 
@@ -214,6 +221,9 @@ const clientConfig = JSON.stringify({
       if (config.scrollSpy) {
         initScrollSpy(nav.querySelectorAll<HTMLAnchorElement>('.toc__list a'));
       }
+
+      // Reveal the list only now that its sublists are in place (toc.css).
+      nav.dataset.tocReady = '';
     });
   });
 </script>
