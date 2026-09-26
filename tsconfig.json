@@ -2,6 +2,12 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "types": ["node", "vitest/globals"],
+    // Every file is a module, even one with no import/export. Test files get
+    // describe/it/expect/vi from `vitest/globals` and import nothing from
+    // vitest (TEST_BEST_PRACTICES pitfall 9), so a test with no other import
+    // would otherwise be a global script, and its top-level names would
+    // collide across files and with DOM globals (`stop`, `name`, ...).
+    "moduleDetection": "force",
     "paths": {
       "@/*": ["./src/*"]
     }

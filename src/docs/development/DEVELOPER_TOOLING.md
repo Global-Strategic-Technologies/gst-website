@@ -281,7 +281,7 @@ concurrency:
 | [.gitattributes](../../../.gitattributes)                         | `* text=auto eol=lf` — forces LF in the working tree on every platform, so `prettier --check` behaves the same locally as in CI. See § Line endings |
 | [eslint.config.mjs](../../../eslint.config.mjs)                   | ESLint flat config — recommended rules + overrides for tests, node scripts, and browser globals |
 | [.stylelintrc.json](../../../.stylelintrc.json)                   | CSS lint rules                                                                                  |
-| [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias                                     |
+| [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias and `moduleDetection: "force"` (both workspaces). Tests import nothing from vitest, so without it an import-less test file is a global script and its top-level names collide |
 | [.husky/pre-commit](../../../.husky/pre-commit)                                   | Single line: `npx lint-staged`                                                                  |
 | [.github/workflows/test.yml](../../../.github/workflows/test.yml)                 | Website CI pipeline (3 jobs + changes gate)                                                     |
 | [.github/workflows/test-mcp-server.yml](../../../.github/workflows/test-mcp-server.yml) | MCP server CI (runs in parallel to the website Test Suite)                                |

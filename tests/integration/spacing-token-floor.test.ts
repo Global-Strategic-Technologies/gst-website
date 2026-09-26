@@ -83,9 +83,6 @@ const ACCEPTED_RESIDUALS = [
   {
     value: '5rem',
     files: [
-      // The About body moved from src/pages/about.astro (now a locale wrapper)
-      // into the shared page template in BL-153; the declaration is unchanged.
-      'src/page-templates/AboutPage.astro',
       'src/styles/global.css',
       'src/pages/hub/library/business-architectures/index.astro',
       'src/pages/hub/library/information-request-list/index.astro',
@@ -337,9 +334,11 @@ const RESIDUAL_PAIRS = ACCEPTED_RESIDUALS.flatMap((r) => r.files.map((f) => `${f
  * hand-counted this as 41 and 40 and disagreed, which is why it is measured.
  * BL-153 added two sites (the language band's chip padding, 0.0625rem and
  * 0.375rem in lang-band.css): 42, re-run rather than re-counted. BL-151 taught
- * the guard px and added 21 px pairs: 63, again measured by running.
+ * the guard px and added 21 px pairs: 63, again measured by running. The
+ * 2026-09-26 debt audit deleted AboutPage's dead .experience-section rules
+ * (no markup renders them), taking its 5rem pair with them: 62, measured.
  */
-const RESIDUAL_PAIR_COUNT = 63;
+const RESIDUAL_PAIR_COUNT = 62;
 
 /** px -> token, built from variables.css so the guard cannot drift from the scale. */
 function spacingScale(): Map<number, string> {
