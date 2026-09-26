@@ -14,14 +14,12 @@ const { stats } = Astro.props;
 <section class="stats-bar" aria-label="Key metrics">
   <div class="container">
     <div class="stats-grid">
-      {
-        stats.map((stat) => (
-          <div class="stat-item">
-            <div class="stat-value brutal-stat__value">{stat.value}</div>
-            <div class="stat-label brutal-stat__label">{stat.label}</div>
-          </div>
-        ))
-      }
+      {stats.map((stat) => (
+        <div class="stat-item">
+          <div class="stat-value brutal-stat__value">{stat.value}</div>
+          <div class="stat-label brutal-stat__label">{stat.label}</div>
+        </div>
+      ))}
     </div>
   </div>
 </section>

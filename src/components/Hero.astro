@@ -35,34 +35,28 @@ const { t } = useTranslations(locale, 'common');
 ---
 
 <section class="hero" aria-label={t('hero.ariaLabel')}>
-  {
-    /* Decorative layer behind the content — the homepage fills it with
+  {/* Decorative layer behind the content — the homepage fills it with
        AmbientEffect (BL-035). A slot, not a prop: the hero layer is the
-       homepage's alone, so no other Hero page renders its markup. */
-  }
+       homepage's alone, so no other Hero page renders its markup. */}
   <slot name="backdrop" />
   <div class="container">
     <div class="hero-layout">
       <h1 class="brutal-hero__title">
-        {
-          title ? (
-            <span class="line">{title}</span>
-          ) : (
-            <>
-              <span class="line">{t('hero.defaultTitle')}</span>
-              <span class="line">
-                <span class="highlight">{t('hero.defaultHighlight')}</span>
-              </span>
-            </>
-          )
-        }
-        {
-          subtitle && (
+        {title ? (
+          <span class="line">{title}</span>
+        ) : (
+          <>
+            <span class="line">{t('hero.defaultTitle')}</span>
             <span class="line">
-              <span class="accent">{subtitle}</span>
+              <span class="highlight">{t('hero.defaultHighlight')}</span>
             </span>
-          )
-        }
+          </>
+        )}
+        {subtitle && (
+          <span class="line">
+            <span class="accent">{subtitle}</span>
+          </span>
+        )}
       </h1>
 
       <div class="hero-content">
@@ -70,33 +64,31 @@ const { t } = useTranslations(locale, 'common');
           <p class="brutal-hero__description">{description}</p>
         </div>
         <div class="hero-action">
-          {
-            (primaryCTA || secondaryCTA) && (
-              <div class="cta-group">
-                {primaryCTA && (
-                  <a
-                    href={primaryCTA.href}
-                    class="cta-button"
-                    onclick="trackCTA('calendarbridge', 'hero')"
-                    {...(primaryCTA.href.startsWith('http')
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                  >
-                    {primaryCTA.text}
-                  </a>
-                )}
-                {secondaryCTA && (
-                  <a
-                    href={secondaryCTA.href}
-                    class="cta-button"
-                    onclick="trackCTA('services', 'hero')"
-                  >
-                    {secondaryCTA.text}
-                  </a>
-                )}
-              </div>
-            )
-          }
+          {(primaryCTA || secondaryCTA) && (
+            <div class="cta-group">
+              {primaryCTA && (
+                <a
+                  href={primaryCTA.href}
+                  class="cta-button"
+                  onclick="trackCTA('calendarbridge', 'hero')"
+                  {...(primaryCTA.href.startsWith('http')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {primaryCTA.text}
+                </a>
+              )}
+              {secondaryCTA && (
+                <a
+                  href={secondaryCTA.href}
+                  class="cta-button"
+                  onclick="trackCTA('services', 'hero')"
+                >
+                  {secondaryCTA.text}
+                </a>
+              )}
+            </div>
+          )}
           {trustLine && <p class="trust-line brutal-hero__trustline">{trustLine}</p>}
         </div>
       </div>

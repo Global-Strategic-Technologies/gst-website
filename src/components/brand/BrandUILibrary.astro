@@ -41,7 +41,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </p>
 
     <!-- 8a. Navigation -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-navigation">Navigation</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-navigation">
+      Navigation
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Breadcrumb</h4>
     <div class="brand-component-row">
@@ -50,65 +52,71 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <ol class="brutal-breadcrumb__list">
             <li class="brutal-breadcrumb__item">
               <a href="#ui-library">Home</a>
-              <span class="brutal-breadcrumb__sep" aria-hidden="true">/</span>
+              <span class="brutal-breadcrumb__sep" aria-hidden="true">
+                /
+              </span>
             </li>
             <li class="brutal-breadcrumb__item">
               <a href="#ui-library">Hub</a>
-              <span class="brutal-breadcrumb__sep" aria-hidden="true">/</span>
+              <span class="brutal-breadcrumb__sep" aria-hidden="true">
+                /
+              </span>
             </li>
             <li class="brutal-breadcrumb__item">
               <span aria-current="page">Current Page</span>
             </li>
           </ol>
         </nav>
-        <code class="brand-code"
-          >.brutal-breadcrumb — monospace, uppercase, primary links, wide letter-spacing</code
-        >
+        <code class="brand-code">
+          .brutal-breadcrumb — monospace, uppercase, primary links, wide letter-spacing
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Nav Link</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <a class="nav-link" href="#ui-library">Default</a>
+        <a class="nav-link" href="#ui-library">
+          Default
+        </a>
         <code class="brand-code">.nav-link</code>
       </div>
       <div class="brand-component-item">
-        <a class="nav-link active" href="#ui-library">Active</a>
+        <a class="nav-link active" href="#ui-library">
+          Active
+        </a>
         <code class="brand-code">.nav-link.active</code>
       </div>
     </div>
 
     <!-- 8a-1b. Site Chrome -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-site-chrome">Site Chrome</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-site-chrome">
+      Site Chrome
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        {
-          /* The real component (BL-095 AC-2), not a replica — the presentational
+        {/* The real component (BL-095 AC-2), not a replica — the presentational
              lockup Header.astro composes. `href` keeps the link in-page AND
              suppresses the trackNavigation onclick: a specimen click must not
-             emit a real `navigation_click` event. */
-        }
+             emit a real `navigation_click` event. */}
         <HeaderLogo href="#ui-library" />
-        <code class="brand-code"
-          >.logo — monospace, 900 weight, uppercase, -0.05em tracking, primary "S" accent, pulsing
-          dot. Rendered by HeaderLogo.astro, the lockup Header.astro composes</code
-        >
+        <code class="brand-code">
+          .logo — monospace, 900 weight, uppercase, -0.05em tracking, primary "S" accent, pulsing
+          dot. Rendered by HeaderLogo.astro, the lockup Header.astro composes
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Header Nav Links</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        {
-          /* The real component (BL-095 AC-2), not a replica — the link list
+        {/* The real component (BL-095 AC-2), not a replica — the link list
              Header.astro composes inside its nav landmark (a styled list is
              not a landmark, so no aria-label is needed here). `links` keeps
              the entries in-page AND selects the untracked demo branch: a
-             specimen click must not emit a real `navigation_click` event. */
-        }
+             specimen click must not emit a real `navigation_click` event. */}
         <HeaderNavLinks
           links={[
             { label: 'Services', href: '#ui-library' },
@@ -116,24 +124,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             { label: 'Hub', href: '#ui-library' },
           ]}
         />
-        <code class="brand-code"
-          >Rendered by HeaderNavLinks.astro, the link list Header.astro composes — monospace,
+        <code class="brand-code">
+          Rendered by HeaderNavLinks.astro, the link list Header.astro composes — monospace,
           uppercase, bold, 2px primary underline + tertiary ink on active/hover, narrower size and
-          gap below 768px</code
-        >
+          gap below 768px
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Footer Links</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        {
-          /* The real component (BL-095 AC-2), not a replica — the link row
+        {/* The real component (BL-095 AC-2), not a replica — the link row
              Footer.astro composes. Footer itself still cannot render twice
              (it embeds the singleton ThemeToggle), but its links no longer
              need it to. `links` keeps the entries in-page (Breadcrumb
-             `crumbs` precedent). */
-        }
+             `crumbs` precedent). */}
         <FooterLinks
           links={[
             { label: 'LinkedIn', href: '#ui-library' },
@@ -141,21 +147,19 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             { label: 'Terms', href: '#ui-library' },
           ]}
         />
-        <code class="brand-code"
-          >.footer-links a — monospace, uppercase, bold, primary underline-reveal on hover. Rendered
-          by FooterLinks.astro, which narrows the size and gap below 768px</code
-        >
+        <code class="brand-code">
+          .footer-links a — monospace, uppercase, bold, primary underline-reveal on hover. Rendered
+          by FooterLinks.astro, which narrows the size and gap below 768px
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Breadcrumb (Site Chrome)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        {
-          /* The real component (BL-095 AC-1), not a replica. `crumbs` keeps the
+        {/* The real component (BL-095 AC-1), not a replica. `crumbs` keeps the
              links in-page; `ariaLabel` avoids a second landmark named
-             "Breadcrumb" alongside the live one BaseLayout renders on this page. */
-        }
+             "Breadcrumb" alongside the live one BaseLayout renders on this page. */}
         <Breadcrumb
           ariaLabel="Breadcrumb site chrome demo"
           crumbs={[
@@ -164,34 +168,34 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             { name: 'Current Page', href: '#ui-library', isLast: true },
           ]}
         />
-        <code class="brand-code"
-          >.breadcrumb — monospace font-family, tertiary-color links, slash separators</code
-        >
+        <code class="brand-code">
+          .breadcrumb — monospace font-family, tertiary-color links, slash separators
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Theme Toggle</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        {
-          /* The real component (BL-095 AC-2), not a replica — the visual button
+        {/* The real component (BL-095 AC-2), not a replica — the visual button
              ThemeToggle.astro wraps. No id/testId here, so `#themeToggle` and
              `[data-testid="theme-toggle"]` stay unique and the bound script
              keeps binding only the footer instance; this button is real but
              intentionally inert. The footer-fit negative margin lives in
-             Footer.astro, so no compensation is needed here. */
-        }
+             Footer.astro, so no compensation is needed here. */}
         <ThemeToggleButton title="Theme toggle specimen" ariaLabel="Theme toggle specimen" />
-        <code class="brand-code"
-          >.theme-toggle — delta icon, no border/radius, var(--color-primary) color,
+        <code class="brand-code">
+          .theme-toggle — delta icon, no border/radius, var(--color-primary) color,
           var(--transition-fast), 44px hit box. Rendered by ThemeToggleButton.astro, the button
-          ThemeToggle.astro wraps</code
-        >
+          ThemeToggle.astro wraps
+        </code>
       </div>
     </div>
 
     <!-- 8a-1c. Marketing Components -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-marketing">Marketing Components</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-marketing">
+      Marketing Components
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Hero Title</h4>
     <div class="brand-component-row">
@@ -199,11 +203,13 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         <span
           class="brutal-hero__title"
           style="font-size:3rem;font-weight:900;letter-spacing:-0.04em;line-height:0.95;"
-          data-specimen>Technology Advisory</span
+          data-specimen
         >
-        <code class="brand-code"
-          >.brutal-hero__title — monospace, uppercase (pair with .hero h1 for size/weight)</code
-        >
+          Technology Advisory
+        </span>
+        <code class="brand-code">
+          .brutal-hero__title — monospace, uppercase (pair with .hero h1 for size/weight)
+        </code>
       </div>
     </div>
 
@@ -214,24 +220,25 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           class="brutal-hero__description"
           style="font-size:var(--text-xl);line-height:1.6;font-weight:400;"
           data-specimen
-          >GST partners with private equity firms to evaluate, stabilize, and scale the technology
-          assets inside their portfolio companies.</span
         >
-        <code class="brand-code"
-          >.brutal-hero__description — monospace (pair with .hero p for size/color)</code
-        >
+          GST partners with private equity firms to evaluate, stabilize, and scale the technology
+          assets inside their portfolio companies.
+        </span>
+        <code class="brand-code">
+          .brutal-hero__description — monospace (pair with .hero p for size/color)
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Trust Line</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <span class="brutal-hero__trustline" style="font-size:0.9rem;" data-specimen
-          >Trusted by PE firms managing $50B+ in assets</span
-        >
-        <code class="brand-code"
-          >.brutal-hero__trustline — monospace, var(--text-muted), 500 weight</code
-        >
+        <span class="brutal-hero__trustline" style="font-size:0.9rem;" data-specimen>
+          Trusted by PE firms managing $50B+ in assets
+        </span>
+        <code class="brand-code">
+          .brutal-hero__trustline — monospace, var(--text-muted), 500 weight
+        </code>
       </div>
     </div>
 
@@ -242,25 +249,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
              panel's Ambient Motion section exactly as the homepage hero does. -->
         <div class="brand-ambient-stage" data-testid="brand-ambient-stage">
           <AmbientEffect />
-          <span class="brutal-hero__title brand-ambient-stage__title"
-            >Technology Advisory <span class="brand-ambient-stage__accent">&amp; Execution</span
-            ></span
-          >
+          <span class="brutal-hero__title brand-ambient-stage__title">
+            Technology Advisory <span class="brand-ambient-stage__accent">&amp; Execution</span>
+          </span>
         </div>
-        <code class="brand-code"
-          >AmbientEffect — driven by the palette panel's Ambient Motion section (the Motion button
-          on the panel's edge rail jumps there). Still until an effect is chosen; hidden under
-          prefers-reduced-motion</code
-        >
+        <code class="brand-code">
+          AmbientEffect — driven by the palette panel's Ambient Motion section (the Motion button on
+          the panel's edge rail jumps there). Still until an effect is chosen; hidden under
+          prefers-reduced-motion
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Stats Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          style="background:var(--color-primary);padding:var(--spacing-xl) var(--spacing-2xl);display:flex;gap:var(--spacing-3xl);"
-        >
+        <div style="background:var(--color-primary);padding:var(--spacing-xl) var(--spacing-2xl);display:flex;gap:var(--spacing-3xl);">
           <div style="text-align:center;">
             <div
               class="brutal-stat__value"
@@ -291,26 +295,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-stat__value / .brutal-stat__label — monospace (pair with .stat-value/.stat-label
-          for size/color)</code
-        >
+        <code class="brand-code">
+          .brutal-stat__value / .brutal-stat__label — monospace (pair with .stat-value/.stat-label
+          for size/color)
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
-    {
-      /* TYPOGRAPHY specimen — sizes here are illustrative, deliberately smaller than
+    {/* TYPOGRAPHY specimen — sizes here are illustrative, deliberately smaller than
          production so the type relationship reads in a narrow column. Do NOT converge
          these on CTABox.astro. The specimen that shows the real thing is the CTA Box
          one under Layout Containers, which renders CTABox itself and so carries no
-         sync obligation at all. */
-    }
+         sync obligation at all. */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="border:2px solid var(--color-primary);padding:var(--spacing-2xl);max-width:500px;"
-        >
+        <div style="border:2px solid var(--color-primary);padding:var(--spacing-2xl);max-width:500px;">
           <div
             class="brutal-cta__title"
             style="font-size:1.75rem;font-weight:600;margin-bottom:var(--spacing-md);"
@@ -328,112 +328,105 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             href="#ui-library"
             class="cta-button"
             style="font-size:0.85rem;padding:var(--spacing-md) var(--spacing-xl);"
-            >BOOK_CALENDAR_SLOT()</a
           >
+            BOOK_CALENDAR_SLOT()
+          </a>
         </div>
-        <code class="brand-code"
-          >.brutal-cta__title — monospace, uppercase. .brutal-cta__description — monospace</code
-        >
+        <code class="brand-code">
+          .brutal-cta__title — monospace, uppercase. .brutal-cta__description — monospace
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Announcement Sash</h4>
-    {
-      /* The first two render the REAL component (BL-095 AC-1), not a replica —
+    {/* The first two render the REAL component (BL-095 AC-1), not a replica —
          Sash.astro with no `href` emits the decorative `aria-hidden` band, which
          is exactly what a specimen wants: no second link to /hub/mcp/ on this
          page and no analytics event on a specimen click. `--flat` has no
          component form (it is documentation-only and must never ship on a page),
-         so that one is hand-written. */
-    }
+         so that one is hand-written. */}
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-sash-frame">
-          {
-            /* The three MAIN-band segments (badge · label · detail) — a
+          {/* The three MAIN-band segments (badge · label · detail) — a
               vocabulary demo, not the live entry, which lives in
               announcements.ts and currently uses no detail. The segments share
               one width budget; this frame is where a new combination is proven
-              before it ships — see the table in Sash.astro. */
-          }
+              before it ships — see the table in Sash.astro. */}
           <Sash badge="New" label="MCP" detail="agents" />
         </div>
-        <code class="brand-code"
-          >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge
+        <code class="brand-code">
+          .brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge
           (--sash-badge-bg chip, dark ink), __label (two type steps larger on this desktop page
           corner; one is the family default and the card corner keeps the band's base size),
-          __detail. The band is --sash-bg on --sash-ink, always</code
-        >
+          __detail. The band is --sash-bg on --sash-ink, always
+        </code>
       </div>
       <div class="brand-component-item">
         <div class="brand-sash-frame brand-sash-frame--under">
-          {
-            /* Mirrors the live mcp-launch entry (announcements.ts) — minus the
+          {/* Mirrors the live mcp-launch entry (announcements.ts) — minus the
               field hrefs, so the specimen stays decorative (the component
               renders spans, carrying the same __field class, when a field has
               no href). In production the main band is a link and each field is
-              its own link to its own destination. */
-          }
+              its own link to its own destination. */}
           <Sash
             badge="New"
             label="GST MCP"
             subtext={[{ text: 'Automate analysis' }, { text: 'Free trial' }]}
           />
         </div>
-        <code class="brand-code"
-          >.brutal-sash-under — the OPTIONAL band below the main one (hidden 512–768px with
-          __detail; the second line of the ≤511 strip). It is a LIST of rule-separated __field
-          parts, spaced by --spacing-sm, and the band itself is inert: in production each field is
-          its own link with its own destination, accessible name and analytics label, so the two
-          halves go to different places. __field carries the min-height --touch-target-min-aa floor
-          (the band inherits its thickness from it) and rides the same class as an &lt;a&gt; or a
-          decorative &lt;span&gt;; the 7px gap to the main band is an axe target-size clearance —
-          see sash.css. Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
-          because the family's mixes fail AA as text backgrounds (see sash.css). Its presence grows
-          the corner box to 220px and widens the nav's reserve to match. Copy budget ~34 characters
-          across all fields, and the rule plus its two gaps cost ~23px more per extra field — one
-          ceiling on every engine, since the mono is pinned (Sash.astro)</code
-        >
+        <code class="brand-code">
+          .brutal-sash-under — the OPTIONAL band below the main one (hidden 512–768px with __detail;
+          the second line of the ≤511 strip). It is a LIST of rule-separated __field parts, spaced
+          by --spacing-sm, and the band itself is inert: in production each field is its own link
+          with its own destination, accessible name and analytics label, so the two halves go to
+          different places. __field carries the min-height --touch-target-min-aa floor (the band
+          inherits its thickness from it) and rides the same class as an &lt;a&gt; or a decorative
+          &lt;span&gt;; the 7px gap to the main band is an axe target-size clearance — see sash.css.
+          Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway, because the
+          family's mixes fail AA as text backgrounds (see sash.css). Its presence grows the corner
+          box to 220px and widens the nav's reserve to match. Copy budget ~34 characters across all
+          fields, and the rule plus its two gaps cost ~23px more per extra field — one ceiling on
+          every engine, since the mono is pinned (Sash.astro)
+        </code>
       </div>
       <div class="brand-component-item">
         <div class="brand-sash-frame brand-sash-frame--under">
-          {
-            /* Hand-written (the component cannot carry data-demo-state): a
+          {/* Hand-written (the component cannot carry data-demo-state): a
               field's frozen hover — sash.css's 82% mix, poles swapped for the
               inverted fill. Forced-state rule lives in brand.astro's is:global
               block; axe excludes [data-demo-state="hover"]. Deliberately on ONE
               field: the fill landing on a single field is what shows the two
-              are separate targets, which an all-spans band otherwise cannot. */
-          }
+              are separate targets, which an all-spans band otherwise cannot. */}
           <div class="brutal-sash-corner">
             <span class="brutal-sash" aria-hidden="true">
               <span class="brutal-sash__badge">New</span>
               <span class="brutal-sash__label">GST MCP</span>
             </span>
-            <span class="brutal-sash-under" aria-hidden="true"
-              ><span class="brutal-sash-under__field" data-demo-state="hover"
-                >Automate analysis</span
-              ><span class="brutal-sash-under__rule">|</span><span class="brutal-sash-under__field"
-                >Free trial</span
-              ></span
-            >
+            <span class="brutal-sash-under" aria-hidden="true">
+              <span class="brutal-sash-under__field" data-demo-state="hover">
+                Automate analysis
+              </span>
+              <span class="brutal-sash-under__rule">|</span>
+              <span class="brutal-sash-under__field">Free trial</span>
+            </span>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-sash-under__field:hover — background color-mix(in srgb, var(--sash-ink) 82%,
+        <code class="brand-code">
+          .brutal-sash-under__field:hover — background color-mix(in srgb, var(--sash-ink) 82%,
           var(--sash-bg)): the family's hover number, poles swapped for the inverted fill. The fill
           is per FIELD, not per band — two destinations need two affordances, and only the hovered
-          field lights up. Focus ring: 2px var(--sash-bg), inset −4px, on the same field</code
-        >
+          field lights up. Focus ring: 2px var(--sash-bg), inset −4px, on the same field
+        </code>
       </div>
       <div class="brand-component-item">
         <div class="brand-sash-frame brand-sash-frame--card">
           <Sash label="New" scale="card" />
         </div>
-        <code class="brand-code"
-          >.brutal-sash-corner--card — 104px corner, --z-raised, inside a card. Decorative: the card
-          itself is the link</code
-        >
+        <code class="brand-code">
+          .brutal-sash-corner--card — 104px corner, --z-raised, inside a card. Decorative: the card
+          itself is the link
+        </code>
       </div>
       <div class="brand-component-item">
         <span class="brutal-sash brutal-sash--flat" aria-hidden="true" data-specimen>
@@ -441,27 +434,31 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <span class="brutal-sash__label">MCP</span>
           <span class="brutal-sash__detail">for AI agents</span>
         </span>
-        <code class="brand-code"
-          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page (the
+        <code class="brand-code">
+          .brutal-sash--flat — unrotated band, documentation only. Never mounted on a page (the
           ≤511px mobile strip is a media RESTYLE of the standard classes, not this modifier — a
           class cannot be toggled by a media query). All three segments shown; its label renders one
           step smaller than the production page band's (the --text-sm step is scoped to the corner).
           `.brutal-sash__detail` is hidden below 768px, and the segments share one width budget on
-          the rotated band — see Sash.astro</code
-        >
+          the rotated band — see Sash.astro
+        </code>
       </div>
     </div>
 
     <!-- 8a-1d. Legal Page Typography -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-legal">Legal Page Typography</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-legal">
+      Legal Page Typography
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Legal Page Heading</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span
           style="font-size:2.5rem;font-weight:700;font-family:var(--font-family-mono);text-transform:uppercase;color:var(--text-primary);"
-          data-specimen>Privacy Policy</span
+          data-specimen
         >
+          Privacy Policy
+        </span>
         <code class="brand-code">.legal-page-header h1 — monospace, 700 weight, uppercase</code>
       </div>
     </div>
@@ -471,8 +468,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         <span
           style="font-size:var(--text-2xl);font-weight:600;font-family:var(--font-family-mono);text-transform:uppercase;color:var(--text-primary);"
-          data-specimen>Information We Collect</span
+          data-specimen
         >
+          Information We Collect
+        </span>
         <code class="brand-code">.legal-page-body h2 — monospace, 600 weight, uppercase</code>
       </div>
     </div>
@@ -487,54 +486,52 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           GST is committed to protecting your privacy. This Privacy Policy explains how we collect,
           use, and safeguard information when you visit our website or engage with our services.
         </p>
-        <code class="brand-code"
-          >.legal-page-body — monospace, var(--text-secondary), 1.8 line-height</code
-        >
+        <code class="brand-code">
+          .legal-page-body — monospace, var(--text-secondary), 1.8 line-height
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Legal Contact Section</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="padding:var(--spacing-xl);background:transparent;border-left:3px solid var(--color-primary);font-family:var(--font-family-mono);"
-        >
+        <div style="padding:var(--spacing-xl);background:transparent;border-left:3px solid var(--color-primary);font-family:var(--font-family-mono);">
           <span
             style="font-size:var(--text-xl);font-weight:600;text-transform:uppercase;color:var(--text-primary);display:block;margin-bottom:var(--spacing-sm);"
-            data-specimen>Contact Us</span
+            data-specimen
           >
-          <span style="color:var(--text-secondary);line-height:1.8;"
-            >If you have questions about this policy, please contact us.</span
-          >
+            Contact Us
+          </span>
+          <span style="color:var(--text-secondary);line-height:1.8;">
+            If you have questions about this policy, please contact us.
+          </span>
         </div>
-        <code class="brand-code"
-          >.legal-contact-section — transparent bg, 3px primary left-border, monospace</code
-        >
+        <code class="brand-code">
+          .legal-contact-section — transparent bg, 3px primary left-border, monospace
+        </code>
       </div>
     </div>
 
     <!-- 8a-1e. Homepage Sections -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-homepage">Homepage Sections</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-homepage">
+      Homepage Sections
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-hover-card" style="max-width:400px;" data-specimen>
-          <div
-            style="font-size:var(--text-lg);font-family:var(--font-family-mono);font-weight:var(--font-weight-bold);color:var(--text-primary);margin-bottom:var(--spacing-md);line-height:1.4;"
-          >
+          <div style="font-size:var(--text-lg);font-family:var(--font-family-mono);font-weight:var(--font-weight-bold);color:var(--text-primary);margin-bottom:var(--spacing-md);line-height:1.4;">
             Independent, vendor-neutral guidance
           </div>
-          <div
-            style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.7;"
-          >
+          <div style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.7;">
             No technology bias, no vendor relationships. Recommendations grounded in your strategic
             objectives.
           </div>
         </div>
-        <code class="brand-code"
-          >.trust-card — no radius, 2px border, transparent bg, primary-border on hover</code
-        >
+        <code class="brand-code">
+          .trust-card — no radius, 2px border, transparent bg, primary-border on hover
+        </code>
       </div>
     </div>
 
@@ -542,41 +539,40 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-hover-card" style="max-width:250px;text-align:center;" data-specimen>
-          <div
-            style="display:flex;flex-direction:column;align-items:center;gap:var(--spacing-sm);margin-bottom:var(--spacing-md);"
-          >
+          <div style="display:flex;flex-direction:column;align-items:center;gap:var(--spacing-sm);margin-bottom:var(--spacing-md);">
             <svg
               viewBox="0 0 64 64"
               fill="none"
               style="width:4rem;height:4rem;color:var(--color-primary);"
-              ><path
+            >
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="5.5"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
                 style="font-size:1.28rem;font-family:var(--font-family-mono);font-weight:700;fill:var(--text-primary);"
-                >1</text
-              ></svg
-            >
-            <span
-              style="font-size:var(--text-sm);font-family:var(--font-family-mono);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;"
-              >Align</span
-            >
+              >
+                1
+              </text>
+            </svg>
+            <span style="font-size:var(--text-sm);font-family:var(--font-family-mono);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">
+              Align
+            </span>
           </div>
-          <div
-            style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-primary);line-height:1.6;"
-          >
+          <div style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-primary);line-height:1.6;">
             Clarify objectives, context, and constraints
           </div>
         </div>
-        <code class="brand-code"
-          >.step — no radius, 2px border, transparent bg, monospace labels, primary-border on hover</code
-        >
+        <code class="brand-code">
+          .step — no radius, 2px border, transparent bg, monospace labels, primary-border on hover
+        </code>
       </div>
     </div>
 
@@ -585,8 +581,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         <span
           style="font-size:var(--text-3xl);font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);text-transform:uppercase;color:var(--text-primary);"
-          data-specimen>Why Clients Trust GST</span
+          data-specimen
         >
+          Why Clients Trust GST
+        </span>
         <code class="brand-code">.heading-lg (homepage) — monospace, uppercase, bold</code>
       </div>
     </div>
@@ -594,22 +592,21 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <h4 class="brutal-label brand-subgroup-title">Delta Bullet List</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <ul
-          style="list-style:none;display:flex;flex-direction:column;gap:var(--gap-wide);padding:0;margin:0;"
-        >
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:var(--gap-wide);padding:0;margin:0;">
           <li style="display:flex;align-items:center;gap:var(--spacing-lg);">
             <DeltaIcon class="bullet-icon" />
             <span
               style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-primary);line-height:1.6;"
-              data-specimen>Private equity & investment teams</span
+              data-specimen
             >
+              Private equity & investment teams
+            </span>
           </li>
           <li style="display:flex;align-items:center;gap:var(--spacing-lg);">
             <DeltaIcon class="bullet-icon" />
-            <span
-              style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-primary);line-height:1.6;"
-              >SaaS and technology-enabled businesses</span
-            >
+            <span style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-primary);line-height:1.6;">
+              SaaS and technology-enabled businesses
+            </span>
           </li>
         </ul>
         <code class="brand-code">.support-list li — delta icon + monospace text</code>
@@ -617,47 +614,38 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <!-- 8a-1f. About & Services -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-about-services">About & Services</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-about-services">
+      About & Services
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Service Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-hover-card" style="max-width:320px;" data-specimen>
-          <div
-            style="font-size:1.4rem;font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-sm);line-height:1.3;"
-          >
+          <div style="font-size:1.4rem;font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-sm);line-height:1.3;">
             M&amp;A Advisory
           </div>
-          <div
-            style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-primary);margin-bottom:var(--spacing-xl);"
-          >
+          <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-primary);margin-bottom:var(--spacing-xl);">
             Buy Side, Sell Side, Value Creation
           </div>
-          <div
-            style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;"
-          >
+          <div style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;">
             Quantify costs, risks and opportunities before you sign
           </div>
         </div>
-        <code class="brand-code"
-          >.service-card — no radius, 2px border, transparent bg, monospace, primary-border hover</code
-        >
+        <code class="brand-code">
+          .service-card — no radius, 2px border, transparent bg, monospace, primary-border hover
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Founder Bio Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="display:grid;grid-template-columns:120px 1fr;gap:var(--spacing-xl);max-width:600px;padding:var(--spacing-xl);border-top:2px solid var(--border-light);"
-        >
-          <div
-            style="width:120px;height:90px;background:var(--border-light);display:flex;align-items:center;justify-content:center;"
-          >
-            <span
-              style="font-family:var(--font-family-mono);font-size:var(--text-sm);color:var(--text-muted);"
-              >PHOTO</span
-            >
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:var(--spacing-xl);max-width:600px;padding:var(--spacing-xl);border-top:2px solid var(--border-light);">
+          <div style="width:120px;height:90px;background:var(--border-light);display:flex;align-items:center;justify-content:center;">
+            <span style="font-family:var(--font-family-mono);font-size:var(--text-sm);color:var(--text-muted);">
+              PHOTO
+            </span>
           </div>
           <div>
             <div
@@ -666,17 +654,15 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             >
               About the Founder
             </div>
-            <div
-              style="font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.8;"
-            >
+            <div style="font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.8;">
               An architect and advisor with over 20 years of experience aligning technology,
               strategy, and people.
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.founder-bio — monospace headings/text, square image (no radius), 2px structural border</code
-        >
+        <code class="brand-code">
+          .founder-bio — monospace headings/text, square image (no radius), 2px structural border
+        </code>
       </div>
     </div>
 
@@ -693,30 +679,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           style="max-width:280px;text-align:center;"
           data-specimen
         >
-          <div
-            style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-primary);margin-bottom:var(--spacing-md);"
-          >
+          <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-primary);margin-bottom:var(--spacing-md);">
             Tools
           </div>
-          <div
-            style="font-size:var(--text-xl);font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-sm);"
-          >
+          <div style="font-size:var(--text-xl);font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-sm);">
             Tools
           </div>
-          <div
-            style="font-size:0.9rem;font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.7;margin-bottom:var(--spacing-lg);"
-          >
+          <div style="font-size:0.9rem;font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.7;margin-bottom:var(--spacing-lg);">
             Calculators and scoring models for technology investments.
           </div>
-          <div
-            style="font-size:0.9rem;font-family:var(--font-family-mono);font-weight:600;color:var(--color-primary);"
-          >
+          <div style="font-size:0.9rem;font-family:var(--font-family-mono);font-weight:600;color:var(--color-primary);">
             Explore Tools →
           </div>
         </div>
-        <code class="brand-code"
-          >.hub-card — brutal-frosted, 3px primary top-border, monospace, primary-border hover</code
-        >
+        <code class="brand-code">
+          .hub-card — brutal-frosted, 3px primary top-border, monospace, primary-border hover
+        </code>
       </div>
     </div>
 
@@ -742,17 +720,19 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
         <ul class="brutal-gateway-card__features">
           <li>
-            <DeltaIcon class="bullet-icon" />123 regulations across privacy, AI, cybersecurity, and
-            compliance
+            <DeltaIcon class="bullet-icon" />
+            123 regulations across privacy, AI, cybersecurity, and compliance
           </li>
         </ul>
-        <a href="#ui-library" class="cta-button brutal-gateway-card__cta">Launch Tool</a>
+        <a href="#ui-library" class="cta-button brutal-gateway-card__cta">
+          Launch Tool
+        </a>
       </article>
     </div>
-    <code class="brand-code"
-      >.brutal-gateway-grid + .brutal-gateway-card — auto-fill columns, equal-height rows,
-      bottom-aligned CTA</code
-    >
+    <code class="brand-code">
+      .brutal-gateway-grid + .brutal-gateway-card — auto-fill columns, equal-height rows,
+      bottom-aligned CTA
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Hub Header</h4>
     <div class="brand-component-row">
@@ -764,9 +744,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           >
             The Library
           </div>
-          <div
-            style="font-size:var(--text-lg);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;max-width:720px;"
-          >
+          <div style="font-size:var(--text-lg);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;max-width:720px;">
             Useful information for technical due diligence frameworks and value creation blueprints.
           </div>
         </div>
@@ -781,25 +759,23 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           class="brutal-frosted"
           style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;"
         >
-          <span
-            style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);"
-            >Base frost</span
-          >
+          <span style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);">
+            Base frost
+          </span>
         </div>
-        <code class="brand-code"
-          >.brutal-frosted — base utility (3px blur, near-transparent tint). The most-used frosted
-          class; pair it with a variant below, which overrides its background + blur</code
-        >
+        <code class="brand-code">
+          .brutal-frosted — base utility (3px blur, near-transparent tint). The most-used frosted
+          class; pair it with a variant below, which overrides its background + blur
+        </code>
       </div>
       <div class="brand-component-item">
         <div
           class="brutal-frosted brutal-frosted--heavy"
           style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;"
         >
-          <span
-            style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);"
-            >Heavy frost</span
-          >
+          <span style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);">
+            Heavy frost
+          </span>
         </div>
         <code class="brand-code">.brutal-frosted--heavy — stronger blur + tint</code>
       </div>
@@ -808,10 +784,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           class="brutal-frosted brutal-frosted--blur-only"
           style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;"
         >
-          <span
-            style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);"
-            >Blur only</span
-          >
+          <span style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);">
+            Blur only
+          </span>
         </div>
         <code class="brand-code">.brutal-frosted--blur-only — blur without tint</code>
       </div>
@@ -820,53 +795,49 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           class="brutal-frosted brutal-frosted--overlay"
           style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;"
         >
-          <span
-            style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);"
-            >Overlay frost</span
-          >
+          <span style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);">
+            Overlay frost
+          </span>
         </div>
         <code class="brand-code">.brutal-frosted--overlay — full overlay variant</code>
       </div>
     </div>
 
     <!-- 8a-1h. Radar Feed -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-radar">Radar Feed</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-radar">
+      Radar Feed
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Editor's Pick Badge</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <span
           style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-editors-pick-ink);border:2px solid var(--color-editors-pick);padding:0.125rem var(--spacing-sm);"
-          data-specimen>Editor's Pick</span
+          data-specimen
         >
-        <code class="brand-code"
-          >.editors-pick-tag — monospace, var(--color-editors-pick), 2px border</code
-        >
+          Editor's Pick
+        </span>
+        <code class="brand-code">
+          .editors-pick-tag — monospace, var(--color-editors-pick), 2px border
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">FYI Item (Collapsed)</h4>
-    {
-      /* Replica of radar/FyiItem.astro. Deliberately NOT the real component:
+    {/* Replica of radar/FyiItem.astro. Deliberately NOT the real component:
         FyiItem nests its article <a> inside the <details> <summary>, which axe
         flags as `nested-interactive` (serious). Operator ruling 2026-08-02: the
         radar component works as intended and is not being changed, so rendering
         it on /brand — a scanned route — would import that finding onto this
         page for no benefit (the full ruling lives on the exclusion in
-        accessibility.test.ts). Keep in sync with radar/FyiItem.astro. */
-    }
+        accessibility.test.ts). Keep in sync with radar/FyiItem.astro. */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="padding:var(--spacing-md) 0;border-bottom:1px solid var(--border-light);max-width:48rem;"
-        >
-          <div
-            style="display:flex;align-items:center;gap:var(--spacing-md);font-size:var(--text-xs);font-family:var(--font-family-mono);color:var(--text-muted);margin-bottom:var(--spacing-xs);"
-          >
-            <span
-              style="font-family:var(--font-family-mono);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-editors-pick-ink);border:2px solid var(--color-editors-pick);padding:0.125rem var(--spacing-sm);"
-              >Editor's Pick</span
-            >
+        <div style="padding:var(--spacing-md) 0;border-bottom:1px solid var(--border-light);max-width:48rem;">
+          <div style="display:flex;align-items:center;gap:var(--spacing-md);font-size:var(--text-xs);font-family:var(--font-family-mono);color:var(--text-muted);margin-bottom:var(--spacing-xs);">
+            <span style="font-family:var(--font-family-mono);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-editors-pick-ink);border:2px solid var(--color-editors-pick);padding:0.125rem var(--spacing-sm);">
+              Editor's Pick
+            </span>
             <span>Reuters</span>
             <span>Apr 2</span>
           </div>
@@ -875,114 +846,98 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             <span
               style="font-size:var(--text-base);font-family:var(--font-family-mono);font-weight:var(--font-weight-semibold);color:var(--text-primary);line-height:1.4;"
               data-specimen
-              >Cloud infrastructure spend surges as AI workloads reshape enterprise budgets</span
             >
+              Cloud infrastructure spend surges as AI workloads reshape enterprise budgets
+            </span>
           </div>
         </div>
-        <code class="brand-code"
-          >.fyi-item — monospace meta/title, delta-chevron toggle, editor's pick badge, category dot</code
-        >
+        <code class="brand-code">
+          .fyi-item — monospace meta/title, delta-chevron toggle, editor's pick badge, category dot
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Wire Item</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        {
-          /* The real component (BL-095 AC-1). The category dot colour comes from
-             CATEGORIES, not from --color-primary as the replica assumed. */
-        }
+        {/* The real component (BL-095 AC-1). The category dot colour comes from
+             CATEGORIES, not from --color-primary as the replica assumed. */}
         <div style="max-width:48rem;">
           <WireItem item={DEMO_WIRE_ITEM} />
         </div>
-        <code class="brand-code"
-          >.wire-item — monospace title/meta, square category dot, compact layout</code
-        >
+        <code class="brand-code">
+          .wire-item — monospace title/meta, square category dot, compact layout
+        </code>
       </div>
     </div>
 
     <!-- 8a-1i. M&A Portfolio -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-portfolio">M&A Portfolio</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-portfolio">
+      M&A Portfolio
+    </h3>
 
-    {
-      /* The "Project Card" hover specimen that lived here was an inline-styled
+    {/* The "Project Card" hover specimen that lived here was an inline-styled
          .brand-hover-card duplicate whose caption claimed `.project-card`.
          Deleted in the BL-095 closeout: `.project-card` is now a single global
          rule (cards.css) whose REAL hover — lift + shadow + primary border —
          renders natively on the "Project Card (Current)" specimen under Cards,
          so a hand-simulated hover stand-in documented a weaker copy of a
-         behaviour the page already exhibits for real. */
-    }
+         behaviour the page already exhibits for real. */}
     <h4 class="brutal-label brand-subgroup-title">Project Modal</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="max-width:500px;padding:var(--spacing-xl);border:1px solid var(--border-light);border-top:3px solid var(--color-primary);background:var(--bg-light);"
-        >
+        <div style="max-width:500px;padding:var(--spacing-xl);border:1px solid var(--border-light);border-top:3px solid var(--color-primary);background:var(--bg-light);">
           <div
             style="font-size:var(--text-2xl);font-family:var(--font-family-mono);font-weight:900;color:var(--text-primary);margin-bottom:var(--spacing-xs);"
             data-specimen
           >
             Meridian
           </div>
-          <div
-            style="font-size:var(--text-sm);font-family:var(--font-family-mono);color:var(--text-muted);margin-bottom:var(--spacing-lg);"
-          >
+          <div style="font-size:var(--text-sm);font-family:var(--font-family-mono);color:var(--text-muted);margin-bottom:var(--spacing-lg);">
             Healthcare SaaS
           </div>
-          <div
-            style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--spacing-lg);padding-bottom:var(--spacing-lg);border-bottom:1px solid var(--border-light);margin-bottom:var(--spacing-lg);"
-          >
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--spacing-lg);padding-bottom:var(--spacing-lg);border-bottom:1px solid var(--border-light);margin-bottom:var(--spacing-lg);">
             <div>
-              <div
-                style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);"
-              >
+              <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);">
                 ARR
-              </div><div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
+              </div>
+              <div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
                 $18M
               </div>
             </div>
             <div>
-              <div
-                style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);"
-              >
+              <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);">
                 Stage
-              </div><div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
+              </div>
+              <div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
                 Growth
               </div>
             </div>
             <div>
-              <div
-                style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);"
-              >
+              <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-xs);">
                 Year
-              </div><div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
+              </div>
+              <div style="font-family:var(--font-family-mono);color:var(--text-secondary);">
                 2025
               </div>
             </div>
           </div>
-          <div
-            style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-sm);"
-          >
+          <div style="font-size:var(--text-xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-secondary);margin-bottom:var(--spacing-sm);">
             Summary
           </div>
-          <div
-            style="font-size:var(--text-sm);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;"
-          >
+          <div style="font-size:var(--text-sm);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.6;">
             Cloud-native patient engagement platform with strong API integration layer.
           </div>
         </div>
-        <code class="brand-code"
-          >.project-modal — 3px primary top-border, monospace throughout, no shadow, structured
-          metrics grid</code
-        >
+        <code class="brand-code">
+          .project-modal — 3px primary top-border, monospace throughout, no shadow, structured
+          metrics grid
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Search Controls Bar</h4>
-    {
-      /* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): both own the portfolio filter runtime (singleton ids + scroll handlers), so a presentational extraction is off the table. Keep in sync with those files. */
-    }
+    {/* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): both own the portfolio filter runtime (singleton ids + scroll handlers), so a presentational extraction is off the table. Keep in sync with those files. */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div
@@ -999,16 +954,15 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               stroke="var(--text-muted)"
               stroke-width="2"
               style="margin-right:var(--spacing-sm);"
-              ><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg
             >
-            <span
-              style="font-family:var(--font-family-mono);color:var(--text-muted);font-size:var(--text-sm);"
-              >Name, industry, technology</span
-            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <span style="font-family:var(--font-family-mono);color:var(--text-muted);font-size:var(--text-sm);">
+              Name, industry, technology
+            </span>
           </div>
-          <div
-            style="padding:0.6rem var(--spacing-md);font-family:var(--font-family-mono);font-size:0.8rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);display:flex;align-items:center;gap:var(--spacing-sm);"
-          >
+          <div style="padding:0.6rem var(--spacing-md);font-family:var(--font-family-mono);font-size:0.8rem;font-weight:600;text-transform:uppercase;color:var(--text-secondary);display:flex;align-items:center;gap:var(--spacing-sm);">
             <svg
               width="16"
               height="16"
@@ -1016,116 +970,140 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-              ><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"
-              ></line><line x1="4" y1="18" x2="20" y2="18"></line></svg
             >
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
             Filters
           </div>
         </div>
-        <code class="brand-code"
-          >.controls-wrapper — .brutal-frosted (3px blur, near-transparent tint), monospace search +
-          filter, primary bottom-border</code
-        >
+        <code class="brand-code">
+          .controls-wrapper — .brutal-frosted (3px blur, near-transparent tint), monospace search +
+          filter, primary bottom-border
+        </code>
       </div>
     </div>
 
     <!-- 8a-2. Wizard Progress -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-wizard">Wizard Progress</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-wizard">
+      Wizard Progress
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Desktop Progress Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="tool-wizard-progress">
           <div class="tool-wizard-step tool-wizard-step--completed">
-            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="4"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="tool-wizard-step__number">1</text
-              ></svg
-            >
+                class="tool-wizard-step__number"
+              >
+                1
+              </text>
+            </svg>
             <span class="tool-wizard-step__label">Transaction</span>
           </div>
           <div class="tool-wizard-step tool-wizard-step--completed">
-            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="4"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="tool-wizard-step__number">2</text
-              ></svg
-            >
+                class="tool-wizard-step__number"
+              >
+                2
+              </text>
+            </svg>
             <span class="tool-wizard-step__label">Product</span>
           </div>
           <div class="tool-wizard-step tool-wizard-step--active">
-            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="4"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="tool-wizard-step__number">3</text
-              ></svg
-            >
+                class="tool-wizard-step__number"
+              >
+                3
+              </text>
+            </svg>
             <span class="tool-wizard-step__label">Tech Stack</span>
           </div>
           <div class="tool-wizard-step">
-            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="4"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="tool-wizard-step__number">4</text
-              ></svg
-            >
+                class="tool-wizard-step__number"
+              >
+                4
+              </text>
+            </svg>
             <span class="tool-wizard-step__label">Company</span>
           </div>
           <div class="tool-wizard-step">
-            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="4"
-                stroke-linejoin="miter"></path><text
+                stroke-linejoin="miter"
+              ></path>
+              <text
                 x="32"
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="tool-wizard-step__number">5</text
-              ></svg
-            >
+                class="tool-wizard-step__number"
+              >
+                5
+              </text>
+            </svg>
             <span class="tool-wizard-step__label">Geography</span>
           </div>
         </div>
-        <code class="brand-code"
-          >.tool-wizard-progress, .tool-wizard-step — completed (filled delta), active (scaled,
-          primary stroke), inactive (faded)</code
-        >
+        <code class="brand-code">
+          .tool-wizard-progress, .tool-wizard-step — completed (filled delta), active (scaled,
+          primary stroke), inactive (faded)
+        </code>
       </div>
     </div>
 
@@ -1133,68 +1111,72 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="tool-wizard-progress-mobile">
-          <span class="tool-wizard-progress-mobile__label"
-            >Step <span class="tool-wizard-progress-mobile__current">3</span> of 5 — <span
-              class="tool-wizard-progress-mobile__name">Tech Stack</span
-            ></span
-          >
+          <span class="tool-wizard-progress-mobile__label">
+            Step <span class="tool-wizard-progress-mobile__current">3</span> of 5 —{' '}
+            <span class="tool-wizard-progress-mobile__name">Tech Stack</span>
+          </span>
           <div class="tool-wizard-progress-mobile__dots">
-            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button"
-              ><svg viewBox="0 0 64 64" fill="none"
-                ><path
+            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path
                   d="M32 12 L52 52 L12 52 Z"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="6"
-                  stroke-linejoin="miter"></path></svg
-              ></button
-            >
-            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button"
-              ><svg viewBox="0 0 64 64" fill="none"
-                ><path
+                  stroke-linejoin="miter"
+                ></path>
+              </svg>
+            </button>
+            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path
                   d="M32 12 L52 52 L12 52 Z"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="6"
-                  stroke-linejoin="miter"></path></svg
-              ></button
-            >
-            <button class="tool-wizard-dot tool-wizard-dot--active" type="button"
-              ><svg viewBox="0 0 64 64" fill="none"
-                ><path
+                  stroke-linejoin="miter"
+                ></path>
+              </svg>
+            </button>
+            <button class="tool-wizard-dot tool-wizard-dot--active" type="button">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path
                   d="M32 12 L52 52 L12 52 Z"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="6"
-                  stroke-linejoin="miter"></path></svg
-              ></button
-            >
-            <button class="tool-wizard-dot" type="button"
-              ><svg viewBox="0 0 64 64" fill="none"
-                ><path
+                  stroke-linejoin="miter"
+                ></path>
+              </svg>
+            </button>
+            <button class="tool-wizard-dot" type="button">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path
                   d="M32 12 L52 52 L12 52 Z"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="6"
-                  stroke-linejoin="miter"></path></svg
-              ></button
-            >
-            <button class="tool-wizard-dot" type="button"
-              ><svg viewBox="0 0 64 64" fill="none"
-                ><path
+                  stroke-linejoin="miter"
+                ></path>
+              </svg>
+            </button>
+            <button class="tool-wizard-dot" type="button">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path
                   d="M32 12 L52 52 L12 52 Z"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="6"
-                  stroke-linejoin="miter"></path></svg
-              ></button
-            >
+                  stroke-linejoin="miter"
+                ></path>
+              </svg>
+            </button>
           </div>
         </div>
-        <code class="brand-code"
-          >.tool-wizard-progress-mobile, .tool-wizard-dot — even-position dots flipped 180° via
-          :nth-child(even), compact for small screens</code
-        >
+        <code class="brand-code">
+          .tool-wizard-progress-mobile, .tool-wizard-dot — even-position dots flipped 180° via
+          :nth-child(even), compact for small screens
+        </code>
       </div>
     </div>
 
@@ -1203,38 +1185,41 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         <div class="options-grid">
           <button class="brutal-option-card" type="button" data-demo-option-brutal>
-            <span class="brutal-option-card__label"
-              ><DeltaIcon class="brutal-option-card__icon" />Full Acquisition</span
-            >
-            <span class="brutal-option-card__description"
-              >Complete purchase of the target entity</span
-            >
+            <span class="brutal-option-card__label">
+              <DeltaIcon class="brutal-option-card__icon" />
+              Full Acquisition
+            </span>
+            <span class="brutal-option-card__description">
+              Complete purchase of the target entity
+            </span>
           </button>
           <button
             class="brutal-option-card brutal-option-card--selected"
             type="button"
             data-demo-option-brutal
           >
-            <span class="brutal-option-card__label"
-              ><DeltaIcon class="brutal-option-card__icon" />Carve-out</span
-            >
-            <span class="brutal-option-card__description"
-              >Separation of a business unit from a parent company</span
-            >
+            <span class="brutal-option-card__label">
+              <DeltaIcon class="brutal-option-card__icon" />
+              Carve-out
+            </span>
+            <span class="brutal-option-card__description">
+              Separation of a business unit from a parent company
+            </span>
           </button>
           <button class="brutal-option-card" type="button" data-demo-option-brutal>
-            <span class="brutal-option-card__label"
-              ><DeltaIcon class="brutal-option-card__icon" />Majority Stake</span
-            >
-            <span class="brutal-option-card__description"
-              >Controlling interest with existing ownership retained</span
-            >
+            <span class="brutal-option-card__label">
+              <DeltaIcon class="brutal-option-card__icon" />
+              Majority Stake
+            </span>
+            <span class="brutal-option-card__description">
+              Controlling interest with existing ownership retained
+            </span>
           </button>
         </div>
-        <code class="brand-code"
-          >.brutal-option-card — sharp edges, no shadow, monospace label, hard border, primary-fill
-          selected state</code
-        >
+        <code class="brand-code">
+          .brutal-option-card — sharp edges, no shadow, monospace label, hard border, primary-fill
+          selected state
+        </code>
       </div>
     </div>
 
@@ -1248,12 +1233,13 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <span
             class="brutal-option-card__label"
             style="font-family:var(--font-family-mono);font-size:var(--text-sm);"
-            >Compact Option</span
           >
+            Compact Option
+          </span>
         </div>
-        <code class="brand-code"
-          >.brutal-option-card--compact — reduced padding variant for tight layouts</code
-        >
+        <code class="brand-code">
+          .brutal-option-card--compact — reduced padding variant for tight layouts
+        </code>
       </div>
       <div class="brand-component-item">
         <div
@@ -1263,17 +1249,20 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <span
             class="brutal-option-card__label"
             style="font-family:var(--font-family-mono);font-size:var(--text-sm);"
-            >Selected Outline</span
           >
+            Selected Outline
+          </span>
         </div>
-        <code class="brand-code"
-          >.brutal-option-card--selected-outline — outline-only selected state (no fill)</code
-        >
+        <code class="brand-code">
+          .brutal-option-card--selected-outline — outline-only selected state (no fill)
+        </code>
       </div>
     </div>
 
     <!-- 8b. Cards -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-cards">Cards</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-cards">
+      Cards
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-card-grid">
@@ -1292,10 +1281,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </p>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-trust-card — no radius, frosted (tint, blur, inset highlight and edge), left-border
-      accent, monospace heading, hard hover</code
-    >
+    <code class="brand-code">
+      .brutal-trust-card — no radius, frosted (tint, blur, inset highlight and edge), left-border
+      accent, monospace heading, hard hover
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Project Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single">
@@ -1327,11 +1316,11 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
       </div>
     </div>
-    <code class="brand-code"
-      >.project-card — hover lift + drop shadow, filled metrics panel with primary left-border,
+    <code class="brand-code">
+      .project-card — hover lift + drop shadow, filled metrics panel with primary left-border,
       filled square tags. No CTA button by design: the whole card is the click target (see
-      PortfolioGrid). The .brutal-project-card below is the variant that does have one.</code
-    >
+      PortfolioGrid). The .brutal-project-card below is the variant that does have one.
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
     <div class="brand-card-grid brand-card-grid--single">
@@ -1358,18 +1347,18 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           infrastructure modernization roadmap in progress.
         </p>
         <div class="brutal-project-card__tags">
-          <span class="brutal-project-card__tag brutal-project-card__tag--theme"
-            >Digital Health</span
-          >
+          <span class="brutal-project-card__tag brutal-project-card__tag--theme">
+            Digital Health
+          </span>
           <span class="brutal-project-card__tag">Cloud Migration</span>
         </div>
         <button class="brutal-project-card__cta">View Project Details</button>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-project-card — no shadow, left-border metrics, monospace values, outlined tags,
-      invert-hover CTA</code
-    >
+    <code class="brand-code">
+      .brutal-project-card — no shadow, left-border metrics, monospace values, outlined tags,
+      invert-hover CTA
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Teaser Card</h4>
     <div class="brand-card-grid brand-card-grid--single">
@@ -1379,25 +1368,27 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
         <ul class="brutal-teaser-card__features">
           <li>
-            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="6"
-                stroke-linejoin="miter"></path></svg
-            >
+                stroke-linejoin="miter"
+              ></path>
+            </svg>
             Revenue-normalized cost analysis
           </li>
           <li>
-            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none"
-              ><path
+            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none">
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="6"
-                stroke-linejoin="miter"></path></svg
-            >
+                stroke-linejoin="miter"
+              ></path>
+            </svg>
             Industry benchmark comparison
           </li>
         </ul>
@@ -1405,10 +1396,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         <button class="brutal-btn brutal-btn--primary brutal-teaser-card__cta">Launch Tool</button>
       </article>
     </div>
-    <code class="brand-code"
-      >.brutal-teaser-card — no radius, border-top accent, left-aligned, monospace heading, outlined
-      badge</code
-    >
+    <code class="brand-code">
+      .brutal-teaser-card — no radius, border-top accent, left-aligned, monospace heading, outlined
+      badge
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Recommendation Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
@@ -1421,8 +1412,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               class="brutal-rec-card__na"
               id="demo-rec-brutal-na"
               type="button"
-              title="Mark as not applicable">N/A</button
+              title="Mark as not applicable"
             >
+              N/A
+            </button>
             Deploy a cloud cost visibility dashboard
             <svg
               class="delta-chevron"
@@ -1435,7 +1428,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
                 fill="none"
                 stroke="currentColor"
                 stroke-width="6"
-                stroke-linejoin="miter"></path>
+                stroke-linejoin="miter"
+              ></path>
             </svg>
           </div>
           <div class="brutal-rec-card__desc">
@@ -1445,9 +1439,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-rec-card — no radius, left-border accent, outlined badges, monospace title</code
-    >
+    <code class="brand-code">
+      .brutal-rec-card — no radius, left-border accent, outlined badges, monospace title
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Attention Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
@@ -1458,8 +1452,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             class="brutal-na-btn"
             id="demo-attention-brutal-na"
             type="button"
-            title="Mark as not applicable">N/A</button
+            title="Mark as not applicable"
           >
+            N/A
+          </button>
           <svg
             class="delta-chevron"
             viewBox="0 0 64 64"
@@ -1471,7 +1467,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               fill="none"
               stroke="currentColor"
               stroke-width="6"
-              stroke-linejoin="miter"></path>
+              stroke-linejoin="miter"
+            ></path>
           </svg>
         </div>
         <p class="brutal-attention-card__desc">
@@ -1480,9 +1477,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </p>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-attention-card — no radius, no bg fill, hard left-border, monospace title, no divider</code
-    >
+    <code class="brand-code">
+      .brutal-attention-card — no radius, no bg fill, hard left-border, monospace title, no divider
+    </code>
 
     <!-- 8b-2. ICG Tool Components -->
 
@@ -1497,9 +1494,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-progress-bar — hard-edged track, no radius, monospace label, primary fill</code
-    >
+    <code class="brand-code">
+      .brutal-progress-bar — hard-edged track, no radius, monospace label, primary fill
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Stat Tile</h4>
     <div class="brand-component-row">
@@ -1520,36 +1517,38 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-stat-tile — hard borders, no radius, monospace value/label, frosted fill</code
-    >
+    <code class="brand-code">
+      .brutal-stat-tile — hard borders, no radius, monospace value/label, frosted fill
+    </code>
 
     <h4 class="brutal-label brand-subgroup-title">Callout</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 500px;">
         <div class="brutal-callout">
           <span class="brutal-callout__title">Who should complete this assessment.</span>
-          This tool takes 5 to 7 minutes. PE investors and executives should complete this alongside their
-          engineering lead.
+          This tool takes 5 to 7 minutes. PE investors and executives should complete this alongside
+          their engineering lead.
         </div>
       </div>
     </div>
-    <code class="brand-code"
-      >.brutal-callout — hard left-border accent, no radius, monospace title + body</code
-    >
+    <code class="brand-code">
+      .brutal-callout — hard left-border accent, no radius, monospace title + body
+    </code>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 500px;">
         <div class="brutal-callout brutal-callout--warning">
           <span class="brutal-callout__title">Foundational domain scored below threshold</span>
-          Without foundational visibility in place, scores in other domains may understate the true optimization
-          gap.
+          Without foundational visibility in place, scores in other domains may understate the true
+          optimization gap.
         </div>
       </div>
     </div>
     <code class="brand-code">.brutal-callout--warning — gold left-border accent for warnings</code>
 
     <!-- 8c. Form Controls -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-form-controls">Form Controls</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-form-controls">
+      Form Controls
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Search Input</h4>
     <div class="brand-component-row">
@@ -1561,8 +1560,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            ><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg
           >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
           <input type="search" class="search-input" placeholder="Search projects..." />
         </div>
         <code class="brand-code">.search-box, .search-input, .search-icon</code>
@@ -1573,14 +1574,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-filter-chips">
-          <div class="brutal-filter-chip brutal-filter-chip--active" data-demo-chip-brutal>All</div>
-          <div class="brutal-filter-chip" data-demo-chip-brutal>Growth</div>
-          <div class="brutal-filter-chip" data-demo-chip-brutal>Mature</div>
-          <div class="brutal-filter-chip" data-demo-chip-brutal>Early Stage</div>
+          <div class="brutal-filter-chip brutal-filter-chip--active" data-demo-chip-brutal>
+            All
+          </div>
+          <div class="brutal-filter-chip" data-demo-chip-brutal>
+            Growth
+          </div>
+          <div class="brutal-filter-chip" data-demo-chip-brutal>
+            Mature
+          </div>
+          <div class="brutal-filter-chip" data-demo-chip-brutal>
+            Early Stage
+          </div>
         </div>
-        <code class="brand-code"
-          >.brutal-filter-chip — no radius, outlined, monospace, primary-fill active state</code
-        >
+        <code class="brand-code">
+          .brutal-filter-chip — no radius, outlined, monospace, primary-fill active state
+        </code>
       </div>
     </div>
 
@@ -1594,8 +1603,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            ><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg
           >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
           <input
             type="search"
             class="brutal-search__input"
@@ -1609,13 +1620,15 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg
+              stroke-width="2"
             >
+              <path d="M18 6 6 18M6 6l12 12"></path>
+            </svg>
           </button>
         </div>
-        <code class="brand-code"
-          >.brutal-search — 2px border, no radius, monospace, uppercase placeholder</code
-        >
+        <code class="brand-code">
+          .brutal-search — 2px border, no radius, monospace, uppercase placeholder
+        </code>
       </div>
     </div>
 
@@ -1632,9 +1645,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             <span class="brutal-legend__label">No Regulations</span>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-legend — square swatches, monospace uppercase labels, 2px border</code
-        >
+        <code class="brand-code">
+          .brutal-legend — square swatches, monospace uppercase labels, 2px border
+        </code>
       </div>
     </div>
 
@@ -1649,38 +1662,36 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             viewBox="0 0 64 64"
             fill="none"
             aria-hidden="true"
-            ><path
+          >
+            <path
               d="M32 12 L52 52 L12 52 Z"
               stroke="currentColor"
               stroke-width="6"
-              stroke-linejoin="miter"></path></svg
-          >
-          <span class="brutal-map-cta__text"
-            >Select a highlighted region to view regulatory details</span
-          >
+              stroke-linejoin="miter"
+            ></path>
+          </svg>
+          <span class="brutal-map-cta__text">
+            Select a highlighted region to view regulatory details
+          </span>
         </div>
-        <code class="brand-code"
-          >.brutal-map-cta — delta icon in --color-secondary (gold) signals user action; monospace
-          uppercase text</code
-        >
+        <code class="brand-code">
+          .brutal-map-cta — delta icon in --color-secondary (gold) signals user action; monospace
+          uppercase text
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Timeline</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-width: 400px;"
-        >
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-width: 400px;">
           <div class="brutal-timeline-year">2025</div>
           <div class="brutal-timeline-entry brutal-timeline-entry--privacy">
             <span class="brutal-timeline-dot brutal-timeline-dot--privacy"></span>
             <span class="brutal-timeline-entry__name">EU Data Privacy Act</span>
             <span class="brutal-timeline-entry__date">Jan 15</span>
           </div>
-          <div
-            class="brutal-timeline-entry brutal-timeline-entry--ai brutal-timeline-entry--active"
-          >
+          <div class="brutal-timeline-entry brutal-timeline-entry--ai brutal-timeline-entry--active">
             <span class="brutal-timeline-dot brutal-timeline-dot--ai"></span>
             <span class="brutal-timeline-entry__name">EU AI Act (Selected)</span>
             <span class="brutal-timeline-entry__date">Mar 01</span>
@@ -1688,20 +1699,15 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <div class="brutal-timeline-today">
             <span class="brutal-timeline-today__label">Today</span>
           </div>
-          <div
-            class="brutal-timeline-entry brutal-timeline-entry--industry brutal-timeline-entry--upcoming"
-          >
-            <span
-              class="brutal-timeline-dot brutal-timeline-dot--industry brutal-timeline-dot--upcoming"
-            ></span>
+          <div class="brutal-timeline-entry brutal-timeline-entry--industry brutal-timeline-entry--upcoming">
+            <span class="brutal-timeline-dot brutal-timeline-dot--industry brutal-timeline-dot--upcoming"></span>
             <span class="brutal-timeline-entry__name">PCI DSS 4.1 (Upcoming)</span>
             <span class="brutal-timeline-entry__date">Dec 31</span>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-timeline-entry — square dots, monospace, 3px category left-border, dashed
-          upcoming</code
-        >
+        <code class="brand-code">
+          .brutal-timeline-entry — square dots, monospace, 3px category left-border, dashed upcoming
+        </code>
       </div>
     </div>
 
@@ -1724,9 +1730,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </details>
         </div>
-        <code class="brand-code"
-          >.brutal-faq__item — no radius, 2px border, primary top-border on open, monospace question</code
-        >
+        <code class="brand-code">
+          .brutal-faq__item — no radius, 2px border, primary top-border on open, monospace question
+        </code>
       </div>
     </div>
 
@@ -1735,17 +1741,17 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-faq brutal-faq--lg">
           <details class="brutal-faq__item">
-            <summary class="brutal-faq__question"
-              >Large FAQ question with more prominent spacing?</summary
-            >
+            <summary class="brutal-faq__question">
+              Large FAQ question with more prominent spacing?
+            </summary>
             <div class="brutal-faq__answer">
               Answer content with larger variant styling for prominent FAQ sections.
             </div>
           </details>
         </div>
-        <code class="brand-code"
-          >.brutal-faq--lg — larger FAQ variant with increased spacing and font size</code
-        >
+        <code class="brand-code">
+          .brutal-faq--lg — larger FAQ variant with increased spacing and font size
+        </code>
       </div>
     </div>
 
@@ -1753,21 +1759,28 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="display: flex; gap: 2px;">
-          <button class="brutal-map-control" type="button">+</button>
-          <button class="brutal-map-control" type="button">&minus;</button>
+          <button class="brutal-map-control" type="button">
+            +
+          </button>
+          <button class="brutal-map-control" type="button">
+            &minus;
+          </button>
           <button
             class="brutal-map-control"
             type="button"
             style="width: auto; padding: 0 var(--spacing-sm); font-size: var(--text-2xs);"
-            >RST</button
           >
+            RST
+          </button>
         </div>
-        <code class="brand-code"
-          >.brutal-map-control — 32px square, 2px border, monospace, no radius</code
-        >
+        <code class="brand-code">
+          .brutal-map-control — 32px square, 2px border, monospace, no radius
+        </code>
       </div>
       <div class="brand-component-item">
-        <div class="brutal-map-tooltip" style="position: static;">Germany — 5 regulations</div>
+        <div class="brutal-map-tooltip" style="position: static;">
+          Germany — 5 regulations
+        </div>
         <code class="brand-code">.brutal-map-tooltip — 2px border, no shadow, monospace</code>
       </div>
     </div>
@@ -1793,10 +1806,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-panel + .brutal-reg-card — 3px primary top/left borders, monospace headings,
-          square bullets</code
-        >
+        <code class="brand-code">
+          .brutal-panel + .brutal-reg-card — 3px primary top/left borders, monospace headings,
+          square bullets
+        </code>
       </div>
     </div>
 
@@ -1805,8 +1818,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item" style="width: 300px;">
         <div class="brutal-slider">
           <div class="brutal-slider__header">
-            <label class="brutal-slider__label" for="demo-slider">Team Size</label>
-            <span class="brutal-slider__value" id="demo-brutal-slider__value">8</span>
+            <label class="brutal-slider__label" for="demo-slider">
+              Team Size
+            </label>
+            <span class="brutal-slider__value" id="demo-brutal-slider__value">
+              8
+            </span>
           </div>
           <input
             id="demo-slider"
@@ -1830,9 +1847,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             />
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-slider__input — circular thumb, rounded track, rounded hint input</code
-        >
+        <code class="brand-code">
+          .brutal-slider__input — circular thumb, rounded track, rounded hint input
+        </code>
       </div>
     </div>
 
@@ -1841,8 +1858,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item" style="width: 300px;">
         <div class="brutal-slider">
           <div class="brutal-slider__header">
-            <label class="brutal-slider__label" for="demo-slider-brutal">Team Size</label>
-            <span class="brutal-slider__value" id="demo-slider-brutal-value">8</span>
+            <label class="brutal-slider__label" for="demo-slider-brutal">
+              Team Size
+            </label>
+            <span class="brutal-slider__value" id="demo-slider-brutal-value">
+              8
+            </span>
           </div>
           <input
             id="demo-slider-brutal"
@@ -1866,10 +1887,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             />
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-slider__input (brutalist) — square thumb, hard track, no-radius direct input,
-          monospace throughout</code
-        >
+        <code class="brand-code">
+          .brutal-slider__input (brutalist) — square thumb, hard track, no-radius direct input,
+          monospace throughout
+        </code>
       </div>
     </div>
 
@@ -1883,8 +1904,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg
+            stroke-width="2"
           >
+            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
+          </svg>
           <span>Filters</span>
           <span class="filter-badge">3</span>
         </button>
@@ -1893,18 +1916,20 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <!-- 8d. Overlays -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-overlays">Overlays</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-overlays">
+      Overlays
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Modal Dialog</h4>
-    {
-      /* Replica of ProjectModal.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): hardcodes 19 singleton ids and publishes a global handler, so a presentational extraction is off the table. Keep in sync with that file. */
-    }
+    {/* Replica of ProjectModal.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): hardcodes 19 singleton ids and publishes a global handler, so a presentational extraction is off the table. Keep in sync with that file. */}
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <button class="brutal-btn brutal-btn--primary" id="demo-modal-open">Open Demo Modal</button>
-        <code class="brand-code"
-          >&lt;dialog&gt; — clip-path corners, scrim backdrop (mirrors .project-modal)</code
-        >
+        <button class="brutal-btn brutal-btn--primary" id="demo-modal-open">
+          Open Demo Modal
+        </button>
+        <code class="brand-code">
+          &lt;dialog&gt; — clip-path corners, scrim backdrop (mirrors .project-modal)
+        </code>
       </div>
     </div>
 
@@ -1917,8 +1942,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg
+            stroke-width="2"
           >
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
         </button>
         <div class="modal__header">
           <h2 class="modal__title">Project Meridian</h2>
@@ -1955,9 +1982,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </dialog>
 
     <h4 class="brutal-label brand-subgroup-title">Portfolio Filter Drawer</h4>
-    {
-      /* Replica of FilterDrawer.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): six singleton ids and its behaviour lives in PortfolioHeader’s script, so a presentational extraction is off the table. Keep in sync with that file. */
-    }
+    {/* Replica of FilterDrawer.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): six singleton ids and its behaviour lives in PortfolioHeader’s script, so a presentational extraction is off the table. Keep in sync with that file. */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="padding: var(--spacing-lg);">
@@ -1965,12 +1990,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             class="filter-drawer brutal-frosted--blur-only"
             style="position: static; right: auto; width: 100%; max-width: 350px; top: auto; bottom: auto; z-index: auto; overflow: visible;"
           >
-            <div
-              style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-xl); border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));"
-            >
-              <h2
-                style="font-family: var(--font-family-mono); font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0; letter-spacing: -0.01em;"
-              >
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-xl); border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));">
+              <h2 style="font-family: var(--font-family-mono); font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0; letter-spacing: -0.01em;">
                 FILTERS
               </h2>
               <button
@@ -1994,12 +2015,11 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               <button
                 class="clear-filters-button"
                 style="pointer-events: none; width: 100%; margin: 0 0 var(--spacing-xl);"
-                >Clear All Filters</button
               >
+                Clear All Filters
+              </button>
               <div style="margin-bottom: var(--spacing-xl);">
-                <div
-                  style="font-family: var(--font-family-mono); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: var(--spacing-md);"
-                >
+                <div style="font-family: var(--font-family-mono); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: var(--spacing-md);">
                   Engagement
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md);">
@@ -2009,9 +2029,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
                 </div>
               </div>
               <div style="margin-bottom: var(--spacing-xl);">
-                <div
-                  style="font-family: var(--font-family-mono); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: var(--spacing-md);"
-                >
+                <div style="font-family: var(--font-family-mono); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: var(--spacing-md);">
                   Theme
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md);">
@@ -2023,12 +2041,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.filter-drawer + .brutal-frosted--blur-only — transparent frosted slide-out, 2px primary
+        <code class="brand-code">
+          .filter-drawer + .brutal-frosted--blur-only — transparent frosted slide-out, 2px primary
           left-border, square chips with filled active state. Production co-applies
           .portfolio-filter-drawer, which adds the closed-state hiding; the panel itself is this
-          shape at every width</code
-        >
+          shape at every width
+        </code>
       </div>
     </div>
 
@@ -2045,8 +2063,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"></path></svg
+                stroke-width="2.5"
               >
+                <path d="M18 6 6 18M6 6l12 12"></path>
+              </svg>
             </button>
           </div>
           <div class="brutal-filter-drawer__content">
@@ -2070,15 +2090,17 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-filter-drawer — hard primary left-border, monospace labels, outlined chips,
-          primary-fill active state</code
-        >
+        <code class="brand-code">
+          .brutal-filter-drawer — hard primary left-border, monospace labels, outlined chips,
+          primary-fill active state
+        </code>
       </div>
     </div>
 
     <!-- 8e. Collapsible Content -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-collapsible">Collapsible Content</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-collapsible">
+      Collapsible Content
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Methodology Panel</h4>
     <div class="brand-component-row">
@@ -2104,9 +2126,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </details>
         </div>
-        <code class="brand-code"
-          >.tool-methodology — unicode triangle trigger, rotates 90° on open</code
-        >
+        <code class="brand-code">
+          .tool-methodology — unicode triangle trigger, rotates 90° on open
+        </code>
       </div>
     </div>
     <div class="brand-component-row">
@@ -2122,9 +2144,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </div>
           </details>
         </div>
-        <code class="brand-code"
-          >.tool-methodology--delta — brand delta SVG mask trigger, rotates 180° on open</code
-        >
+        <code class="brand-code">
+          .tool-methodology--delta — brand delta SVG mask trigger, rotates 180° on open
+        </code>
       </div>
     </div>
 
@@ -2139,32 +2161,32 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </summary>
             <div class="brand-details__body">
               <p>
-                This pattern uses native <code>&lt;details&gt;</code> with a custom +/− indicator. Used
-                for progressive disclosure of supplementary content like radar feed items.
+                This pattern uses native <code>&lt;details&gt;</code> with a custom +/− indicator.
+                Used for progressive disclosure of supplementary content like radar feed items.
               </p>
             </div>
           </details>
         </div>
-        <code class="brand-code"
-          >&lt;details&gt; / &lt;summary&gt; — native HTML with custom toggle styling</code
-        >
+        <code class="brand-code">
+          &lt;details&gt; / &lt;summary&gt; — native HTML with custom toggle styling
+        </code>
       </div>
     </div>
 
     <!-- 8f. Data Display -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-data-display">Data Display</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-data-display">
+      Data Display
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Stats Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        {
-          /* The real component (BL-095 AC-1). The wrapper neutralises the
+        {/* The real component (BL-095 AC-1). The wrapper neutralises the
              `.container` StatsBar renders internally (max-width 1600px plus the
              gutter ladder's 3rem/1.5rem/1rem side padding), which would
              otherwise inset the specimen inside the page container it already
              sits in — same technique as `.brand-toc-specimen .toc` in
-             brand.astro. */
-        }
+             brand.astro. */}
         <div class="brand-statsbar-specimen">
           <StatsBar
             stats={[
@@ -2175,8 +2197,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             ]}
           />
         </div>
-        <code class="brand-code">.stats-bar, .stats-grid, .stat-item, .stat-value, .stat-label</code
-        >
+        <code class="brand-code">
+          .stats-bar, .stats-grid, .stat-item, .stat-value, .stat-label
+        </code>
       </div>
     </div>
 
@@ -2190,19 +2213,21 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               <td>12.4%</td>
             </tr>
             <tr class="brutal-bench-table__active">
-              <td
-                >Personnel <span class="brutal-bench-table__label brutal-bench-table__label--score"
-                  >Target</span
-                ></td
-              >
+              <td>
+                Personnel{' '}
+                <span class="brutal-bench-table__label brutal-bench-table__label--score">
+                  Target
+                </span>
+              </td>
               <td>18.2%</td>
             </tr>
             <tr>
-              <td
-                >R&D OpEx <span class="brutal-bench-table__label brutal-bench-table__label--stage"
-                  >Growth</span
-                ></td
-              >
+              <td>
+                R&D OpEx{' '}
+                <span class="brutal-bench-table__label brutal-bench-table__label--stage">
+                  Growth
+                </span>
+              </td>
               <td>8.7%</td>
             </tr>
             <tr>
@@ -2211,10 +2236,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             </tr>
           </table>
         </div>
-        <code class="brand-code"
-          >.brutal-bench-table — monospace values, hard primary left-border on active, uppercase
-          labels with no radius</code
-        >
+        <code class="brand-code">
+          .brutal-bench-table — monospace values, hard primary left-border on active, uppercase
+          labels with no radius
+        </code>
       </div>
     </div>
 
@@ -2222,9 +2247,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-year-badge">2025</div>
-        <code class="brand-code"
-          >.brand-year-badge — replica of .year-badge (PortfolioGrid.astro)</code
-        >
+        <code class="brand-code">
+          .brand-year-badge — replica of .year-badge (PortfolioGrid.astro)
+        </code>
       </div>
       <div class="brand-component-item">
         <span class="brand-tech-tag">React</span>
@@ -2245,7 +2270,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <!-- 8g. Layout Containers -->
-    <h3 class="brutal-heading-sm brand-group-title" id="lib-layout">Layout Containers</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-layout">
+      Layout Containers
+    </h3>
 
     <h4 class="brutal-label brand-subgroup-title">Container</h4>
     <div class="brand-component-row">
@@ -2260,8 +2287,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
-    {
-      /* The real component (BL-095 AC-2), not a replica — the box
+    {/* The real component (BL-095 AC-2), not a replica — the box
          CTASection.astro wraps (the wrapper keeps its singleton id="contact"
          and the trackCTA window wiring). `demoHref` keeps the booking link
          in-page AND drops the analytics onclicks: a specimen click must not
@@ -2269,8 +2295,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
          box a definite containing block — `.brand-component-item` is a
          flex column with align-items:flex-start, so without it the 800px
          reading measure would shrink to fit (see the indefinite-inline-size
-         comment on the gateway grid in brand.astro). */
-    }
+         comment on the gateway grid in brand.astro). */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-cta-specimen">
@@ -2281,27 +2306,29 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
             demoHref="#ui-library"
           />
         </div>
-        <code class="brand-code"
-          >.cta-box — primary border, 800px centered reading measure, heading + description + CTA
-          button. Rendered by CTABox.astro, the box CTASection.astro wraps</code
-        >
+        <code class="brand-code">
+          .cta-box — primary border, 800px centered reading measure, heading + description + CTA
+          button. Rendered by CTABox.astro, the box CTASection.astro wraps
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Choice Button</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <button class="brutal-choice-btn" type="button">Default Choice</button>
-        <button class="brutal-choice-btn brutal-choice-btn--selected" type="button"
-          >Selected Choice</button
-        >
-        <button class="brutal-choice-btn brutal-choice-btn--unsure" type="button"
-          >Unsure Choice</button
-        >
-        <code class="brand-code"
-          >.brutal-choice-btn — monospace, bordered, no radius. Modifiers: --selected (primary
-          accent), --unsure (secondary accent)</code
-        >
+        <button class="brutal-choice-btn" type="button">
+          Default Choice
+        </button>
+        <button class="brutal-choice-btn brutal-choice-btn--selected" type="button">
+          Selected Choice
+        </button>
+        <button class="brutal-choice-btn brutal-choice-btn--unsure" type="button">
+          Unsure Choice
+        </button>
+        <code class="brand-code">
+          .brutal-choice-btn — monospace, bordered, no radius. Modifiers: --selected (primary
+          accent), --unsure (secondary accent)
+        </code>
       </div>
     </div>
 
@@ -2309,9 +2336,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <span class="brutal-content-label">Section Content Label</span>
-        <code class="brand-code"
-          >.brutal-content-label — uppercase monospace label for content sections</code
-        >
+        <code class="brand-code">
+          .brutal-content-label — uppercase monospace label for content sections
+        </code>
       </div>
     </div>
 
@@ -2319,21 +2346,17 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <input class="brutal-input" type="text" placeholder="Brutalist text input" />
-        <code class="brand-code"
-          >.brutal-input — monospace, no radius, bordered, primary focus ring</code
-        >
+        <code class="brand-code">
+          .brutal-input — monospace, no radius, bordered, primary focus ring
+        </code>
       </div>
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Bottom Sheet</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="position:relative;height:120px;border:1px solid var(--border-light);overflow:hidden;"
-        >
-          <div
-            style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-light);border-top:2px solid var(--color-primary);padding:var(--spacing-md);"
-          >
+        <div style="position:relative;height:120px;border:1px solid var(--border-light);overflow:hidden;">
+          <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-light);border-top:2px solid var(--color-primary);padding:var(--spacing-md);">
             <div
               class="brutal-bottom-sheet__handle"
               style="display:flex;justify-content:center;padding:var(--spacing-xs) 0;"
@@ -2341,20 +2364,17 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
               <div
                 class="brutal-bottom-sheet__handle-bar"
                 style="width:40px;height:4px;background:var(--border-light);"
-              >
-              </div>
+              ></div>
             </div>
-            <div
-              style="font-family:var(--font-family-mono);font-size:var(--text-sm);color:var(--text-secondary);"
-            >
+            <div style="font-family:var(--font-family-mono);font-size:var(--text-sm);color:var(--text-secondary);">
               Bottom sheet content area
             </div>
           </div>
         </div>
-        <code class="brand-code"
-          >.brutal-bottom-sheet — slide-up mobile panel. Sub-elements: __handle, __handle-bar,
-          __overlay</code
-        >
+        <code class="brand-code">
+          .brutal-bottom-sheet — slide-up mobile panel. Sub-elements: __handle, __handle-bar,
+          __overlay
+        </code>
       </div>
     </div>
 
@@ -2367,9 +2387,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         >
           Click a region to view details
         </div>
-        <code class="brand-code"
-          >.brutal-map-hint — instructional overlay on map visualizations</code
-        >
+        <code class="brand-code">
+          .brutal-map-hint — instructional overlay on map visualizations
+        </code>
       </div>
     </div>
 
@@ -2380,11 +2400,13 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
              was missing here, a top-only border, and a dark-theme-correct background. -->
         <div class="brutal-map-tap-bar">
           <span class="brutal-map-tap-bar__name">Selected Region</span>
-          <button class="brutal-map-tap-bar__action" type="button">View Details</button>
+          <button class="brutal-map-tap-bar__action" type="button">
+            View Details
+          </button>
         </div>
-        <code class="brand-code"
-          >.brutal-map-tap-bar — mobile bottom bar for map selection. Sub-elements: __name, __action</code
-        >
+        <code class="brand-code">
+          .brutal-map-tap-bar — mobile bottom bar for map selection. Sub-elements: __name, __action
+        </code>
       </div>
     </div>
 
@@ -2398,17 +2420,19 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <button
             type="button"
             style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-bottom:1px solid var(--border-light);background:var(--bg-light);font-family:var(--font-family-mono);font-size:var(--text-base);color:var(--text-primary);cursor:pointer;"
-            >+</button
           >
+            +
+          </button>
           <button
             type="button"
             style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:var(--bg-light);font-family:var(--font-family-mono);font-size:var(--text-base);color:var(--text-primary);cursor:pointer;"
-            >&minus;</button
           >
+            &minus;
+          </button>
         </div>
-        <code class="brand-code"
-          >.brutal-quick-zoom — compact zoom controls for map visualizations</code
-        >
+        <code class="brand-code">
+          .brutal-quick-zoom — compact zoom controls for map visualizations
+        </code>
       </div>
     </div>
   </div>
@@ -2421,13 +2445,16 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     Table of Contents Component
   </h2>
   <p class="brutal-text-small brand-section__note">
-    The <code>&lt;TableOfContents&gt;</code> component provides a reusable, props-driven table of contents
-    with optional scroll-spy, mobile collapse, and auto-generated sublists from page headings.
+    The <code>&lt;TableOfContents&gt;</code> component provides a reusable, props-driven table of
+    contents with optional scroll-spy, mobile collapse, and auto-generated sublists from page
+    headings.
   </p>
 
   <div class="brand-component-row">
     <div class="brand-component-item">
-      <h3 class="brutal-heading-sm" id="toc-basic">Basic</h3>
+      <h3 class="brutal-heading-sm" id="toc-basic">
+        Basic
+      </h3>
       <div class="brand-toc-specimen">
         <TableOfContents
           ariaLabel="Table of contents demo: basic"
@@ -2449,7 +2476,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <div class="brand-component-item">
-      <h3 class="brutal-heading-sm" id="toc-collapsible">Collapsible (resize to mobile)</h3>
+      <h3 class="brutal-heading-sm" id="toc-collapsible">
+        Collapsible (resize to mobile)
+      </h3>
       <div class="brand-toc-specimen">
         <TableOfContents
           ariaLabel="Table of contents demo: collapsible"
@@ -2462,9 +2491,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           ]}
         />
       </div>
-      <code class="brand-code"
-        >&lt;TableOfContents collapsible=&#123;true&#125; items=&#123;[...]&#125; /&gt;</code
-      >
+      <code class="brand-code">
+        &lt;TableOfContents collapsible=&#123;true&#125; items=&#123;[...]&#125; /&gt;
+      </code>
     </div>
   </div>
 </section>

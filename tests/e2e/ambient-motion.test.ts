@@ -158,6 +158,11 @@ test.describe('Ambient motion — /brand panel section', () => {
   test('a single effect shows its full set; Reset restores the shipped default', async ({
     page,
   }) => {
+    // Hero scope, as in the multi-select test: in the default Every-page scope
+    // the off-screen /brand preview is paused (`data-offscreen`, the budget
+    // rule), and the observer that pauses it races this assertion. Reset below
+    // still proves the shipped default, since it clears this seed.
+    await seed(page, { on: [], scope: 'hero' });
     await openBrandPanel(page);
     await page.getByTestId('ambient-chip-rails').click();
     expect(await htmlAttr(page, 'data-ambient-layered')).toBeNull();

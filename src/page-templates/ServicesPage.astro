@@ -62,22 +62,20 @@ const audienceCards = (['card1', 'card2', 'card3'] as const).map((card) => ({
   <section class="services-section">
     <div class="container">
       <div class="services-cards">
-        {
-          serviceCards.map((card) => (
-            <div class="service-card brutal-frosted">
-              <h2>{card.title}</h2>
-              <span class="service-subtitle">{card.subtitle}</span>
-              <ul class="service-list">
-                {card.items.map((item) => (
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
-        }
+        {serviceCards.map((card) => (
+          <div class="service-card brutal-frosted">
+            <h2>{card.title}</h2>
+            <span class="service-subtitle">{card.subtitle}</span>
+            <ul class="service-list">
+              {card.items.map((item) => (
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   </section>
@@ -88,9 +86,9 @@ const audienceCards = (['card1', 'card2', 'card3'] as const).map((card) => ({
         <span class="mcp-offer__label">{t('mcp.label')}</span>
         <h2 class="brutal-heading-lg">{t('mcp.heading')}</h2>
         <p>{t('mcp.body')}</p>
-        <a href={mcpHref} class="cta-button" onclick="trackNavigation('/hub/mcp', 'MCP Server')"
-          >{t('mcp.cta')}</a
-        >
+        <a href={mcpHref} class="cta-button" onclick="trackNavigation('/hub/mcp', 'MCP Server')">
+          {t('mcp.cta')}
+        </a>
       </div>
     </div>
   </section>
@@ -100,14 +98,12 @@ const audienceCards = (['card1', 'card2', 'card3'] as const).map((card) => ({
       <div class="audience-content">
         <h2 class="brutal-heading-lg">{t('audience.heading')}</h2>
         <div class="audience-cards">
-          {
-            audienceCards.map((card) => (
-              <div class="audience-card brutal-frosted">
-                <h3>{card.title}</h3>
-                <p>{card.body}</p>
-              </div>
-            ))
-          }
+          {audienceCards.map((card) => (
+            <div class="audience-card brutal-frosted">
+              <h3>{card.title}</h3>
+              <p>{card.body}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -119,17 +115,15 @@ const audienceCards = (['card1', 'card2', 'card3'] as const).map((card) => ({
     <div class="container">
       <h2 class="brutal-heading-lg">{t('faq.heading')}</h2>
       <div class="brutal-faq brutal-faq--lg">
-        {
-          faqItems.map((item) => (
-            <details class="brutal-faq__item">
-              <summary class="brutal-faq__question">
-                <span>{item.question}</span>
-                <DeltaIcon class="delta-chevron" />
-              </summary>
-              <div class="brutal-faq__answer" set:html={item.answer} />
-            </details>
-          ))
-        }
+        {faqItems.map((item) => (
+          <details class="brutal-faq__item">
+            <summary class="brutal-faq__question">
+              <span>{item.question}</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer" set:html={item.answer} />
+          </details>
+        ))}
       </div>
     </div>
   </section>

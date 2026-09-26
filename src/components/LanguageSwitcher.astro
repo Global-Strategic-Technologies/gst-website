@@ -53,50 +53,48 @@ const targetFor = (target: Locale) =>
   isLocalizedRoute(routePath) ? localizedHref(routePath, target) : localeHome(target);
 ---
 
-{
-  render && (
-    <li class="lang-switch" data-live-locales={live.map((l) => l.code).join(',')}>
-      <div
-        class="brutal-segmented brutal-segmented--sm lang-switch__segment"
-        role="group"
-        aria-label={t('switcher.label')}
+{render && (
+  <li class="lang-switch" data-live-locales={live.map((l) => l.code).join(',')}>
+    <div
+      class="brutal-segmented brutal-segmented--sm lang-switch__segment"
+      role="group"
+      aria-label={t('switcher.label')}
+    >
+      <button
+        class="brutal-segmented__btn lang-switch__trigger"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-label={t('switcher.current', { name: locale.name })}
+        lang={locale.htmlLang}
       >
-        <button
-          class="brutal-segmented__btn lang-switch__trigger"
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded="false"
+        {locale.short}
+      </button>
+      <noscript>
+        <a
+          class="brutal-segmented__btn lang-switch__fallback"
+          href={demo ? '#' : localeHome(locale)}
           aria-label={t('switcher.current', { name: locale.name })}
           lang={locale.htmlLang}
         >
           {locale.short}
-        </button>
-        <noscript>
-          <a
-            class="brutal-segmented__btn lang-switch__fallback"
-            href={demo ? '#' : localeHome(locale)}
-            aria-label={t('switcher.current', { name: locale.name })}
-            lang={locale.htmlLang}
-          >
-            {locale.short}
-          </a>
-        </noscript>
-      </div>
-      <div class="lang-menu" role="menu" aria-label={t('switcher.label')} hidden>
-        {alternates.map((alt) => (
-          <a
-            role="menuitem"
-            href={demo ? '#' : targetFor(alt)}
-            lang={alt.htmlLang}
-            hreflang={alt.htmlLang}
-            aria-current={alt.code === locale.code ? 'page' : undefined}
-          >
-            <span>{alt.name}</span>
-            {alt.code === locale.code && <DeltaIcon size={14} filled />}
-          </a>
-        ))}
-      </div>
-      {!demo && <script src="../scripts/lang-switch.ts" />}
-    </li>
-  )
-}
+        </a>
+      </noscript>
+    </div>
+    <div class="lang-menu" role="menu" aria-label={t('switcher.label')} hidden>
+      {alternates.map((alt) => (
+        <a
+          role="menuitem"
+          href={demo ? '#' : targetFor(alt)}
+          lang={alt.htmlLang}
+          hreflang={alt.htmlLang}
+          aria-current={alt.code === locale.code ? 'page' : undefined}
+        >
+          <span>{alt.name}</span>
+          {alt.code === locale.code && <DeltaIcon size={14} filled />}
+        </a>
+      ))}
+    </div>
+    {!demo && <script src="../scripts/lang-switch.ts" />}
+  </li>
+)}

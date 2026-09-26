@@ -33,29 +33,27 @@ const groups = GROUP_ORDER.map((group) => ({
 ---
 
 <nav class="mdoc-nav" aria-label="Capability reference" data-cap-nav>
-  {
-    groups.map(({ group, label, items }) => (
-      <div class="mdoc-nav__group" data-ref-group={group}>
-        <h2 class="mdoc-nav__heading">{label}</h2>
-        <ul class="mdoc-nav__list">
-          {items.map((cap) => (
-            <li>
-              <a
-                class="mdoc-nav__item"
-                href={`#${capabilityAnchor(cap.id)}`}
-                data-cap-link
-                data-cap-id={cap.id}
-                data-cap-type={cap.type}
-                data-cap-gloss={cap.gloss}
-              >
-                {cap.id}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ))
-  }
+  {groups.map(({ group, label, items }) => (
+    <div class="mdoc-nav__group" data-ref-group={group}>
+      <h2 class="mdoc-nav__heading">{label}</h2>
+      <ul class="mdoc-nav__list">
+        {items.map((cap) => (
+          <li>
+            <a
+              class="mdoc-nav__item"
+              href={`#${capabilityAnchor(cap.id)}`}
+              data-cap-link
+              data-cap-id={cap.id}
+              data-cap-type={cap.type}
+              data-cap-gloss={cap.gloss}
+            >
+              {cap.id}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
 </nav>
 
 <style>

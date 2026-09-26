@@ -54,10 +54,10 @@ const TOC_LINKS = [
       <div class="guide-hero">
         <div class="brutal-label guide-hero__label">Practitioner guide</div>
         <HubHeader title="Using the GST MCP Server">
-          <Fragment slot="subtitle"
-            >Three ways to drive a connected server (ask, invoke, attach) and what each failure
-            means. Sections stand alone; read the one you need.</Fragment
-          >
+          <Fragment slot="subtitle">
+            Three ways to drive a connected server (ask, invoke, attach) and what each failure
+            means. Sections stand alone; read the one you need.
+          </Fragment>
         </HubHeader>
         <p class="guide-hero__note">
           Connector not set up yet? <a href="/hub/mcp/get-started/">Get started here</a>: this guide
@@ -112,9 +112,9 @@ const TOC_LINKS = [
               take effect?
             </p>
             <div class="starter-panel__foot">
-              <button type="button" class="brutal-btn brutal-btn--primary" data-copy-prev
-                >Copy prompt</button
-              >
+              <button type="button" class="brutal-btn brutal-btn--primary" data-copy-prev>
+                Copy prompt
+              </button>
               <span class="starter-panel__hint">Calls Search Regulatory Map</span>
             </div>
           </div>
@@ -123,14 +123,14 @@ const TOC_LINKS = [
             <li class="check-row">
               <input type="checkbox" id="first-query-check" class="check-row__box" />
               <div class="check-row__body">
-                <label for="first-query-check" class="check-row__title"
-                  >An MCP tool call runs and returns</label
-                >
+                <label for="first-query-check" class="check-row__title">
+                  An MCP tool call runs and returns
+                </label>
                 <p class="check-row__desc check-row__desc--last">
-                  Claude names the MCP tool before reaching for it, runs two GST MCP calls (<code
-                    >List Regulatory Map Facet Values</code
-                  >, then <code>Search Regulatory Map</code>) and answers from what they return. The
-                  capture below is that exact exchange.
+                  Claude names the MCP tool before reaching for it, runs two GST MCP calls (
+                  <code>List Regulatory Map Facet Values</code>, then{' '}
+                  <code>Search Regulatory Map</code>) and answers from what they return. The capture
+                  below is that exact exchange.
                 </p>
               </div>
             </li>
@@ -180,9 +180,9 @@ const TOC_LINKS = [
                 </li>
                 <li>
                   A plausible list with no MCP tool call in the transcript; regulation is exactly
-                  where a model will confabulate an effective date. Add the <a href="#addendum"
-                    >system-prompt addendum</a
-                  > under Troubleshooting and retry in a fresh thread.
+                  where a model will confabulate an effective date. Add the{' '}
+                  <a href="#addendum">system-prompt addendum</a> under Troubleshooting and retry in
+                  a fresh thread.
                 </li>
               </ul>
             </div>
@@ -198,9 +198,9 @@ const TOC_LINKS = [
               </p>
               <div class="prompt-card__foot">
                 <span class="fineprint">gst_target_quick_look</span>
-                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
-                  >Copy</button
-                >
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev>
+                  Copy
+                </button>
               </div>
             </article>
             <article class="prompt-card">
@@ -211,9 +211,9 @@ const TOC_LINKS = [
               </p>
               <div class="prompt-card__foot">
                 <span class="fineprint">compute_techpar</span>
-                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
-                  >Copy</button
-                >
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev>
+                  Copy
+                </button>
               </div>
             </article>
             <article class="prompt-card">
@@ -224,9 +224,9 @@ const TOC_LINKS = [
               </p>
               <div class="prompt-card__foot">
                 <span class="fineprint">search_portfolio</span>
-                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
-                  >Copy</button
-                >
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev>
+                  Copy
+                </button>
               </div>
             </article>
             <article class="prompt-card">
@@ -237,9 +237,9 @@ const TOC_LINKS = [
               </p>
               <div class="prompt-card__foot">
                 <span class="fineprint">gst_irl_create</span>
-                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
-                  >Copy</button
-                >
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev>
+                  Copy
+                </button>
               </div>
             </article>
           </div>
@@ -262,10 +262,10 @@ const TOC_LINKS = [
                 <h3 class="quick-step__title">Open the prompt picker</h3>
                 <p class="quick-step__body quick-step__body--last">
                   In the composer, click <strong>+</strong> → <strong>Add from GST MCP</strong>, the
-                  same menu you checked when you <a href="/hub/mcp/get-started/#verify"
-                    >verified the connection</a
-                  >. The twelve entries prefixed <code>gst_</code> are prompts, not MCP tools: you invoke
-                  them, the agent doesn't.
+                  same menu you checked when you{' '}
+                  <a href="/hub/mcp/get-started/#verify">verified the connection</a>. The twelve
+                  entries prefixed <code>gst_</code> are prompts, not MCP tools: you invoke them,
+                  the agent doesn't.
                 </p>
               </div>
             </li>
@@ -299,9 +299,9 @@ const TOC_LINKS = [
             Worked example: first look at an unfamiliar target
           </h3>
           <p class="guide-body">
-            <code>gst_target_quick_look</code> takes five required arguments and drives four analyses
-            (cost-governance maturity, unit-economics benchmark, tech-debt range, regulatory exposure)
-            collapsed into one page. Fill it like this:
+            <code>gst_target_quick_look</code> takes five required arguments and drives four
+            analyses (cost-governance maturity, unit-economics benchmark, tech-debt range,
+            regulatory exposure) collapsed into one page. Fill it like this:
           </p>
           <div class="field-panel field-panel--example">
             <CopyRow field="targetName" value="Northwind Analytics" />
@@ -353,21 +353,20 @@ const TOC_LINKS = [
           </div>
           <p class="brutal-callout guide-callout guide-callout--flush">
             <span class="brutal-callout__title">Read the assumptions section first</span>
-            This prompt fills the twenty-question cost-governance assessment from what you gave it, and
-            marks every answer it could not derive as "Not sure" rather than guessing. Those show up in
-            the brief under Assumptions; if most of them are unknowns, treat the cost-governance read
-            as a placeholder and run the full assessment in the Hub.
+            This prompt fills the twenty-question cost-governance assessment from what you gave it,
+            and marks every answer it could not derive as "Not sure" rather than guessing. Those
+            show up in the brief under Assumptions; if most of them are unknowns, treat the
+            cost-governance read as a placeholder and run the full assessment in the Hub.
           </p>
           <p class="guide-body guide-body--closing">
             The five bare arguments are the floor, not the intended run. The prompt is
             evidence-conditional: with an IRL extract record already in the conversation it resolves
             its inputs from the record instead of stage norms, cites the workbook reference behind
-            each number, and states which branch produced every figure. Run <code
-              >gst_irl_extract</code
-            > first (zero tool calls) and the same form fields become labels on evidence rather than the
-            evidence itself. How the record works, and which other prompts read it, is covered in <a
-              href="/hub/mcp/advanced-operations/#downstream">Advanced operations</a
-            >.
+            each number, and states which branch produced every figure. Run{' '}
+            <code>gst_irl_extract</code> first (zero tool calls) and the same form fields become
+            labels on evidence rather than the evidence itself. How the record works, and which
+            other prompts read it, is covered in{' '}
+            <a href="/hub/mcp/advanced-operations/#downstream">Advanced operations</a>.
           </p>
 
           <h3 class="guide-subheading">Two more worth knowing</h3>
@@ -377,15 +376,16 @@ const TOC_LINKS = [
               <div class="prompt-card__name">gst_architecture_layer_review</div>
               <div class="field-panel field-panel--stack">
                 <span class="field-panel__key">targetSummary</span>
-                <code class="field-panel__code"
-                  >Series B B2B analytics platform, ~60 eng, AWS + Kubernetes, monolith mid-split</code
-                >
+                <code class="field-panel__code">
+                  Series B B2B analytics platform, ~60 eng, AWS + Kubernetes, monolith mid-split
+                </code>
                 <button
                   type="button"
                   class="brutal-btn brutal-btn--secondary field-panel__copy"
                   data-copy="Series B B2B analytics platform, ~60 eng, AWS + Kubernetes, monolith mid-split"
-                  >Copy</button
                 >
+                  Copy
+                </button>
               </div>
               <p class="prompt-card__desc">
                 One argument, free text: product, stage, stack and org shape. Returns risks and
@@ -415,15 +415,14 @@ const TOC_LINKS = [
           <h2 class="brutal-heading-lg guide-heading">03 Attach a resource</h2>
           <p class="guide-intro">
             The server exposes three kinds of content, and they are not interchangeable. MCP tools
-            are called by the agent. Prompts are invoked by you. Resources are <em>attached</em> by you:
-            inert documents that do nothing until you pin one to a conversation, at which point the model
-            is reading GST's canonical text instead of recalling something adjacent to it.
+            are called by the agent. Prompts are invoked by you. Resources are <em>attached</em> by
+            you: inert documents that do nothing until you pin one to a conversation, at which point
+            the model is reading GST's canonical text instead of recalling something adjacent to it.
           </p>
           <p class="guide-intro guide-intro--wide-gap">
-            Pin one the same way you attached the prompt: <strong>+</strong> → <strong
-              >Add from GST MCP</strong
-            >, then choose from the resource list rather than the <code>gst_</code> entries. It stays
-            attached for the rest of the thread.
+            Pin one the same way you attached the prompt: <strong>+</strong> →{' '}
+            <strong>Add from GST MCP</strong>, then choose from the resource list rather than the{' '}
+            <code>gst_</code> entries. It stays attached for the rest of the thread.
           </p>
 
           <div class="args-table args-table--uris">
@@ -452,13 +451,16 @@ const TOC_LINKS = [
             </div>
             <div class="args-table__row">
               <div class="args-table__key args-table__key--wide">
-                gst://radar/fyi/latest<br />gst://radar/wire/latest<br
-                />gst://radar/wire/&lt;category&gt;
+                gst://radar/fyi/latest
+                <br />
+                gst://radar/wire/latest
+                <br />
+                gst://radar/wire/&lt;category&gt;
               </div>
               <p class="args-table__note">
-                Six feeds: annotated highlights, the merged wire, and one per category: <code
-                  >pe-ma</code
-                >, <code>enterprise-tech</code>, <code>ai-automation</code>, <code>security</code>.
+                Six feeds: annotated highlights, the merged wire, and one per category:{' '}
+                <code>pe-ma</code>, <code>enterprise-tech</code>, <code>ai-automation</code>,{' '}
+                <code>security</code>.
               </p>
               <p class="args-table__note">
                 Needs the radar scope; this is the family behind most 403s. Refreshed on a schedule;
@@ -469,13 +471,13 @@ const TOC_LINKS = [
 
           <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
             <span class="brutal-callout__title">A prompt cannot fetch a resource for you</span>
-            Resources are user-pinned by design: the model cannot read one from inside a prompt expansion.
-            This trips people up because it looks like a gap: you invoke a workflow that clearly needs
-            a canonical document, and nothing is fetched. It isn't a gap. Where a workflow depends on
-            GST text, the server embeds that text in the prompt body before you ever see it, so the document
-            arrives whether or not you pinned it. Pinning is for&#32;
-            <em>your</em> follow-up questions afterwards, the conversation where you interrogate the framework
-            rather than run the workflow.
+            Resources are user-pinned by design: the model cannot read one from inside a prompt
+            expansion. This trips people up because it looks like a gap: you invoke a workflow that
+            clearly needs a canonical document, and nothing is fetched. It isn't a gap. Where a
+            workflow depends on GST text, the server embeds that text in the prompt body before you
+            ever see it, so the document arrives whether or not you pinned it. Pinning is for&#32;
+            <em>your</em> follow-up questions afterwards, the conversation where you interrogate the
+            framework rather than run the workflow.
           </p>
         </section>
 
@@ -534,7 +536,8 @@ const TOC_LINKS = [
                 Its opening sentence committed to the wrong path.
               </p>
               <p class="args-table__note">
-                Add the <a href="#addendum">system-prompt addendum</a> and retry in a fresh conversation.
+                Add the <a href="#addendum">system-prompt addendum</a> and retry in a fresh
+                conversation.
               </p>
               <details class="brutal-faq__item guide-addendum" id="addendum">
                 <summary class="brutal-faq__question">
@@ -550,7 +553,8 @@ const TOC_LINKS = [
                   </p>
                   <pre
                     data-snippet
-                    class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
+                    class="snippet-pre"
+                  >For any question about GST's portfolio, engagements, radar, regulatory
 analysis, TechPar, infrastructure cost governance, diligence, technical
 debt, or information request lists:
 
@@ -565,8 +569,10 @@ debt, or information request lists:
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary guide-addendum__copy"
-                    data-copy-prev>Copy addendum</button
+                    data-copy-prev
                   >
+                    Copy addendum
+                  </button>
                 </div>
               </details>
             </div>
@@ -587,9 +593,9 @@ debt, or information request lists:
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Ingest a filled IRL and drive nine engines in one turn.
               </p>
-              <a href="/hub/mcp/advanced-operations/" class="cta-button brutal-gateway-card__cta"
-                >Open guide</a
-              >
+              <a href="/hub/mcp/advanced-operations/" class="cta-button brutal-gateway-card__cta">
+                Open guide
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -598,7 +604,9 @@ debt, or information request lists:
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Tool and prompt reference, OAuth scopes, and rate limits.
               </p>
-              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">
+                Read docs
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -607,9 +615,9 @@ debt, or information request lists:
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Add radar scope, raise a tier, or provision a client.
               </p>
-              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta"
-                >Contact GST</a
-              >
+              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta">
+                Contact GST
+              </a>
             </article>
           </div>
         </section>

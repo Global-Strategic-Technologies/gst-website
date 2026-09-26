@@ -9,20 +9,23 @@ import '../../../../styles/components/map.css';
 <div class="brutal-map-container" id="mapContainer" data-testid="map-container">
   <div class="map-controls">
     <button id="zoomIn" class="brutal-map-control" aria-label="Zoom in" title="Zoom in">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-        ><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        ></path></svg
-      >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path
+          d="M8 3v10M3 8h10"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        ></path>
+      </svg>
     </button>
     <button id="zoomOut" class="brutal-map-control" aria-label="Zoom out" title="Zoom out">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-        ><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        ></path></svg
-      >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
     </button>
     <button id="zoomReset" class="brutal-map-control" aria-label="Reset zoom" title="Reset zoom">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-        ><rect
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect
           x="3"
           y="3"
           width="10"
@@ -30,13 +33,16 @@ import '../../../../styles/components/map.css';
           rx="1"
           stroke="currentColor"
           stroke-width="1.5"
-          fill="none"></rect></svg
-      >
+          fill="none"
+        ></rect>
+      </svg>
     </button>
   </div>
   <div class="brutal-map-tap-bar" id="mapTapBar" hidden>
     <span class="brutal-map-tap-bar__name" id="tapBarName"></span>
-    <button class="brutal-map-tap-bar__action" id="tapBarAction">View details</button>
+    <button class="brutal-map-tap-bar__action" id="tapBarAction">
+      View details
+    </button>
   </div>
   <svg
     id="mapSvg"
@@ -44,7 +50,8 @@ import '../../../../styles/components/map.css';
     viewBox="0 0 960 440"
     role="img"
     aria-label="Interactive world map showing countries with regulatory data highlighted. Use scroll wheel or pinch to zoom, drag to pan."
-    preserveAspectRatio="xMidYMid meet"></svg>
+    preserveAspectRatio="xMidYMid meet"
+  ></svg>
   <div class="map-loading-skeleton" aria-hidden="true">
     <div class="brutal-skeleton-bar" style="width: 18%; margin-left: 52%; margin-top: 8%"></div>
     <div class="brutal-skeleton-bar" style="width: 12%; margin-left: 55%; margin-top: 2%"></div>
@@ -61,29 +68,42 @@ import '../../../../styles/components/map.css';
       type="button"
       class="brutal-quick-zoom"
       data-region="world"
-      aria-label="Zoom out to world view">WORLD</button
+      aria-label="Zoom out to world view"
     >
+      WORLD
+    </button>
     <button
       type="button"
       class="brutal-quick-zoom"
       data-region="americas"
-      aria-label="Zoom to Americas">AMR</button
+      aria-label="Zoom to Americas"
     >
-    <button type="button" class="brutal-quick-zoom" data-region="europe" aria-label="Zoom to Europe"
-      >EUR</button
+      AMR
+    </button>
+    <button
+      type="button"
+      class="brutal-quick-zoom"
+      data-region="europe"
+      aria-label="Zoom to Europe"
     >
+      EUR
+    </button>
     <button
       type="button"
       class="brutal-quick-zoom"
       data-region="asia-pacific"
-      aria-label="Zoom to Asia-Pacific">APAC</button
+      aria-label="Zoom to Asia-Pacific"
     >
+      APAC
+    </button>
     <button
       type="button"
       class="brutal-quick-zoom"
       data-region="africa-mideast"
-      aria-label="Zoom to Africa & Middle East">MEA</button
+      aria-label="Zoom to Africa & Middle East"
     >
+      MEA
+    </button>
   </div>
   <div class="brutal-map-hint" id="mapPinchHint" hidden aria-hidden="true">
     <svg

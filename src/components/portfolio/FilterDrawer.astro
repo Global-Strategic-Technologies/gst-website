@@ -45,9 +45,9 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
   </div>
 
   <div class="drawer-content">
-    <button id="clear-filters" class="clear-filters-button" data-testid="clear-filters-button"
-      >Clear All Filters</button
-    >
+    <button id="clear-filters" class="clear-filters-button" data-testid="clear-filters-button">
+      Clear All Filters
+    </button>
 
     <div class="filter-section">
       <div class="filter-label">Engagement</div>
@@ -55,17 +55,15 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
         <div class="filter-chip active" data-value="all" data-testid="filter-chip-engagement-all">
           All Engagements
         </div>
-        {
-          uniqueEngagementCategories.map((cat) => (
-            <div
-              class="filter-chip"
-              data-value={cat}
-              data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
-            >
-              {cat}
-            </div>
-          ))
-        }
+        {uniqueEngagementCategories.map((cat) => (
+          <div
+            class="filter-chip"
+            data-value={cat}
+            data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
+          >
+            {cat}
+          </div>
+        ))}
       </div>
     </div>
 
@@ -75,17 +73,15 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
         <div class="filter-chip active" data-value="all" data-testid="filter-chip-theme-all">
           All Themes
         </div>
-        {
-          uniqueThemes.map((theme) => (
-            <div
-              class="filter-chip"
-              data-value={theme}
-              data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              {theme}
-            </div>
-          ))
-        }
+        {uniqueThemes.map((theme) => (
+          <div
+            class="filter-chip"
+            data-value={theme}
+            data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            {theme}
+          </div>
+        ))}
       </div>
     </div>
   </div>
@@ -190,5 +186,4 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
   id="filter-overlay"
   class="filter-overlay portfolio-filter-overlay"
   data-testid="portfolio-filter-overlay"
->
-</div>
+></div>

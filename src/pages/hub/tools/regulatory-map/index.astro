@@ -79,7 +79,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       })
     )}
   />
-
   <section class="regulatory-map-section">
     <div class="container">
       <PrintReportHeader title="Regulatory Map" />
@@ -94,12 +93,16 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <MapVisualizer />
           <div class="brutal-legend map-legend-positioned">
             <div class="brutal-legend__item">
-              <span class="brutal-legend__swatch brutal-legend__swatch--active" aria-hidden="true"
+              <span
+                class="brutal-legend__swatch brutal-legend__swatch--active"
+                aria-hidden="true"
               ></span>
               <span class="brutal-legend__label">Regulation coverage</span>
             </div>
             <div class="brutal-legend__item">
-              <span class="brutal-legend__swatch brutal-legend__swatch--neutral" aria-hidden="true"
+              <span
+                class="brutal-legend__swatch brutal-legend__swatch--neutral"
+                aria-hidden="true"
               ></span>
               <span class="brutal-legend__label">No data</span>
             </div>
@@ -112,15 +115,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               viewBox="0 0 64 64"
               fill="none"
               aria-hidden="true"
-              ><path
+            >
+              <path
                 d="M32 12 L52 52 L12 52 Z"
                 stroke="currentColor"
                 stroke-width="6"
-                stroke-linejoin="miter"></path></svg
-            >
-            <span class="brutal-map-cta__text"
-              >Select a highlighted region to view regulatory details</span
-            >
+                stroke-linejoin="miter"
+              ></path>
+            </svg>
+            <span class="brutal-map-cta__text">
+              Select a highlighted region to view regulatory details
+            </span>
           </div>
         </div>
         <CompliancePanel />
@@ -143,7 +148,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 d="M10.5 10.5L14.5 14.5"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linecap="round"></path>
+                stroke-linecap="round"
+              ></path>
             </svg>
             <input
               type="search"
@@ -164,7 +170,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   d="M3 3l8 8M11 3l-8 8"
                   stroke="currentColor"
                   stroke-width="1.5"
-                  stroke-linecap="round"></path>
+                  stroke-linecap="round"
+                ></path>
               </svg>
             </button>
           </div>
@@ -174,48 +181,64 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             role="listbox"
             aria-label="Search results"
             hidden
-          >
-          </div>
+          ></div>
         </div>
         <div class="brutal-filter-chips" id="regulation-filter-chips">
           <button
             class="brutal-filter-chip brutal-filter-chip--all brutal-filter-chip--active"
-            data-category="all">All</button
+            data-category="all"
           >
+            All
+          </button>
           <button
             class="brutal-filter-chip brutal-filter-chip--privacy"
-            data-category="data-privacy">Data Privacy</button
+            data-category="data-privacy"
           >
-          <button class="brutal-filter-chip brutal-filter-chip--ai" data-category="ai-governance"
-            >AI Governance</button
-          >
+            Data Privacy
+          </button>
+          <button class="brutal-filter-chip brutal-filter-chip--ai" data-category="ai-governance">
+            AI Governance
+          </button>
           <button
             class="brutal-filter-chip brutal-filter-chip--industry"
-            data-category="industry-compliance">Industry Compliance</button
+            data-category="industry-compliance"
           >
-          <button class="brutal-filter-chip brutal-filter-chip--cyber" data-category="cybersecurity"
-            >Cybersecurity</button
+            Industry Compliance
+          </button>
+          <button
+            class="brutal-filter-chip brutal-filter-chip--cyber"
+            data-category="cybersecurity"
           >
+            Cybersecurity
+          </button>
         </div>
       </div>
 
       <div class="timeline-section" id="timelineSection">
         <h2 class="timeline-heading brutal-heading-md">Regulation Timeline</h2>
         <div class="timeline-legend">
-          <span class="timeline-legend__item"
-            ><span class="brutal-timeline-dot brutal-timeline-dot--privacy" aria-hidden="true"
-            ></span> Data Privacy</span
-          >
-          <span class="timeline-legend__item"
-            ><span class="brutal-timeline-dot brutal-timeline-dot--ai" aria-hidden="true"></span> AI Governance</span
-          >
-          <span class="timeline-legend__item"
-            ><span class="brutal-timeline-dot brutal-timeline-dot--industry" aria-hidden="true"
-            ></span> Industry Compliance</span
-          >
-          <span class="timeline-legend__item"
-            ><span class="brutal-timeline-dot brutal-timeline-dot--cyber" aria-hidden="true"></span> Cybersecurity</span
-          >
+          <span class="timeline-legend__item">
+            <span
+              class="brutal-timeline-dot brutal-timeline-dot--privacy"
+              aria-hidden="true"
+            ></span>{' '}
+            Data Privacy
+          </span>
+          <span class="timeline-legend__item">
+            <span class="brutal-timeline-dot brutal-timeline-dot--ai" aria-hidden="true"></span> AI
+            Governance
+          </span>
+          <span class="timeline-legend__item">
+            <span
+              class="brutal-timeline-dot brutal-timeline-dot--industry"
+              aria-hidden="true"
+            ></span>{' '}
+            Industry Compliance
+          </span>
+          <span class="timeline-legend__item">
+            <span class="brutal-timeline-dot brutal-timeline-dot--cyber" aria-hidden="true"></span>{' '}
+            Cybersecurity
+          </span>
         </div>
         <!-- tabindex="0" is load-bearing, not decoration: this region scrolls
              horizontally and without it a keyboard user cannot reach the content that
@@ -245,17 +268,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     <div class="container">
       <h2 class="brutal-heading-lg">Frequently Asked Questions</h2>
       <div class="brutal-faq brutal-faq--lg">
-        {
-          faqItems.map((item) => (
-            <details class="brutal-faq__item">
-              <summary class="brutal-faq__question">
-                <span>{item.question}</span>
-                <DeltaIcon class="delta-chevron" />
-              </summary>
-              <div class="brutal-faq__answer" set:html={item.answer} />
-            </details>
-          ))
-        }
+        {faqItems.map((item) => (
+          <details class="brutal-faq__item">
+            <summary class="brutal-faq__question">
+              <span>{item.question}</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer" set:html={item.answer} />
+          </details>
+        ))}
       </div>
       <div class="print-report-footer" aria-hidden="true">
         <p>Generated from globalstrategic.tech/hub/tools/regulatory-map</p>
@@ -264,7 +285,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           requirements with qualified counsel.
         </p>
       </div>
-      <a href="/hub/tools/" class="cta-button back-link">Back to Tools</a>
+      <a href="/hub/tools/" class="cta-button back-link">
+        Back to Tools
+      </a>
     </div>
   </section>
   <link rel="preload" href="/data/reg-index.json" as="fetch" crossorigin />

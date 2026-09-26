@@ -44,13 +44,11 @@ const links = linksProp ?? PRODUCTION_LINKS;
 ---
 
 <div class="footer-links">
-  {
-    links.map((link) => (
-      <a href={link.href} target={link.target} rel={link.rel}>
-        {link.label}
-      </a>
-    ))
-  }
+  {links.map((link) => (
+    <a href={link.href} target={link.target} rel={link.rel}>
+      {link.label}
+    </a>
+  ))}
 </div>
 
 <style>

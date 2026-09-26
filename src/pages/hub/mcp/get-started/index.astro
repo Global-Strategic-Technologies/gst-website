@@ -60,10 +60,10 @@ const TOC_LINKS = [
       <div class="guide-hero">
         <div class="brutal-label guide-hero__label">Integration guide</div>
         <HubHeader title="Get started with the GST MCP Server">
-          <Fragment slot="subtitle"
-            >Three steps between a provisioned credential and a connector Claude can call. Work down
-            the page; each one tells you how to know it worked.</Fragment
-          >
+          <Fragment slot="subtitle">
+            Three steps between a provisioned credential and a connector Claude can call. Work down
+            the page; each one tells you how to know it worked.
+          </Fragment>
         </HubHeader>
         <ol class="guide-checkpoints">
           <li class="checkpoint">
@@ -97,46 +97,49 @@ const TOC_LINKS = [
         <section id="prerequisites" data-section="prerequisites" class="guide-section">
           <h2 class="brutal-heading-lg guide-heading">01 Before you start</h2>
           <p class="guide-intro">
-            Access is provisioned by GST, or self-served through the free <a href="/hub/mcp/trial/"
-              >3-day trial</a
-            >, which issues a credential in one click. There is no dynamic client registration. If
-            you do not have a credential yet, that is the first step; everything below assumes one
-            has arrived.
+            Access is provisioned by GST, or self-served through the free{' '}
+            <a href="/hub/mcp/trial/">3-day trial</a>, which issues a credential in one click. There
+            is no dynamic client registration. If you do not have a credential yet, that is the
+            first step; everything below assumes one has arrived.
           </p>
           <ul class="check-list">
             <li class="check-row">
               <input type="checkbox" id="prereq-record" class="check-row__box" />
               <div class="check-row__body">
-                <label for="prereq-record" class="check-row__title">Request a client record</label>
+                <label for="prereq-record" class="check-row__title">
+                  Request a client record
+                </label>
                 <p class="check-row__desc">
                   GST creates it with your tier and scopes set deliberately. Ask for radar tools
                   explicitly: they are granted separately.
                 </p>
-                <a href="/hub/mcp/#request-access" class="text-cta">Request access →</a>
+                <a href="/hub/mcp/#request-access" class="text-cta">
+                  Request access →
+                </a>
               </div>
             </li>
             <li class="check-row">
               <input type="checkbox" id="prereq-credential" class="check-row__box" />
               <div class="check-row__body">
-                <label for="prereq-credential" class="check-row__title"
-                  >Store the credential you were sent</label
-                >
+                <label for="prereq-credential" class="check-row__title">
+                  Store the credential you were sent
+                </label>
                 <p class="check-row__desc">
                   It arrives over a secure channel. Paste the key at the consent page if you are
-                  working interactively; take the OAuth 2.1 <code>client_credentials</code> id and secret
-                  if you are building headless.
+                  working interactively; take the OAuth 2.1 <code>client_credentials</code> id and
+                  secret if you are building headless.
                 </p>
-                <span class="fineprint"
-                  >Keep it in a password manager, never in a committed config file.</span
-                >
+                <span class="fineprint">
+                  Keep it in a password manager, never in a committed config file.
+                </span>
               </div>
             </li>
             <li class="check-row">
               <input type="checkbox" id="prereq-desktop" class="check-row__box" />
               <div class="check-row__body">
-                <label for="prereq-desktop" class="check-row__title"
-                  >Sign in to Claude on the web or in Claude Desktop</label
-                >
+                <label for="prereq-desktop" class="check-row__title">
+                  Sign in to Claude on the web or in Claude Desktop
+                </label>
                 <p class="check-row__desc">
                   Either client works, and a connector added in one appears in the other. As of
                   September 2026 custom connectors are available on every Claude plan, with the Free
@@ -144,18 +147,19 @@ const TOC_LINKS = [
                   the current version first. Skip any bridge or proxy: the server speaks OAuth 2.1
                   natively.
                 </p>
-                <span class="fineprint"
-                  >On a Team or Enterprise plan an organization Owner adds the connector under
-                  Organization settings. Ask them before you start.</span
-                >
+                <span class="fineprint">
+                  On a Team or Enterprise plan an organization Owner adds the connector under
+                  Organization settings. Ask them before you start.
+                </span>
               </div>
             </li>
           </ul>
           <p class="brutal-callout guide-callout">
             <span class="brutal-callout__title">Building a headless integration?</span>
-            The Quick Start below is the interactive path. Pipelines, Slack bots and internal dashboards
-            authenticate machine-to-machine with <code>client_credentials</code> against the same endpoint;
-            the two-step exchange is in <a href="/hub/mcp/from-code/">Use the server from code</a>.
+            The Quick Start below is the interactive path. Pipelines, Slack bots and internal
+            dashboards authenticate machine-to-machine with <code>client_credentials</code> against
+            the same endpoint; the two-step exchange is in{' '}
+            <a href="/hub/mcp/from-code/">Use the server from code</a>.
           </p>
         </section>
 
@@ -185,13 +189,11 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Enter the GST endpoint</h3>
                 <p class="quick-step__body">
-                  Name the connector and paste the production URL. Call it <code>GST MCP</code> to match
-                  the rest of this guide, since you address the connector by that name in a prompt. Choose&#32;<strong
-                    >Continue</strong
-                  >: Claude checks the server, then shows an Authentication and an OAuth client
-                  section with both settings already detected. Leave those defaults and choose <strong
-                    >Add</strong
-                  >.
+                  Name the connector and paste the production URL. Call it <code>GST MCP</code> to
+                  match the rest of this guide, since you address the connector by that name in a
+                  prompt. Choose&#32;<strong>Continue</strong>: Claude checks the server, then shows
+                  an Authentication and an OAuth client section with both settings already detected.
+                  Leave those defaults and choose <strong>Add</strong>.
                 </p>
                 <div class="endpoint-row">
                   <code class="endpoint-code">https://mcp.globalstrategic.tech/mcp</code>
@@ -199,8 +201,10 @@ const TOC_LINKS = [
                     type="button"
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
                     data-copy="https://mcp.globalstrategic.tech/mcp"
-                    data-copy-kind="endpoint">Copy</button
+                    data-copy-kind="endpoint"
                   >
+                    Copy
+                  </button>
                 </div>
                 <div class="endpoint-row endpoint-row--name">
                   <code class="endpoint-code">GST MCP</code>
@@ -209,8 +213,9 @@ const TOC_LINKS = [
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
                     data-copy="GST MCP"
                     data-copy-kind="connector-name"
-                    >Copy<span class="sr-only"> connector name</span></button
                   >
+                    Copy<span class="sr-only"> connector name</span>
+                  </button>
                 </div>
                 <ClipFigure
                   variant="collapsible"
@@ -271,8 +276,8 @@ const TOC_LINKS = [
                 <p class="quick-step__body">
                   On the web, start a new conversation; no restart is needed. In Claude Desktop,
                   quit fully first (it stays in the tray) and relaunch. The chat input's&#32;
-                  <strong>+ → Connectors</strong> menu should list <code>GST MCP</code> with the GST tools
-                  and prompts under it.
+                  <strong>+ → Connectors</strong> menu should list <code>GST MCP</code> with the GST
+                  tools and prompts under it.
                 </p>
               </div>
             </li>
@@ -289,9 +294,9 @@ const TOC_LINKS = [
             <li class="check-row">
               <input type="checkbox" id="verify-listed" class="check-row__box" />
               <div class="check-row__body">
-                <label for="verify-listed" class="check-row__title"
-                  >The connector is listed and enabled</label
-                >
+                <label for="verify-listed" class="check-row__title">
+                  The connector is listed and enabled
+                </label>
                 <p class="check-row__desc check-row__desc--last">
                   + → Connectors shows <code>GST MCP</code>, toggled on and without a warning badge,
                   as below.
@@ -323,12 +328,12 @@ const TOC_LINKS = [
             <li class="check-row">
               <input type="checkbox" id="verify-capabilities" class="check-row__box" />
               <div class="check-row__body">
-                <label for="verify-capabilities" class="check-row__title"
-                  >GST MCP capabilities are listed</label
-                >
+                <label for="verify-capabilities" class="check-row__title">
+                  GST MCP capabilities are listed
+                </label>
                 <p class="check-row__desc check-row__desc--last">
-                  Open <strong>Add from GST MCP</strong> and expect the twelve GST prompts by name, with
-                  the resource library below them.
+                  Open <strong>Add from GST MCP</strong> and expect the twelve GST prompts by name,
+                  with the resource library below them.
                 </p>
                 <ClipFigure
                   variant="collapsible"
@@ -349,12 +354,16 @@ const TOC_LINKS = [
             <a
               href="https://status.mcp.globalstrategic.tech/"
               target="_blank"
-              rel="noopener noreferrer"><code>status.mcp.globalstrategic.tech</code></a
-            >. Check it before assuming your own config is at fault.
+              rel="noopener noreferrer"
+            >
+              <code>status.mcp.globalstrategic.tech</code>
+            </a>
+            . Check it before assuming your own config is at fault.
           </p>
           <p class="brutal-callout guide-callout">
             <span class="brutal-callout__title">Neither check passing?</span>
-            The five failures a first connection runs into, and what each one means, are catalogued under&#32;
+            The five failures a first connection runs into, and what each one means, are catalogued
+            under&#32;
             <a href="/hub/mcp/using/#troubleshooting">Troubleshooting</a> in the practitioner guide.
           </p>
         </section>
@@ -373,7 +382,9 @@ const TOC_LINKS = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 First query, prompt argument forms, and pinned resources.
               </p>
-              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">Open guide</a>
+              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">
+                Open guide
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -382,7 +393,9 @@ const TOC_LINKS = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Tool and prompt reference, OAuth scopes, and rate limits.
               </p>
-              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">
+                Read docs
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -391,9 +404,9 @@ const TOC_LINKS = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Add radar scope, raise a tier, or provision a client.
               </p>
-              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta"
-                >Contact GST</a
-              >
+              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta">
+                Contact GST
+              </a>
             </article>
           </div>
         </section>

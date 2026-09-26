@@ -56,11 +56,12 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
 <div class="cta-box">
   <h2 class="brutal-cta__title">{title}</h2>
   <p class="brutal-cta__description">{description}</p>
-  <a class="cta-button" {...buttonAttrs}>{buttonText}</a>
-  {
-    emailAddress && (
-      <p class="cta-email">
-        {/* The trailing {' '} is load-bearing, not formatting: without it
+  <a class="cta-button" {...buttonAttrs}>
+    {buttonText}
+  </a>
+  {emailAddress && (
+    <p class="cta-email">
+      {/* The trailing {' '} is load-bearing, not formatting: without it
             `&mdash;` sitting on its own line rendered hard against the address
             — `directly —contact@…` on every page that passes an emailAddress.
             The culprit is `compressHTML`, NOT JSX whitespace handling as this
@@ -71,13 +72,12 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
             layout — it has to be an expression or a `&#32;`. See STYLES_GUIDE
             § "`compressHTML` deletes the space before a wrapped inline
             element". */}
-        {emailText} &mdash;{' '}
-        <a href={`mailto:${emailAddress}`} {...emailAttrs}>
-          {emailAddress}
-        </a>
-      </p>
-    )
-  }
+      {emailText} &mdash;{' '}
+      <a href={`mailto:${emailAddress}`} {...emailAttrs}>
+        {emailAddress}
+      </a>
+    </p>
+  )}
 </div>
 
 <style>

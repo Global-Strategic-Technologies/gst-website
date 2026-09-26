@@ -22,21 +22,19 @@ const hints = liveLocales()
   }));
 ---
 
-{
-  hints.length > 0 && (
-    <section class="error-locale-hint" aria-label="Other languages">
-      <div class="container">
-        {hints.map((h) => (
-          <p lang={h.htmlLang}>
-            <a href={h.href} hreflang={h.htmlLang}>
-              {h.text}
-            </a>
-          </p>
-        ))}
-      </div>
-    </section>
-  )
-}
+{hints.length > 0 && (
+  <section class="error-locale-hint" aria-label="Other languages">
+    <div class="container">
+      {hints.map((h) => (
+        <p lang={h.htmlLang}>
+          <a href={h.href} hreflang={h.htmlLang}>
+            {h.text}
+          </a>
+        </p>
+      ))}
+    </div>
+  </section>
+)}
 
 <style>
   .error-locale-hint {

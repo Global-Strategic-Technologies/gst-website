@@ -85,7 +85,6 @@ const countLinks = [
         }
       })();
     </script>
-
     <div class="container">
       <div>
         <div class="brutal-label mdoc-head__label">Capability reference</div>
@@ -106,7 +105,8 @@ const countLinks = [
                   d="M10.5 10.5L14.5 14.5"
                   stroke="currentColor"
                   stroke-width="1.5"
-                  stroke-linecap="round"></path>
+                  stroke-linecap="round"
+                ></path>
               </svg>
               <input
                 type="search"
@@ -127,8 +127,7 @@ const countLinks = [
               aria-label="Capability search results"
               data-cap-search-results
               hidden
-            >
-            </div>
+            ></div>
           </div>
           <div class="brutal-segmented mdoc-lens-switch">
             <a
@@ -136,14 +135,17 @@ const countLinks = [
               href="#jobs"
               data-lens-link="jobs"
               title="The analyst jobs GST's MCP capabilities do, each with its steps and the artifact it returns"
-              >Jobs</a
             >
+              Jobs
+            </a>
             <a
               class="brutal-segmented__btn"
               href="#reference"
               data-lens-link="reference"
-              title="Every capability's contract: arguments, examples, availability">Reference</a
+              title="Every capability's contract: arguments, examples, availability"
             >
+              Reference
+            </a>
           </div>
         </div>
       </div>
@@ -155,24 +157,24 @@ const countLinks = [
           steps, and select any step to read its contract in Reference.
         </p>
         <p class="mdoc-counts">
-          {
-            countLinks.map((link, index) => (
-              <>
-                {index > 0 && <span class="mdoc-counts__sep">·</span>}
-                <a
-                  class="mdoc-counts__link"
-                  href="#reference"
-                  data-group-jump={link.group}
-                  title={`Open ${link.group} in Reference`}
-                >
-                  {link.label}
-                </a>
-              </>
-            ))
-          }
+          {countLinks.map((link, index) => (
+            <>
+              {index > 0 && <span class="mdoc-counts__sep">·</span>}
+              <a
+                class="mdoc-counts__link"
+                href="#reference"
+                data-group-jump={link.group}
+                title={`Open ${link.group} in Reference`}
+              >
+                {link.label}
+              </a>
+            </>
+          ))}
         </p>
         <div class="mdoc-jobs">
-          {JOBS.map((job) => <JobCard job={job} />)}
+          {JOBS.map((job) => (
+            <JobCard job={job} />
+          ))}
         </div>
       </div>
 
@@ -180,24 +182,21 @@ const countLinks = [
         <div class="mdoc-ref">
           <CapabilityNav capabilities={CAPABILITIES} counts={groupCounts} />
           <div class="mdoc-panes">
-            {
-              CAPABILITIES.map((capability) => (
-                <CapabilityContract
-                  capability={capability}
-                  isDefault={capability.id === DEFAULT_CAPABILITY_ID}
-                  jobs={JOBS}
-                  knownIds={knownIds}
-                />
-              ))
-            }
+            {CAPABILITIES.map((capability) => (
+              <CapabilityContract
+                capability={capability}
+                isDefault={capability.id === DEFAULT_CAPABILITY_ID}
+                jobs={JOBS}
+                knownIds={knownIds}
+              />
+            ))}
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  {
-    /*
+  {/*
     One live region for the whole page, written by `initCopyButtons` whenever a
     `[data-copy-quiet]` control is used. The example-value cells cannot announce
     from inside themselves: their visible text is the payload, so it must not be
@@ -205,8 +204,7 @@ const countLinks = [
     accessibility tree (`role=button` is Children Presentational). Without this
     the fourteen copy controls on a dense pane would confirm visually and
     nowhere else, which is WCAG 4.1.3.
-  */
-  }
+  */}
   <p class="sr-only" role="status" aria-live="polite" data-copy-status></p>
 </BaseLayout>
 

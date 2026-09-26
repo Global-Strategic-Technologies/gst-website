@@ -59,7 +59,6 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
       })
     )}
   />
-
   <section class="irl-gen">
     <div class="container">
       <HubHeader
@@ -69,20 +68,21 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 
       <div class="irl-gen__intro">
         <p>
-          Generate a structured <strong>.xlsx workbook</strong> recipients can fill in cell-by-cell and
-          email back. The workbook mirrors the GST canonical Information Request List — one section per
-          VDR folder, covering every input GST tools need to execute the engagement. Choose which sections
-          to include and add your own engagement-specific requests below.
+          Generate a structured <strong>.xlsx workbook</strong> recipients can fill in cell-by-cell
+          and email back. The workbook mirrors the GST canonical Information Request List — one
+          section per VDR folder, covering every input GST tools need to execute the engagement.
+          Choose which sections to include and add your own engagement-specific requests below.
         </p>
         <p>
-          Each request row carries a <strong>Status</strong> cell (OPEN / PARTIAL / CLOSED) so partners
-          and recipients can track progress at a glance. Pre-filled <code>OPEN</code> on every row; promote
-          to <code>PARTIAL</code> (cream) or <code>CLOSED</code> (green) as answers land.
+          Each request row carries a <strong>Status</strong> cell (OPEN / PARTIAL / CLOSED) so
+          partners and recipients can track progress at a glance. Pre-filled <code>OPEN</code> on
+          every row; promote to <code>PARTIAL</code> (cream) or <code>CLOSED</code> (green) as
+          answers land.
         </p>
         <p>
           Reference content:&#32;
-          <a href="/hub/library/information-request-list/">Information Request List</a> in the Library.
-          The section taxonomy mirrors GST's canonical&#32;
+          <a href="/hub/library/information-request-list/">Information Request List</a> in the
+          Library. The section taxonomy mirrors GST's canonical&#32;
           <a href="/hub/library/vdr-structure/">VDR Structure Guide</a>, so a filled IRL maps
           one-to-one to the folders the responder already maintains.
         </p>
@@ -90,9 +90,9 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 
       <form id="irl-gen-form" class="irl-gen__form">
         <label class="irl-gen__field">
-          <span class="irl-gen__label"
-            >Requesting company name <span class="irl-gen__hint">(optional)</span></span
-          >
+          <span class="irl-gen__label">
+            Requesting company name <span class="irl-gen__hint">(optional)</span>
+          </span>
           <input
             id="companyName"
             name="companyName"
@@ -105,9 +105,9 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
         </label>
 
         <label class="irl-gen__field">
-          <span class="irl-gen__label"
-            >Project name <span class="irl-gen__hint">(optional)</span></span
-          >
+          <span class="irl-gen__label">
+            Project name <span class="irl-gen__hint">(optional)</span>
+          </span>
           <input
             id="projectName"
             name="projectName"
@@ -119,9 +119,9 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
         </label>
 
         <label class="irl-gen__field">
-          <span class="irl-gen__label"
-            >Target name <span class="irl-gen__hint">(optional)</span></span
-          >
+          <span class="irl-gen__label">
+            Target name <span class="irl-gen__hint">(optional)</span>
+          </span>
           <input
             id="targetName"
             name="targetName"
@@ -158,109 +158,111 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
         <fieldset id="irl-gen-sections" class="irl-gen__fieldset">
           <legend class="irl-gen__label">Sections to include</legend>
           <div class="irl-gen__sections-actions">
-            <button type="button" id="irl-gen-select-all" class="irl-gen__linkbtn"
-              >Select all</button
-            >
-            <span class="irl-gen__sections-actions-sep" aria-hidden="true">/</span>
-            <button type="button" id="irl-gen-clear-all" class="irl-gen__linkbtn">Clear all</button>
+            <button type="button" id="irl-gen-select-all" class="irl-gen__linkbtn">
+              Select all
+            </button>
+            <span class="irl-gen__sections-actions-sep" aria-hidden="true">
+              /
+            </span>
+            <button type="button" id="irl-gen-clear-all" class="irl-gen__linkbtn">
+              Clear all
+            </button>
           </div>
           <div id="irl-gen-sections-list" class="irl-gen__sections-list">
-            {
-              irlSections.map((s) => (
-                <div class="irl-gen__section" data-section={s.number}>
-                  <div class="irl-gen__section-head">
-                    <label class="irl-gen__section-toggle">
-                      <input type="checkbox" name="sections" value={s.number} checked />
-                      <span class="irl-gen__section-name">
-                        <span class="irl-gen__section-num">{s.number}</span>
-                        {s.title}
-                      </span>
-                    </label>
-                    <span class="irl-gen__section-info">
-                      <button
-                        type="button"
-                        class="irl-gen__section-info-btn"
-                        aria-label={`Requests included in section ${s.number} ${s.title} — click to pin and edit`}
-                        aria-expanded="false"
-                        aria-controls={`irl-sec-panel-${s.number}`}
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          width="15"
-                          height="15"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" />
-                          <line
-                            x1="8"
-                            y1="7"
-                            x2="8"
-                            y2="11.5"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                          />
-                          <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
-                        </svg>
-                      </button>
-                      <div
-                        class="irl-gen__section-panel"
-                        id={`irl-sec-panel-${s.number}`}
-                        aria-labelledby={`irl-sec-panel-head-${s.number}`}
-                      >
-                        <div class="irl-gen__section-panel-top">
-                          <span
-                            class="irl-gen__section-panel-head"
-                            id={`irl-sec-panel-head-${s.number}`}
-                          >
-                            Requests in {s.number} — {s.title}
-                          </span>
-                          <button
-                            type="button"
-                            class="irl-gen__section-panel-close"
-                            aria-label="Close request panel"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <p class="irl-gen__section-panel-hint">
-                          Click a delta to exclude a request from the workbook.
-                        </p>
-                        <ul class="irl-gen__section-panel-list">
-                          {s.bullets.map((b) => (
-                            <li
-                              class="irl-gen__q"
-                              data-question={b.key}
-                              data-skip-context={b.skipContext || undefined}
-                            >
-                              <button
-                                type="button"
-                                class="irl-gen__q-toggle"
-                                aria-pressed="false"
-                                aria-label={`Exclude request ${b.key}: ${b.text}`}
-                              >
-                                <DeltaIcon class="delta-chevron" />
-                              </button>
-                              <span class="irl-gen__q-text">{b.text}</span>
-                              <span class="irl-gen__q-auto-label" />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+            {irlSections.map((s) => (
+              <div class="irl-gen__section" data-section={s.number}>
+                <div class="irl-gen__section-head">
+                  <label class="irl-gen__section-toggle">
+                    <input type="checkbox" name="sections" value={s.number} checked />
+                    <span class="irl-gen__section-name">
+                      <span class="irl-gen__section-num">{s.number}</span>
+                      {s.title}
                     </span>
-                  </div>
-                  <div class="irl-gen__custom-list" data-section={s.number} />
-                  <button
-                    type="button"
-                    class="brutal-btn brutal-btn--secondary irl-gen__add-custom"
-                    data-section={s.number}
-                  >
-                    + Add custom request
-                  </button>
+                  </label>
+                  <span class="irl-gen__section-info">
+                    <button
+                      type="button"
+                      class="irl-gen__section-info-btn"
+                      aria-label={`Requests included in section ${s.number} ${s.title} — click to pin and edit`}
+                      aria-expanded="false"
+                      aria-controls={`irl-sec-panel-${s.number}`}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        width="15"
+                        height="15"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" />
+                        <line
+                          x1="8"
+                          y1="7"
+                          x2="8"
+                          y2="11.5"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                        <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
+                      </svg>
+                    </button>
+                    <div
+                      class="irl-gen__section-panel"
+                      id={`irl-sec-panel-${s.number}`}
+                      aria-labelledby={`irl-sec-panel-head-${s.number}`}
+                    >
+                      <div class="irl-gen__section-panel-top">
+                        <span
+                          class="irl-gen__section-panel-head"
+                          id={`irl-sec-panel-head-${s.number}`}
+                        >
+                          Requests in {s.number} — {s.title}
+                        </span>
+                        <button
+                          type="button"
+                          class="irl-gen__section-panel-close"
+                          aria-label="Close request panel"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p class="irl-gen__section-panel-hint">
+                        Click a delta to exclude a request from the workbook.
+                      </p>
+                      <ul class="irl-gen__section-panel-list">
+                        {s.bullets.map((b) => (
+                          <li
+                            class="irl-gen__q"
+                            data-question={b.key}
+                            data-skip-context={b.skipContext || undefined}
+                          >
+                            <button
+                              type="button"
+                              class="irl-gen__q-toggle"
+                              aria-pressed="false"
+                              aria-label={`Exclude request ${b.key}: ${b.text}`}
+                            >
+                              <DeltaIcon class="delta-chevron" />
+                            </button>
+                            <span class="irl-gen__q-text">{b.text}</span>
+                            <span class="irl-gen__q-auto-label" />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </span>
                 </div>
-              ))
-            }
+                <div class="irl-gen__custom-list" data-section={s.number} />
+                <button
+                  type="button"
+                  class="brutal-btn brutal-btn--secondary irl-gen__add-custom"
+                  data-section={s.number}
+                >
+                  + Add custom request
+                </button>
+              </div>
+            ))}
           </div>
         </fieldset>
 
@@ -269,12 +271,16 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
           <span>Include canonical reference link in the workbook header</span>
         </label>
 
-        <button type="submit" class="cta-button irl-gen__cta">Download IRL (.xlsx)</button>
+        <button type="submit" class="cta-button irl-gen__cta">
+          Download IRL (.xlsx)
+        </button>
 
         <p id="irl-gen-status" class="irl-gen__status" role="status" aria-live="polite"></p>
       </form>
 
-      <a href="/hub/tools/" class="cta-button irl-gen__back">Back to Tools</a>
+      <a href="/hub/tools/" class="cta-button irl-gen__back">
+        Back to Tools
+      </a>
     </div>
   </section>
 </BaseLayout>

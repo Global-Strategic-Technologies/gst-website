@@ -21,17 +21,17 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
 ---
 
 <nav class="category-filter" aria-label="Filter by category">
-  <button class="filter-btn active" data-filter="all" style={`--d: ${allD}`}>All</button>
-  {
-    catEntries.map(([key, cat], i) => {
-      const d = (Math.abs(i + 1 - center) / maxDist).toFixed(3);
-      return (
-        <button class="filter-btn" data-filter={key} style={`--btn-color: ${cat.color}; --d: ${d}`}>
-          {cat.label}
-        </button>
-      );
-    })
-  }
+  <button class="filter-btn active" data-filter="all" style={`--d: ${allD}`}>
+    All
+  </button>
+  {catEntries.map(([key, cat], i) => {
+    const d = (Math.abs(i + 1 - center) / maxDist).toFixed(3);
+    return (
+      <button class="filter-btn" data-filter={key} style={`--btn-color: ${cat.color}; --d: ${d}`}>
+        {cat.label}
+      </button>
+    );
+  })}
 </nav>
 
 <script>

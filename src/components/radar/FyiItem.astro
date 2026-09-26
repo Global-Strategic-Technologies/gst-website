@@ -43,34 +43,28 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     <div class="fyi-item__body">
       {item.summary && <p class="fyi-item__summary">{item.summary}</p>}
 
-      {
-        item.highlightedText && (
-          <div class="fyi-item__highlight">
-            <span class="brutal-content-label" style="color: var(--cat-color);">
-              Highlighted
-            </span>
-            <blockquote>{item.highlightedText}</blockquote>
-          </div>
-        )
-      }
+      {item.highlightedText && (
+        <div class="fyi-item__highlight">
+          <span class="brutal-content-label" style="color: var(--cat-color);">
+            Highlighted
+          </span>
+          <blockquote>{item.highlightedText}</blockquote>
+        </div>
+      )}
 
-      {
-        item.highlightedText && item.gstTake && (
-          <div class="fyi-item__nested-take">
-            <span class="brutal-content-label">Δ GST Take</span>
-            <p>{item.gstTake}</p>
-          </div>
-        )
-      }
+      {item.highlightedText && item.gstTake && (
+        <div class="fyi-item__nested-take">
+          <span class="brutal-content-label">Δ GST Take</span>
+          <p>{item.gstTake}</p>
+        </div>
+      )}
 
-      {
-        !item.highlightedText && item.gstTake && (
-          <div class="fyi-item__take">
-            <span class="brutal-content-label">Δ GST Take</span>
-            <p>{item.gstTake}</p>
-          </div>
-        )
-      }
+      {!item.highlightedText && item.gstTake && (
+        <div class="fyi-item__take">
+          <span class="brutal-content-label">Δ GST Take</span>
+          <p>{item.gstTake}</p>
+        </div>
+      )}
     </div>
   </details>
 </article>

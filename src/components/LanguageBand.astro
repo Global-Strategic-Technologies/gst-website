@@ -61,45 +61,43 @@ const bands = others.map((suggested) => {
 });
 ---
 
-{
-  render && (
-    <div
-      class="lang-band-host"
-      aria-live="polite"
-      data-live-locales={live.map((l) => l.code).join(',')}
-      data-current-locale={locale.code}
-    >
-      {bands.map((band) => (
-        <div
-          class="lang-band"
-          role="region"
-          aria-label={band.ariaLabel}
-          lang={band.htmlLang}
-          data-suggests={band.code}
-          hidden
-        >
-          <div class="container">
-            <p>
-              <span class="lang-band__code">{band.short}</span>
-              {band.available}
-            </p>
-            <div class="lang-band__actions">
-              <a class="lang-band__accept" href={band.href} hreflang={band.htmlLang}>
-                {band.view}
-              </a>
-              <button class="lang-band__decline" type="button" lang={locale.htmlLang}>
-                {current.t('band.continue')}
-              </button>
-              <button class="lang-band__close" type="button" aria-label={band.close}>
-                <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" fill="none">
-                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" />
-                </svg>
-              </button>
-            </div>
+{render && (
+  <div
+    class="lang-band-host"
+    aria-live="polite"
+    data-live-locales={live.map((l) => l.code).join(',')}
+    data-current-locale={locale.code}
+  >
+    {bands.map((band) => (
+      <div
+        class="lang-band"
+        role="region"
+        aria-label={band.ariaLabel}
+        lang={band.htmlLang}
+        data-suggests={band.code}
+        hidden
+      >
+        <div class="container">
+          <p>
+            <span class="lang-band__code">{band.short}</span>
+            {band.available}
+          </p>
+          <div class="lang-band__actions">
+            <a class="lang-band__accept" href={band.href} hreflang={band.htmlLang}>
+              {band.view}
+            </a>
+            <button class="lang-band__decline" type="button" lang={locale.htmlLang}>
+              {current.t('band.continue')}
+            </button>
+            <button class="lang-band__close" type="button" aria-label={band.close}>
+              <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" fill="none">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </button>
           </div>
         </div>
-      ))}
-    </div>
-  )
-}
+      </div>
+    ))}
+  </div>
+)}
 {render && <LanguageBandScript />}

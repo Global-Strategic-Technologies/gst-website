@@ -28,7 +28,9 @@ const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
 
 <div class="logo-wrapper">
   <DeltaIcon size={32} class="delta-icon" />
-  <a href={href} class="logo" aria-label="GST" {...trackAttrs}>G<span>S</span>T</a>
+  <a href={href} class="logo" aria-label="GST" {...trackAttrs}>
+    G<span>S</span>T
+  </a>
 </div>
 
 <style>

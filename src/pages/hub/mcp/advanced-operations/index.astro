@@ -55,17 +55,16 @@ const TOC_LINKS = [
       <div class="guide-hero">
         <div class="brutal-label guide-hero__label">Advanced operations</div>
         <HubHeader title="Ingest an information request list">
-          <Fragment slot="subtitle"
-            ><code>gst_irl_sweep</code> reads a populated IRL, drives up to nine GST engines from what
-            the workbook answers, and returns one dossier whose claims cite the rows they came from. One
-            optional argument; everything else is read from the document itself.</Fragment
-          >
+          <Fragment slot="subtitle">
+            <code>gst_irl_sweep</code> reads a populated IRL, drives up to nine GST engines from
+            what the workbook answers, and returns one dossier whose claims cite the rows they came
+            from. One optional argument; everything else is read from the document itself.
+          </Fragment>
         </HubHeader>
         <p class="guide-hero__note">
           Assumes a working connector (<a href="/hub/mcp/get-started/">set one up</a>) and
-          familiarity with <a href="/hub/mcp/using/#prompts"
-            >running a prompt from its argument form</a
-          >.
+          familiarity with{' '}
+          <a href="/hub/mcp/using/#prompts">running a prompt from its argument form</a>.
         </p>
         <div class="stat-grid">
           <div class="brutal-stat-tile">
@@ -134,11 +133,12 @@ const TOC_LINKS = [
             </div>
           </div>
           <p class="brutal-callout guide-callout guide-callout--flush">
-            <span class="brutal-callout__title">Trusted input, one audit surface</span>
-            A populated GST IRL is trusted input: the IRL schema exists precisely to feed these tools.
-            The sweep runs no hashing, caching, or citation-verification machinery; its dossier says "per
-            the IRL" and never claims server-side verification. The audit surface is section (J), a model-authored
-            list of every gap, elided tool, assumption and conversion the run carries.
+            <span class="brutal-callout__title">Trusted input, one audit surface</span>A populated
+            GST IRL is trusted input: the IRL schema exists precisely to feed these tools. The sweep
+            runs no hashing, caching, or citation-verification machinery; its dossier says "per the
+            IRL" and never claims server-side verification. The audit surface is section (J), a
+            model-authored list of every gap, elided tool, assumption and conversion the run
+            carries.
           </p>
         </section>
 
@@ -155,16 +155,16 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Issue the request list</h3>
                 <p class="quick-step__body quick-step__body--tight">
-                  Run <code>gst_irl_create</code> with the engagement's shape. It returns the paste-ready
-                  checklist in chat <em>and</em> a fillable workbook, configured the way you asked: sections
-                  included or dropped, individual questions removed, custom per-section requests added.
-                  Removals leave reference-ID gaps rather than renumbering, so a recipient quoting <code
-                    >2-04</code
-                  > still means the same question next quarter.
+                  Run <code>gst_irl_create</code> with the engagement's shape. It returns the
+                  paste-ready checklist in chat <em>and</em> a fillable workbook, configured the way
+                  you asked: sections included or dropped, individual questions removed, custom
+                  per-section requests added. Removals leave reference-ID gaps rather than
+                  renumbering, so a recipient quoting <code>2-04</code> still means the same
+                  question next quarter.
                 </p>
                 <p class="quick-step__hint">
-                  Ask <code>list_irl_requests</code> first if you want the exact key for a question you
-                  mean to drop
+                  Ask <code>list_irl_requests</code> first if you want the exact key for a question
+                  you mean to drop
                 </p>
               </div>
             </li>
@@ -182,11 +182,11 @@ const TOC_LINKS = [
                 </p>
                 <p class="quick-step__body quick-step__body--last">
                   When the evidence is already in context (a data-room export, remitted documents,
-                  public filings), <code>gst_irl_populate</code> authors the fills itself and builds the
-                  populated workbook via <code>fill_information_request_list_xlsx</code>. Every
+                  public filings), <code>gst_irl_populate</code> authors the fills itself and builds
+                  the populated workbook via <code>fill_information_request_list_xlsx</code>. Every
                   answer carries a sourcing reference; rows the evidence cannot answer stay blank,
-                  and the blanks <em>are</em> the follow-up ask. It stops at the artifact: a human review
-                  sits between fill and ingest by design.
+                  and the blanks <em>are</em> the follow-up ask. It stops at the artifact: a human
+                  review sits between fill and ingest by design.
                 </p>
               </div>
             </li>
@@ -195,12 +195,14 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Get it into markdown</h3>
                 <p class="quick-step__body">
-                  The workbook has to become text before it can be swept. The <a
-                    href="/hub/tools/information-request-list-extractor/"
-                    >Information Request List Extractor</a
-                  > does that conversion in your browser: it emits exactly the body shape the prompt expects,
-                  reproducibly, from the same bytes every time, including the header preamble the sweep
-                  infers the target from. Nothing is uploaded and nothing is installed.
+                  The workbook has to become text before it can be swept. The{' '}
+                  <a href="/hub/tools/information-request-list-extractor/">
+                    Information Request List Extractor
+                  </a>{' '}
+                  does that conversion in your browser: it emits exactly the body shape the prompt
+                  expects, reproducibly, from the same bytes every time, including the header
+                  preamble the sweep infers the target from. Nothing is uploaded and nothing is
+                  installed.
                 </p>
                 <p class="quick-step__body quick-step__body--last">
                   Attaching the workbook and letting the model read it also works, but it is a
@@ -209,15 +211,16 @@ const TOC_LINKS = [
                   has to be reproducible. With a repo checkout, the same conversion is a command.
                 </p>
                 <div class="endpoint-row">
-                  <code class="endpoint-code"
-                    >npm -w @gst/mcp-server run irl:extract -- &lt;filled-irl.xlsx&gt;</code
-                  >
+                  <code class="endpoint-code">
+                    npm -w @gst/mcp-server run irl:extract -- &lt;filled-irl.xlsx&gt;
+                  </code>
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
                     data-copy="npm -w @gst/mcp-server run irl:extract -- <filled-irl.xlsx>"
-                    >Copy</button
                   >
+                    Copy
+                  </button>
                 </div>
               </div>
             </li>
@@ -226,13 +229,11 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Sweep</h3>
                 <p class="quick-step__body quick-step__body--last">
-                  Invoke <code>gst_irl_sweep</code> and paste the markdown into <code
-                    >filledIrl</code
-                  >, or leave it blank when the IRL is already attached or pasted in the
-                  conversation. Before extracting anything, the prompt measures how much of the
-                  workbook is actually answered and halts only on a blank template; see <a
-                    href="#output">what comes back</a
-                  >.
+                  Invoke <code>gst_irl_sweep</code> and paste the markdown into{' '}
+                  <code>filledIrl</code>, or leave it blank when the IRL is already attached or
+                  pasted in the conversation. Before extracting anything, the prompt measures how
+                  much of the workbook is actually answered and halts only on a blank template; see{' '}
+                  <a href="#output">what comes back</a>.
                 </p>
               </div>
             </li>
@@ -276,22 +277,26 @@ const TOC_LINKS = [
               <div class="args-table__key args-table__key--arg">Target name</div>
               <p class="args-table__value">Header line, then row 0-01</p>
               <p class="args-table__note args-table__note--wide">
-                Read from the <code>&gt; Target:</code> line in the IRL header, falling back to the company-name
-                row. The one thing a sweep cannot proceed without; if neither exists, it asks.
+                Read from the <code>&gt; Target:</code> line in the IRL header, falling back to the
+                company-name row. The one thing a sweep cannot proceed without; if neither exists,
+                it asks.
               </p>
             </div>
             <div class="args-table__row">
               <div class="args-table__key args-table__key--arg">Engagement context</div>
               <p class="args-table__value">Sell-side · Buy-side · Value Creation · Unspecified</p>
               <p class="args-table__note args-table__note--wide">
-                Read from the <code>&gt; Engagement context:</code> header line, falling back to row 0-02.
-                Voice only: it never changes which tools run, so a sell-side framing cannot quietly suppress
-                an unflattering section. Absent or Unspecified means universal voice.
+                Read from the <code>&gt; Engagement context:</code> header line, falling back to row
+                0-02. Voice only: it never changes which tools run, so a sell-side framing cannot
+                quietly suppress an unflattering section. Absent or Unspecified means universal
+                voice.
               </p>
             </div>
             <div class="args-table__row">
               <div class="args-table__key args-table__key--arg">
-                Partner lead<br />Project code name
+                Partner lead
+                <br />
+                Project code name
               </div>
               <p class="args-table__value">Taken from the conversation</p>
               <p class="args-table__note args-table__note--wide">
@@ -306,19 +311,20 @@ const TOC_LINKS = [
           </p>
           <p class="brutal-callout guide-callout guide-callout--flush">
             <span class="brutal-callout__title">Test body</span>
-            <a href="/downloads/mcp/northwind-analytics-irl.md" download
-              >A partial IRL for a fictional target</a
-            > ships with this guide: Northwind Analytics, B2B analytics, $15.2M ARR, Series B, California.
-            Paste it into <code>filledIrl</code> to exercise the workflow before running it on a live
-            engagement.
+            <a href="/downloads/mcp/northwind-analytics-irl.md" download>
+              A partial IRL for a fictional target
+            </a>{' '}
+            ships with this guide: Northwind Analytics, B2B analytics, $15.2M ARR, Series B,
+            California. Paste it into <code>filledIrl</code> to exercise the workflow before running
+            it on a live engagement.
           </p>
         </section>
 
         <section id="modes" data-section="modes" class="guide-section">
           <h2 class="brutal-heading-lg guide-heading">04 One job per prompt</h2>
           <p class="guide-intro guide-intro--wide-gap">
-            The IRL workflow is three prompts, one job each. There is no <code>mode</code> argument to
-            choose; the choice is which prompt you invoke.
+            The IRL workflow is three prompts, one job each. There is no <code>mode</code> argument
+            to choose; the choice is which prompt you invoke.
           </p>
           <div class="mode-cards">
             <article class="prompt-card">
@@ -353,10 +359,12 @@ const TOC_LINKS = [
               </div>
               <pre
                 data-snippet
-                class="snippet-pre">filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
+                class="snippet-pre"
+              >filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
               <ul class="mode-card__list">
                 <li>
-                  Calls each gate-passing engine once, base schemas only: <code>unknown</code> and&#32;
+                  Calls each gate-passing engine once, base schemas only: <code>unknown</code>{' '}
+                  and&#32;
                   <code>null</code> are honest inputs where the IRL is silent.
                 </li>
                 <li>
@@ -375,11 +383,12 @@ const TOC_LINKS = [
               </div>
               <pre
                 data-snippet
-                class="snippet-pre">filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
+                class="snippet-pre"
+              >filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
               <ul class="mode-card__list">
                 <li>
-                  Zero tool invocations. Emits the <code>record: irl-extract</code> fence plus one payload
-                  fence per gate-passing tool.
+                  Zero tool invocations. Emits the <code>record: irl-extract</code> fence plus one
+                  payload fence per gate-passing tool.
                 </li>
                 <li>The payloads are the exact arguments a sweep would have called with.</li>
                 <li>
@@ -391,9 +400,10 @@ const TOC_LINKS = [
           </div>
           <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
             <span class="brutal-callout__title">The predecessor is still listed</span>
-            <code>gst_irl_ingestion</code> (the eight-argument workflow with audit levels, body hashing
-            and server-side provenance) remains registered unchanged while the sweep is live-verified.
-            Its removal is scheduled, together with <code>prepare_irl_body</code>,&#32;
+            <code>gst_irl_ingestion</code> (the eight-argument workflow with audit levels, body
+            hashing and server-side provenance) remains registered unchanged while the sweep is
+            live-verified. Its removal is scheduled, together with <code>prepare_irl_body</code>
+            ,&#32;
             <code>validate_irl_provenance</code> and <code>compose_dossier_envelope</code>. Start
             new work on the sweep.
           </p>
@@ -427,21 +437,21 @@ const TOC_LINKS = [
           <div class="dossier-map">
             <div class="dossier-map__item">
               <span class="dossier-map__letter">A</span>
-              <span class="dossier-map__desc"
-                >Target snapshot: fill ratio first, then the inferred target and context</span
-              >
+              <span class="dossier-map__desc">
+                Target snapshot: fill ratio first, then the inferred target and context
+              </span>
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">B</span>
-              <span class="dossier-map__desc"
-                >Diligence agenda for the profile the IRL describes</span
-              >
+              <span class="dossier-map__desc">
+                Diligence agenda for the profile the IRL describes
+              </span>
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">C</span>
-              <span class="dossier-map__desc"
-                >Architecture and paradigm assessment: R&amp;D posture, cost drivers</span
-              >
+              <span class="dossier-map__desc">
+                Architecture and paradigm assessment: R&amp;D posture, cost drivers
+              </span>
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">D</span>
@@ -453,9 +463,9 @@ const TOC_LINKS = [
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">F</span>
-              <span class="dossier-map__desc"
-                >Regulatory exposure, one subsection per framework</span
-              >
+              <span class="dossier-map__desc">
+                Regulatory exposure, one subsection per framework
+              </span>
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">G</span>
@@ -467,15 +477,15 @@ const TOC_LINKS = [
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">I</span>
-              <span class="dossier-map__desc"
-                >Synthesis in the engagement voice, closing with follow-up document requests</span
-              >
+              <span class="dossier-map__desc">
+                Synthesis in the engagement voice, closing with follow-up document requests
+              </span>
             </div>
             <div class="dossier-map__item">
               <span class="dossier-map__letter">J</span>
-              <span class="dossier-map__desc"
-                >Gaps and assumptions: always emitted, the run's audit surface</span
-              >
+              <span class="dossier-map__desc">
+                Gaps and assumptions: always emitted, the run's audit surface
+              </span>
             </div>
           </div>
           <p class="guide-body guide-body--roomy">
@@ -489,11 +499,11 @@ const TOC_LINKS = [
           </p>
           <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
             <span class="brutal-callout__title">Read (J) before the rest</span>
-            The gap list carries unanswered high-value rows with their concrete follow-up, elided tools
-            with the predicate that failed, every conversion and assumption the run applied, and any inference
-            you should confirm. The dossier says "per the IRL" and never claims server-side verification;
-            this list is what makes that honest. No gaps reported against a partially-filled IRL indicates
-            a problem with the run, not a clean workbook.
+            The gap list carries unanswered high-value rows with their concrete follow-up, elided
+            tools with the predicate that failed, every conversion and assumption the run applied,
+            and any inference you should confirm. The dossier says "per the IRL" and never claims
+            server-side verification; this list is what makes that honest. No gaps reported against
+            a partially-filled IRL indicates a problem with the run, not a clean workbook.
           </p>
         </section>
 
@@ -502,10 +512,10 @@ const TOC_LINKS = [
             06 Reusing the extract record in later prompts
           </h2>
           <p class="guide-intro guide-intro--wide-gap">
-            The extract record is a structured description of the target, produced by <code
-              >gst_irl_extract</code
-            > and carried in the conversation. Six of the GST prompts check for it before running and
-            resolve their inputs from it instead of from the arguments you typed.
+            The extract record is a structured description of the target, produced by{' '}
+            <code>gst_irl_extract</code> and carried in the conversation. Six of the GST prompts
+            check for it before running and resolve their inputs from it instead of from the
+            arguments you typed.
           </p>
           <div class="compare compare--roomy">
             <div class="compare__col">
@@ -546,8 +556,8 @@ const TOC_LINKS = [
               <p class="args-table__note args-table__note--fact">
                 The record is context-borne: there is no server copy and no cache behind it.
                 Its&#32;
-                <code>_meta</code> block dates and versions itself, because nothing server-side can supply
-                that later.
+                <code>_meta</code> block dates and versions itself, because nothing server-side can
+                supply that later.
               </p>
             </div>
             <div class="args-table__row">
@@ -583,8 +593,8 @@ const TOC_LINKS = [
             <div class="args-table__row">
               <div class="args-table__key args-table__key--fact">The IRL is silent on an input</div>
               <p class="args-table__note">
-                The engines accept <code>unknown</code> sentinels and <code>null</code> fields where the
-                workbook does not determine a value.
+                The engines accept <code>unknown</code> sentinels and <code>null</code> fields where
+                the workbook does not determine a value.
               </p>
               <p class="args-table__note">
                 That is the honest input, not a failure. Each one is named in (J) with the follow-up
@@ -632,8 +642,10 @@ const TOC_LINKS = [
               </p>
               <a
                 href="/hub/library/information-request-list/"
-                class="cta-button brutal-gateway-card__cta">Read article</a
+                class="cta-button brutal-gateway-card__cta"
               >
+                Read article
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -642,7 +654,9 @@ const TOC_LINKS = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 First query, prompt argument forms, and pinned resources.
               </p>
-              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">Open guide</a>
+              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">
+                Open guide
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -651,7 +665,9 @@ const TOC_LINKS = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 Tool and prompt reference, OAuth scopes, and rate limits.
               </p>
-              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">
+                Read docs
+              </a>
             </article>
           </div>
         </section>

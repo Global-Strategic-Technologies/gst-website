@@ -39,7 +39,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       })
     )}
   />
-
   <section class="irl-ext">
     <div class="container">
       <HubHeader
@@ -49,13 +48,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
       <div class="irl-ext__intro">
         <p>
-          A filled <strong>.xlsx</strong> has to become text before <a
-            href="/hub/mcp/docs/#cap-gst_irl_sweep"><code>gst_irl_sweep</code></a
-          > can read it. This page does that in your browser, carrying every answered row across exactly
-          as written with its status and any sourcing. Need the blank workbook first? Use the <a
-            href="/hub/tools/information-request-list-generator/"
-            >Information Request List Generator</a
-          >.
+          A filled <strong>.xlsx</strong> has to become text before{' '}
+          <a href="/hub/mcp/docs/#cap-gst_irl_sweep">
+            <code>gst_irl_sweep</code>
+          </a>{' '}
+          can read it. This page does that in your browser, carrying every answered row across
+          exactly as written with its status and any sourcing. Need the blank workbook first? Use
+          the{' '}
+          <a href="/hub/tools/information-request-list-generator/">
+            Information Request List Generator
+          </a>
+          .
         </p>
       </div>
 
@@ -76,7 +79,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             />
             <label class="irl-ext__drop" id="irl-ext-drop" for="irl-ext-file">
               <DeltaIcon size={120} class="irl-ext__drop-icon" />
-              <span class="irl-ext__drop-text">Drop a workbook here, or <span>browse</span></span>
+              <span class="irl-ext__drop-text">
+                Drop a workbook here, or <span>browse</span>
+              </span>
               <span class="irl-ext__drop-note">Stays on your machine</span>
             </label>
           </div>
@@ -114,23 +119,27 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="irl-ext__outhead">
             <div class="irl-ext__step">
               <span class="irl-ext__label">02 / Canonical markdown</span>
-              <span class="irl-ext__status" id="irl-ext-status" role="status" aria-live="polite"
-                >Waiting for a workbook</span
-              >
+              <span class="irl-ext__status" id="irl-ext-status" role="status" aria-live="polite">
+                Waiting for a workbook
+              </span>
             </div>
             <div class="irl-ext__actions" id="irl-ext-actions" data-enabled="false">
               <button
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 id="irl-ext-copy"
-                disabled>Copy markdown</button
+                disabled
               >
+                Copy markdown
+              </button>
               <button
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 id="irl-ext-download"
-                disabled>Download .md</button
+                disabled
               >
+                Download .md
+              </button>
             </div>
           </div>
 
@@ -169,7 +178,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               tabindex="0"
               role="region"
               aria-label="Canonical markdown output, scrollable"
-              hidden>
+              hidden
+            >
             </pre>
           </div>
         </div>
@@ -205,26 +215,30 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <ul class="irl-ext__card-list">
             <li>
               <DeltaIcon class="bullet-icon" />
-              <span
-                >Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument to get the
-                dossier back. The <a
-                  class="irl-ext__card-link"
-                  href="/hub/mcp/docs/#cap-gst_irl_sweep">sweep contract</a
-                > lists everything that comes back.</span
-              >
+              <span>
+                Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument to get
+                the dossier back. The{' '}
+                <a class="irl-ext__card-link" href="/hub/mcp/docs/#cap-gst_irl_sweep">
+                  sweep contract
+                </a>{' '}
+                lists everything that comes back.
+              </span>
             </li>
             <li>
               <DeltaIcon class="bullet-icon" />
-              <span
-                >Every row reading <code>&lt;NO RESPONSE&gt;</code> is a request the target did not answer.
-                Those are the questions still outstanding, so read them before you pass the markdown on.</span
-              >
+              <span>
+                Every row reading <code>&lt;NO RESPONSE&gt;</code> is a request the target did not
+                answer. Those are the questions still outstanding, so read them before you pass the
+                markdown on.
+              </span>
             </li>
           </ul>
         </div>
       </div>
 
-      <a href="/hub/tools/" class="cta-button irl-ext__back">Back to Tools</a>
+      <a href="/hub/tools/" class="cta-button irl-ext__back">
+        Back to Tools
+      </a>
     </div>
   </section>
 </BaseLayout>

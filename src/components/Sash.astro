@@ -174,46 +174,42 @@ const underAriaAttrs = (field: SashSubtextField) =>
 ---
 
 <div class={cornerClass}>
-  {
-    isLink ? (
-      <a class="brutal-sash" href={href} aria-label={spokenLabel} {...trackAttrs}>
-        {badge && <span class="brutal-sash__badge">{badge}</span>}
-        <span class="brutal-sash__label">{label}</span>
-        {detail && <span class="brutal-sash__detail">{detail}</span>}
-      </a>
-    ) : (
-      <span class="brutal-sash" aria-hidden="true">
-        {badge && <span class="brutal-sash__badge">{badge}</span>}
-        <span class="brutal-sash__label">{label}</span>
-        {detail && <span class="brutal-sash__detail">{detail}</span>}
-      </span>
-    )
-  }
-  {
-    underBand && (
-      <span class="brutal-sash-under" {...(underIsLink ? {} : { 'aria-hidden': 'true' })}>
-        {underFields.map((field, index) => (
-          <Fragment>
-            {index > 0 && (
-              <span class="brutal-sash-under__rule" aria-hidden="true">
-                |
-              </span>
-            )}
-            {field.href !== undefined ? (
-              <a
-                class="brutal-sash-under__field"
-                href={field.href}
-                {...underAriaAttrs(field)}
-                {...underTrackAttrs(field.href, index)}
-              >
-                {field.text}
-              </a>
-            ) : (
-              <span class="brutal-sash-under__field">{field.text}</span>
-            )}
-          </Fragment>
-        ))}
-      </span>
-    )
-  }
+  {isLink ? (
+    <a class="brutal-sash" href={href} aria-label={spokenLabel} {...trackAttrs}>
+      {badge && <span class="brutal-sash__badge">{badge}</span>}
+      <span class="brutal-sash__label">{label}</span>
+      {detail && <span class="brutal-sash__detail">{detail}</span>}
+    </a>
+  ) : (
+    <span class="brutal-sash" aria-hidden="true">
+      {badge && <span class="brutal-sash__badge">{badge}</span>}
+      <span class="brutal-sash__label">{label}</span>
+      {detail && <span class="brutal-sash__detail">{detail}</span>}
+    </span>
+  )}
+  {underBand && (
+    <span class="brutal-sash-under" {...(underIsLink ? {} : { 'aria-hidden': 'true' })}>
+      {underFields.map((field, index) => (
+        <Fragment>
+          {index > 0 && (
+            <span class="brutal-sash-under__rule" aria-hidden="true">
+              |
+            </span>
+          )}
+          {field.href !== undefined ? (
+            <a
+              class="brutal-sash-under__field"
+              href={field.href}
+              {...underAriaAttrs(field)}
+              {...underTrackAttrs(field.href, index)}
+            >
+              {field.text}
+            </a>
+          ) : (
+            <span class="brutal-sash-under__field">{field.text}</span>
+          )}
+        </Fragment>
+      ))}
+    </span>
+  )}
 </div>
