@@ -14,7 +14,6 @@
  * audit's OVERLOOKED #5 caught that mocking at the fetch layer hides the
  * emit path entirely.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { AnalyticsEngineDataPoint } from '@cloudflare/workers-types';
 
 const { MockRedis } = vi.hoisted(() => {

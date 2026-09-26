@@ -15,7 +15,6 @@
  * which is the part a refactor can break without touching either declaration.
  */
 
-import { describe, it, expect } from 'vitest';
 import { htmlShell, MONO_STACK, MONO_FALLBACK_FACES } from '../../../src/lib/html-shell.js';
 
 const html = htmlShell('Test', '<p>body</p>');

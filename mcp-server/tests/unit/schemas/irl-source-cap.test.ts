@@ -17,7 +17,6 @@
  * exists, so it is written first and explicitly.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   capIrlSource,
   computeIrlBodyHash,

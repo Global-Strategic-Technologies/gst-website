@@ -17,7 +17,6 @@
  * vitest.config.ts), so the two suites touching this directory cannot
  * interleave.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, readdirSync, statSync, copyFileSync } from 'node:fs';

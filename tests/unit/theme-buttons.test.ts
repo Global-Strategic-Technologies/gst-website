@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ThemeState } from '../../src/scripts/theme-state';
 
 vi.mock('@sentry/browser', () => ({ addBreadcrumb: vi.fn() }));

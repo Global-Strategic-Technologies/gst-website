@@ -6,7 +6,6 @@
  * a bug here is a page whose links and whose search disagree about where a
  * capability lives.
  */
-import { describe, expect, it } from 'vitest';
 import {
   buildExampleCall,
   capabilityAnchor,

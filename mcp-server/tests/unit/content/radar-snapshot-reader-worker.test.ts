@@ -5,7 +5,6 @@
  * filter without needing a live Upstash binding.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { SnapshotItem } from '../../../src/content/radar-transform';
 
 const { mockReadFyi, mockReadWire, mockIsCircuitOpen, mockHandleInoreaderFailure } = vi.hoisted(

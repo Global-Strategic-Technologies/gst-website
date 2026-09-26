@@ -6,7 +6,6 @@
  * window enforcement is tested in Phase 6 against a real Upstash project.
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   rateLimitHeaders,
   rateLimitPolicyHeader,

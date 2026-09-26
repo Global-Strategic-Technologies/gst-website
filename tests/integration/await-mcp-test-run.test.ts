@@ -20,7 +20,6 @@
  * incident table. That is a RUNNER behaviour (the step being killed), not a script code
  * path; stubbing it would test GitHub. Noted so nobody "completes" the matrix by adding it.
  */
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

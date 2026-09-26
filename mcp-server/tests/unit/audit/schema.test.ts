@@ -10,7 +10,6 @@
  * If you intentionally changed the shape: bump AUDIT_SCHEMA_VERSION, update
  * ADR-0009, and run `npx vitest -u` to refresh these snapshots.
  */
-import { describe, expect, it } from 'vitest';
 import {
   AUDIT_SCHEMA_VERSION,
   GENESIS_PREV_HASH,

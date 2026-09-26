@@ -15,8 +15,6 @@
  *   - Error reason is truncated to 300 chars to keep log lines bounded.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-
 const { mockSafeLog, mockRedisSet, createMcpClientMock } = vi.hoisted(() => ({
   mockSafeLog: vi.fn(),
   mockRedisSet: vi.fn(),

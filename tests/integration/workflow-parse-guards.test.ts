@@ -19,7 +19,6 @@
  * Add a case here for any parsing rule added to the helper. "The differential passes" is not
  * evidence about shapes the differential never saw.
  */
-import { describe, it, expect } from 'vitest';
 import {
   parsePathBlocks,
   parsePathBlocksIfAny,

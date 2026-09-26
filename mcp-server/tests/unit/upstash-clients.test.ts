@@ -13,8 +13,6 @@
  * simplification.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { redisCtor, MockRedis } = vi.hoisted(() => {
   const redisCtor = vi.fn();
   class MockRedis {

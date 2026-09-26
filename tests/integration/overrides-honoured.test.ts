@@ -34,7 +34,6 @@
  * here uses; a range would need `semver`, and the assertion says so rather
  * than passing vacuously.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

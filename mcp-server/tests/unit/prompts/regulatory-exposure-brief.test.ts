@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { regulatoryExposureBriefPrompt } from '../../../src/prompts/regulatory-exposure-brief';
 
 const VALID_ARGS = {

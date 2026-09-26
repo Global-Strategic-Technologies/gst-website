@@ -7,7 +7,6 @@
  * util's `decodeFilters`.
  */
 
-import { describe, it, expect } from 'vitest';
 import { buildRegulatoryMapDeeplink, jurisdictionToRegion } from '../../../src/tools/regulations';
 import { decodeFilters } from '../../../../src/utils/regulatory-map-url';
 

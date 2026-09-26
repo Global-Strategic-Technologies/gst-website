@@ -27,7 +27,6 @@
  * This does not execute the scripts; it checks the two properties that break
  * them before a single line runs.
  */
-import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 

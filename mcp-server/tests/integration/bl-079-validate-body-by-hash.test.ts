@@ -27,7 +27,6 @@
  *      schema's optionality).
  */
 
-import { describe, it, expect } from 'vitest';
 import { handlePrepareIrlBodyTool } from '../../src/tools/prepare-irl-body';
 import { handleValidateIrlProvenanceTool } from '../../src/tools/validate-irl-provenance';
 import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';

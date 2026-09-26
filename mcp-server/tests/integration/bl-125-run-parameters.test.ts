@@ -21,7 +21,6 @@
  * validated by then, so calling it directly bypasses Zod and proves nothing.
  */
 
-import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 import { irlCreatePrompt } from '../../src/prompts/irl-create';
 

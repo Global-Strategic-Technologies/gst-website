@@ -20,7 +20,6 @@
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
-import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { InMemorySink } from '../../../src/metrics/sinks/in-memory';
 import { toolOk, toolFail } from '../../../src/tools/_result';

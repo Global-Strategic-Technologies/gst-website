@@ -16,7 +16,6 @@
  * - Re-entrancy: calling the engine twice with the same input is pure.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   type ComposeDossierEnvelopeEngineInput,
   ComposeDossierEnvelopeInputSchema,

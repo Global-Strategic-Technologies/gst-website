@@ -25,7 +25,6 @@
  * keeps the per-family count constant still trips the manifest hash.
  */
 
-import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { LIBRARY_ENTRIES } from '../../src/content/library-loader';
 import { REGULATION_ENTRIES } from '../../src/content/regulation-loader';

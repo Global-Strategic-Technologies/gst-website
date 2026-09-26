@@ -16,8 +16,6 @@
  * code path with parsed inputs.
  */
 
-import { describe, it, expect } from 'vitest';
-
 import { handleTechparTool } from '../../src/tools/techpar';
 import { TechParMcpInputsSchema, type TechParMcpInputs } from '../../src/schemas';
 import { buildPartnerSuppliedTechParAudit } from '../../src/schemas/techpar-audit';

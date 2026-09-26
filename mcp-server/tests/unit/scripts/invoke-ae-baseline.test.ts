@@ -4,7 +4,6 @@
  * No network I/O — the live AE SQL API call stays behind the CLI guard.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   DATASETS,
   CALIBRATION,

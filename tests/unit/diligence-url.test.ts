@@ -13,8 +13,6 @@
  *  - URL stays under typical browser limits with all 13 fields populated
  */
 
-import { describe, it, expect } from 'vitest';
-
 import {
   serializeToParams,
   deserializeFromParams,

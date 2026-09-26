@@ -450,7 +450,6 @@ c:\Code\gst-website\
 │   │   ├── mock-projects.ts
 │   │   ├── test-data.ts
 │   │   └── page-fixtures.ts
-│   └── setup.ts                  # Test configuration
 ├── vitest.config.ts              # Vitest configuration
 ├── playwright.config.ts           # Playwright configuration
 └── ...
@@ -463,37 +462,31 @@ c:\Code\gst-website\
 ### 5.1 vitest.config.ts
 
 ```typescript
+// Abridged — see the file for the coverage exclusions and alias reasoning.
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
   test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
+    globals: true, // supplies describe/it/expect/vi — never value-import them (TEST_BEST_PRACTICES pitfall 9)
+    environment: 'node',
+    include: ['tests/**/*.test.ts'],
+    exclude: ['tests/e2e/**'],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        'dist/',
-        '.astro/',
-      ],
-      lines: 70,
-      functions: 70,
-      branches: 70,
-      statements: 70,
+      include: ['src/utils/**', 'src/data/**/*.ts'],
+      thresholds: { lines: 70 },
     },
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // astro:env / astro:middleware virtual modules → tests/__mocks__/ stubs
     },
   },
 });
 ```
+
+There is no `setupFiles`: each test sets up what it needs.
 
 ### 5.2 playwright.config.ts
 
@@ -540,36 +533,6 @@ export default defineConfig({
 ```
 
 The baseline `storageState` keeps every spec off the date-driven default look; see [TEST_BEST_PRACTICES § 29](TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours).
-
-### 5.3 tests/setup.ts
-
-```typescript
-import { expect, beforeEach, afterEach } from 'vitest';
-
-// Mock localStorage
-const localStorageMock = {
-  getItem: (key: string) => localStorage.getItem(key),
-  setItem: (key: string, value: string) => localStorage.setItem(key, value),
-  removeItem: (key: string) => localStorage.removeItem(key),
-  clear: () => localStorage.clear(),
-};
-
-global.localStorage = localStorageMock as Storage;
-
-// Clear localStorage between tests
-beforeEach(() => {
-  localStorage.clear();
-});
-
-afterEach(() => {
-  localStorage.clear();
-});
-
-// Extend vitest matchers if needed
-expect.extend({
-  // Custom matchers can be added here
-});
-```
 
 ---
 

@@ -19,7 +19,6 @@
  * contributes as many targets as it has linked fields, which is exactly what
  * the two-destination under-band does.
  */
-import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { ANNOUNCEMENTS } from '@/data/announcements';

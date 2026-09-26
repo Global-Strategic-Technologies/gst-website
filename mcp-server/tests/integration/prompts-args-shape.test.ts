@@ -23,7 +23,6 @@
  * load-bearing regression guard.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import {
   LATEST_PROTOCOL_VERSION,
   type JSONRPCMessage,

@@ -13,7 +13,6 @@
  * An alert rule is a stronger case for this check than a panel, not a weaker
  * one — nobody looks at a rule that never fires.
  */
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { EVENT_TYPES } from '../../../src/metrics/_schema';

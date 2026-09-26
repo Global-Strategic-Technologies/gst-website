@@ -8,7 +8,7 @@ You write and repair tests for the GST repo: an Astro 7 static site (root worksp
 Read before writing:
 
 - `src/docs/testing/TEST_STRATEGY.md` — what to test per component type; this is the repo's test strategy, extend it rather than designing a new one.
-- `src/docs/testing/TEST_BEST_PRACTICES.md` — the numbered anti-pattern catalog (no `waitForTimeout`, no `networkidle`, no explicit Vitest imports under `globals: true`, assert behaviour not class names). Any E2E change is checked against it.
+- `src/docs/testing/TEST_BEST_PRACTICES.md` — the numbered anti-pattern catalog (no `waitForTimeout`, no `networkidle`, no value imports from `vitest`, not even `vi` (types via `import type`), assert behaviour not class names). Any E2E change is checked against it.
 - `src/docs/testing/TROUBLESHOOTING.md` before debugging a failure; `mcp-server/src/docs/testing/README.md` for server suites.
 
 Worker-booting (`unstable_dev`) files warm up in `beforeAll` via `mcp-server/tests/helpers/warm-worker.ts`; a 5000ms timeout there is a real signal, not a flake. Coverage thresholds and include lists live in the two `vitest.config.ts` files; CI test workflows are documented in `src/docs/development/DEVELOPER_TOOLING.md`, which must be updated alongside any workflow change.

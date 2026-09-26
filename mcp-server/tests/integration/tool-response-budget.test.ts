@@ -49,7 +49,6 @@
  * are directly comparable. Characters are recorded alongside because the 143,027
  * datum is in characters. The two are **never** compared to each other.
  */
-import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
 import type {
   JSONRPCMessage,

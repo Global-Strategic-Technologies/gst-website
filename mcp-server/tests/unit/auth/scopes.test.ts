@@ -3,7 +3,6 @@
  * `assertScope`, `MissingScopeError`, and the `DEFAULT_SCOPES` shape.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   SCOPES,
   DEFAULT_SCOPES,

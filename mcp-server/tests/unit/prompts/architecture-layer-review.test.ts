@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { architectureLayerReviewPrompt } from '../../../src/prompts/architecture-layer-review';
 
 const VALID_ARGS = {

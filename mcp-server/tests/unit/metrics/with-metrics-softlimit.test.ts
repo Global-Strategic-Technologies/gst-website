@@ -16,7 +16,7 @@
  * these four went red on the swap, that WAS the structural fix proving itself.
  * Keep the fake shaped like the real `ServerContext`; do not loosen it.
  */
-import { describe, it, expect, vi, type Mock } from 'vitest';
+import type { Mock } from 'vitest';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import {
   withMetricsCore,

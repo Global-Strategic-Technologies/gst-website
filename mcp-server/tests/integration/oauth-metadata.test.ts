@@ -12,7 +12,6 @@
  * makes the flow self-describing for OAuth-capable clients.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { warmWorker } from '../helpers/warm-worker';
 

@@ -11,7 +11,6 @@
  * fails CLOSED: 503, and no trial record exists afterwards.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { warmWorker } from '../helpers/warm-worker';
 

@@ -19,7 +19,6 @@
  * parses under `postcss-html` and the sibling vitest guard cannot see at all.
  */
 
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

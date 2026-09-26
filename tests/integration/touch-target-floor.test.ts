@@ -51,7 +51,6 @@
  * `docs-link-integrity.test.ts`), so the scanner is hand-rolled and proven against
  * red/green fixtures below.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';

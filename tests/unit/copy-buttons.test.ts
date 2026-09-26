@@ -16,7 +16,6 @@
  * matters — the button's own subtree is untouched — plus the two failure modes
  * that would silently disable the confirmation.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initCopyButtons } from '@/utils/copy-feedback';
 
 /** Wired once per document; each test gets a fresh one. */

@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { comparableEngagementsMemoPrompt } from '../../../src/prompts/comparable-engagements-memo';
 
 const VALID_ARGS = {

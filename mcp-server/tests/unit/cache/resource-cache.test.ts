@@ -5,8 +5,6 @@
  * needing a live Upstash binding.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { mockGet, mockSet, createCacheStoreMock } = vi.hoisted(() => {
   const mockGet = vi.fn();
   const mockSet = vi.fn();

@@ -33,7 +33,6 @@
  * gatekeeper. If either drifts, the test should fail.
  */
 
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 

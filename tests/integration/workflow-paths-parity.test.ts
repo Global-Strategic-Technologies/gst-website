@@ -17,7 +17,6 @@
  * Production may legitimately be narrower (deploy less than you test); it may never be
  * wider (deploy something you did not test).
  */
-import { describe, it, expect } from 'vitest';
 import { extractPathBlocks, extractPaths } from './helpers/workflow-parse';
 
 /**

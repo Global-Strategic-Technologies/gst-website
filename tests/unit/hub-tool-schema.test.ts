@@ -11,7 +11,6 @@
  * vitest.config.ts's coverage include, so scanning it as text would add an
  * uncovered file while proving less.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

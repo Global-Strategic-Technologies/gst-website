@@ -12,8 +12,6 @@
  *   5. Sentry severity routing (which outcomes page, which warn, which log-only)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { redisGet, redisSet, redisDel, MockRedis, mockCaptureMessage, mockSafeLog } = vi.hoisted(
   () => {
     const redisGet = vi.fn();

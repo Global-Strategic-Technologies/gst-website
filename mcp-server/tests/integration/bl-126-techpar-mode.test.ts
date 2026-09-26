@@ -19,7 +19,6 @@
  * placeholder the rule used to prescribe.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   AuditedTechParInputsSchema,
   runTechParAuditRefinements,

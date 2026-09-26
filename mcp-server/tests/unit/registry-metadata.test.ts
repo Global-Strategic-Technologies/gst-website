@@ -7,7 +7,6 @@
  * `protocol-roundtrip.test.ts`; its TEXT is bound to the website JSON-LD in
  * the website's `mcp-registry-metadata-parity.test.ts`.
  */
-import { describe, expect, it } from 'vitest';
 import {
   buildServerJson,
   isRegistryMetadataPath,

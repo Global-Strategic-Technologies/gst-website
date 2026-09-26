@@ -23,8 +23,6 @@
  * is 2-5 items, which is exactly why the missing bound was invisible for so long.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 import { handleRadarOfflineTool } from '../../src/tools/radar-offline';
 import { MAX_WIRE, MIN_PER_CATEGORY } from '../../../src/utils/radar-feed-bounds';
 import * as snapshot from '../../src/content/radar-snapshot';

@@ -10,7 +10,6 @@
  * that failed CI the day the sash disappeared would be arguing with the design.
  * `describe.skipIf` covers the empty-registry state for the same reason.
  */
-import { describe, it, expect } from 'vitest';
 import { ANNOUNCEMENTS, getActiveAnnouncement } from '@/data/announcements';
 import { cardBadgeFor, localizeAnnouncement } from '@/data/announcements-i18n';
 import { LOCALES, findLocale } from '@/i18n/locales';

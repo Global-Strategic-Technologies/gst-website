@@ -6,7 +6,6 @@
  * on a stalled upstream. Each of those is a named case below.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   hostnameAllowed,
   parseHostnames,

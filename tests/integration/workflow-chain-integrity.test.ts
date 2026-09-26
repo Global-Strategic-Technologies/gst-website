@@ -31,7 +31,6 @@
  * BL-125's enum walk threw on all 60 fields into a catch that swallowed it). The probes are the
  * difference between "the chain agrees" and "I found nothing to disagree about".
  */
-import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {

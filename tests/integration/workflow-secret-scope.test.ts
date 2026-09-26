@@ -83,7 +83,6 @@
  * the same commit that added the seventh, and undercounted from birth;
  * the diff is what to re-run.
  */
-import { describe, it, expect } from 'vitest';
 import { workflowFiles, readWorkflow, stripComments } from './helpers/workflow-parse';
 
 /**

@@ -19,7 +19,6 @@
  * U+FFFD (3 bytes), but that is a convention rather than something either API
  * documents as shared, so it is pinned here.
  */
-import { describe, it, expect } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { utf8ByteLength } from '../../../src/lib/utf8-bytes';
 

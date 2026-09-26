@@ -18,8 +18,6 @@
  * actual handler code path with parsed inputs.
  */
 
-import { describe, it, expect } from 'vitest';
-
 import {
   handleSearchPortfolioTool,
   handleListPortfolioFacetsTool,

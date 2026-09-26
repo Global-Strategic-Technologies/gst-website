@@ -13,7 +13,6 @@
  * own branching is what fails when it breaks.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 
 const { mockRelease } = vi.hoisted(() => ({ mockRelease: vi.fn() }));

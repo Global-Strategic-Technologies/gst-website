@@ -7,7 +7,6 @@
  * `undefined` — "no change" — on both grant types.
  */
 
-import { describe, it, expect } from 'vitest';
 import { trialTokenExchange } from '../../../src/oauth/token-exchange';
 
 const NOW = Date.parse('2026-09-06T12:00:00.000Z');

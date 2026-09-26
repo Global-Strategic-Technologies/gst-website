@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { diligenceHandoffMemoPrompt } from '../../../src/prompts/diligence-handoff-memo';
 
 const VALID_ARGS = {

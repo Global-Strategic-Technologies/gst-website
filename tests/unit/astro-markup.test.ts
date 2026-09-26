@@ -9,7 +9,6 @@
  * unrelated edit is the failure the repo's "prove the guard probes something"
  * lesson is about, so both script forms are pinned here with fixtures.
  */
-import { describe, it, expect } from 'vitest';
 
 import { extractAstroMarkup } from '../integration/helpers/astro-markup';
 

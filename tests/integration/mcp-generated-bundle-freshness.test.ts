@@ -52,7 +52,6 @@
  * To retire it, delete this test in the same commit that stops committing the
  * generated files, and say what replaced them.
  */
-import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

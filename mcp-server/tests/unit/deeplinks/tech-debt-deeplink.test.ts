@@ -8,7 +8,6 @@
  * inputs via the website's inverse helpers.
  */
 
-import { describe, it, expect } from 'vitest';
 import { buildTechDebtDeeplink, rawToState } from '../../../src/tools/tech-debt';
 import { decodeState, type RawTechDebtInputs } from '../../../../src/utils/tech-debt-engine';
 

@@ -7,7 +7,6 @@
  * without removing the keys (so post-incident reading still sees the
  * params were present).
  */
-import { describe, expect, it } from 'vitest';
 
 import { scrubUrlForLog } from '../../../src/auth/safe-logger';
 

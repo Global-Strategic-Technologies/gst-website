@@ -31,7 +31,6 @@
  * doc that is still linked), fix or remove the offending link in the same commit
  * — do not weaken this guard.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, resolve, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';

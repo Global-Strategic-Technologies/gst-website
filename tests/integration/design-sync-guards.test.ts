@@ -32,7 +32,6 @@
  * Hand-rolled parsers, proven against fixtures first — same posture as
  * `docs-variables-sync.test.ts` (no markdown/CSS parser dependency by design).
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, resolve, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -4,7 +4,6 @@
  * from the page. Both fail open (partial/null) so a degraded AE/Upstash never
  * breaks the status page.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockCreateMcpClient } = vi.hoisted(() => ({ mockCreateMcpClient: vi.fn(() => null) }));
 vi.mock('../../../src/lib/upstash-clients', () => ({ createMcpClient: mockCreateMcpClient }));

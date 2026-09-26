@@ -10,7 +10,6 @@
  * blob-slot reshuffle fails here rather than silently re-labelling every
  * dashboard panel. Fake shape lifted from `tests/unit/trial/signup.test.ts`.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   emitRateLimitDecision,
   emitScopeDenial,

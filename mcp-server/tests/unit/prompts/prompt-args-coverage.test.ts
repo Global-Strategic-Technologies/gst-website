@@ -11,7 +11,6 @@
  * or retired, which would otherwise sit unused and misleading indefinitely.
  */
 
-import { describe, it, expect } from 'vitest';
 import { ALL_PROMPTS } from '../../../src/prompts/_registry';
 import { MINIMAL_PROMPT_ARGS } from '../../helpers/prompt-args';
 

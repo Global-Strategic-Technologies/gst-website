@@ -13,7 +13,6 @@
  * Precedent: `runbook-freshness.test.ts` — same workspace, same job (a test
  * validating a non-code artifact under `mcp-server/observability/`).
  */
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {

@@ -21,8 +21,6 @@
  * walking the actual handler code path with parsed inputs.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 import {
   handleRadarOfflineTool,
   SearchRadarOfflineInputSchema,

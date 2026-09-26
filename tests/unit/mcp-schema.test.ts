@@ -8,7 +8,6 @@
  * because .astro components can't be evaluated under vitest's node environment;
  * the element-splitting idiom is `tests/unit/hub-tool-schema.test.ts`'s.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

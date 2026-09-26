@@ -8,7 +8,6 @@
  *   - `clearPreviousToken` empties the cache immediately
  *   - The exported TTL constant matches the empirical 60s window
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   cachePreviousToken,

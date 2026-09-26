@@ -7,7 +7,6 @@
  * egress unit tests silently — so each branch needs its own assertion.
  */
 
-import { describe, it, expect } from 'vitest';
 import { parseZone1UsageHeader } from '../../../src/lib/inoreader-client';
 
 function makeRes(headerValue: string | null): Response {

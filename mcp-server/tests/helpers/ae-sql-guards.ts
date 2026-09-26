@@ -15,7 +15,6 @@
  * days, once in a PAGE-severity alert that reported a healthy `0` for its
  * entire life.
  */
-import { expect } from 'vitest';
 import { BLOB_SLOTS, FIELD_EMITTED_BY } from '../../src/metrics/_schema';
 
 /**

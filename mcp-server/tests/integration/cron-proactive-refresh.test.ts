@@ -16,8 +16,6 @@
  * Inoreader budget on a known-stale token, plus needless Sentry noise.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 const { redisStore, MockRedis, fetchSpy } = vi.hoisted(() => {
   // Single MCP DB store post-BL-032.8 Phase B.
   const stores = new Map<string, Map<string, { value: string; expiresAt?: number }>>();

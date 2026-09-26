@@ -15,8 +15,6 @@
  *     in caller)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 // Mock @upstash/redis BEFORE the module-under-test imports it. `vi.mock()`
 // is hoisted to the top of the file by vitest, so we use `vi.hoisted()` to
 // lift the mock-fn reference alongside it. Wrap as a plain class so `new

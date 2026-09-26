@@ -15,7 +15,6 @@
  * file scopes strictly to the gating decision.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   authenticate,
   shouldCaptureAuthFailure,

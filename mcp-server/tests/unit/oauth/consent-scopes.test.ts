@@ -4,7 +4,6 @@
  * the RFC 9728-aware 401 challenge builder.
  */
 
-import { describe, it, expect } from 'vitest';
 import { grantedScopesFor } from '../../../src/oauth/consent';
 import { m2mKeyOwner, oauthKeyOwner } from '../../../src/oauth/key-owner';
 import { authenticate, authFailureResponse } from '../../../src/auth/bearer';

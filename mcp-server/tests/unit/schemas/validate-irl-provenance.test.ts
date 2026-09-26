@@ -14,7 +14,6 @@
  *   FUZZY_MIN_RUN threshold, run one below threshold.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   FUZZY_MIN_RUN,
   extractExcerpt,

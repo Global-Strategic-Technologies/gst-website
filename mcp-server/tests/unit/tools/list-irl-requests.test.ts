@@ -6,7 +6,6 @@
  * skip-if tag.
  */
 
-import { describe, it, expect } from 'vitest';
 import { handleListIrlRequestsTool } from '../../../src/tools/list-irl-requests';
 
 interface IrlRequestEntry {

@@ -8,7 +8,6 @@
  * by the staging smoke in the PR verification, not by this suite.
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import {
   PROBE_SURFACES,
   buildToolCallBody,

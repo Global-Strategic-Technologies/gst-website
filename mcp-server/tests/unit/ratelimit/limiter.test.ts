@@ -11,7 +11,6 @@
  * in `ratelimit-headers.test.ts` (5 cases preserved from BL-032 Phase 3
  * shipping). This file covers the 4-bucket radar dispatch.
  */
-import { describe, expect, it } from 'vitest';
 
 import {
   chooseBindingTier,

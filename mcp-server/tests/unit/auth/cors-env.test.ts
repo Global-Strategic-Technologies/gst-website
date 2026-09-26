@@ -6,8 +6,6 @@
  * is pinned here too.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: vi.fn() }));
 
 import {

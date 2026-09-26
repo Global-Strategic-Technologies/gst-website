@@ -8,7 +8,6 @@
  * critically, that the breaker state is resolved ONCE per reader instance
  * (the factory is called synchronously per request and cannot be async).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const {
   mockReadWire,

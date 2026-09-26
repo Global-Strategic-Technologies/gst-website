@@ -16,8 +16,6 @@
  * shape and the corresponding simplified `ok` derivation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { redisGet, redisMget, redisSet, redisDel, redisTtl, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();
   // BL-032.75 Phase 0: readInoreaderSpend uses MGET (one round-trip) for

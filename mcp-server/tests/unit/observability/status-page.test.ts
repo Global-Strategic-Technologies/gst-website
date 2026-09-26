@@ -5,8 +5,6 @@
  * graceful no-summary state).
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 const { mockBuildHealth, mockCreateMcpClient } = vi.hoisted(() => ({
   mockBuildHealth: vi.fn(),
   mockCreateMcpClient: vi.fn(() => null),

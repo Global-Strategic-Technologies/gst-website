@@ -25,7 +25,6 @@
  * `calc()` — see the residual ruling below.
  */
 
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';

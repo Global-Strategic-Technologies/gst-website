@@ -21,7 +21,6 @@
  * Dark: every ink equals its base, so the swap is a no-op; that is asserted as
  * equality, not re-measured.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { stripComments } from './helpers/css-parse';

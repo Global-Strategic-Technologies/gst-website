@@ -9,8 +9,6 @@
  * the OAuth count must NOT pollute the Zone-1 spend dashboard.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { redisGet, redisSet, redisDel, redisIncr, redisExpire, MockRedis, mockSafeLog } = vi.hoisted(
   () => {
     const redisGet = vi.fn();

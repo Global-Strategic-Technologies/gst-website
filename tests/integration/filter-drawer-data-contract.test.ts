@@ -9,7 +9,6 @@
  * If FilterDrawer's template changes its data-testid generation logic,
  * these tests MUST be updated in parallel.
  */
-import { describe, it, expect } from 'vitest';
 import { getUniqueThemes, getUniqueEngagementCategories } from '../../src/utils/filterLogic';
 import projects from '../../src/data/ma-portfolio/projects.json';
 import type { Project } from '../../src/types/portfolio';

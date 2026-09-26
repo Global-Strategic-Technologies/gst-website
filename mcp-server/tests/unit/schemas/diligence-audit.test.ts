@@ -19,7 +19,6 @@
  * See: mcp-server/src/docs/prompts/irl-ingestion.md § Server-side enforcement
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   // Aliased to the audit-carrying variant: every fixture here supplies and
   // mutates `_audit`, which became optional on the payload type in 0.60.0.

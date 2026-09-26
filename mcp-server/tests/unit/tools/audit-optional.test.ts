@@ -19,7 +19,6 @@
  * `tests/integration/protocol-roundtrip.test.ts`.
  */
 
-import { describe, it, expect } from 'vitest';
 import { AuditedUserInputsSchema } from '../../../src/schemas/diligence-audit';
 import { AuditedTechParInputsSchema } from '../../../src/schemas/techpar-audit';
 import { AuditedTechDebtInputsSchema } from '../../../src/schemas/tech-debt-audit';

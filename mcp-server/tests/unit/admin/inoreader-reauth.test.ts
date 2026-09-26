@@ -14,7 +14,6 @@
  *   7. /start happy path: cookie set + 302 to Inoreader with state
  *      query param
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mockGet,

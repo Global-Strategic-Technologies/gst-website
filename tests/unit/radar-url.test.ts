@@ -10,8 +10,6 @@
  * encoder + the MCP tool's input schema in lockstep.
  */
 
-import { describe, it, expect } from 'vitest';
-
 import { serializeToParams, deserializeFromParams } from '../../src/utils/radar-url';
 
 describe('radar-url — round-trip parity', () => {

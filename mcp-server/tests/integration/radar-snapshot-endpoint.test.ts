@@ -13,8 +13,6 @@
  * is real (auth, scope check, CORS, rate-limit-skip-on-no-Upstash).
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 // Two Cloudflare-runtime modules use the `cloudflare:workers` / `cloudflare:email`
 // URL schemes which the Node ESM loader can't resolve. Mock them so importing
 // worker.ts doesn't crash. Neither real-Sentry nor real-MCP-RPC behavior is

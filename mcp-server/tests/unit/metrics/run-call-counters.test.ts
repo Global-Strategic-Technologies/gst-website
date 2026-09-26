@@ -13,7 +13,6 @@
  * than no test, so the fidelity of this fake is itself part of the contract.
  */
 
-import { describe, expect, it, vi } from 'vitest';
 import {
   RUN_COUNTS_KEY_PREFIX,
   RUN_COUNTS_TTL_SECONDS,

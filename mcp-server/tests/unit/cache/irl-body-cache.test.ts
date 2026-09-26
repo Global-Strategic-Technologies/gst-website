@@ -10,7 +10,6 @@
  *   - Worker path: TTL is forwarded; size cap enforced before write
  */
 
-import { describe, expect, it } from 'vitest';
 import { Buffer } from 'node:buffer';
 import {
   InMemoryIrlBodyCache,

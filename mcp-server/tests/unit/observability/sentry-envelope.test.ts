@@ -6,7 +6,6 @@
  * to inspect the envelope shape.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   parseDsn,
   postSentryEvent,

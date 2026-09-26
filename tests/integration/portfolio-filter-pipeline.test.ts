@@ -6,7 +6,6 @@
  * Verifies that filterProjects and computeAvailableChips produce
  * consistent, correct results when composed.
  */
-import { describe, it, expect } from 'vitest';
 import {
   filterProjects,
   computeAvailableChips,

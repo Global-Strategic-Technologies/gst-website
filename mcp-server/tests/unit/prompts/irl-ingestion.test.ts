@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../../src/prompts/irl-ingestion';
 import {
   UNKNOWN_PROPAGATION_RULE,

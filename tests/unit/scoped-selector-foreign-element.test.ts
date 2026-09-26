@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { stripComments, walkStyleSources } from '../integration/helpers/css-parse';

@@ -7,7 +7,6 @@
  * `agents/mcp` / Upstash graph never loads in the node pool.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ExecutionContext } from '@cloudflare/workers-types';
 
 vi.mock('../../../src/pipeline/handle-authenticated', () => ({

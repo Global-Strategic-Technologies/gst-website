@@ -15,7 +15,6 @@
  * See: src/docs/adr/0002-irl-body-by-hash-cache.md
  */
 
-import { describe, expect, it } from 'vitest';
 import { Buffer } from 'node:buffer';
 import {
   InMemoryIrlBodyCache,

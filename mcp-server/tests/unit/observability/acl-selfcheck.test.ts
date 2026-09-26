@@ -9,7 +9,6 @@
  *   - NOPERM on any probe step short-circuits with the failing command name
  *   - Upstash unreachable → `'unknown'` (never throws)
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const {
   MockRedis,

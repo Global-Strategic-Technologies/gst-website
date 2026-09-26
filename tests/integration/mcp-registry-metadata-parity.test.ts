@@ -10,7 +10,6 @@
  * `resources/list`. Change a count on either side and one of the two goes red
  * until the sentence is updated.
  */
-import { describe, expect, it } from 'vitest';
 import {
   REGISTRY_DESCRIPTION,
   REGISTRY_REMOTE_URL,

@@ -67,7 +67,6 @@
  * satisfy the declared range, otherwise a hoist change could let this validate
  * the wrong tree and pass vacuously.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

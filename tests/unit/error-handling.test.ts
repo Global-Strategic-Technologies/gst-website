@@ -11,7 +11,6 @@
  * them as pure functions here and test in isolation — following the same
  * approach as toc-component.test.ts and diligence-wizard-navigation.test.ts.
  */
-import { describe, it, expect } from 'vitest';
 
 // ─── Pattern 1: localStorage error handling ─────────────────────────────────
 // Replicates: theme-buttons.ts (cycleTheme's localStorage catch), palette-manager.ts (switchPalette, read/writeStoredOverrides, handlePopoutToggle)

@@ -13,8 +13,6 @@
  *     boundary — would undercount the tag-list and miss the 401-retry leg).
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 const { mockGet, mockSet, mockDel, mockIncr, mockExpire, MockRedis } = vi.hoisted(() => {
   const mockGet = vi.fn();
   const mockSet = vi.fn();

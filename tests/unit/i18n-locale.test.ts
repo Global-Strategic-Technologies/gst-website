@@ -6,7 +6,6 @@
  * `tests/e2e/localization.test.ts`; these tests pin the functions those pages
  * call.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

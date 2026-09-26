@@ -1,4 +1,3 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { copyWithFeedback } from '@/utils/copy-feedback';
 
 // Minimal DOM mocks for the button element
