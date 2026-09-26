@@ -407,7 +407,10 @@ describe('MCP marketing page — tier parity', () => {
   it.each(CEILINGS.map(([key, label]) => [label, key] as const))(
     'publishes the %s row, each value under its own tier',
     (label, key) => {
-      const row = new RegExp(`<th([^>]*)>${label}</th>(.*?)</tr>`).exec(table);
+      // Whitespace-tolerant (`s` flag, `\s*` around content): prettier-plugin-astro
+      // 1.x breaks each cell onto its own lines, which is render-neutral under
+      // Astro's default `compressHTML: 'jsx'`.
+      const row = new RegExp(`<th([^>]*)>\\s*${label}\\s*</th>(.*?)</tr>`, 's').exec(table);
       expect(row, `no "${label}" row in the tier table`).not.toBeNull();
 
       // Restored explicitly after the matcher above was loosened for attribute
@@ -419,9 +422,9 @@ describe('MCP marketing page — tier parity', () => {
 
       // Attribute-order-tolerant: the cells also carry an explicit `role`, and
       // prettier is free to reorder attributes on reformat.
-      const cells = [...row![2].matchAll(/<td[^>]*data-tier="([^"]+)"[^>]*>([^<]+)<\/td>/g)].map(
-        (m) => [m[1], m[2]] as const
-      );
+      const cells = [
+        ...row![2].matchAll(/<td[^>]*data-tier="([^"]+)"[^>]*>\s*([^<]+?)\s*<\/td>/g),
+      ].map((m) => [m[1], m[2]] as const);
       // Thousands separators are a display choice; the guard formats the source
       // value the same way rather than accepting either shape.
       expect(cells).toEqual(
