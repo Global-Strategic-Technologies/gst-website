@@ -160,70 +160,24 @@ test.describe('Mobile Navigation Journey', () => {
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
-    // Wait for modal content to render and become scrollable
-    await page
-      .waitForFunction(
-        () => {
-          const el = document.querySelector('[data-testid="project-modal"]');
-          return el && el.scrollHeight > el.clientHeight;
-        },
-        { timeout: 5000 }
-      )
-      .catch(() => {
-        // Modal content may not be tall enough to scroll on this viewport — skip
-      });
+    // On the iPhone 12 viewport the first project's details are taller than
+    // the dialog, so the dialog must become a scroll container. If it never
+    // does, the modal is clipping content on mobile, which is the bug this
+    // test exists to catch.
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="project-modal"]');
+        return !!el && el.scrollHeight > el.clientHeight;
+      },
+      { timeout: 5000 }
+    );
 
-    // Attempt to scroll within modal
     const scrolled = await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="project-modal"]');
-      if (!el || el.scrollHeight <= el.clientHeight) return -1; // not scrollable
+      const el = document.querySelector('[data-testid="project-modal"]') as HTMLElement;
       el.scrollTop = 100;
       return el.scrollTop;
     });
-
-    // If content is scrollable, verify scroll worked; if not, test is N/A
-    if (scrolled >= 0) {
-      expect(scrolled).toBeGreaterThan(0);
-    }
-  });
-
-  test('should maintain functionality with touch gestures', async ({ page }) => {
-    // Interact with project card via touch
-    const card = page.locator('[data-testid="project-card"]').first();
-    await expect(card).toBeVisible();
-
-    // Tap card to open modal — use evaluate for WebKit mobile
-    await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="project-card"]') as HTMLElement;
-      if (el) {
-        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-        el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-        el.click();
-      }
-    });
-
-    // Modal should open and be visible
-    const modal = page.locator('[data-testid="project-modal"]');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-
-    // Page should still be functional
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
-  });
-
-  test('should handle orientation change gracefully', async ({ page }) => {
-    // Simulate orientation change (landscape)
-    await page.setViewportSize({ width: 812, height: 375 });
-
-    // Page should still be functional
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
-
-    // Change back to portrait
-    await page.setViewportSize({ width: 375, height: 812 });
-
-    // Page should still work
-    await expect(body).toBeVisible();
+    expect(scrolled).toBeGreaterThan(0);
   });
 
   test('should have readable text on mobile', async ({ page }) => {

@@ -1069,8 +1069,8 @@ test('should track events across pages', async ({ page }) => {
   await page.goto('/page-b'); // ❌ Mocks are gone — new page context
 
   await page.locator('#cta').click();
-  const events = await getRecordedEvents(page); // Returns [] — mock was lost
-  expect(events).toContainEqual({ eventName: 'cta_click' }); // Fails
+  const events = await page.evaluate(() => (window as any).gtagEvents); // undefined — mock was lost
+  expect(events).toContainEqual(expect.objectContaining({ eventName: 'cta_click' })); // Fails
 });
 ```
 
@@ -1086,8 +1086,9 @@ test('should track events across pages', async ({ page }) => {
   await setupAnalyticsMocking(page); // ✅ Re-initialize mocks for new page
 
   await page.locator('#cta').click();
-  const events = await getRecordedEvents(page);
-  expect(events).toContainEqual({ eventName: 'cta_click' });
+  await page.waitForFunction(() =>
+    (window as any).gtagEvents.some((e: any) => e.eventName === 'cta_click')
+  );
 });
 ```
 

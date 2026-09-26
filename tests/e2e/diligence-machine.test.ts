@@ -323,13 +323,16 @@ test.describe('Diligence Machine E2E', () => {
       });
       await expectWizardOnStep(page, 3);
 
-      // Attempt to click unreached segment 7
+      // Attempt to click unreached segment 7. The segment's click handler
+      // navigates synchronously (showStep), so once clickElement's evaluate
+      // returns, any navigation it was going to make has already happened —
+      // there is nothing left to wait for.
       await clickElement(page, '[data-testid="progress-segment-7"]');
-
-      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
-      // because there is no positive state transition to wait for (verifying absence of change).
-      await page.waitForTimeout(200);
       await expectWizardOnStep(page, 3);
+      await expect(page.locator('[data-testid="wizard-progress"]')).toHaveAttribute(
+        'aria-valuenow',
+        '3'
+      );
 
       // Verify unreached segment does not have pointer cursor
       const cursor = await page
@@ -346,12 +349,9 @@ test.describe('Diligence Machine E2E', () => {
       });
       await expectWizardOnStep(page, 3);
 
-      // Click the active segment (step 3)
+      // Click the active segment (step 3). Navigation is synchronous in the
+      // click handler, so the step is final as soon as the click returns.
       await clickElement(page, '[data-testid="progress-segment-3"]');
-
-      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
-      // because there is no positive state transition to wait for (verifying absence of change).
-      await page.waitForTimeout(200);
       await expectWizardOnStep(page, 3);
 
       // Verify state unchanged in localStorage
@@ -650,23 +650,22 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Look for exit impact badges (may not be present on all questions)
+      // These inputs surface questions that carry an exit-impact badge, so
+      // at least one must render; each must name a known impact.
       const exitImpactBadges = page.locator('.doc-q-exit-impact');
       const badgeCount = await exitImpactBadges.count();
+      expect(badgeCount).toBeGreaterThan(0);
 
-      // If badges are present, verify their format
-      if (badgeCount > 0) {
-        for (let i = 0; i < badgeCount; i++) {
-          const badge = exitImpactBadges.nth(i);
-          const text = await badge.textContent();
-          expect(['Multiple Expander', 'Valuation Drag', 'Operational Risk']).toContain(text);
+      for (let i = 0; i < badgeCount; i++) {
+        const badge = exitImpactBadges.nth(i);
+        const text = await badge.textContent();
+        expect(['Multiple Expander', 'Valuation Drag', 'Operational Risk']).toContain(text);
 
-          // Verify badge has appropriate CSS class (may have space or hyphen separator)
-          const className = await badge.getAttribute('class');
-          expect(className).toMatch(
-            /exit-impact-(multiple-expander|multiple expander|valuation-drag|valuation drag|operational-risk|operational risk)/
-          );
-        }
+        // Verify badge has appropriate CSS class (may have space or hyphen separator)
+        const className = await badge.getAttribute('class');
+        expect(className).toMatch(
+          /exit-impact-(multiple-expander|multiple expander|valuation-drag|valuation drag|operational-risk|operational risk)/
+        );
       }
     });
 
@@ -1367,17 +1366,9 @@ test.describe('Diligence Machine E2E', () => {
 
   test.describe('11. Edge Cases and Error Scenarios', () => {
     test('should prevent advancing without making selection', async ({ page }) => {
-      // Next button should be disabled initially
+      // A disabled button dispatches no click, so there is no event to wait
+      // out: the step is unchanged for as long as Next stays disabled.
       await expect(page.locator('[data-testid="btn-next"]')).toBeDisabled();
-
-      // Try clicking it anyway (force)
-      await page.locator('[data-testid="btn-next"]').click({ force: true });
-
-      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
-      // because there is no positive state transition to wait for (verifying absence of change).
-      await page.waitForTimeout(200);
-
-      // Should still be on step 1
       await expectWizardOnStep(page, 1);
     });
 
@@ -1452,17 +1443,9 @@ test.describe('Diligence Machine E2E', () => {
       await clickElement(page, '[data-testid="compound-headcount-51-200"]');
       await clickElement(page, '[data-testid="compound-revenue-range-5-25m"]');
 
-      // Next should still be disabled
+      // Next stays disabled, and a disabled button dispatches no click, so
+      // the wizard cannot leave step 4
       await expect(page.locator('[data-testid="btn-next"]')).toBeDisabled();
-
-      // Try forcing click
-      await page.locator('[data-testid="btn-next"]').click({ force: true });
-
-      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
-      // because there is no positive state transition to wait for (verifying absence of change).
-      await page.waitForTimeout(200);
-
-      // Should still be on step 4
       await expectWizardOnStep(page, 4);
     });
   });
@@ -1560,8 +1543,11 @@ test.describe('Diligence Machine E2E', () => {
         'false'
       );
 
-      // Multi-select uses saveStateDebounced (500ms); wait for the timer to flush.
-      await page.waitForTimeout(600);
+      // Multi-select uses saveStateDebounced (500ms); wait for the write itself.
+      await page.waitForFunction(() => {
+        const raw = localStorage.getItem('diligence-machine-state');
+        return !!raw && JSON.stringify(JSON.parse(raw).inputs.geographies) === '["unknown"]';
+      });
       const state = await getLocalStorageState(page);
       expect(state.inputs.geographies).toEqual(['unknown']);
     });
@@ -1597,8 +1583,11 @@ test.describe('Diligence Machine E2E', () => {
         'true'
       );
 
-      // Multi-select uses saveStateDebounced (500ms); wait for the timer to flush.
-      await page.waitForTimeout(600);
+      // Multi-select uses saveStateDebounced (500ms); wait for the write itself.
+      await page.waitForFunction(() => {
+        const raw = localStorage.getItem('diligence-machine-state');
+        return !!raw && JSON.stringify(JSON.parse(raw).inputs.geographies) === '["eu"]';
+      });
       const state = await getLocalStorageState(page);
       expect(state.inputs.geographies).toEqual(['eu']);
       expect(state.inputs.geographies).not.toContain('unknown');
@@ -1649,17 +1638,13 @@ test.describe('Diligence Machine E2E', () => {
       // Multi-select needs Next click after.
 
       const singleSelectStepIds = ['transaction-type', 'product-type', 'tech-archetype'];
-      for (const stepId of singleSelectStepIds) {
+      for (const [i, stepId] of singleSelectStepIds.entries()) {
         await clickElement(page, `[data-testid="option-${stepId}-unknown"]`);
-        // Wait for auto-advance.
-        await page.waitForTimeout(400);
+        // Wait for auto-advance to the next step (steps 2, 3, then 4).
+        await expectWizardOnStep(page, i + 2);
       }
 
       // Compound step (4): click Not sure on all 4 fields.
-      await page.waitForFunction(
-        () => document.querySelector('.wizard-step.active')?.getAttribute('data-step') === '4',
-        { timeout: 3000 }
-      );
       await clickElement(page, '[data-testid="compound-headcount-unknown"]');
       await clickElement(page, '[data-testid="compound-revenue-range-unknown"]');
       await clickElement(page, '[data-testid="compound-growth-stage-unknown"]');
@@ -1684,8 +1669,9 @@ test.describe('Diligence Machine E2E', () => {
         'data-sensitivity',
         'operating-model',
       ];
-      for (const stepId of remainingStepIds) {
-        await page.waitForTimeout(400);
+      for (const [i, stepId] of remainingStepIds.entries()) {
+        // Next (from 5) and each auto-advance land on steps 6, 7, … 10.
+        await expectWizardOnStep(page, i + 6);
         await clickElement(page, `[data-testid="option-${stepId}-unknown"]`);
       }
 
@@ -1708,9 +1694,12 @@ test.describe('Diligence Machine E2E', () => {
       const questionCount = await page.locator('.doc-question').count();
       expect(questionCount).toBeGreaterThan(0);
 
-      // Wait for any pending saveStateDebounced (final-step click → no auto-
-      // advance step transition → no immediate saveState; rely on debounce).
-      await page.waitForTimeout(600);
+      // The final-step click has no auto-advance step transition, so no
+      // immediate saveState — wait for the debounced write to land.
+      await page.waitForFunction(() => {
+        const raw = localStorage.getItem('diligence-machine-state');
+        return !!raw && JSON.parse(raw).inputs.operatingModel === 'unknown';
+      });
 
       // localStorage records every dimension as 'unknown'.
       const state = await getLocalStorageState(page);

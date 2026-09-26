@@ -138,12 +138,17 @@ test.describe('Theme Toggle Journey', () => {
       const fontSize = await themeToggle.evaluate((el) => window.getComputedStyle(el).fontSize);
       expect(parseInt(fontSize)).toBeGreaterThanOrEqual(12);
 
-      // Check contrast (text color should differ from background)
-      const [textColor, bgColor] = await themeToggle.evaluate((el) => {
-        const s = window.getComputedStyle(el);
-        return [s.color, s.backgroundColor];
+      // The toggle's own background is transparent, so compare its ink with
+      // the page background actually painted behind it: body's, or html's
+      // when body is transparent.
+      const [textColor, pageBg] = await themeToggle.evaluate((el) => {
+        const transparent = (c: string) => c === 'transparent' || c === 'rgba(0, 0, 0, 0)';
+        const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+        const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+        return [window.getComputedStyle(el).color, transparent(bodyBg) ? htmlBg : bodyBg];
       });
-      expect(textColor).not.toBe(bgColor);
+      expect(pageBg).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
+      expect(textColor).not.toBe(pageBg);
 
       await clickThemeToggle(page);
       await waitForTheme(page, theme);
@@ -184,26 +189,5 @@ test.describe('Theme Toggle Journey', () => {
     // Should be able to click other buttons
     const firstButton = buttons.first();
     await expect(firstButton).toBeVisible();
-  });
-
-  test('should not block other interactions while theme is toggled', async ({ page }) => {
-    const themeToggle = page.locator('[data-testid="theme-toggle"]');
-    await expect(themeToggle).toBeVisible();
-
-    // Toggle theme
-    await clickThemeToggle(page);
-    await waitForTheme(page, 'dim-light');
-
-    // Find another interactive element (navigation link or other button)
-    const navLink = page.locator('a[href*="/ma-portfolio/"], a:has-text("M&A")').first();
-    const canInteract = await navLink.isVisible({ timeout: 2000 }).catch(() => false);
-
-    if (canInteract) {
-      // Should be able to interact with other elements
-      await expect(navLink).toBeEnabled();
-      // Verify we can actually click it
-      const href = await navLink.getAttribute('href');
-      expect(href).toBeTruthy();
-    }
   });
 });

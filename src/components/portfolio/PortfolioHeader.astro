@@ -391,8 +391,12 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     filteredProjects: Record<string, unknown>[];
     filters: PortfolioFilters;
   }
+  interface FilterChange {
+    filterType: 'theme' | 'engagement';
+    filterValue: string;
+  }
   interface PortfolioAPI {
-    filterProjects: () => void;
+    filterProjects: (change?: FilterChange) => void;
     updateGridDisplay: () => void;
     attachChipListeners: () => void;
     openFilterDrawer: () => void;
@@ -477,7 +481,13 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   let filteredProjects = window.portfolioState.filteredProjects;
   const filters = window.portfolioState.filters;
 
-  function filterProjects() {
+  /**
+   * `change` names the chip the visitor just picked; PortfolioGrid turns it
+   * into a GA `filter_applied` event. Init, reset and search pass nothing, so
+   * they send no event — search text is free-form visitor input and never
+   * leaves the page.
+   */
+  function filterProjects(change?: FilterChange) {
     window.portfolioState.filteredProjects = allProjects.filter((project) => {
       // Search filter
       if (filters.search) {
@@ -510,7 +520,9 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     updateFilterBadge();
     updateAvailableChips();
     window.dispatchEvent(
-      new CustomEvent('portfolioFiltered', { detail: { count: filteredProjects.length } })
+      new CustomEvent('portfolioFiltered', {
+        detail: { count: filteredProjects.length, ...change },
+      })
     );
   }
 
@@ -573,7 +585,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
           chip.classList.add('active');
           filters.theme = chip.dataset.value ?? 'all';
           window.portfolioState.filters.theme = filters.theme;
-          filterProjects();
+          filterProjects({ filterType: 'theme', filterValue: filters.theme });
           syncPortfolioUrlState(window.portfolioState.filters);
         }
       });
@@ -590,7 +602,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
           chip.classList.add('active');
           filters.engagement = chip.dataset.value ?? 'all';
           window.portfolioState.filters.engagement = filters.engagement;
-          filterProjects();
+          filterProjects({ filterType: 'engagement', filterValue: filters.engagement });
           syncPortfolioUrlState(window.portfolioState.filters);
         }
       });

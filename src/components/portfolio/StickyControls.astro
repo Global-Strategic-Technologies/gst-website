@@ -231,7 +231,10 @@
   let filteredProjects = [];
   let filters = { search: '', theme: 'all', engagement: 'all' };
 
-  function filterProjects() {
+  // `change` names the chip the visitor just picked ({ filterType, filterValue });
+  // PortfolioGrid turns it into a GA `filter_applied` event. Init and search
+  // pass nothing, so they send no event — search text never leaves the page.
+  function filterProjects(change) {
     window.portfolioState.filteredProjects = allProjects.filter((project) => {
       // Search filter
       if (filters.search) {
@@ -266,7 +269,9 @@
       window.portfolioFilters.updateAvailableChips();
     }
     window.dispatchEvent(
-      new CustomEvent('portfolioFiltered', { detail: { count: filteredProjects.length } })
+      new CustomEvent('portfolioFiltered', {
+        detail: { count: filteredProjects.length, ...change },
+      })
     );
   }
 
@@ -326,7 +331,7 @@
           this.classList.add('active');
           filters.theme = chip.dataset.value;
           window.portfolioState.filters.theme = filters.theme;
-          filterProjects();
+          filterProjects({ filterType: 'theme', filterValue: filters.theme });
         });
       });
       themeChipsContainer.hasListener = true;
@@ -341,7 +346,7 @@
           this.classList.add('active');
           filters.engagement = chip.dataset.value;
           window.portfolioState.filters.engagement = filters.engagement;
-          filterProjects();
+          filterProjects({ filterType: 'engagement', filterValue: filters.engagement });
         });
       });
       engagementChipsContainer.hasListener = true;
