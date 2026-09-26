@@ -43,7 +43,9 @@ if (showTimestamp) {
 
 <header class="hub-header">
   <h1 class="hub-header__title brutal-heading-xl">{title}</h1>
-  <p class="hub-header__subtitle"><slot name="subtitle">{subtitle}</slot></p>
+  <p class="hub-header__subtitle">
+    <slot name="subtitle">{subtitle}</slot>
+  </p>
   {showTimestamp && <p class="hub-header__updated">{updatedLine}</p>}
 </header>
 

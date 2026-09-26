@@ -41,7 +41,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       })
     )}
   />
-
   <section class="techpar-section">
     <div class="container">
       <HubHeader
@@ -150,9 +149,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           </button>
         </div>
         <div class="tp-toolbar">
-          <button class="tp-toolbar__reset" data-action="reset" type="button"
-            >Reset all inputs</button
-          >
+          <button class="tp-toolbar__reset" data-action="reset" type="button">
+            Reset all inputs
+          </button>
         </div>
 
         <!-- ── TAB: PROFILE ──────────────────────────────────── -->
@@ -167,21 +166,23 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <summary class="tp-onboarding__trigger brutal-label-small">How to use TechPar</summary>
             <div class="tp-onboarding__body brutal-text-tiny">
               <p>
-                <strong>TechPar</strong> benchmarks your total technology cost against stage-adjusted
-                ranges derived from KeyBanc, OpenView, Bessemer, and GST engagement data.
+                <strong>TechPar</strong> benchmarks your total technology cost against
+                stage-adjusted ranges derived from KeyBanc, OpenView, Bessemer, and GST engagement
+                data.
               </p>
               <p>
-                <strong>Who it's for:</strong> PE deal teams, portfolio company CTOs and CFOs, and board-level
-                reporting.
+                <strong>Who it's for:</strong> PE deal teams, portfolio company CTOs and CFOs, and
+                board-level reporting.
               </p>
               <p>
-                <strong>What you'll need:</strong> Annual recurring revenue (ARR) and monthly infrastructure
-                spend at minimum. Additional cost categories (personnel, R&D, CapEx) unlock deeper analysis.
+                <strong>What you'll need:</strong> Annual recurring revenue (ARR) and monthly
+                infrastructure spend at minimum. Additional cost categories (personnel, R&D, CapEx)
+                unlock deeper analysis.
               </p>
               <p>
-                <strong>How it works:</strong> Select your company stage, enter revenue and costs, and
-                TechPar computes a blended technology cost ratio with zone classification, gap analysis,
-                and 36-month trajectory projection.
+                <strong>How it works:</strong> Select your company stage, enter revenue and costs,
+                and TechPar computes a blended technology cost ratio with zone classification, gap
+                analysis, and 36-month trajectory projection.
               </p>
             </div>
           </details>
@@ -196,9 +197,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           </div>
 
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label"
-              >Company stage <span class="brutal-field__req">(required)</span></span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label">
+              Company stage <span class="brutal-field__req">(required)</span>
+            </span>
             <div class="tp-stage-grid" data-stage-grid role="radiogroup" aria-label="Company stage">
               <button
                 class="brutal-option-card brutal-option-card--compact"
@@ -269,36 +270,46 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-industry="saas"
                 type="button"
                 role="radio"
-                aria-checked="true">SaaS</button
+                aria-checked="true"
               >
+                SaaS
+              </button>
               <button
                 class="tp-seg__btn"
                 data-industry="fintech"
                 type="button"
                 role="radio"
-                aria-checked="false">Fintech</button
+                aria-checked="false"
               >
+                Fintech
+              </button>
               <button
                 class="tp-seg__btn"
                 data-industry="marketplace"
                 type="button"
                 role="radio"
-                aria-checked="false">Marketplace</button
+                aria-checked="false"
               >
+                Marketplace
+              </button>
               <button
                 class="tp-seg__btn"
                 data-industry="infra_hw"
                 type="button"
                 role="radio"
-                aria-checked="false">Hardware</button
+                aria-checked="false"
               >
+                Hardware
+              </button>
               <button
                 class="tp-seg__btn"
                 data-industry="other"
                 type="button"
                 role="radio"
-                aria-checked="false">Other</button
+                aria-checked="false"
               >
+                Other
+              </button>
             </div>
             <div class="brutal-field__hint brutal-text-tiny">
               Adds industry-specific context to the analysis. Benchmark ranges remain the same
@@ -314,36 +325,46 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-currency="$"
                 type="button"
                 role="radio"
-                aria-checked="true">USD</button
+                aria-checked="true"
               >
+                USD
+              </button>
               <button
                 class="tp-seg__btn"
                 data-currency="€"
                 type="button"
                 role="radio"
-                aria-checked="false">EUR</button
+                aria-checked="false"
               >
+                EUR
+              </button>
               <button
                 class="tp-seg__btn"
                 data-currency="£"
                 type="button"
                 role="radio"
-                aria-checked="false">GBP</button
+                aria-checked="false"
               >
+                GBP
+              </button>
               <button
                 class="tp-seg__btn"
                 data-currency="C$"
                 type="button"
                 role="radio"
-                aria-checked="false">CAD</button
+                aria-checked="false"
               >
+                CAD
+              </button>
               <button
                 class="tp-seg__btn"
                 data-currency="A$"
                 type="button"
                 role="radio"
-                aria-checked="false">AUD</button
+                aria-checked="false"
               >
+                AUD
+              </button>
             </div>
             <div class="brutal-field__hint brutal-text-tiny">
               Display only. All values remain in your local currency.
@@ -353,40 +374,50 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="tp-section">
             <span class="brutal-tool-shell__section-label tp-sec-label">Revenue</span>
             <div class="brutal-field">
-              <label class="brutal-field__label brutal-text-small" for="tp-arr"
-                >ARR or TTM Revenue <span class="brutal-field__req">(required)</span></label
-              >
+              <label class="brutal-field__label brutal-text-small" for="tp-arr">
+                ARR or TTM Revenue <span class="brutal-field__req">(required)</span>
+              </label>
               <div class="tp-arr-quick" data-arr-quick>
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
                   data-arr-val="10000000"
-                  type="button">$10M</button
+                  type="button"
                 >
+                  $10M
+                </button>
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
                   data-arr-val="25000000"
-                  type="button">$25M</button
+                  type="button"
                 >
+                  $25M
+                </button>
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
                   data-arr-val="50000000"
-                  type="button">$50M</button
+                  type="button"
                 >
+                  $50M
+                </button>
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
                   data-arr-val="100000000"
-                  type="button">$100M</button
+                  type="button"
                 >
+                  $100M
+                </button>
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
                   data-arr-val="250000000"
-                  type="button">$250M</button
+                  type="button"
                 >
+                  $250M
+                </button>
               </div>
               <div class="brutal-field__input-wrap">
                 <span class="brutal-field__prefix">$</span>
@@ -408,9 +439,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           </div>
 
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label"
-              >Revenue growth assumption</span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label">
+              Revenue growth assumption
+            </span>
             <div class="tp-seg-row">
               <div
                 class="tp-seg"
@@ -423,29 +454,37 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-growth="10"
                   type="button"
                   role="radio"
-                  aria-checked="false">10%</button
+                  aria-checked="false"
                 >
+                  10%
+                </button>
                 <button
                   class="tp-seg__btn"
                   data-growth="20"
                   type="button"
                   role="radio"
-                  aria-checked="false">20%</button
+                  aria-checked="false"
                 >
+                  20%
+                </button>
                 <button
                   class="tp-seg__btn"
                   data-growth="30"
                   type="button"
                   role="radio"
-                  aria-checked="false">30%</button
+                  aria-checked="false"
                 >
+                  30%
+                </button>
                 <button
                   class="tp-seg__btn"
                   data-growth="50"
                   type="button"
                   role="radio"
-                  aria-checked="false">50%</button
+                  aria-checked="false"
                 >
+                  50%
+                </button>
               </div>
             </div>
             <div class="brutal-field__input-wrap">
@@ -475,9 +514,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           </div>
 
           <div class="brutal-field tp-exit-field" data-exit-field>
-            <label class="brutal-field__label brutal-text-small" for="tp-exit-mult"
-              >Exit multiple assumption</label
-            >
+            <label class="brutal-field__label brutal-text-small" for="tp-exit-mult">
+              Exit multiple assumption
+            </label>
             <PresetInput
               inputName="exitMult"
               inputId="tp-exit-mult"
@@ -500,16 +539,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           </div>
 
           <details class="tp-historical" data-historical>
-            <summary class="tp-historical__trigger brutal-label-small"
-              >Historical data (optional)</summary
-            >
+            <summary class="tp-historical__trigger brutal-label-small">
+              Historical data (optional)
+            </summary>
             <div class="tp-historical__body">
               <p class="brutal-field__hint brutal-text-tiny">
                 Add 1-2 prior fiscal years to show actual trajectory on the chart. Enter the annual
                 ARR and total technology spend for each year.
               </p>
               <div data-hist-rows></div>
-              <button class="tp-hist-add" data-hist-add type="button">+ Add year</button>
+              <button class="tp-hist-add" data-hist-add type="button">
+                + Add year
+              </button>
             </div>
           </details>
 
@@ -517,8 +558,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <button
               class="brutal-btn brutal-btn--primary tp-btn-next"
               data-action="go-costs"
-              type="button">Enter technology costs &rarr;</button
+              type="button"
             >
+              Enter technology costs &rarr;
+            </button>
           </div>
         </div>
 
@@ -548,15 +591,19 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-mode="quick"
                 type="button"
                 role="radio"
-                aria-checked="true">Quick</button
+                aria-checked="true"
               >
+                Quick
+              </button>
               <button
                 class="tp-seg__btn"
                 data-mode="deepdive"
                 type="button"
                 role="radio"
-                aria-checked="false">Deep Dive</button
+                aria-checked="false"
               >
+                Deep Dive
+              </button>
             </div>
             <div class="brutal-field__hint brutal-text-tiny">
               Deep Dive breaks R&D into sub-categories and unlocks the revenue-per-engineer KPI.
@@ -566,21 +613,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <!-- CapEx toggle -->
           <label class="tp-capex-row" data-capex-row>
             <input type="checkbox" data-input="gaapChk" />
-            <span class="brutal-text-small"
-              >GAAP view: remove R&D CapEx from total (as capitalized on income statement)</span
-            >
+            <span class="brutal-text-small">
+              GAAP view: remove R&D CapEx from total (as capitalized on income statement)
+            </span>
           </label>
 
           <!-- Infrastructure hosting -->
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"
-              ><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat">
+              <span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting
+            </span>
             <div class="brutal-field">
-              <label class="brutal-field__label brutal-text-small" for="tp-infra"
-                ><span data-infra-label>Monthly cloud spend</span>
-                <span class="brutal-field__req">(required)</span></label
-              >
+              <label class="brutal-field__label brutal-text-small" for="tp-infra">
+                <span data-infra-label>Monthly cloud spend</span>
+                <span class="brutal-field__req">(required)</span>
+              </label>
               <div
                 class="tp-seg tp-seg--sm"
                 data-seg="infra-period"
@@ -592,21 +639,23 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-infra-period="monthly"
                   type="button"
                   role="radio"
-                  aria-checked="true">Monthly</button
+                  aria-checked="true"
                 >
+                  Monthly
+                </button>
                 <button
                   class="tp-seg__btn"
                   data-infra-period="annual"
                   type="button"
                   role="radio"
-                  aria-checked="false">Annual</button
+                  aria-checked="false"
                 >
+                  Annual
+                </button>
               </div>
-              {
-                /* Annual chipsOnly companion renders BEFORE the monthly+input pair
+              {/* Annual chipsOnly companion renders BEFORE the monthly+input pair
                   so the visible chip group sits above the input in both modes.
-                  syncInfraPeriodUI() toggles by data attribute, not DOM order. */
-              }
+                  syncInfraPeriodUI() toggles by data attribute, not DOM order. */}
               <PresetInput
                 inputName="infra"
                 chipsOnly
@@ -641,26 +690,28 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <div class="brutal-field__hint brutal-text-tiny" data-infra-hint>
                 Cloud, data center, CDN, observability, managed services. Auto-converted to annual.
               </div>
-              <div class="tp-infra-annual brutal-text-tiny" data-infra-annual style="display:none">
-              </div>
+              <div
+                class="tp-infra-annual brutal-text-tiny"
+                data-infra-annual
+                style="display:none"
+              ></div>
               <div
                 class="brutal-field__hint brutal-field__hint--warn brutal-text-tiny"
                 data-infra-warn
                 style="display:none"
-              >
-              </div>
+              ></div>
             </div>
           </div>
 
           <!-- Infrastructure personnel -->
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"
-              ><span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel</span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat">
+              <span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel
+            </span>
             <div class="brutal-field">
-              <label class="brutal-field__label brutal-text-small" for="tp-infra-pers"
-                >Annual fully-loaded cost</label
-              >
+              <label class="brutal-field__label brutal-text-small" for="tp-infra-pers">
+                Annual fully-loaded cost
+              </label>
               <PresetInput
                 inputName="infraPers"
                 inputId="tp-infra-pers"
@@ -683,23 +734,22 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 class="brutal-field__hint brutal-field__hint--warn brutal-text-tiny"
                 data-sanity-warn="infraPers"
                 style="display:none"
-              >
-              </div>
+              ></div>
             </div>
           </div>
 
           <!-- R&D OpEx -->
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"
-              ><span class="tp-cat-dot tp-cat-dot--rd"></span>R&D OpEx</span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat">
+              <span class="tp-cat-dot tp-cat-dot--rd"></span>R&D OpEx
+            </span>
 
             <!-- Quick mode -->
             <div data-rd-quick>
               <div class="brutal-field">
-                <label class="brutal-field__label brutal-text-small" for="tp-rd-opex"
-                  >Annual fully-loaded cost</label
-                >
+                <label class="brutal-field__label brutal-text-small" for="tp-rd-opex">
+                  Annual fully-loaded cost
+                </label>
                 <PresetInput
                   inputName="rdOpEx"
                   inputId="tp-rd-opex"
@@ -722,8 +772,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   class="brutal-field__hint brutal-field__hint--warn brutal-text-tiny"
                   data-sanity-warn="rdOpEx"
                   style="display:none"
-                >
-                </div>
+                ></div>
               </div>
             </div>
 
@@ -731,9 +780,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <div class="tp-deep-wrap" data-rd-deep>
               <div class="tp-deep-head brutal-label-small">R&D OpEx breakdown</div>
               <div class="brutal-field">
-                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-eng"
-                  >Engineering headcount</label
-                >
+                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-eng">
+                  Engineering headcount
+                </label>
                 <PresetInput
                   inputName="rdEng"
                   inputId="tp-rd-eng"
@@ -755,9 +804,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 </div>
               </div>
               <div class="brutal-field">
-                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-prod"
-                  >Product headcount</label
-                >
+                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-prod">
+                  Product headcount
+                </label>
                 <PresetInput
                   inputName="rdProd"
                   inputId="tp-rd-prod"
@@ -778,9 +827,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 </div>
               </div>
               <div class="brutal-field">
-                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-tool"
-                  >Tooling and subscriptions</label
-                >
+                <label class="brutal-field__label brutal-text-tiny" for="tp-rd-tool">
+                  Tooling and subscriptions
+                </label>
                 <PresetInput
                   inputName="rdTool"
                   inputId="tp-rd-tool"
@@ -810,9 +859,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="tp-section">
             <span class="brutal-tool-shell__section-label tp-sec-label">Engineering headcount</span>
             <div class="brutal-field" data-fte-field>
-              <label class="brutal-field__label brutal-text-small" for="tp-eng-fte"
-                >Engineering FTEs</label
-              >
+              <label class="brutal-field__label brutal-text-small" for="tp-eng-fte">
+                Engineering FTEs
+              </label>
               <PresetInput
                 inputName="engFTE"
                 inputId="tp-eng-fte"
@@ -837,13 +886,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
           <!-- R&D CapEx -->
           <div class="tp-section">
-            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"
-              ><span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx</span
-            >
+            <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat">
+              <span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx
+            </span>
             <div class="brutal-field">
-              <label class="brutal-field__label brutal-text-small" for="tp-rd-capex"
-                >Annual capitalized software development</label
-              >
+              <label class="brutal-field__label brutal-text-small" for="tp-rd-capex">
+                Annual capitalized software development
+              </label>
               <PresetInput
                 inputName="rdCapEx"
                 inputId="tp-rd-capex"
@@ -866,8 +915,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 class="brutal-field__hint brutal-field__hint--warn brutal-text-tiny"
                 data-sanity-warn="rdCapEx"
                 style="display:none"
-              >
-              </div>
+              ></div>
             </div>
           </div>
 
@@ -875,16 +923,20 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <button
               class="brutal-btn brutal-btn--secondary tp-btn-back"
               data-action="go-profile"
-              type="button">&larr; Profile</button
+              type="button"
             >
+              &larr; Profile
+            </button>
             <div class="tp-nav-row__next">
               <button
                 class="brutal-btn brutal-btn--primary tp-btn-next"
                 data-action="go-analysis"
                 data-btn-analysis
                 type="button"
-                disabled>View analysis &rarr;</button
+                disabled
               >
+                View analysis &rarr;
+              </button>
               <span class="tp-nav-row__hint brutal-text-tiny" data-analysis-hint></span>
             </div>
           </div>
@@ -917,24 +969,32 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               stroke="currentColor"
               stroke-width="6"
               stroke-linejoin="miter"
-              aria-hidden="true"><path d="M12 52 L32 12 L52 52" fill="none"></path></svg
+              aria-hidden="true"
             >
+              <path d="M12 52 L32 12 L52 52" fill="none"></path>
+            </svg>
             <div class="tp-empty__msg brutal-text-small" data-analysis-empty-msg>
-              Enter ARR on the Profile tab<br />to compute TechPar.
+              Enter ARR on the Profile tab
+              <br />
+              to compute TechPar.
             </div>
             <button
               class="tp-empty__cta"
               data-action="go-profile"
               data-analysis-empty-cta
-              type="button">Go to profile &rarr;</button
+              type="button"
             >
+              Go to profile &rarr;
+            </button>
           </div>
 
           <!-- Content -->
           <div data-analysis-content class="tp-analysis-content">
             <!-- Primary KPI -->
             <div class="tp-kpi-hero" data-kpi-hero aria-live="polite" aria-atomic="true">
-              <div class="tp-kpi-hero__num" data-hero-num>&#8212;</div>
+              <div class="tp-kpi-hero__num" data-hero-num>
+                &#8212;
+              </div>
               <div class="tp-kpi-hero__lbl brutal-text-small">
                 total technology cost as % of revenue
               </div>
@@ -942,30 +1002,36 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <div class="tp-kpi-hero__zone-row">
                 <div data-hero-zone-pill></div>
                 <div class="tp-baseline-controls">
-                  <button class="tp-baseline-btn" data-action="set-baseline" type="button"
-                    >Set as baseline</button
-                  >
-                  <button class="tp-baseline-btn" data-action="save-scenario" type="button"
-                    >Save scenario</button
-                  >
+                  <button class="tp-baseline-btn" data-action="set-baseline" type="button">
+                    Set as baseline
+                  </button>
+                  <button class="tp-baseline-btn" data-action="save-scenario" type="button">
+                    Save scenario
+                  </button>
                   <div class="tp-baseline-bar" data-baseline-bar style="display:none">
                     <span class="tp-baseline-bar__label brutal-label-small">Baseline</span>
                     <button
                       class="tp-baseline-bar__clear"
                       data-action="clear-baseline"
-                      type="button">&times;</button
+                      type="button"
                     >
+                      &times;
+                    </button>
                   </div>
                 </div>
               </div>
               <div class="tp-bench-wrap">
-                <div class="tp-bench-track"><div class="tp-bench-fill" data-bench-fill></div></div>
+                <div class="tp-bench-track">
+                  <div class="tp-bench-fill" data-bench-fill></div>
+                </div>
                 <div class="tp-bench-lbls">
                   <span class="tp-bench-lbl brutal-text-tiny">0%</span>
-                  <span class="tp-bench-lbl tp-bench-mid brutal-text-tiny" data-bench-mid
-                    >&#9660; midpoint</span
-                  >
-                  <span class="tp-bench-lbl brutal-text-tiny" data-bench-max>150%</span>
+                  <span class="tp-bench-lbl tp-bench-mid brutal-text-tiny" data-bench-mid>
+                    &#9660; midpoint
+                  </span>
+                  <span class="tp-bench-lbl brutal-text-tiny" data-bench-max>
+                    150%
+                  </span>
                 </div>
               </div>
             </div>
@@ -1017,21 +1083,26 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               </div>
               <table class="brutal-bench-table">
                 <tbody data-bench-tbl>
-                  <tr data-bench-row="seed" data-bench="60-100"
-                    ><td>Seed / Pre-A</td><td>60&ndash;100%</td></tr
-                  >
-                  <tr data-bench-row="series_a" data-bench="45-75"
-                    ><td>Series A</td><td>45&ndash;75%</td></tr
-                  >
-                  <tr data-bench-row="series_bc" data-bench="35-55"
-                    ><td>Series B&ndash;C</td><td>35&ndash;55%</td></tr
-                  >
-                  <tr data-bench-row="pe" data-bench="25-40"
-                    ><td>PE-backed</td><td>25&ndash;40%</td></tr
-                  >
-                  <tr data-bench-row="enterprise" data-bench="18-32"
-                    ><td>Enterprise</td><td>18&ndash;32%</td></tr
-                  >
+                  <tr data-bench-row="seed" data-bench="60-100">
+                    <td>Seed / Pre-A</td>
+                    <td>60&ndash;100%</td>
+                  </tr>
+                  <tr data-bench-row="series_a" data-bench="45-75">
+                    <td>Series A</td>
+                    <td>45&ndash;75%</td>
+                  </tr>
+                  <tr data-bench-row="series_bc" data-bench="35-55">
+                    <td>Series B&ndash;C</td>
+                    <td>35&ndash;55%</td>
+                  </tr>
+                  <tr data-bench-row="pe" data-bench="25-40">
+                    <td>PE-backed</td>
+                    <td>25&ndash;40%</td>
+                  </tr>
+                  <tr data-bench-row="enterprise" data-bench="18-32">
+                    <td>Enterprise</td>
+                    <td>18&ndash;32%</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="tool-bench-note brutal-text-tiny">
@@ -1053,9 +1124,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
             <!-- Methodology -->
             <details class="tool-methodology" data-methodology>
-              <summary class="tool-methodology__trigger brutal-label-small"
-                >How TechPar works</summary
-              >
+              <summary class="tool-methodology__trigger brutal-label-small">
+                How TechPar works
+              </summary>
               <div class="tool-methodology__body brutal-text-tiny">
                 <h4 class="tool-methodology__heading">Benchmark sources</h4>
                 <p>
@@ -1115,30 +1186,40 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <button
                 class="brutal-btn brutal-btn--secondary tp-btn-back"
                 data-action="go-costs"
-                type="button">&larr; Costs</button
+                type="button"
               >
+                &larr; Costs
+              </button>
               <div class="tool-action-bar">
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="export-pdf"
-                  type="button">Export PDF</button
+                  type="button"
                 >
+                  Export PDF
+                </button>
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="copy-summary"
-                  type="button">Copy summary</button
+                  type="button"
                 >
+                  Copy summary
+                </button>
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="copy-link"
-                  type="button">Copy link</button
+                  type="button"
                 >
+                  Copy link
+                </button>
               </div>
               <button
                 class="brutal-btn brutal-btn--primary tp-btn-next"
                 data-action="go-trajectory"
-                type="button">View trajectory &rarr;</button
+                type="button"
               >
+                View trajectory &rarr;
+              </button>
             </div>
           </div>
         </div>
@@ -1163,11 +1244,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="tp-empty" data-traj-empty>
             <DeltaIcon class="tp-empty__sym" />
             <div class="tp-empty__msg brutal-text-small" data-traj-empty-msg>
-              Enter your ARR on the Profile tab<br />to generate trajectory.
+              Enter your ARR on the Profile tab
+              <br />
+              to generate trajectory.
             </div>
-            <button class="tp-empty__cta" data-action="go-profile" data-traj-empty-cta type="button"
-              >Go to profile &rarr;</button
+            <button
+              class="tp-empty__cta"
+              data-action="go-profile"
+              data-traj-empty-cta
+              type="button"
             >
+              Go to profile &rarr;
+            </button>
           </div>
 
           <!-- Content -->
@@ -1190,24 +1278,32 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <button
                 class="brutal-btn brutal-btn--secondary tp-btn-back"
                 data-action="go-analysis"
-                type="button">&larr; Analysis</button
+                type="button"
               >
+                &larr; Analysis
+              </button>
               <div class="tool-action-bar">
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="export-pdf"
-                  type="button">Export PDF</button
+                  type="button"
                 >
+                  Export PDF
+                </button>
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="copy-summary"
-                  type="button">Copy summary</button
+                  type="button"
                 >
+                  Copy summary
+                </button>
                 <button
                   class="brutal-btn brutal-btn--secondary"
                   data-action="copy-link"
-                  type="button">Copy link</button
+                  type="button"
                 >
+                  Copy link
+                </button>
               </div>
             </div>
           </div>

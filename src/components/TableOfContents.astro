@@ -72,41 +72,37 @@ const clientConfig = JSON.stringify({
   class:list={['toc', extraClass]}
   aria-label={ariaLabel}
   data-toc-config={clientConfig}
-  {...testId ? { 'data-testid': testId } : {}}
+  {...(testId ? { 'data-testid': testId } : {})}
 >
   <h2 class="toc__heading">
     <DeltaIcon class="bullet-icon" />
     {heading}
-    {
-      collapsible && (
-        <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-          <path
-            d="M32 12 L52 52 L12 52 Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="6"
-            stroke-linejoin="miter"
-          />
-        </svg>
-      )
-    }
+    {collapsible && (
+      <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path
+          d="M32 12 L52 52 L12 52 Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="6"
+          stroke-linejoin="miter"
+        />
+      </svg>
+    )}
   </h2>
   <ul class="toc__list">
-    {
-      items.map((item, idx) => (
-        <>
-          {separatorBefore.includes(idx) && <li class="toc__separator" aria-hidden="true" />}
-          <li
-            class:list={[item.isLayer && 'toc__layer']}
-            {...Object.fromEntries(
-              Object.entries(item.dataAttrs ?? {}).map(([k, v]) => [`data-${k}`, v])
-            )}
-          >
-            <a href={item.href}>{item.label}</a>
-          </li>
-        </>
-      ))
-    }
+    {items.map((item, idx) => (
+      <>
+        {separatorBefore.includes(idx) && <li class="toc__separator" aria-hidden="true" />}
+        <li
+          class:list={[item.isLayer && 'toc__layer']}
+          {...Object.fromEntries(
+            Object.entries(item.dataAttrs ?? {}).map(([k, v]) => [`data-${k}`, v])
+          )}
+        >
+          <a href={item.href}>{item.label}</a>
+        </li>
+      </>
+    ))}
   </ul>
 </nav>
 

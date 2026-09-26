@@ -13,45 +13,43 @@ const { projects } = Astro.props;
 <div class="portfolio-grid-container brutal-frosted--blur-only">
   <div class="container">
     <div class="grid" data-testid="portfolio-grid">
-      {
-        projects.map((project) => (
-          <div
-            class="project-card"
-            data-project-id={project.id}
-            data-testid="project-card"
-            role="button"
-            tabindex="0"
-          >
-            <div class="card-header">
-              <div>
-                <h3 class="project-title">{project.codeName}</h3>
-                <p class="project-industry">{project.industry}</p>
-              </div>
-              <div class="year-badge">{project.year}</div>
+      {projects.map((project) => (
+        <div
+          class="project-card"
+          data-project-id={project.id}
+          data-testid="project-card"
+          role="button"
+          tabindex="0"
+        >
+          <div class="card-header">
+            <div>
+              <h3 class="project-title">{project.codeName}</h3>
+              <p class="project-industry">{project.industry}</p>
             </div>
+            <div class="year-badge">{project.year}</div>
+          </div>
 
-            <div class="metrics">
-              <div class="metric">
-                <div class="metric-label">ARR</div>
-                <div class="metric-value arr">
-                  {project.arr === 'Not in source' ? '--' : project.arr}
-                </div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">Stage</div>
-                <div class="metric-value">{project.growthStage}</div>
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">ARR</div>
+              <div class="metric-value arr">
+                {project.arr === 'Not in source' ? '--' : project.arr}
               </div>
             </div>
-
-            <p class="summary">{project.summary}</p>
-
-            <div class="tags">
-              <div class="tag theme">{project.theme}</div>
-              <div class="tag engagement">{project.engagementCategory}</div>
+            <div class="metric">
+              <div class="metric-label">Stage</div>
+              <div class="metric-value">{project.growthStage}</div>
             </div>
           </div>
-        ))
-      }
+
+          <p class="summary">{project.summary}</p>
+
+          <div class="tags">
+            <div class="tag theme">{project.theme}</div>
+            <div class="tag engagement">{project.engagementCategory}</div>
+          </div>
+        </div>
+      ))}
     </div>
   </div>
 

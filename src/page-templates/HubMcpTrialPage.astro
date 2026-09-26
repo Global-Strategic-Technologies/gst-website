@@ -115,12 +115,12 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
       >
         <div class="brutal-tool-shell__content">
           <p class="brutal-tool-shell__authority">{t('authority')}</p>
-          <h1 id="trial-title" class="brutal-heading-lg trial-title">{t('title')}</h1>
+          <h1 id="trial-title" class="brutal-heading-lg trial-title">
+            {t('title')}
+          </h1>
 
           <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-live></p>
-          {
-            /* Invisible widget mount: renders nothing; the verifying callout is the progress cue. */
-          }
+          {/* Invisible widget mount: renders nothing; the verifying callout is the progress cue. */}
           <div data-turnstile></div>
 
           <div class="state-region">
@@ -133,7 +133,9 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 </div>
                 <div>
                   <dt class="brutal-label-small">{t('facts.ceilings.term')}</dt>
-                  <dd class="brutal-text-tiny" data-fact="ceilings">{t('facts.ceilings.desc')}</dd>
+                  <dd class="brutal-text-tiny" data-fact="ceilings">
+                    {t('facts.ceilings.desc')}
+                  </dd>
                 </div>
                 <div>
                   <dt class="brutal-label-small">{t('facts.after.term')}</dt>
@@ -147,16 +149,27 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                     <h2 id="path-claude">{t('flowConnectorTitle')}</h2>
                   </div>
                   <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.1')}</span></li>
-                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.2')}</span></li>
-                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.3')}</span></li>
+                    <li>
+                      <DeltaIcon class="bullet-icon" />
+                      <span>{t('connFeatures.1')}</span>
+                    </li>
+                    <li>
+                      <DeltaIcon class="bullet-icon" />
+                      <span>{t('connFeatures.2')}</span>
+                    </li>
+                    <li>
+                      <DeltaIcon class="bullet-icon" />
+                      <span>{t('connFeatures.3')}</span>
+                    </li>
                   </ul>
                   <span class="brutal-gateway-card__badge">{t('recommended')}</span>
                   <button
                     type="button"
                     class="cta-button brutal-gateway-card__cta"
-                    data-start="connector">{t('cta')}</button
+                    data-start="connector"
                   >
+                    {t('cta')}
+                  </button>
                 </article>
                 <article
                   class="brutal-gateway-card brutal-gateway-card--secondary brutal-frosted"
@@ -166,31 +179,39 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                     <h2 id="path-code">{t('flowM2mTitle')}</h2>
                   </div>
                   <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" /><span>{t('m2mFeatures.1')}</span></li>
-                    <li><DeltaIcon class="bullet-icon" /><span>{t('m2mFeatures.2')}</span></li>
+                    <li>
+                      <DeltaIcon class="bullet-icon" />
+                      <span>{t('m2mFeatures.1')}</span>
+                    </li>
+                    <li>
+                      <DeltaIcon class="bullet-icon" />
+                      <span>{t('m2mFeatures.2')}</span>
+                    </li>
                   </ul>
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary brutal-gateway-card__cta"
-                    data-start="m2m">{t('ctaCode')}</button
+                    data-start="m2m"
                   >
+                    {t('ctaCode')}
+                  </button>
                 </article>
               </div>
 
               <div class="brutal-callout">
                 <span class="brutal-callout__title">{t('onceTitle')}</span>
                 <span data-flow-block="connector">{t('onceBodyIdleC')}</span>
-                <span data-flow-block="m2m" hidden>{t('onceBodyIdle')}</span>
+                <span data-flow-block="m2m" hidden>
+                  {t('onceBodyIdle')}
+                </span>
               </div>
             </div>
 
             {/* ----------------------------------------------------- 2. Verifying */}
             <div class="state-block" data-state="verifying" hidden>
-              {
-                /* No `aria-busy`: it would tell assistive tech to hold updates
+              {/* No `aria-busy`: it would tell assistive tech to hold updates
                 from this region, and the 2.5 s "still verifying" swap relies
-                on the status region re-announcing. */
-              }
+                on the status region re-announcing. */}
               <div class="brutal-callout" role="status" aria-live="polite">
                 <span class="brutal-callout__title verify-title">
                   <span class="verify-dots" aria-hidden="true">
@@ -219,7 +240,9 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
               <div class="brutal-callout brutal-callout--warning callout--once" role="note">
                 <span class="brutal-callout__title">{t('onceTitle')}</span>
                 <span data-flow-block="connector">{t('onceBodyIssuedC')}</span>
-                <span data-flow-block="m2m" hidden>{t('onceBodyIssued')}</span>
+                <span data-flow-block="m2m" hidden>
+                  {t('onceBodyIssued')}
+                </span>
               </div>
 
               <section class="brutal-panel" aria-labelledby="cred-title">
@@ -232,21 +255,24 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
                 <div class="cred-body" data-flow-block="connector">
                   <div class="brutal-field cred-field">
-                    <label class="brutal-field__label" for="cred-key"
-                      >{t('keyLabel')} <em class="brutal-field__req">{t('shownOnce')}</em></label
-                    >
+                    <label class="brutal-field__label" for="cred-key">
+                      {t('keyLabel')} <em class="brutal-field__req">{t('shownOnce')}</em>
+                    </label>
                     <div class="cred-grid">
                       <output
                         id="cred-key"
                         class="brutal-field__input cred-value cred-value--secret"
-                        data-cred-key></output>
+                        data-cred-key
+                      ></output>
                       <button
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="key"
                         data-copy-kind="credential"
-                        aria-describedby="cred-key">{t('copy')}</button
+                        aria-describedby="cred-key"
                       >
+                        {t('copy')}
+                      </button>
                     </div>
                     <p class="brutal-field__hint brutal-text-tiny cred-hint">{t('keyHint')}</p>
                   </div>
@@ -254,36 +280,46 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
                 <div class="cred-body" data-flow-block="m2m" hidden>
                   <div class="brutal-field">
-                    <label class="brutal-field__label" for="cred-id">{t('clientId')}</label>
+                    <label class="brutal-field__label" for="cred-id">
+                      {t('clientId')}
+                    </label>
                     <div class="cred-grid">
-                      <output id="cred-id" class="brutal-field__input cred-value" data-cred-id
+                      <output
+                        id="cred-id"
+                        class="brutal-field__input cred-value"
+                        data-cred-id
                       ></output>
                       <button
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="id"
                         data-copy-kind="credential"
-                        aria-describedby="cred-id">{t('copy')}</button
+                        aria-describedby="cred-id"
                       >
+                        {t('copy')}
+                      </button>
                     </div>
                   </div>
                   <div class="brutal-field cred-field">
-                    <label class="brutal-field__label" for="cred-secret"
-                      >{t('clientSecret')}
-                      <em class="brutal-field__req">{t('shownOnce')}</em></label
-                    >
+                    <label class="brutal-field__label" for="cred-secret">
+                      {t('clientSecret')}
+                      <em class="brutal-field__req">{t('shownOnce')}</em>
+                    </label>
                     <div class="cred-grid">
                       <output
                         id="cred-secret"
                         class="brutal-field__input cred-value cred-value--secret"
-                        data-cred-secret></output>
+                        data-cred-secret
+                      ></output>
                       <button
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="secret"
                         data-copy-kind="credential"
-                        aria-describedby="cred-secret">{t('copy')}</button
+                        aria-describedby="cred-secret"
                       >
+                        {t('copy')}
+                      </button>
                     </div>
                     <p class="brutal-field__hint brutal-text-tiny cred-hint">{t('secretHint')}</p>
                   </div>
@@ -295,11 +331,13 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                       type="button"
                       class="brutal-btn brutal-btn--primary"
                       data-copy="primary"
-                      data-copy-kind="credential">{t('copyKey')}</button
+                      data-copy-kind="credential"
                     >
-                    <button type="button" class="brutal-btn brutal-btn--secondary" data-download
-                      >{t('download')}</button
-                    >
+                      {t('copyKey')}
+                    </button>
+                    <button type="button" class="brutal-btn brutal-btn--secondary" data-download>
+                      {t('download')}
+                    </button>
                   </div>
                   <p
                     class="brutal-text-tiny cred-saved"
@@ -316,7 +354,9 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 <p class="brutal-tool-shell__section-label">{t('cLabel')}</p>
                 <p class="brutal-text-small use-it__intro">{t('cIntro')}</p>
                 <div class="btn-row">
-                  <a href={GUIDE_HREF} hreflang="en" class="cta-button">{t('cGuide')}</a>
+                  <a href={GUIDE_HREF} hreflang="en" class="cta-button">
+                    {t('cGuide')}
+                  </a>
                 </div>
                 <div class="brutal-callout use-it__callout">
                   <span class="brutal-callout__title">{t('cEndsTitle')}</span>
@@ -329,11 +369,15 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 <p class="brutal-tool-shell__section-label">{t('connectLabel')}</p>
                 <p class="brutal-text-small use-it__intro">{t('connectIntro')}</p>
                 <div class="btn-row">
-                  <a href={FROM_CODE_HREF} class="cta-button">{t('connectGuide')}</a>
+                  <a href={FROM_CODE_HREF} class="cta-button">
+                    {t('connectGuide')}
+                  </a>
                 </div>
                 <ol class="steps">
                   <li>
-                    <span class="brutal-data-sm step-num" aria-hidden="true">01</span>
+                    <span class="brutal-data-sm step-num" aria-hidden="true">
+                      01
+                    </span>
                     <div class="step-body">
                       <h3 class="brutal-heading-sm step-title">{t('step1Title')}</h3>
                       <p class="brutal-text-small step-text">{t('step1Body')}</p>
@@ -342,7 +386,8 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                           class="snippet__pre"
                           tabindex="0"
                           aria-label={t('copyStep1')}
-                          data-snippet="tok">
+                          data-snippet="tok"
+                        >
                         </pre>
                         <button
                           type="button"
@@ -358,15 +403,18 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                             stroke="currentColor"
                             stroke-width="1.5"
                             aria-hidden="true"
-                            ><rect x="5" y="5" width="9" height="9"></rect><path d="M11 5V2H2v9h3"
-                            ></path></svg
                           >
+                            <rect x="5" y="5" width="9" height="9"></rect>
+                            <path d="M11 5V2H2v9h3"></path>
+                          </svg>
                         </button>
                       </div>
                     </div>
                   </li>
                   <li>
-                    <span class="brutal-data-sm step-num" aria-hidden="true">02</span>
+                    <span class="brutal-data-sm step-num" aria-hidden="true">
+                      02
+                    </span>
                     <div class="step-body">
                       <h3 class="brutal-heading-sm step-title">{t('step2Title')}</h3>
                       <p class="brutal-text-small step-text">{t('step2Body')}</p>
@@ -375,7 +423,8 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                           class="snippet__pre"
                           tabindex="0"
                           aria-label={t('copyStep2')}
-                          data-snippet="call">
+                          data-snippet="call"
+                        >
                         </pre>
                         <button
                           type="button"
@@ -391,9 +440,10 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                             stroke="currentColor"
                             stroke-width="1.5"
                             aria-hidden="true"
-                            ><rect x="5" y="5" width="9" height="9"></rect><path d="M11 5V2H2v9h3"
-                            ></path></svg
                           >
+                            <rect x="5" y="5" width="9" height="9"></rect>
+                            <path d="M11 5V2H2v9h3"></path>
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -416,39 +466,45 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 data-err-kind="unavail"
               >
                 <span class="brutal-callout__title" data-err-title></span>
-                <span data-err-static="err-bot" hidden>{t('errBotBody')}</span>
-                <span data-err-static="err-rate" hidden>{t('errRateBody')}</span>
-                <span data-err-static="err-unavail" hidden>{t('errUnavailBody')}</span>
+                <span data-err-static="err-bot" hidden>
+                  {t('errBotBody')}
+                </span>
+                <span data-err-static="err-rate" hidden>
+                  {t('errRateBody')}
+                </span>
+                <span data-err-static="err-unavail" hidden>
+                  {t('errUnavailBody')}
+                </span>
                 <span data-err-body></span>
               </div>
               <div class="btn-row">
-                <button type="button" class="brutal-btn brutal-btn--primary" data-retry
-                  >{t('retry')}</button
-                >
-                <a href={CONTACT_HREF} class="brutal-btn brutal-btn--primary" data-contact hidden
-                  >{t('contactAccess')}</a
-                >
+                <button type="button" class="brutal-btn brutal-btn--primary" data-retry>
+                  {t('retry')}
+                </button>
+                <a href={CONTACT_HREF} class="brutal-btn brutal-btn--primary" data-contact hidden>
+                  {t('contactAccess')}
+                </a>
                 <a
                   href={STATUS_HREF}
                   class="brutal-btn brutal-btn--secondary"
                   target="_blank"
                   rel="noopener noreferrer"
                   data-status-link
-                  hidden>{t('statusPage')}</a
+                  hidden
                 >
-                <a href={ABOUT_HREF} class="brutal-btn brutal-btn--secondary" data-about
-                  >{t('readDocs')}</a
-                >
+                  {t('statusPage')}
+                </a>
+                <a href={ABOUT_HREF} class="brutal-btn brutal-btn--secondary" data-about>
+                  {t('readDocs')}
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
-      {
-        locale.code !== 'en' && (
-          <p class="brutal-text-tiny trial-english-note">{common.t('notice.contentInEnglish')}</p>
-        )
-      }
+      {locale.code !== 'en' && (
+        <p class="brutal-text-tiny trial-english-note">{common.t('notice.contentInEnglish')}</p>
+      )}
     </div>
     <script
       is:inline

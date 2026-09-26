@@ -39,19 +39,22 @@ const RESPONSIVE_WIDTHS = [
     </p>
 
     <!-- A: Focus States -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-focus">Focus States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-focus">
+      Focus States
+    </h3>
     <p
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"
     >
-      All interactive components use a <code class="brand-code">2px solid var(--color-primary)</code
-      > outline with <code class="brand-code">2px offset</code> on <code class="brand-code"
-        >:focus-visible</code
-      >.
+      All interactive components use a{' '}
+      <code class="brand-code">2px solid var(--color-primary)</code> outline with{' '}
+      <code class="brand-code">2px offset</code> on <code class="brand-code">:focus-visible</code>.
     </p>
     <div class="brand-state-row">
       <div class="brand-state-item">
-        <button class="brutal-btn brutal-btn--primary" data-demo-state="focus">Button</button>
+        <button class="brutal-btn brutal-btn--primary" data-demo-state="focus">
+          Button
+        </button>
         <code class="brand-code">:focus-visible</code>
       </div>
       <div class="brand-state-item">
@@ -75,17 +78,23 @@ const RESPONSIVE_WIDTHS = [
         <code class="brand-code">:focus-visible</code>
       </div>
       <div class="brand-state-item">
-        <button class="brutal-choice-btn" type="button" data-demo-state="focus">Choice</button>
+        <button class="brutal-choice-btn" type="button" data-demo-state="focus">
+          Choice
+        </button>
         <code class="brand-code">:focus-visible</code>
       </div>
       <div class="brand-state-item">
-        <a class="brutal-link-interactive" href="#accessibility" data-demo-state="focus">Link</a>
+        <a class="brutal-link-interactive" href="#accessibility" data-demo-state="focus">
+          Link
+        </a>
         <code class="brand-code">:focus-visible</code>
       </div>
     </div>
 
     <!-- A: Contrast Ratio Table -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-contrast">Color Contrast Ratios</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-contrast">
+      Color Contrast Ratios
+    </h3>
     <p
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"
@@ -98,11 +107,11 @@ const RESPONSIVE_WIDTHS = [
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"
     >
       Every swatch renders the live token, never a copy of its value. The per-theme rows use the
-      static constants <code class="brand-code">--text-light-*</code> / <code class="brand-code"
-        >--text-dark-*</code
-      > that <code class="brand-code">--text-*</code> resolves to in each theme, so both tables stay accurate
-      whichever theme you are viewing. <code class="brand-code">--color-primary</code> is palette-driven
-      — switch palettes and these two rows follow.
+      static constants <code class="brand-code">--text-light-*</code> /{' '}
+      <code class="brand-code">--text-dark-*</code> that <code class="brand-code">--text-*</code>{' '}
+      resolves to in each theme, so both tables stay accurate whichever theme you are viewing.{' '}
+      <code class="brand-code">--color-primary</code> is palette-driven — switch palettes and these
+      two rows follow.
     </p>
 
     <h4 class="brutal-label brand-subgroup-title">Light Theme (on #ffffff)</h4>
@@ -128,7 +137,9 @@ const RESPONSIVE_WIDTHS = [
       <div class="a11y-contrast-row">
         <span class="a11y-swatch" style="background: var(--color-primary);"></span>
         <span class="a11y-var">--color-primary</span>
-        <span class="a11y-ratio">~2.1:1 <em>(default palette)</em></span>
+        <span class="a11y-ratio">
+          ~2.1:1 <em>(default palette)</em>
+        </span>
         <span class="a11y-badge a11y-badge--fail">Decorative only</span>
       </div>
     </div>
@@ -156,35 +167,39 @@ const RESPONSIVE_WIDTHS = [
       <div class="a11y-contrast-row">
         <span class="a11y-swatch" style="background: var(--color-primary);"></span>
         <span class="a11y-var">--color-primary</span>
-        <span class="a11y-ratio">~9.6:1 <em>(default palette)</em></span>
+        <span class="a11y-ratio">
+          ~9.6:1 <em>(default palette)</em>
+        </span>
         <span class="a11y-badge a11y-badge--pass">AAA</span>
       </div>
     </div>
 
     <!-- B: Touch Targets -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-touch">Touch Targets</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-touch">
+      Touch Targets
+    </h3>
     <p
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"
     >
       WCAG 2.5.5 (Level AAA) asks for a 44&times;44px minimum — stricter than the 24&times;24px of
-      AA 2.5.8. <code class="brand-code">.brutal-btn</code>, <code class="brand-code"
-        >.brutal-choice-btn</code
-      > (including <code class="brand-code">--unsure</code>) take the shared <code
-        class="brand-code">--touch-target-min</code
-      > floor directly, as do <code class="brand-code">.filter-button</code>, <code
-        class="brand-code">.modal-close</code
-      > and <code class="brand-code">.theme-toggle</code>; <code class="brand-code"
-        >.cta-button</code
-      > clears the same figure from its own padding above 480px and the token below it. BL-096 settled
+      AA 2.5.8. <code class="brand-code">.brutal-btn</code>,{' '}
+      <code class="brand-code">.brutal-choice-btn</code> (including{' '}
+      <code class="brand-code">--unsure</code>) take the shared{' '}
+      <code class="brand-code">--touch-target-min</code> floor directly, as do{' '}
+      <code class="brand-code">.filter-button</code>, <code class="brand-code">.modal-close</code>{' '}
+      and <code class="brand-code">.theme-toggle</code>; <code class="brand-code">.cta-button</code>{' '}
+      clears the same figure from its own padding above 480px and the token below it. BL-096 settled
       the scope: 44px is <strong>guaranteed and enforced on those families</strong>, and everywhere
-      else the bar is AA 2.5.8 (24&times;24) via <code class="brand-code"
-        >--touch-target-min-aa</code
-      >, now <strong>enforced by axe's <code class="brand-code">target-size</code></strong> on every route
-      the accessibility suite scans rather than asserted. It is measured on the <em>target</em>, so
-      a small control inside a clickable label already passes. The two map zoom clusters are
-      recorded deviations — they meet AA, not AAA. The dashed outline below is the 44&times;44
-      minimum drawn over each control.
+      else the bar is AA 2.5.8 (24&times;24) via{' '}
+      <code class="brand-code">--touch-target-min-aa</code>, now{' '}
+      <strong>
+        enforced by axe's <code class="brand-code">target-size</code>
+      </strong>{' '}
+      on every route the accessibility suite scans rather than asserted. It is measured on the{' '}
+      <em>target</em>, so a small control inside a clickable label already passes. The two map zoom
+      clusters are recorded deviations — they meet AA, not AAA. The dashed outline below is the
+      44&times;44 minimum drawn over each control.
     </p>
     <div class="brand-state-row">
       <div class="brand-state-item">
@@ -196,7 +211,9 @@ const RESPONSIVE_WIDTHS = [
       </div>
       <div class="brand-state-item">
         <div class="a11y-touch-demo">
-          <button class="brutal-choice-btn" type="button">Choice</button>
+          <button class="brutal-choice-btn" type="button">
+            Choice
+          </button>
           <div class="a11y-touch-overlay" aria-hidden="true"></div>
         </div>
         <code class="brand-code">.brutal-choice-btn — 44&times;44 minimum</code>
@@ -204,7 +221,9 @@ const RESPONSIVE_WIDTHS = [
     </div>
 
     <!-- B: Keyboard Navigation -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-keyboard">Keyboard Navigation</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-keyboard">
+      Keyboard Navigation
+    </h3>
     <div class="a11y-kb-table">
       <div class="a11y-kb-row a11y-kb-row--header">
         <span>Pattern</span>
@@ -244,7 +263,9 @@ const RESPONSIVE_WIDTHS = [
     </div>
 
     <!-- B: ARIA Patterns -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-aria">ARIA Patterns</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-aria">
+      ARIA Patterns
+    </h3>
     <div class="a11y-code-block">
       <pre><code>&lt;!-- Live region for dynamic results --&gt;
 &lt;div aria-live="polite" aria-atomic="true"&gt;
@@ -268,7 +289,9 @@ const RESPONSIVE_WIDTHS = [
     </div>
 
     <!-- B: Semantic HTML -->
-    <h3 class="brutal-heading-sm brand-group-title" id="a11y-semantic">Semantic HTML Structure</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-semantic">
+      Semantic HTML Structure
+    </h3>
     <p
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"

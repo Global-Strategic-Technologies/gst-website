@@ -31,11 +31,9 @@ const privacyHref = localizedHref('/privacy/', locale);
       </header>
 
       <section class="legal-page-body">
-        {
-          !isDefaultLocale(locale) && (
-            <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
-          )
-        }
+        {!isDefaultLocale(locale) && (
+          <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
+        )}
 
         <p>{t('intro')}</p>
 

@@ -152,149 +152,131 @@ const call = buildExampleCall(cap);
     )
   }
 
-  {
-    call.text && (
-      <>
-        <div class="mdoc-pane__labelrow">
-          <h3 class="brutal-label mdoc-pane__label">Example</h3>
-          {call.runnable && <span class="mdoc-pane__hint">complete and valid as written</span>}
-        </div>
-        <div class="mdoc-code">
-          {/* `data-snippet` + `data-copy-prev` rather than a `data-copy`
+  {call.text && (
+    <>
+      <div class="mdoc-pane__labelrow">
+        <h3 class="brutal-label mdoc-pane__label">Example</h3>
+        {call.runnable && <span class="mdoc-pane__hint">complete and valid as written</span>}
+      </div>
+      <div class="mdoc-code">
+        {/* `data-snippet` + `data-copy-prev` rather than a `data-copy`
               attribute: the generated call is multi-line, and this is the idiom
               the onboarding pages already use to keep a snippet authored in the
               markup. The delegation bails when no snippet resolves, so feedback
               firing at all proves a non-empty one was found. */}
-          {/* `set:text`, NOT `{call.text}` as a child. Inside `white-space:
+        {/* `set:text`, NOT `{call.text}` as a child. Inside `white-space:
               pre-wrap` every space in the markup is rendered space, and the
               pre-commit formatter is entitled to reflow a long tag onto its own
               lines — which it did, indenting the first line of every call by
               twelve characters and adding a trailing blank one. `set:text` sets
               the text content directly, so no amount of reformatting can leak
               into the payload. */}
-          <pre data-snippet class="mdoc-code__text" set:text={call.text} />
-          <button
-            type="button"
-            class="brutal-btn brutal-btn--secondary mdoc-code__copy"
-            data-copy-prev
-          >
-            Copy<span class="sr-only"> the {cap.id} example</span>
-          </button>
-        </div>
-      </>
-    )
-  }
+        <pre data-snippet class="mdoc-code__text" set:text={call.text} />
+        <button
+          type="button"
+          class="brutal-btn brutal-btn--secondary mdoc-code__copy"
+          data-copy-prev
+        >
+          Copy<span class="sr-only"> the {cap.id} example</span>
+        </button>
+      </div>
+    </>
+  )}
 
-  {
-    cap.uri && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">URI shape</h3>
-        <div class="mdoc-code mdoc-code--uri">
-          <code class="mdoc-code__text">{cap.uri}</code>
-        </div>
-      </>
-    )
-  }
+  {cap.uri && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">URI shape</h3>
+      <div class="mdoc-code mdoc-code--uri">
+        <code class="mdoc-code__text">{cap.uri}</code>
+      </div>
+    </>
+  )}
 
-  {
-    cap.orchestrates && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Orchestrates</h3>
-        <p class="brutal-text-tiny mdoc-pane__note">
-          Tools this prompt drives; each is called with base schemas as the conversation requires.
-        </p>
-        <div class="mdoc-chips">
-          {cap.orchestrates.map((id) =>
-            chip(id).href ? (
-              <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
-                {id}
-              </a>
-            ) : (
-              <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
-            )
-          )}
-        </div>
-      </>
-    )
-  }
-
-  {
-    cap.returns && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Returns</h3>
-        <ul class="mdoc-list">
-          {cap.returns.map((line) => (
-            <li class="mdoc-list__item">{line}</li>
-          ))}
-        </ul>
-      </>
-    )
-  }
-
-  {
-    cap.output && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Output</h3>
-        <ul class="mdoc-list">
-          {cap.output.map((line) => (
-            <li class="mdoc-list__item">{line}</li>
-          ))}
-        </ul>
-      </>
-    )
-  }
-
-  {
-    cap.note && (
-      <p class="brutal-callout mdoc-pane__callout">
-        <span class="brutal-callout__title">{cap.noteTitle ?? 'Note'}</span>
-        {cap.note}
+  {cap.orchestrates && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Orchestrates</h3>
+      <p class="brutal-text-tiny mdoc-pane__note">
+        Tools this prompt drives; each is called with base schemas as the conversation requires.
       </p>
-    )
-  }
-
-  {
-    cap.availability && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Availability</h3>
-        <p class="brutal-text-small mdoc-pane__availability">{cap.availability}</p>
-      </>
-    )
-  }
-
-  {
-    cap.related && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Related</h3>
-        <div class="mdoc-chips">
-          {cap.related.map((id) =>
-            chip(id).href ? (
-              <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
-                {id}
-              </a>
-            ) : (
-              <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
-            )
-          )}
-        </div>
-      </>
-    )
-  }
-
-  {
-    usedIn.length > 0 && (
-      <>
-        <h3 class="brutal-label mdoc-pane__label">Used in jobs</h3>
-        <div class="mdoc-chips">
-          {usedIn.map((job) => (
-            <a class="brutal-filter-chip mdoc-chip mdoc-chip--job" href="#jobs">
-              {job.title} →
+      <div class="mdoc-chips">
+        {cap.orchestrates.map((id) =>
+          chip(id).href ? (
+            <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
+              {id}
             </a>
-          ))}
-        </div>
-      </>
-    )
-  }
+          ) : (
+            <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
+          )
+        )}
+      </div>
+    </>
+  )}
+
+  {cap.returns && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Returns</h3>
+      <ul class="mdoc-list">
+        {cap.returns.map((line) => (
+          <li class="mdoc-list__item">{line}</li>
+        ))}
+      </ul>
+    </>
+  )}
+
+  {cap.output && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Output</h3>
+      <ul class="mdoc-list">
+        {cap.output.map((line) => (
+          <li class="mdoc-list__item">{line}</li>
+        ))}
+      </ul>
+    </>
+  )}
+
+  {cap.note && (
+    <p class="brutal-callout mdoc-pane__callout">
+      <span class="brutal-callout__title">{cap.noteTitle ?? 'Note'}</span>
+      {cap.note}
+    </p>
+  )}
+
+  {cap.availability && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Availability</h3>
+      <p class="brutal-text-small mdoc-pane__availability">{cap.availability}</p>
+    </>
+  )}
+
+  {cap.related && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Related</h3>
+      <div class="mdoc-chips">
+        {cap.related.map((id) =>
+          chip(id).href ? (
+            <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
+              {id}
+            </a>
+          ) : (
+            <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
+          )
+        )}
+      </div>
+    </>
+  )}
+
+  {usedIn.length > 0 && (
+    <>
+      <h3 class="brutal-label mdoc-pane__label">Used in jobs</h3>
+      <div class="mdoc-chips">
+        {usedIn.map((job) => (
+          <a class="brutal-filter-chip mdoc-chip mdoc-chip--job" href="#jobs">
+            {job.title} →
+          </a>
+        ))}
+      </div>
+    </>
+  )}
 </article>
 
 <style>

@@ -85,152 +85,147 @@ const tools = TOOL_IDS.map((id) => ({
       })),
     })}
   />
-
   <section class="tools-section">
     <div class="container">
       <HubHeader title={t('header.title')} subtitle={t('header.subtitle')} locale={locale} />
 
-      {
-        !isDefaultLocale(locale) && (
-          <p class="tools-notice">{common.t('notice.contentInEnglish')}</p>
-        )
-      }
+      {!isDefaultLocale(locale) && (
+        <p class="tools-notice">{common.t('notice.contentInEnglish')}</p>
+      )}
 
       <div class="brutal-gateway-grid">
-        {
-          tools.map((tool) => (
-            <article class="brutal-gateway-card brutal-frosted">
+        {tools.map((tool) => (
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header">
+              <h2>{tool.title}</h2>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              {tool.features.map((feature) => (
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <a href={tool.href} class="cta-button brutal-gateway-card__cta" hreflang="en">
+              {t('launch')}
+            </a>
+          </article>
+        ))}
+
+        {isDev && (
+          <>
+            <article class="brutal-gateway-card">
               <div class="brutal-gateway-card__header">
-                <h2>{tool.title}</h2>
+                <h2>Acquisition Integration Priority Matrix</h2>
               </div>
               <ul class="brutal-gateway-card__features">
-                {tool.features.map((feature) => (
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    {feature}
-                  </li>
-                ))}
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Map tech stacks of two merging companies via drag-and-drop
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Red-Yellow-Green compatibility report identifies friction points
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Reveals Day 2 integration challenges before deal close
+                </li>
               </ul>
-              <a href={tool.href} class="cta-button brutal-gateway-card__cta" hreflang="en">
-                {t('launch')}
-              </a>
+              <span class="brutal-gateway-card__badge">Planned</span>
             </article>
-          ))
-        }
 
-        {
-          isDev && (
-            <>
-              <article class="brutal-gateway-card">
-                <div class="brutal-gateway-card__header">
-                  <h2>Acquisition Integration Priority Matrix</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Map tech stacks of two merging companies via drag-and-drop
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Red-Yellow-Green compatibility report identifies friction points
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Reveals Day 2 integration challenges before deal close
-                  </li>
-                </ul>
-                <span class="brutal-gateway-card__badge">Planned</span>
-              </article>
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>The AI Readiness Assessment</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Evaluates documentation, test coverage, and architectural modularity
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  "Vibe-Ready" score determines AI-agent refactoring feasibility
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Signals expertise in modern AI-augmented development workflows
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
 
-              <article class="brutal-gateway-card">
-                <div class="brutal-gateway-card__header">
-                  <h2>The AI Readiness Assessment</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Evaluates documentation, test coverage, and architectural modularity
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    "Vibe-Ready" score determines AI-agent refactoring feasibility
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Signals expertise in modern AI-augmented development workflows
-                  </li>
-                </ul>
-                <span class="brutal-gateway-card__badge">Planned</span>
-              </article>
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Security & Compliance "Gap Finder"</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Industry-tailored checklist: SOC2, HIPAA, GDPR, PCI-DSS
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Radar chart visualizes security and compliance gaps
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  De-risks exits and funding rounds with compliance readiness
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
 
-              <article class="brutal-gateway-card">
-                <div class="brutal-gateway-card__header">
-                  <h2>Security & Compliance "Gap Finder"</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Industry-tailored checklist: SOC2, HIPAA, GDPR, PCI-DSS
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Radar chart visualizes security and compliance gaps
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    De-risks exits and funding rounds with compliance readiness
-                  </li>
-                </ul>
-                <span class="brutal-gateway-card__badge">Planned</span>
-              </article>
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Technical Diligence Questionnaire</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Structured questionnaire covering architecture, security, operations, and team
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Tailored to target profile: stage, industry, and deal context
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Exportable questionnaire package for target company distribution
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
 
-              <article class="brutal-gateway-card">
-                <div class="brutal-gateway-card__header">
-                  <h2>Technical Diligence Questionnaire</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Structured questionnaire covering architecture, security, operations, and team
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Tailored to target profile: stage, industry, and deal context
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Exportable questionnaire package for target company distribution
-                  </li>
-                </ul>
-                <span class="brutal-gateway-card__badge">Planned</span>
-              </article>
-
-              <article class="brutal-gateway-card">
-                <div class="brutal-gateway-card__header">
-                  <h2>Diligence Discovery Agenda Creator</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Transforms Diligence Machine output into a structured meeting agenda
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Time-boxed sessions with assigned topics, owners, and key questions
-                  </li>
-                  <li>
-                    <DeltaIcon class="bullet-icon" />
-                    Exportable agenda for distribution to deal teams and target management
-                  </li>
-                </ul>
-                <span class="brutal-gateway-card__badge">Planned</span>
-              </article>
-            </>
-          )
-        }
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Diligence Discovery Agenda Creator</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Transforms Diligence Machine output into a structured meeting agenda
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Time-boxed sessions with assigned topics, owners, and key questions
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Exportable agenda for distribution to deal teams and target management
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+          </>
+        )}
       </div>
 
-      <a href={localizedHref('/hub/', locale)} class="cta-button">{t('return')}</a>
+      <a href={localizedHref('/hub/', locale)} class="cta-button">
+        {t('return')}
+      </a>
     </div>
   </section>
 </BaseLayout>

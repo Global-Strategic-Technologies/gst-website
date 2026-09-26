@@ -81,34 +81,38 @@ function accessHref(tier?: string) {
   <section class="mcp-section">
     <div class="container">
       <HubHeader title={t('header.title')} locale={locale}>
-        <Fragment slot="subtitle"
-          >{t('header.ledeBefore')}{' '}<a
+        <Fragment slot="subtitle">
+          {t('header.ledeBefore')}{' '}
+          <a
             href={localizedHref('/hub/tools/', locale)}
             target="_blank"
             rel="noopener"
             class="mcp-lede-link"
             onclick="trackCTA('mcp-lede-hub-tools', 'hub-mcp')"
-            >{t('header.ledeLink')}<span class="sr-only"> {t('header.ledeNewWindow')}</span></a
-          >{' '}{t('header.ledeAfter')}</Fragment
-        >
+          >
+            {t('header.ledeLink')}
+            <span class="sr-only"> {t('header.ledeNewWindow')}</span>
+          </a>{' '}
+          {t('header.ledeAfter')}
+        </Fragment>
       </HubHeader>
 
-      {
-        /* The one action above the argument. This page deliberately kept every
+      {/* The one action above the argument. This page deliberately kept every
            CTA below the pitch while access was operator-only — an offer above
            the fold would have promised a self-serve path that did not exist
            (see the note on `.mcp-block--engineers` below, which is about the
            same restraint). BL-155 shipped that path, so the promise is now
            keepable: a reader who already knows what MCP is can act without
            scrolling past the catalog, and a reader who does not still meets the
-           argument first. */
-      }
+           argument first. */}
       <div class="mcp-trial-cta">
         <a
           href={localizedHref('/hub/mcp/trial/', locale)}
           class="cta-button"
-          onclick="trackCTA('mcp-lede-trial', 'hub-mcp')">{t('header.trialCta')}</a
+          onclick="trackCTA('mcp-lede-trial', 'hub-mcp')"
         >
+          {t('header.trialCta')}
+        </a>
       </div>
 
       <div class="mcp-block" id="what-it-does">
@@ -139,11 +143,9 @@ function accessHref(tier?: string) {
         <h2 class="brutal-heading-lg">{t('exposed.heading')}</h2>
         <p class="mcp-note">{t('exposed.note')}</p>
 
-        {
-          /* The counts a reader compares, on the section that explains what they
+        {/* The counts a reader compares, on the section that explains what they
           are counts OF. This is the only place the three totals appear together,
-          so `mcp-marketing-parity.test.ts` reads them here. */
-        }
+          so `mcp-marketing-parity.test.ts` reads them here. */}
         <div class="mcp-primitive-summary">
           <div class="brutal-stat-tile">
             <div class="brutal-stat-tile__value">16</div>
@@ -165,11 +167,14 @@ function accessHref(tier?: string) {
             <span class="mcp-primitive__count">16</span>
           </div>
           <p class="mcp-primitive__def">
-            {t('primitives.tools.def')}{' '}<a
+            {t('primitives.tools.def')}{' '}
+            <a
               href="https://modelcontextprotocol.io/docs/concepts/tools"
               target="_blank"
-              rel="noopener noreferrer">{t('primitives.tools.specLink')}</a
+              rel="noopener noreferrer"
             >
+              {t('primitives.tools.specLink')}
+            </a>
           </p>
           <details class="brutal-faq__item mcp-disclosure">
             <summary class="brutal-faq__question">
@@ -181,22 +186,31 @@ function accessHref(tier?: string) {
                 <h4>{t('catalog.tools.agenda.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.agenda.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />generate_diligence_agenda</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    generate_diligence_agenda
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/diligence-machine/" hreflang="en"
-                  >{t('catalog.try')}</a
-                >
+                <a class="mcp-catalog__try" href="/hub/tools/diligence-machine/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.history.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.history.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />search_portfolio</li>
-                  <li><DeltaIcon class="bullet-icon" />list_portfolio_facets</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    search_portfolio
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    list_portfolio_facets
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/ma-portfolio/" hreflang="en"
-                  >{t('catalog.try')}</a
-                >
+                <a class="mcp-catalog__try" href="/ma-portfolio/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.regulatory.title')}</h4>
@@ -204,70 +218,115 @@ function accessHref(tier?: string) {
                   {t('catalog.tools.regulatory.gloss', { count: 123 })}
                 </p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />search_regulations</li>
-                  <li><DeltaIcon class="bullet-icon" />list_regulation_facets</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    search_regulations
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    list_regulation_facets
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/regulatory-map/" hreflang="en"
-                  >{t('catalog.try')}</a
-                >
+                <a class="mcp-catalog__try" href="/hub/tools/regulatory-map/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.infra.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.infra.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />assess_infrastructure_cost_governance</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    assess_infrastructure_cost_governance
+                  </li>
                 </ul>
                 <a
                   class="mcp-catalog__try"
                   href="/hub/tools/infrastructure-cost-governance/"
-                  hreflang="en">{t('catalog.try')}</a
+                  hreflang="en"
                 >
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.spend.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.spend.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />compute_techpar</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    compute_techpar
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/techpar/" hreflang="en"
-                  >{t('catalog.try')}</a
-                >
+                <a class="mcp-catalog__try" href="/hub/tools/techpar/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.debt.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.debt.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />estimate_tech_debt_cost</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    estimate_tech_debt_cost
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/tech-debt-calculator/" hreflang="en"
-                  >{t('catalog.try')}</a
-                >
+                <a class="mcp-catalog__try" href="/hub/tools/tech-debt-calculator/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.irl.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.irl.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />generate_information_request_list_xlsx</li>
-                  <li><DeltaIcon class="bullet-icon" />fill_information_request_list_xlsx</li>
-                  <li><DeltaIcon class="bullet-icon" />list_irl_requests</li>
-                  <li><DeltaIcon class="bullet-icon" />prepare_irl_body</li>
-                  <li><DeltaIcon class="bullet-icon" />validate_irl_provenance</li>
-                  <li><DeltaIcon class="bullet-icon" />compose_dossier_envelope</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    generate_information_request_list_xlsx
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    fill_information_request_list_xlsx
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    list_irl_requests
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    prepare_irl_body
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    validate_irl_provenance
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    compose_dossier_envelope
+                  </li>
                 </ul>
                 <a
                   class="mcp-catalog__try"
                   href="/hub/tools/information-request-list-generator/"
-                  hreflang="en">{t('catalog.try')}</a
+                  hreflang="en"
                 >
+                  {t('catalog.try')}
+                </a>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.tools.radar.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.tools.radar.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />search_radar</li>
-                  <li><DeltaIcon class="bullet-icon" />get_latest_insights</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    search_radar
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    get_latest_insights
+                  </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/radar/" hreflang="en">{t('catalog.try')}</a>
+                <a class="mcp-catalog__try" href="/hub/radar/" hreflang="en">
+                  {t('catalog.try')}
+                </a>
               </div>
             </div>
           </details>
@@ -279,11 +338,14 @@ function accessHref(tier?: string) {
             <span class="mcp-primitive__count">133</span>
           </div>
           <p class="mcp-primitive__def">
-            {t('primitives.resources.def')}{' '}<a
+            {t('primitives.resources.def')}{' '}
+            <a
               href="https://modelcontextprotocol.io/docs/concepts/resources"
               target="_blank"
-              rel="noopener noreferrer">{t('primitives.resources.specLink')}</a
+              rel="noopener noreferrer"
             >
+              {t('primitives.resources.specLink')}
+            </a>
           </p>
           <details class="brutal-faq__item mcp-disclosure">
             <summary class="brutal-faq__question">
@@ -293,56 +355,87 @@ function accessHref(tier?: string) {
             <div class="mcp-catalog">
               <div class="mcp-catalog__group">
                 <h4>
-                  {t('catalog.resources.library.title')}{' '}<span class="mcp-catalog__count"
-                    >4</span
-                  >
+                  {t('catalog.resources.library.title')} <span class="mcp-catalog__count">4</span>
                 </h4>
                 <p class="mcp-catalog__gloss">{t('catalog.resources.library.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.library.item1')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.library.item2')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.library.item3')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.library.item4')}</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.library.item1')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.library.item2')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.library.item3')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.library.item4')}
+                  </li>
                 </ul>
                 <code class="mcp-catalog__uri">gst://library/&lt;slug&gt;</code>
               </div>
               <div class="mcp-catalog__group">
                 <h4>
-                  {t('catalog.resources.regulations.title')}{' '}<span class="mcp-catalog__count"
-                    >123</span
-                  >
+                  {t('catalog.resources.regulations.title')}{' '}
+                  <span class="mcp-catalog__count">123</span>
                 </h4>
                 <p class="mcp-catalog__gloss">{t('catalog.resources.regulations.gloss')}</p>
                 <ul>
                   <li>
-                    <DeltaIcon class="bullet-icon" />{t('catalog.resources.regulations.item1')}
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.regulations.item1')}
                   </li>
                   <li>
-                    <DeltaIcon class="bullet-icon" />{t('catalog.resources.regulations.item2')}
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.regulations.item2')}
                   </li>
                   <li>
-                    <DeltaIcon class="bullet-icon" />{t('catalog.resources.regulations.item3')}
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.regulations.item3')}
                   </li>
                   <li>
-                    <DeltaIcon class="bullet-icon" />{t('catalog.resources.regulations.item4')}
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.regulations.item4')}
                   </li>
                 </ul>
-                <code class="mcp-catalog__uri"
-                  >gst://regulations/&lt;jurisdiction&gt;/&lt;framework&gt;</code
-                >
+                <code class="mcp-catalog__uri">
+                  gst://regulations/&lt;jurisdiction&gt;/&lt;framework&gt;
+                </code>
               </div>
               <div class="mcp-catalog__group">
                 <h4>
-                  {t('catalog.resources.radar.title')}{' '}<span class="mcp-catalog__count">6</span>
+                  {t('catalog.resources.radar.title')} <span class="mcp-catalog__count">6</span>
                 </h4>
                 <p class="mcp-catalog__gloss">{t('catalog.resources.radar.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item1')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item2')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item3')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item4')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item5')}</li>
-                  <li><DeltaIcon class="bullet-icon" />{t('catalog.resources.radar.item6')}</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item1')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item2')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item3')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item4')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item5')}
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    {t('catalog.resources.radar.item6')}
+                  </li>
                 </ul>
                 <code class="mcp-catalog__uri">gst://radar/fyi|wire/&lt;category&gt;</code>
               </div>
@@ -356,11 +449,14 @@ function accessHref(tier?: string) {
             <span class="mcp-primitive__count">12</span>
           </div>
           <p class="mcp-primitive__def">
-            {t('primitives.prompts.def')}{' '}<a
+            {t('primitives.prompts.def')}{' '}
+            <a
               href="https://modelcontextprotocol.io/docs/concepts/prompts"
               target="_blank"
-              rel="noopener noreferrer">{t('primitives.prompts.specLink')}</a
+              rel="noopener noreferrer"
             >
+              {t('primitives.prompts.specLink')}
+            </a>
           </p>
           <details class="brutal-faq__item mcp-disclosure">
             <summary class="brutal-faq__question">
@@ -372,30 +468,66 @@ function accessHref(tier?: string) {
                 <h4>{t('catalog.prompts.deal.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.prompts.deal.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />gst_diligence_kickoff</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_target_quick_look</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_diligence_handoff_memo</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_comparable_engagements_memo</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_diligence_kickoff
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_target_quick_look
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_diligence_handoff_memo
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_comparable_engagements_memo
+                  </li>
                 </ul>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.prompts.irl.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.prompts.irl.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />gst_irl_create</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_irl_populate</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_irl_ingestion</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_irl_sweep</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_irl_extract</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_irl_create
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_irl_populate
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_irl_ingestion
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_irl_sweep
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_irl_extract
+                  </li>
                 </ul>
               </div>
               <div class="mcp-catalog__group">
                 <h4>{t('catalog.prompts.review.title')}</h4>
                 <p class="mcp-catalog__gloss">{t('catalog.prompts.review.gloss')}</p>
                 <ul>
-                  <li><DeltaIcon class="bullet-icon" />gst_architecture_layer_review</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_regulatory_exposure_brief</li>
-                  <li><DeltaIcon class="bullet-icon" />gst_radar_brief_today</li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_architecture_layer_review
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_regulatory_exposure_brief
+                  </li>
+                  <li>
+                    <DeltaIcon class="bullet-icon" />
+                    gst_radar_brief_today
+                  </li>
                 </ul>
               </div>
             </div>
@@ -407,14 +539,12 @@ function accessHref(tier?: string) {
         <h2 class="brutal-heading-lg">{t('tiers.heading')}</h2>
         <p class="mcp-note">{t('tiers.note')}</p>
 
-        {
-          /* The tier headers and the ceilings table are one comparison object
+        {/* The tier headers and the ceilings table are one comparison object
           split across two elements, so they must share a column split exactly:
           four equal tracks here (no column gap) against `table-layout: fixed`
           below, both resolving to 25%, with the same horizontal padding on the
           cells. That is what puts each tier above its own numbers, and
-          `hub-mcp-page.test.ts` measures it rather than trusting it. */
-        }
+          `hub-mcp-page.test.ts` measures it rather than trusting it. */}
         <div class="mcp-tiers">
           <div class="mcp-tier">
             <div class="mcp-tier__head">
@@ -422,8 +552,7 @@ function accessHref(tier?: string) {
             </div>
             <code class="mcp-tier__id">trial</code>
             <p class="mcp-tier__note">{t('tiers.trial.note')}</p>
-            {
-              /* The only tier whose CTA is not a mailto, and the only one
+            {/* The only tier whose CTA is not a mailto, and the only one
               styled as a BUTTON. Both follow from the same fact: this tier
               needs no operator, so the action is "go and get it" rather than
               "ask for it". Set as a text link like its two neighbours it read
@@ -433,22 +562,23 @@ function accessHref(tier?: string) {
               restyling of the link.
 
               `localizedHref` keeps es/pt-BR on their own prefix rather than
-              dropping them onto the English route. */
-            }
+              dropping them onto the English route. */}
             <a
               href={localizedHref('/hub/mcp/trial/', locale)}
               class="brutal-btn brutal-btn--primary mcp-tier__start"
               data-tier-cta
-              onclick="trackCTA('mcp-tier-trial', 'hub-mcp')">{t('tiers.trial.cta')}</a
+              onclick="trackCTA('mcp-tier-trial', 'hub-mcp')"
             >
+              {t('tiers.trial.cta')}
+            </a>
           </div>
 
           <div class="mcp-tier">
             <div class="mcp-tier__head">
               <h3 class="mcp-tier__name">{t('tiers.paid.name')}</h3>
-              <span class="brutal-bench-table__label brutal-bench-table__label--score"
-                >{t('tiers.paid.badge')}</span
-              >
+              <span class="brutal-bench-table__label brutal-bench-table__label--score">
+                {t('tiers.paid.badge')}
+              </span>
             </div>
             <code class="mcp-tier__id">paid</code>
             <p class="mcp-tier__note">{t('tiers.paid.note')}</p>
@@ -456,8 +586,10 @@ function accessHref(tier?: string) {
               href={accessHref('paid')}
               class="mcp-tier__cta"
               data-tier-cta
-              onclick="trackCTA('mcp-access-paid', 'hub-mcp')">{t('tiers.request')}</a
+              onclick="trackCTA('mcp-access-paid', 'hub-mcp')"
             >
+              {t('tiers.request')}
+            </a>
           </div>
 
           <div class="mcp-tier">
@@ -470,13 +602,14 @@ function accessHref(tier?: string) {
               href={accessHref('enterprise')}
               class="mcp-tier__cta"
               data-tier-cta
-              onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">{t('tiers.request')}</a
+              onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')"
             >
+              {t('tiers.request')}
+            </a>
           </div>
         </div>
 
-        {
-          /* No header row inside the table: the tier headers above ARE the
+        {/* No header row inside the table: the tier headers above ARE the
           column headers. The metric labels are therefore `<th scope="row">` —
           which is what they are, and which is also what gives every value cell
           a header, since axe's `td-has-header` applies to any table larger than
@@ -500,24 +633,38 @@ function accessHref(tier?: string) {
           nothing, match the implicit semantics exactly, and are kept for those.
           Note a trap if anyone tries to guard this: Playwright resolves roles
           from the DOM, so a `getByRole` assertion passes whether or not the
-          engine actually degrades, and would prove nothing. */
-        }
+          engine actually degrades, and would prove nothing. */}
         <table class="brutal-bench-table mcp-tier-table" role="table" aria-label={tierTableLabel}>
           <tbody role="rowgroup">
             <tr role="row">
-              <th scope="row" role="rowheader">{t('tiers.row.perMinute')}</th>
-              <td role="cell" data-tier={t('tiers.trial.name')}>{num('15')}</td>
-              <td role="cell" data-tier={t('tiers.paid.name')}>{num('60')}</td>
-              <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('120')}</td>
+              <th scope="row" role="rowheader">
+                {t('tiers.row.perMinute')}
+              </th>
+              <td role="cell" data-tier={t('tiers.trial.name')}>
+                {num('15')}
+              </td>
+              <td role="cell" data-tier={t('tiers.paid.name')}>
+                {num('60')}
+              </td>
+              <td role="cell" data-tier={t('tiers.enterprise.name')}>
+                {num('120')}
+              </td>
             </tr>
             <tr role="row">
-              <th scope="row" role="rowheader">{t('tiers.row.perDay')}</th>
-              <td role="cell" data-tier={t('tiers.trial.name')}>{num('100')}</td>
-              <td role="cell" data-tier={t('tiers.paid.name')}>{num('2,000')}</td>
-              <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('10,000')}</td>
+              <th scope="row" role="rowheader">
+                {t('tiers.row.perDay')}
+              </th>
+              <td role="cell" data-tier={t('tiers.trial.name')}>
+                {num('100')}
+              </td>
+              <td role="cell" data-tier={t('tiers.paid.name')}>
+                {num('2,000')}
+              </td>
+              <td role="cell" data-tier={t('tiers.enterprise.name')}>
+                {num('10,000')}
+              </td>
             </tr>
-            {
-              /* The trial's radar cells publish a WORD, not a number, and that
+            {/* The trial's radar cells publish a WORD, not a number, and that
               is the honest reading rather than a formatting choice.
               `TIER_LIMITS.trial` does carry `radarPerMinute: 1 / radarPerDay: 1`,
               but those are defense-in-depth: radar is refused outright for a
@@ -526,19 +673,34 @@ function accessHref(tier?: string) {
               consulted, so a trial caller gets zero radar calls, not one.
               Printing "1" here would advertise an allowance that does not
               exist. `mcp-marketing-parity.test.ts` binds this cell to that deny
-              rather than to `TIER_LIMITS`. */
-            }
+              rather than to `TIER_LIMITS`. */}
             <tr role="row">
-              <th scope="row" role="rowheader">{t('tiers.row.radarPerMinute')}</th>
-              <td role="cell" data-tier={t('tiers.trial.name')}>{t('tiers.row.radarNone')}</td>
-              <td role="cell" data-tier={t('tiers.paid.name')}>{num('5')}</td>
-              <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('10')}</td>
+              <th scope="row" role="rowheader">
+                {t('tiers.row.radarPerMinute')}
+              </th>
+              <td role="cell" data-tier={t('tiers.trial.name')}>
+                {t('tiers.row.radarNone')}
+              </td>
+              <td role="cell" data-tier={t('tiers.paid.name')}>
+                {num('5')}
+              </td>
+              <td role="cell" data-tier={t('tiers.enterprise.name')}>
+                {num('10')}
+              </td>
             </tr>
             <tr role="row">
-              <th scope="row" role="rowheader">{t('tiers.row.radarPerDay')}</th>
-              <td role="cell" data-tier={t('tiers.trial.name')}>{t('tiers.row.radarNone')}</td>
-              <td role="cell" data-tier={t('tiers.paid.name')}>{num('50')}</td>
-              <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('150')}</td>
+              <th scope="row" role="rowheader">
+                {t('tiers.row.radarPerDay')}
+              </th>
+              <td role="cell" data-tier={t('tiers.trial.name')}>
+                {t('tiers.row.radarNone')}
+              </td>
+              <td role="cell" data-tier={t('tiers.paid.name')}>
+                {num('50')}
+              </td>
+              <td role="cell" data-tier={t('tiers.enterprise.name')}>
+                {num('150')}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -556,12 +718,12 @@ function accessHref(tier?: string) {
             <div class="brutal-label mcp-access__label">{t('access.provisioning.label')}</div>
             <ul class="mcp-facts">
               <li>
-                <DeltaIcon class="bullet-icon" /><span
-                  set:html={tHtml('access.provisioning.item1')}
-                />
+                <DeltaIcon class="bullet-icon" />
+                <span set:html={tHtml('access.provisioning.item1')} />
               </li>
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.provisioning.item2')}</span>
+                <DeltaIcon class="bullet-icon" />
+                <span>{t('access.provisioning.item2')}</span>
               </li>
             </ul>
           </div>
@@ -569,10 +731,12 @@ function accessHref(tier?: string) {
             <div class="brutal-label mcp-access__label">{t('access.auth.label')}</div>
             <ul class="mcp-facts">
               <li>
-                <DeltaIcon class="bullet-icon" /><span set:html={tHtml('access.auth.item1')} />
+                <DeltaIcon class="bullet-icon" />
+                <span set:html={tHtml('access.auth.item1')} />
               </li>
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.auth.item2')}</span>
+                <DeltaIcon class="bullet-icon" />
+                <span>{t('access.auth.item2')}</span>
               </li>
             </ul>
           </div>
@@ -580,21 +744,19 @@ function accessHref(tier?: string) {
             <div class="brutal-label mcp-access__label">{t('access.ops.label')}</div>
             <ul class="mcp-facts">
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.ops.item1')}</span>
-                {
-                  /* Framing is deliberate and load-bearing: the capture pipeline is
+                <DeltaIcon class="bullet-icon" />
+                <span>{t('access.ops.item1')}</span>
+                {/* Framing is deliberate and load-bearing: the capture pipeline is
                 deactivated (ADR-0014) and PILOT_ONBOARDING.md § 3 says in terms "Do
                 not promise active audit capture in writing." Do not upgrade this
-                sentence into a guarantee. */
-                }
+                sentence into a guarantee. */}
               </li>
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.ops.item2')}</span>
-                {
-                  /* Named rather than linked: the URL is a copyable value in "For
+                <DeltaIcon class="bullet-icon" />
+                <span>{t('access.ops.item2')}</span>
+                {/* Named rather than linked: the URL is a copyable value in "For
                 your engineers" directly below, and printing it twice makes the
-                reader check whether the two agree. */
-                }
+                reader check whether the two agree. */}
               </li>
             </ul>
           </div>
@@ -616,33 +778,32 @@ function accessHref(tier?: string) {
               data-copy-kind="endpoint"
               data-copied-label={t('engineers.copied')}
               aria-live="polite"
-              ><span data-copy-label>{t('engineers.copy')}</span><span class="sr-only">
-                {t('engineers.copyEndpointSr')}</span
-              ></button
             >
+              <span data-copy-label>{t('engineers.copy')}</span>
+              <span class="sr-only">{t('engineers.copyEndpointSr')}</span>
+            </button>
           </p>
           <p class="mcp-endpoint">
             <span class="mcp-endpoint__label">{t('engineers.status')}</span>
-            {
-              /* Unlike the endpoint, this one is meant to be visited, so it is a
-            link as well as a copyable value. */
-            }
+            {/* Unlike the endpoint, this one is meant to be visited, so it is a
+            link as well as a copyable value. */}
             <a
               href="https://status.mcp.globalstrategic.tech/"
               target="_blank"
               rel="noopener noreferrer"
-              ><code data-status-url>https://status.mcp.globalstrategic.tech/</code></a
             >
+              <code data-status-url>https://status.mcp.globalstrategic.tech/</code>
+            </a>
             <button
               type="button"
               class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
               data-copy-endpoint
               data-copied-label={t('engineers.copied')}
               aria-live="polite"
-              ><span data-copy-label>{t('engineers.copy')}</span><span class="sr-only">
-                {t('engineers.copyStatusSr')}</span
-              ></button
             >
+              <span data-copy-label>{t('engineers.copy')}</span>
+              <span class="sr-only">{t('engineers.copyStatusSr')}</span>
+            </button>
           </p>
         </div>
       </div>
@@ -652,7 +813,9 @@ function accessHref(tier?: string) {
         <p class="mcp-note">{t('guides.note')}</p>
         <div class="brutal-gateway-grid mcp-guides">
           <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header"><h3>{t('guides.getStarted.title')}</h3></div>
+            <div class="brutal-gateway-card__header">
+              <h3>{t('guides.getStarted.title')}</h3>
+            </div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">
               {t('guides.getStarted.blurb')}
             </p>
@@ -660,21 +823,29 @@ function accessHref(tier?: string) {
               href="/hub/mcp/get-started/"
               hreflang="en"
               class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-guide-get-started', 'hub-mcp')">{t('guides.open')}</a
+              onclick="trackCTA('mcp-guide-get-started', 'hub-mcp')"
             >
+              {t('guides.open')}
+            </a>
           </article>
           <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header"><h3>{t('guides.using.title')}</h3></div>
+            <div class="brutal-gateway-card__header">
+              <h3>{t('guides.using.title')}</h3>
+            </div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">{t('guides.using.blurb')}</p>
             <a
               href="/hub/mcp/using/"
               hreflang="en"
               class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-guide-using', 'hub-mcp')">{t('guides.open')}</a
+              onclick="trackCTA('mcp-guide-using', 'hub-mcp')"
             >
+              {t('guides.open')}
+            </a>
           </article>
           <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header"><h3>{t('guides.advanced.title')}</h3></div>
+            <div class="brutal-gateway-card__header">
+              <h3>{t('guides.advanced.title')}</h3>
+            </div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">
               {t('guides.advanced.blurb')}
             </p>
@@ -682,11 +853,15 @@ function accessHref(tier?: string) {
               href="/hub/mcp/advanced-operations/"
               hreflang="en"
               class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-guide-advanced-operations', 'hub-mcp')">{t('guides.open')}</a
+              onclick="trackCTA('mcp-guide-advanced-operations', 'hub-mcp')"
             >
+              {t('guides.open')}
+            </a>
           </article>
           <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header"><h3>{t('guides.fromCode.title')}</h3></div>
+            <div class="brutal-gateway-card__header">
+              <h3>{t('guides.fromCode.title')}</h3>
+            </div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">
               {t('guides.fromCode.blurb')}
             </p>
@@ -694,18 +869,24 @@ function accessHref(tier?: string) {
             <a
               href={localizedHref('/hub/mcp/from-code/', locale)}
               class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-guide-from-code', 'hub-mcp')">{t('guides.open')}</a
+              onclick="trackCTA('mcp-guide-from-code', 'hub-mcp')"
             >
+              {t('guides.open')}
+            </a>
           </article>
           <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header"><h3>{t('guides.docs.title')}</h3></div>
+            <div class="brutal-gateway-card__header">
+              <h3>{t('guides.docs.title')}</h3>
+            </div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">{t('guides.docs.blurb')}</p>
             <a
               href="/hub/mcp/docs/"
               hreflang="en"
               class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-guide-docs', 'hub-mcp')">{t('guides.openReference')}</a
+              onclick="trackCTA('mcp-guide-docs', 'hub-mcp')"
             >
+              {t('guides.openReference')}
+            </a>
           </article>
         </div>
       </div>
@@ -717,8 +898,10 @@ function accessHref(tier?: string) {
           href={accessHref()}
           class="cta-button"
           data-request-access
-          onclick="trackCTA('mcp-request-access', 'hub-mcp')">{t('request.cta')}</a
+          onclick="trackCTA('mcp-request-access', 'hub-mcp')"
         >
+          {t('request.cta')}
+        </a>
       </div>
     </div>
   </section>

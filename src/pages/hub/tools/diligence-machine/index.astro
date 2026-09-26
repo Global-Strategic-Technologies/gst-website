@@ -43,7 +43,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       })
     )}
   />
-
   <section class="diligence-machine">
     <div class="container">
       <!-- Header -->
@@ -71,260 +70,254 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           aria-label="Wizard progress"
           data-testid="wizard-progress"
         >
-          {
-            WIZARD_STEPS.map((step, index) => (
-              <div
-                class={`tool-wizard-step ${index === 0 ? 'tool-wizard-step--active' : ''}`}
-                data-step-indicator={index + 1}
-                data-testid={`progress-segment-${index + 1}`}
+          {WIZARD_STEPS.map((step, index) => (
+            <div
+              class={`tool-wizard-step ${index === 0 ? 'tool-wizard-step--active' : ''}`}
+              data-step-indicator={index + 1}
+              data-testid={`progress-segment-${index + 1}`}
+            >
+              <svg
+                class="tool-wizard-step__icon"
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <svg
-                  class="tool-wizard-step__icon"
-                  viewBox="0 0 64 64"
+                <path
+                  d="M32 12 L52 52 L12 52 Z"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  stroke-linejoin="miter"
+                />
+                <text
+                  x="32"
+                  y="40"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  class="tool-wizard-step__number"
                 >
-                  <path
-                    d="M32 12 L52 52 L12 52 Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    stroke-linejoin="miter"
-                  />
-                  <text
-                    x="32"
-                    y="40"
-                    text-anchor="middle"
-                    dominant-baseline="middle"
-                    class="tool-wizard-step__number"
-                  >
-                    {index + 1}
-                  </text>
-                </svg>
-                <span class="tool-wizard-step__label">{step.navLabel}</span>
-              </div>
-            ))
-          }
+                  {index + 1}
+                </text>
+              </svg>
+              <span class="tool-wizard-step__label">{step.navLabel}</span>
+            </div>
+          ))}
         </div>
 
         <!-- Mobile Compact Progress -->
         <div class="tool-wizard-progress-mobile" aria-hidden="true">
           <span class="tool-wizard-progress-mobile__label">
-            Step <span class="tool-wizard-progress-mobile__current">1</span> of {
-              WIZARD_STEPS.length
-            } — <span class="tool-wizard-progress-mobile__name">{WIZARD_STEPS[0].navLabel}</span>
+            Step <span class="tool-wizard-progress-mobile__current">1</span> of{' '}
+            {WIZARD_STEPS.length} —{' '}
+            <span class="tool-wizard-progress-mobile__name">{WIZARD_STEPS[0].navLabel}</span>
           </span>
           <div class="tool-wizard-progress-mobile__dots">
-            {
-              WIZARD_STEPS.map((_, index) => (
-                <button
-                  class={`tool-wizard-dot ${index === 0 ? 'tool-wizard-dot--active' : ''}`}
-                  data-dot-step={index + 1}
-                  aria-label={`Go to step ${index + 1}`}
-                >
-                  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M32 12 L52 52 L12 52 Z"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="6"
-                      stroke-linejoin="miter"
-                    />
-                  </svg>
-                </button>
-              ))
-            }
+            {WIZARD_STEPS.map((_, index) => (
+              <button
+                class={`tool-wizard-dot ${index === 0 ? 'tool-wizard-dot--active' : ''}`}
+                data-dot-step={index + 1}
+                aria-label={`Go to step ${index + 1}`}
+              >
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M32 12 L52 52 L12 52 Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="6"
+                    stroke-linejoin="miter"
+                  />
+                </svg>
+              </button>
+            ))}
           </div>
         </div>
 
         <!-- Steps -->
         <div>
-          {
-            WIZARD_STEPS.map((step, index) => (
-              <div
-                class={`wizard-step ${index === 0 ? 'active' : ''}`}
-                data-step={index + 1}
-                data-step-id={step.id}
-                data-input-type={step.inputType}
-                data-testid={`wizard-step-${index + 1}`}
-              >
-                <h2 class="step-title">{step.title}</h2>
-                <p class="step-subtitle">{step.subtitle}</p>
-                {step.id === 'tech-archetype' && (
-                  <p class="step-note">
-                    Benchmark infrastructure costs against peers with{' '}
-                    <a href="/hub/tools/techpar/" target="_blank" rel="noopener">
-                      TechPar
-                    </a>
-                    .
-                  </p>
-                )}
-                {step.id === 'scale-intensity' && (
-                  <p class="step-note">
-                    Evaluate cloud cost governance practices with the{' '}
-                    <a
-                      href="/hub/tools/infrastructure-cost-governance/"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Infrastructure Cost Governance
-                    </a>{' '}
-                    tool.
-                  </p>
-                )}
-                {step.id === 'transformation-state' && (
-                  <p class="step-note">
-                    Estimate technical debt remediation costs with the{' '}
-                    <a href="/hub/tools/tech-debt-calculator/" target="_blank" rel="noopener">
-                      Tech Debt Calculator
-                    </a>
-                    .
-                  </p>
-                )}
-                {step.id === 'data-sensitivity' && (
-                  <p class="step-note">
-                    Explore jurisdiction-specific requirements in the{' '}
-                    <a href="/hub/tools/regulatory-map/" target="_blank" rel="noopener">
-                      Regulatory Map
-                    </a>
-                    .
-                  </p>
-                )}
+          {WIZARD_STEPS.map((step, index) => (
+            <div
+              class={`wizard-step ${index === 0 ? 'active' : ''}`}
+              data-step={index + 1}
+              data-step-id={step.id}
+              data-input-type={step.inputType}
+              data-testid={`wizard-step-${index + 1}`}
+            >
+              <h2 class="step-title">{step.title}</h2>
+              <p class="step-subtitle">{step.subtitle}</p>
+              {step.id === 'tech-archetype' && (
+                <p class="step-note">
+                  Benchmark infrastructure costs against peers with{' '}
+                  <a href="/hub/tools/techpar/" target="_blank" rel="noopener">
+                    TechPar
+                  </a>
+                  .
+                </p>
+              )}
+              {step.id === 'scale-intensity' && (
+                <p class="step-note">
+                  Evaluate cloud cost governance practices with the{' '}
+                  <a
+                    href="/hub/tools/infrastructure-cost-governance/"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Infrastructure Cost Governance
+                  </a>{' '}
+                  tool.
+                </p>
+              )}
+              {step.id === 'transformation-state' && (
+                <p class="step-note">
+                  Estimate technical debt remediation costs with the{' '}
+                  <a href="/hub/tools/tech-debt-calculator/" target="_blank" rel="noopener">
+                    Tech Debt Calculator
+                  </a>
+                  .
+                </p>
+              )}
+              {step.id === 'data-sensitivity' && (
+                <p class="step-note">
+                  Explore jurisdiction-specific requirements in the{' '}
+                  <a href="/hub/tools/regulatory-map/" target="_blank" rel="noopener">
+                    Regulatory Map
+                  </a>
+                  .
+                </p>
+              )}
 
-                {step.inputType === 'single-select' && step.options && (
-                  <div class="options-grid">
-                    {step.options.map((option) => (
-                      <button
-                        class="brutal-option-card"
-                        data-option-id={option.id}
-                        data-step-id={step.id}
-                        data-testid={`option-${step.id}-${option.id}`}
-                        type="button"
-                        aria-pressed="false"
-                      >
-                        <span class="brutal-option-card__label">
-                          <DeltaIcon class="bullet-icon" />
-                          {option.label}
-                        </span>
-                        {option.description && (
-                          <span class="brutal-option-card__description">{option.description}</span>
-                        )}
-                      </button>
-                    ))}
-                    {/* BL-031.95 Phase 2.C: "Not sure" affordance — sets the
+              {step.inputType === 'single-select' && step.options && (
+                <div class="options-grid">
+                  {step.options.map((option) => (
+                    <button
+                      class="brutal-option-card"
+                      data-option-id={option.id}
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-${option.id}`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        {option.label}
+                      </span>
+                      {option.description && (
+                        <span class="brutal-option-card__description">{option.description}</span>
+                      )}
+                    </button>
+                  ))}
+                  {/* BL-031.95 Phase 2.C: "Not sure" affordance — sets the
                         dimension to the 'unknown' sentinel; engine widens
                         triggers conservatively. Routes through the existing
                         handleOptionClick because the schema accepts 'unknown'
                         as a valid value (see UNKNOWN_INPUT in
                         src/schemas/diligence.ts). */}
+                  <button
+                    class="brutal-option-card brutal-option-card--unsure"
+                    data-option-id="unknown"
+                    data-step-id={step.id}
+                    data-testid={`option-${step.id}-unknown`}
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    <span class="brutal-option-card__label">
+                      <DeltaIcon class="bullet-icon" />
+                      Not sure
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {step.inputType === 'multi-select' && step.options && (
+                <div class="options-grid">
+                  {step.options.map((option) => (
                     <button
-                      class="brutal-option-card brutal-option-card--unsure"
-                      data-option-id="unknown"
+                      class="brutal-option-card"
+                      data-option-id={option.id}
                       data-step-id={step.id}
-                      data-testid={`option-${step.id}-unknown`}
+                      data-testid={`option-${step.id}-${option.id}`}
                       type="button"
                       aria-pressed="false"
                     >
                       <span class="brutal-option-card__label">
                         <DeltaIcon class="bullet-icon" />
-                        Not sure
+                        {option.label}
                       </span>
+                      {option.description && (
+                        <span class="brutal-option-card__description">{option.description}</span>
+                      )}
                     </button>
-                  </div>
-                )}
-
-                {step.inputType === 'multi-select' && step.options && (
-                  <div class="options-grid">
-                    {step.options.map((option) => (
-                      <button
-                        class="brutal-option-card"
-                        data-option-id={option.id}
-                        data-step-id={step.id}
-                        data-testid={`option-${step.id}-${option.id}`}
-                        type="button"
-                        aria-pressed="false"
-                      >
-                        <span class="brutal-option-card__label">
-                          <DeltaIcon class="bullet-icon" />
-                          {option.label}
-                        </span>
-                        {option.description && (
-                          <span class="brutal-option-card__description">{option.description}</span>
-                        )}
-                      </button>
-                    ))}
-                    {/* BL-031.95 Phase 2.C: "Not sure" affordance for the
+                  ))}
+                  {/* BL-031.95 Phase 2.C: "Not sure" affordance for the
                         multi-select geography step. Click sets
                         inputs.geographies = ['unknown'] and clears all other
                         selections; clicking any specific region after
                         clears the 'unknown' state. Special case handled in
                         handleOptionClick. */}
-                    <button
-                      class="brutal-option-card brutal-option-card--unsure"
-                      data-option-id="unknown"
-                      data-step-id={step.id}
-                      data-testid={`option-${step.id}-unknown`}
-                      type="button"
-                      aria-pressed="false"
-                    >
-                      <span class="brutal-option-card__label">
-                        <DeltaIcon class="bullet-icon" />
-                        Not sure
-                      </span>
-                    </button>
-                  </div>
-                )}
+                  <button
+                    class="brutal-option-card brutal-option-card--unsure"
+                    data-option-id="unknown"
+                    data-step-id={step.id}
+                    data-testid={`option-${step.id}-unknown`}
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    <span class="brutal-option-card__label">
+                      <DeltaIcon class="bullet-icon" />
+                      Not sure
+                    </span>
+                  </button>
+                </div>
+              )}
 
-                {step.inputType === 'compound' && step.fields && (
-                  <div class="compound-fields-grid">
-                    {step.fields.map((field) => (
-                      <div class="compound-field-section">
-                        <h3 class="field-section-label">{field.label}</h3>
-                        <div class="field-options-grid" data-field-id={field.id}>
-                          {field.options.map((opt) => (
-                            <button
-                              class="brutal-option-card compound-option"
-                              data-option-id={opt.id}
-                              data-field-id={field.id}
-                              data-step-id={step.id}
-                              data-testid={`compound-${field.id}-${opt.id}`}
-                              type="button"
-                              aria-pressed="false"
-                            >
-                              <span class="brutal-option-card__label">
-                                <DeltaIcon size={10} class="brutal-option-card__icon" />
-                                {opt.label}
-                              </span>
-                            </button>
-                          ))}
-                          {/* BL-031.95 Phase 2.C: "Not sure" per compound
-                              field. Each of the 4 compound fields
-                              (headcount/revenueRange/growthStage/companyAge)
-                              gets its own affordance — routes through
-                              handleCompoundOptionClick because the schema
-                              accepts 'unknown' on every dimension. */}
+              {step.inputType === 'compound' && step.fields && (
+                <div class="compound-fields-grid">
+                  {step.fields.map((field) => (
+                    <div class="compound-field-section">
+                      <h3 class="field-section-label">{field.label}</h3>
+                      <div class="field-options-grid" data-field-id={field.id}>
+                        {field.options.map((opt) => (
                           <button
-                            class="brutal-option-card compound-option brutal-option-card--unsure"
-                            data-option-id="unknown"
+                            class="brutal-option-card compound-option"
+                            data-option-id={opt.id}
                             data-field-id={field.id}
                             data-step-id={step.id}
-                            data-testid={`compound-${field.id}-unknown`}
+                            data-testid={`compound-${field.id}-${opt.id}`}
                             type="button"
                             aria-pressed="false"
                           >
                             <span class="brutal-option-card__label">
                               <DeltaIcon size={10} class="brutal-option-card__icon" />
-                              Not sure
+                              {opt.label}
                             </span>
                           </button>
-                        </div>
+                        ))}
+                        {/* BL-031.95 Phase 2.C: "Not sure" per compound
+                              field. Each of the 4 compound fields
+                              (headcount/revenueRange/growthStage/companyAge)
+                              gets its own affordance — routes through
+                              handleCompoundOptionClick because the schema
+                              accepts 'unknown' on every dimension. */}
+                        <button
+                          class="brutal-option-card compound-option brutal-option-card--unsure"
+                          data-option-id="unknown"
+                          data-field-id={field.id}
+                          data-step-id={step.id}
+                          data-testid={`compound-${field.id}-unknown`}
+                          type="button"
+                          aria-pressed="false"
+                        >
+                          <span class="brutal-option-card__label">
+                            <DeltaIcon size={10} class="brutal-option-card__icon" />
+                            Not sure
+                          </span>
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          }
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
 
         <!-- Navigation -->
@@ -334,22 +327,28 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             id="btnBack"
             data-testid="btn-back"
             type="button"
-            disabled>Back</button
+            disabled
           >
+            Back
+          </button>
           <button
             class="brutal-btn brutal-btn--primary"
             id="btnNext"
             data-testid="btn-next"
             type="button"
-            disabled>Next</button
+            disabled
           >
+            Next
+          </button>
           <button
             class="brutal-btn brutal-btn--primary"
             id="btnGenerate"
             data-testid="btn-generate"
             type="button"
-            style="display:none;">Generate Agenda</button
+            style="display:none;"
           >
+            Generate Agenda
+          </button>
         </div>
       </div>
       <!-- Output Container -->
@@ -378,7 +377,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 stroke="currentColor"
                 stroke-width="1.5"
                 stroke-linecap="round"
-                stroke-linejoin="round"></path>
+                stroke-linejoin="round"
+              ></path>
             </svg>
             Back
           </button>
@@ -397,12 +397,14 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 height="9"
                 rx="1.5"
                 stroke="currentColor"
-                stroke-width="1.5"></rect>
+                stroke-width="1.5"
+              ></rect>
               <path
                 d="M3 11V3a1.5 1.5 0 011.5-1.5H11"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linecap="round"></path>
+                stroke-linecap="round"
+              ></path>
             </svg>
             <span id="btnCopyLabel">Copy</span>
           </button>
@@ -418,7 +420,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 d="M4 6V1h8v5M4 12H2V7h12v5h-2"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linejoin="round"></path>
+                stroke-linejoin="round"
+              ></path>
               <rect
                 x="4"
                 y="10"
@@ -426,7 +429,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 height="4"
                 rx="0.5"
                 stroke="currentColor"
-                stroke-width="1.5"></rect>
+                stroke-width="1.5"
+              ></rect>
             </svg>
             Export PDF
           </button>
@@ -443,12 +447,14 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 stroke="currentColor"
                 stroke-width="1.5"
                 stroke-linecap="round"
-                stroke-linejoin="round"></path>
+                stroke-linejoin="round"
+              ></path>
               <path
                 d="M2.5 6.5A5.5 5.5 0 1 1 3 10"
                 stroke="currentColor"
                 stroke-width="1.5"
-                stroke-linecap="round"></path>
+                stroke-linecap="round"
+              ></path>
             </svg>
             Restart
           </button>
@@ -474,14 +480,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             id="docMeta"
             data-testid="doc-meta"
             aria-label="Input parameters"
-          >
-          </section>
+          ></section>
 
           <hr class="doc-divider" />
 
           <!-- Table of Contents -->
-          <section class="doc-toc" id="docToc" data-testid="doc-toc" aria-label="Table of contents">
-          </section>
+          <section
+            class="doc-toc"
+            id="docToc"
+            data-testid="doc-toc"
+            aria-label="Table of contents"
+          ></section>
 
           <hr class="doc-divider doc-divider--post-toc" />
 
@@ -596,8 +605,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               href="https://www.linkedin.com/in/reidperyam/"
               target="_blank"
               rel="noopener noreferrer"
-              class="tool-methodology__author-link">LinkedIn</a
+              class="tool-methodology__author-link"
             >
+              LinkedIn
+            </a>
           </div>
         </div>
       </details>

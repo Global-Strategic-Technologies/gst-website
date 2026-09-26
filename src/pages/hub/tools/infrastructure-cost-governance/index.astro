@@ -45,7 +45,6 @@ const domainCount = DOMAINS.length;
       })
     )}
   />
-
   <section class="icg-section">
     <div class="container">
       <HubHeader
@@ -59,9 +58,9 @@ const domainCount = DOMAINS.length;
           <div class="landing-content">
             <div class="brutal-callout landing-callout">
               <span class="brutal-callout__title">Who should complete this assessment.</span>
-              This tool takes 5 to 7 minutes. Domains 3 through 6 require familiarity with cloud infrastructure.
-              PE investors and executives should complete this alongside their engineering lead, or send
-              them the link directly.
+              This tool takes 5 to 7 minutes. Domains 3 through 6 require familiarity with cloud
+              infrastructure. PE investors and executives should complete this alongside their
+              engineering lead, or send them the link directly.
             </div>
 
             <div class="stats-row">
@@ -80,31 +79,38 @@ const domainCount = DOMAINS.length;
             </div>
 
             <div class="icg-stage-selector">
-              <span class="icg-stage-selector__label brutal-label"
-                >Company stage <span class="icg-stage-optional brutal-text-tiny">(optional)</span
-                ></span
-              >
+              <span class="icg-stage-selector__label brutal-label">
+                Company stage <span class="icg-stage-optional brutal-text-tiny">(optional)</span>
+              </span>
               <div class="icg-stage-grid" data-stage-grid>
                 <button
                   class="brutal-option-card brutal-option-card--compact"
                   data-stage="pre-series-b"
-                  type="button">Pre-Series B</button
+                  type="button"
                 >
+                  Pre-Series B
+                </button>
                 <button
                   class="brutal-option-card brutal-option-card--compact"
                   data-stage="series-bc"
-                  type="button">Series B-C</button
+                  type="button"
                 >
+                  Series B-C
+                </button>
                 <button
                   class="brutal-option-card brutal-option-card--compact"
                   data-stage="pe-backed"
-                  type="button">PE-backed 2+ yr</button
+                  type="button"
                 >
+                  PE-backed 2+ yr
+                </button>
                 <button
                   class="brutal-option-card brutal-option-card--compact"
                   data-stage="enterprise"
-                  type="button">Enterprise</button
+                  type="button"
                 >
+                  Enterprise
+                </button>
               </div>
               <div class="icg-stage-hint brutal-text-tiny">
                 Sets benchmark context for your results. You can skip this.
@@ -116,35 +122,44 @@ const domainCount = DOMAINS.length;
                 You have an incomplete assessment saved from a previous session.
               </p>
               <div class="icg-resume-actions">
-                <button data-action="resume" type="button" class="brutal-btn brutal-btn--secondary"
-                  >Resume</button
+                <button data-action="resume" type="button" class="brutal-btn brutal-btn--secondary">
+                  Resume
+                </button>
+                <button
+                  data-action="discard"
+                  type="button"
+                  class="brutal-btn brutal-btn--secondary"
                 >
-                <button data-action="discard" type="button" class="brutal-btn brutal-btn--secondary"
-                  >Start fresh</button
-                >
+                  Start fresh
+                </button>
               </div>
             </div>
 
             <button
               data-action="start"
               type="button"
-              class="brutal-btn brutal-btn--primary brutal-btn--full">Begin assessment</button
+              class="brutal-btn brutal-btn--primary brutal-btn--full"
             >
+              Begin assessment
+            </button>
 
             <div class="tool-action-bar tool-action-bar--center">
               <button
                 data-action="landing-copy"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
-                title="Copy a shareable link to this assessment">Copy link</button
+                title="Copy a shareable link to this assessment"
               >
+                Copy link
+              </button>
               <a
                 data-action="landing-email"
                 href="#"
                 class="brutal-btn brutal-btn--secondary"
                 title="Open a pre-filled email inviting your engineering lead to complete the assessment"
-                >Send to engineering lead</a
               >
+                Send to engineering lead
+              </a>
             </div>
           </div>
         </div>
@@ -164,9 +179,9 @@ const domainCount = DOMAINS.length;
             <div class="icg-domain-header">
               <div class="icg-domain-header__meta">
                 <span class="brutal-label icg-domain-label" data-domain-label></span>
-                <span class="icg-foundational-badge is-hidden" data-foundational-badge
-                  >foundational</span
-                >
+                <span class="icg-foundational-badge is-hidden" data-foundational-badge>
+                  foundational
+                </span>
               </div>
               <h2 class="brutal-heading-md icg-domain-name" data-domain-name></h2>
               <p class="brutal-text-small icg-domain-desc" data-domain-desc></p>
@@ -181,15 +196,17 @@ const domainCount = DOMAINS.length;
 
             <!-- Navigation -->
             <div class="icg-wizard-nav">
-              <button data-action="back" type="button" class="brutal-btn brutal-btn--secondary"
-                >Back to intro</button
-              >
+              <button data-action="back" type="button" class="brutal-btn brutal-btn--secondary">
+                Back to intro
+              </button>
               <button
                 data-action="next"
                 type="button"
                 class="brutal-btn brutal-btn--primary"
-                disabled>Next domain</button
+                disabled
               >
+                Next domain
+              </button>
             </div>
           </div>
         </div>
@@ -215,8 +232,7 @@ const domainCount = DOMAINS.length;
               <div
                 class="icg-foundational-warning__text brutal-text-small"
                 data-foundational-warning-text
-              >
-              </div>
+              ></div>
             </div>
 
             <!-- Quick wins -->
@@ -239,23 +255,22 @@ const domainCount = DOMAINS.length;
               <div class="brutal-tool-shell__section-label">Benchmark reference</div>
               <table class="brutal-bench-table">
                 <tbody data-benchmark-body>
-                  <tr data-stage-row="pre-series-b"
-                    ><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td
-                    ></tr
-                  >
-                  <tr data-stage-row="series-bc"
-                    ><td>Series B-C SaaS, scaling team</td><td data-bench="30-55">30-55</td></tr
-                  >
-                  <tr data-stage-row="pe-backed"
-                    ><td>PE-backed portco, 2+ years post-acquisition</td><td data-bench="45-70"
-                      >45-70</td
-                    ></tr
-                  >
-                  <tr data-stage-row="enterprise"
-                    ><td>Enterprise with established FinOps practice</td><td data-bench="65-90"
-                      >65-90</td
-                    ></tr
-                  >
+                  <tr data-stage-row="pre-series-b">
+                    <td>Pre-Series B / high-growth startup</td>
+                    <td data-bench="15-35">15-35</td>
+                  </tr>
+                  <tr data-stage-row="series-bc">
+                    <td>Series B-C SaaS, scaling team</td>
+                    <td data-bench="30-55">30-55</td>
+                  </tr>
+                  <tr data-stage-row="pe-backed">
+                    <td>PE-backed portco, 2+ years post-acquisition</td>
+                    <td data-bench="45-70">45-70</td>
+                  </tr>
+                  <tr data-stage-row="enterprise">
+                    <td>Enterprise with established FinOps practice</td>
+                    <td data-bench="65-90">65-90</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="tool-bench-note brutal-text-tiny">
@@ -271,9 +286,9 @@ const domainCount = DOMAINS.length;
                 Cloud infrastructure as a percentage of revenue varies widely by company stage,
                 business model, and architecture. Early-stage companies often run above 30 percent
                 while scaling ahead of revenue. Mature SaaS businesses may converge below 10
-                percent. <strong>The trend matters more than the number</strong> - assess whether spend
-                is moving in the right direction relative to revenue growth and whether the governance
-                practices above are in place to sustain that trajectory.
+                percent. <strong>The trend matters more than the number</strong> - assess whether
+                spend is moving in the right direction relative to revenue growth and whether the
+                governance practices above are in place to sustain that trajectory.
               </div>
             </div>
 
@@ -281,58 +296,66 @@ const domainCount = DOMAINS.length;
             <div data-recs-container class="icg-recs"></div>
 
             <!-- Actions row -->
-            <div
-              class="tool-action-bar tool-action-bar--center tool-action-bar--bordered tool-action-bar--stack"
-            >
+            <div class="tool-action-bar tool-action-bar--center tool-action-bar--bordered tool-action-bar--stack">
               <button
                 data-action="copy-summary"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
-                title="Copy a plain-text summary of your results to clipboard">Copy summary</button
+                title="Copy a plain-text summary of your results to clipboard"
               >
+                Copy summary
+              </button>
               <button
                 data-action="copy"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 title="Copy a shareable link that preserves your answers and dismissed recommendations"
-                >Copy link</button
               >
+                Copy link
+              </button>
               <button
                 data-action="export-json"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 title="Download your results as a structured JSON file for portfolio aggregation"
-                >Download JSON</button
               >
+                Download JSON
+              </button>
               <button
                 data-action="print"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 title="Your browser will open a print dialog. Select Save as PDF to download."
-                >Print / Save as PDF</button
               >
+                Print / Save as PDF
+              </button>
               <a
                 data-action="email"
                 href="#"
                 class="brutal-btn brutal-btn--secondary"
                 title="Open a pre-filled email with your results link. The recipient can complete the assessment independently."
-                >Send to engineering lead</a
               >
+                Send to engineering lead
+              </a>
               <button
                 data-action="compare"
                 type="button"
                 class="brutal-btn brutal-btn--secondary is-hidden"
-                title="Compare saved snapshots side by side">Compare</button
+                title="Compare saved snapshots side by side"
               >
+                Compare
+              </button>
               <button
                 data-action="review"
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
-                title="Review your answers across all six domains">Review answers</button
+                title="Review your answers across all six domains"
               >
-              <button data-action="reset" type="button" class="brutal-btn brutal-btn--secondary"
-                >Start over</button
-              >
+                Review answers
+              </button>
+              <button data-action="reset" type="button" class="brutal-btn brutal-btn--secondary">
+                Start over
+              </button>
             </div>
 
             <!-- Snapshot save -->
@@ -347,8 +370,10 @@ const domainCount = DOMAINS.length;
               <button
                 data-action="save-snapshot"
                 type="button"
-                class="brutal-btn brutal-btn--secondary">Save snapshot</button
+                class="brutal-btn brutal-btn--secondary"
               >
+                Save snapshot
+              </button>
             </div>
 
             <!-- Snapshot manager -->
@@ -359,8 +384,9 @@ const domainCount = DOMAINS.length;
                 data-action="clear-snapshots"
                 type="button"
                 class="brutal-btn brutal-btn--secondary icg-snapshot-clear"
-                >Clear all snapshots</button
               >
+                Clear all snapshots
+              </button>
             </div>
           </div>
         </div>
@@ -374,8 +400,10 @@ const domainCount = DOMAINS.length;
               <button
                 data-action="back-to-results"
                 type="button"
-                class="brutal-btn brutal-btn--secondary">Back to results</button
+                class="brutal-btn brutal-btn--secondary"
               >
+                Back to results
+              </button>
             </div>
           </div>
         </div>
@@ -411,11 +439,11 @@ const domainCount = DOMAINS.length;
               framework. Reactive and Aware correspond to the Crawl phase, where organizations are
               building foundational visibility. Optimizing aligns with Walk, where active management
               is in place. Strategic maps to Run, where cost governance is embedded in engineering
-              culture. For more on the framework, see <a
-                href="https://www.finops.org/framework/"
-                target="_blank"
-                rel="noopener noreferrer">finops.org/framework</a
-              >.
+              culture. For more on the framework, see{' '}
+              <a href="https://www.finops.org/framework/" target="_blank" rel="noopener noreferrer">
+                finops.org/framework
+              </a>
+              .
             </p>
 
             <h4 class="tool-methodology__heading">Foundational flag</h4>
@@ -470,16 +498,18 @@ const domainCount = DOMAINS.length;
                 href="https://www.linkedin.com/in/reidperyam/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="tool-methodology__author-link">LinkedIn</a
+                class="tool-methodology__author-link"
               >
+                LinkedIn
+              </a>
             </div>
           </div>
         </details>
       </div>
 
-      <a href="/hub/tools/" class="brutal-btn brutal-btn--secondary icg-back-link"
-        >Return to Tools</a
-      >
+      <a href="/hub/tools/" class="brutal-btn brutal-btn--secondary icg-back-link">
+        Return to Tools
+      </a>
     </div>
   </section>
 </BaseLayout>

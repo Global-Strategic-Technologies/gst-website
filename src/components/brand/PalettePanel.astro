@@ -15,28 +15,27 @@ import { palettes } from '../../data/palettes';
       aria-label="Toggle palette editor"
       data-testid="palette-panel-toggle"
     >
-      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
-        ><path
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon">
+        <path
           d="M32 12 L52 52 L12 52 Z"
           fill="none"
           stroke="currentColor"
           stroke-width="6"
-          stroke-linejoin="miter"></path></svg
-      >
+          stroke-linejoin="miter"
+        ></path>
+      </svg>
     </button>
     <div class="palette-panel__tabs" id="palette-tabs" data-testid="palette-tabs">
-      {
-        palettes.map((p, i) => (
-          <button
-            class={`palette-panel__tab${i === 0 ? ' palette-panel__tab--active' : ''}`}
-            type="button"
-            data-palette={p.id}
-            title={p.name}
-          >
-            {p.id}
-          </button>
-        ))
-      }
+      {palettes.map((p, i) => (
+        <button
+          class={`palette-panel__tab${i === 0 ? ' palette-panel__tab--active' : ''}`}
+          type="button"
+          data-palette={p.id}
+          title={p.name}
+        >
+          {p.id}
+        </button>
+      ))}
     </div>
     <button
       class="palette-panel__popout"
@@ -46,21 +45,20 @@ import { palettes } from '../../data/palettes';
       aria-label="Toggle site-wide palette"
       data-testid="palette-popout-toggle"
     >
-      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
-        ><path
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon">
+        <path
           d="M32 12 L52 52 L12 52 Z"
           fill="none"
           stroke="currentColor"
           stroke-width="6"
-          stroke-linejoin="miter"></path></svg
-      >
+          stroke-linejoin="miter"
+        ></path>
+      </svg>
     </button>
-    {
-      /* Jumps to the Ambient Motion section (BL-035), which sits below the tall
+    {/* Jumps to the Ambient Motion section (BL-035), which sits below the tall
          swatch grids. Lit while any effect is on (html[data-ambient]). The
          label shows only in the mobile-header clone; it is in the markup, not
-         added by script, so the clone keeps this file's scope attribute. */
-    }
+         added by script, so the clone keeps this file's scope attribute. */}
     <button
       class="palette-panel__motion"
       id="panel-motion-toggle"
@@ -70,17 +68,17 @@ import { palettes } from '../../data/palettes';
       aria-controls="panel-body"
       data-testid="palette-motion-toggle"
     >
-      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
-        ><path
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon">
+        <path
           d="M38 12 L58 52 L18 52 Z"
           fill="none"
           stroke="currentColor"
           stroke-width="6"
-          stroke-linejoin="miter"></path><path
-          d="M2 30 H20 M6 42 H16"
-          stroke="currentColor"
-          stroke-width="6"></path></svg
-      ><span class="palette-panel__motion-label">Motion</span>
+          stroke-linejoin="miter"
+        ></path>
+        <path d="M2 30 H20 M6 42 H16" stroke="currentColor" stroke-width="6"></path>
+      </svg>
+      <span class="palette-panel__motion-label">Motion</span>
     </button>
     <button
       class="palette-panel__theme-toggle"
@@ -90,14 +88,15 @@ import { palettes } from '../../data/palettes';
       aria-label="Cycle theme"
       data-testid="palette-theme-toggle"
     >
-      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
-        ><path
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon">
+        <path
           d="M32 12 L52 52 L12 52 Z"
           fill="none"
           stroke="currentColor"
           stroke-width="6"
-          stroke-linejoin="miter"></path></svg
-      >
+          stroke-linejoin="miter"
+        ></path>
+      </svg>
     </button>
   </div>
   <div class="palette-panel__body" id="panel-body">
@@ -108,17 +107,20 @@ import { palettes } from '../../data/palettes';
       class="palette-panel__mobile-header"
       id="panel-mobile-header"
       style={`--palette-columns: ${palettes.length * 3}; --palette-button-span: ${palettes.length}`}
-    >
-    </div>
+    ></div>
     <div class="palette-panel__header">
-      <span class="brutal-label" id="panel-palette-name">0. Current</span>
+      <span class="brutal-label" id="panel-palette-name">
+        0. Current
+      </span>
       <button
         class="brutal-btn brutal-btn--secondary colors-reset-btn"
         type="button"
         id="reset-all"
         data-testid="palette-reset-all"
-        title="Clear all color edits and restore the current palette defaults">Reset</button
+        title="Clear all color edits and restore the current palette defaults"
       >
+        Reset
+      </button>
     </div>
 
     <div class="palette-panel__section">
@@ -201,18 +203,20 @@ import { palettes } from '../../data/palettes';
       </div>
     </div>
 
-    {
-      /* Ambient Motion (BL-035), on every page the panel appears. The wrapper
+    {/* Ambient Motion (BL-035), on every page the panel appears. The wrapper
          and heading live HERE, not in the child, so this file's scoped
          .palette-panel__section rules reach them (STYLES_GUIDE § the
          scoped-rule / foreign-element trap). The body is built on the panel's
          first open (src/scripts/ambient/controls.ts, via palette-manager.ts),
-         so no page carries it for a visitor who never opens the panel. */
-    }
+         so no page carries it for a visitor who never opens the panel. */}
     <div class="palette-panel__section palette-panel__section--motion" id="panel-motion-section">
       <div class="palette-panel__section-head">
-        <span class="brutal-label-small" id="ambient-controls-title">Ambient Motion</span>
-        <span class="palette-panel__section-hint" id="ambient-scope-hint">Every page</span>
+        <span class="brutal-label-small" id="ambient-controls-title">
+          Ambient Motion
+        </span>
+        <span class="palette-panel__section-hint" id="ambient-scope-hint">
+          Every page
+        </span>
       </div>
       <div id="ambient-controls-mount"></div>
     </div>
@@ -227,14 +231,15 @@ import { palettes } from '../../data/palettes';
   aria-label="Open palette editor"
   data-testid="palette-fab"
 >
-  <svg viewBox="0 0 64 64" fill="none" class="palette-panel__fab-icon"
-    ><path
+  <svg viewBox="0 0 64 64" fill="none" class="palette-panel__fab-icon">
+    <path
       d="M32 12 L52 52 L12 52 Z"
       fill="none"
       stroke="currentColor"
       stroke-width="6"
-      stroke-linejoin="miter"></path></svg
-  >
+      stroke-linejoin="miter"
+    ></path>
+  </svg>
 </button>
 
 <script is:inline>

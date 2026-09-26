@@ -41,7 +41,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       })
     )}
   />
-
   <section class="tdc-section">
     <div class="container">
       <HubHeader
@@ -66,8 +65,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="sliders-stack">
             <div class="brutal-slider">
               <div class="brutal-slider__header">
-                <label class="brutal-slider__label" for="input-team-size">Team Size</label>
-                <span class="brutal-slider__value" data-display="team-size">8</span>
+                <label class="brutal-slider__label" for="input-team-size">
+                  Team Size
+                </label>
+                <span class="brutal-slider__value" data-display="team-size">
+                  8
+                </span>
               </div>
               <input
                 id="input-team-size"
@@ -99,13 +102,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-clamp-msg="team-size"
                 role="status"
                 aria-live="polite"
-                style="display:none"></span>
+                style="display:none"
+              ></span>
             </div>
 
             <div class="brutal-slider">
               <div class="brutal-slider__header">
-                <label class="brutal-slider__label" for="input-salary">Avg. Salary (all-in)</label>
-                <span class="brutal-slider__value" data-display="salary">$150K</span>
+                <label class="brutal-slider__label" for="input-salary">
+                  Avg. Salary (all-in)
+                </label>
+                <span class="brutal-slider__value" data-display="salary">
+                  $150K
+                </span>
               </div>
               <input
                 id="input-salary"
@@ -134,13 +142,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-clamp-msg="salary"
                 role="status"
                 aria-live="polite"
-                style="display:none"></span>
+                style="display:none"
+              ></span>
             </div>
 
             <div class="brutal-slider">
               <div class="brutal-slider__header">
-                <label class="brutal-slider__label" for="input-maint-pct">Maintenance Burden</label>
-                <span class="brutal-slider__value" data-display="maint-pct">25%</span>
+                <label class="brutal-slider__label" for="input-maint-pct">
+                  Maintenance Burden
+                </label>
+                <span class="brutal-slider__value" data-display="maint-pct">
+                  25%
+                </span>
               </div>
               <input
                 id="input-maint-pct"
@@ -172,7 +185,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-clamp-msg="maint-pct"
                 role="status"
                 aria-live="polite"
-                style="display:none"></span>
+                style="display:none"
+              ></span>
               <div class="slider-benchmark">
                 Estimate: what % of engineering sprints go to bugs, maintenance, and
                 keep-the-lights-on work? The complement of feature velocity.
@@ -195,7 +209,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   stroke="currentColor"
                   stroke-width="1.5"
                   stroke-linecap="round"
-                  stroke-linejoin="round"></path>
+                  stroke-linejoin="round"
+                ></path>
               </svg>
             </span>
           </button>
@@ -205,8 +220,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <div class="sliders-grid-2">
               <div class="brutal-slider">
                 <div class="brutal-slider__header">
-                  <label class="brutal-slider__label" for="input-incidents">Incidents / Mo</label>
-                  <span class="brutal-slider__value" data-display="incidents">3</span>
+                  <label class="brutal-slider__label" for="input-incidents">
+                    Incidents / Mo
+                  </label>
+                  <span class="brutal-slider__value" data-display="incidents">
+                    3
+                  </span>
                 </div>
                 <input
                   id="input-incidents"
@@ -238,13 +257,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-clamp-msg="incidents"
                   role="status"
                   aria-live="polite"
-                  style="display:none"></span>
+                  style="display:none"
+                ></span>
               </div>
 
               <div class="brutal-slider">
                 <div class="brutal-slider__header">
-                  <label class="brutal-slider__label" for="input-mttr">Avg. Time to Resolve</label>
-                  <span class="brutal-slider__value" data-display="mttr">4h</span>
+                  <label class="brutal-slider__label" for="input-mttr">
+                    Avg. Time to Resolve
+                  </label>
+                  <span class="brutal-slider__value" data-display="mttr">
+                    4h
+                  </span>
                 </div>
                 <input
                   id="input-mttr"
@@ -276,7 +300,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-clamp-msg="mttr"
                   role="status"
                   aria-live="polite"
-                  style="display:none"></span>
+                  style="display:none"
+                ></span>
               </div>
             </div>
 
@@ -285,28 +310,26 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <input type="checkbox" id="input-context-switch" data-input="context-switch" />
                 <span class="brutal-toggle__label">Include context-switch overhead (+23%)</span>
               </label>
-              <span class="brutal-toggle__hint"
-                >Weinberg's research: each concurrent task adds ~23% cognitive overhead to direct
-                labor</span
-              >
+              <span class="brutal-toggle__hint">
+                Weinberg's research: each concurrent task adds ~23% cognitive overhead to direct
+                labor
+              </span>
             </div>
 
             <div class="brutal-tool-shell__section-label section-label section-label--spaced">
               Deployment Frequency
             </div>
             <div class="deploy-grid">
-              {
-                DEPLOY_OPTIONS.map((opt, i) => (
-                  <button
-                    data-deploy-btn={i}
-                    class={`deploy-btn${i === DEFAULT_STATE.deployIdx ? ' active' : ''}`}
-                    type="button"
-                    aria-pressed={i === DEFAULT_STATE.deployIdx ? 'true' : 'false'}
-                  >
-                    {opt.label}
-                  </button>
-                ))
-              }
+              {DEPLOY_OPTIONS.map((opt, i) => (
+                <button
+                  data-deploy-btn={i}
+                  class={`deploy-btn${i === DEFAULT_STATE.deployIdx ? ' active' : ''}`}
+                  type="button"
+                  aria-pressed={i === DEFAULT_STATE.deployIdx ? 'true' : 'false'}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
             <div data-dora-message class="dora-message"></div>
 
@@ -316,10 +339,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <div class="sliders-grid-2">
               <div class="brutal-slider">
                 <div class="brutal-slider__header">
-                  <label class="brutal-slider__label" for="input-arr"
-                    >Annual Recurring Revenue</label
-                  >
-                  <span class="brutal-slider__value" data-display="arr">$10M</span>
+                  <label class="brutal-slider__label" for="input-arr">
+                    Annual Recurring Revenue
+                  </label>
+                  <span class="brutal-slider__value" data-display="arr">
+                    $10M
+                  </span>
                 </div>
                 <input
                   id="input-arr"
@@ -348,13 +373,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-clamp-msg="arr"
                   role="status"
                   aria-live="polite"
-                  style="display:none"></span>
+                  style="display:none"
+                ></span>
               </div>
 
               <div class="brutal-slider">
                 <div class="brutal-slider__header">
-                  <label class="brutal-slider__label" for="input-budget">Remediation Budget</label>
-                  <span class="brutal-slider__value" data-display="budget">$500K</span>
+                  <label class="brutal-slider__label" for="input-budget">
+                    Remediation Budget
+                  </label>
+                  <span class="brutal-slider__value" data-display="budget">
+                    $500K
+                  </span>
                 </div>
                 <input
                   id="input-budget"
@@ -383,16 +413,19 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   data-clamp-msg="budget"
                   role="status"
                   aria-live="polite"
-                  style="display:none"></span>
+                  style="display:none"
+                ></span>
               </div>
             </div>
 
             <div class="brutal-slider">
               <div class="brutal-slider__header">
-                <label class="brutal-slider__label" for="input-remediation"
-                  >Remediation Efficiency</label
-                >
-                <span class="brutal-slider__value" data-display="remediation">70%</span>
+                <label class="brutal-slider__label" for="input-remediation">
+                  Remediation Efficiency
+                </label>
+                <span class="brutal-slider__value" data-display="remediation">
+                  70%
+                </span>
               </div>
               <input
                 id="input-remediation"
@@ -409,7 +442,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 data-input="remediation"
               />
               <div class="brutal-slider__hints">
-                <span>0%</span><span>100%</span>
+                <span>0%</span>
+                <span>100%</span>
               </div>
             </div>
           </div>
@@ -423,8 +457,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="result-primary">
             <div>
               <div class="result-cost-label">Annual Cost of Debt</div>
-              <div class="result-cost-value" data-metric="annual-cost">—</div>
-              <div class="result-cost-sub"><span data-metric="per-month">—</span> / mo</div>
+              <div class="result-cost-value" data-metric="annual-cost">
+                —
+              </div>
+              <div class="result-cost-sub">
+                <span data-metric="per-month">—</span> / mo
+              </div>
             </div>
           </div>
 
@@ -432,19 +470,27 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <div class="result-grid">
             <div class="result-stat">
               <div class="result-stat-label">Hrs lost / eng / wk</div>
-              <div class="result-stat-value" data-metric="hrs-lost">—</div>
+              <div class="result-stat-value" data-metric="hrs-lost">
+                —
+              </div>
             </div>
             <div class="result-stat">
               <div class="result-stat-label">Cost / eng / mo</div>
-              <div class="result-stat-value" data-metric="cost-per-eng">—</div>
+              <div class="result-stat-value" data-metric="cost-per-eng">
+                —
+              </div>
             </div>
             <div class="result-stat">
               <div class="result-stat-label">FTEs lost to debt</div>
-              <div class="result-stat-value" id="ctx-engs-lost">—</div>
+              <div class="result-stat-value" id="ctx-engs-lost">
+                —
+              </div>
             </div>
             <div class="result-stat">
               <div class="result-stat-label">Burden level</div>
-              <div class="result-stat-value" id="ctx-burden-label">—</div>
+              <div class="result-stat-value" id="ctx-burden-label">
+                —
+              </div>
               <div class="result-stat-range" id="ctx-burden-range"></div>
             </div>
           </div>
@@ -454,31 +500,45 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             <div class="adv-results__grid">
               <div class="result-stat">
                 <div class="result-stat-label">Direct Labor</div>
-                <div class="result-stat-value" data-metric="direct-labor">—</div>
+                <div class="result-stat-value" data-metric="direct-labor">
+                  —
+                </div>
               </div>
               <div class="result-stat" id="ctx-switch-stat" style="display:none;">
                 <div class="result-stat-label">Context-Switch Cost</div>
-                <div class="result-stat-value" data-metric="context-switch">—</div>
+                <div class="result-stat-value" data-metric="context-switch">
+                  —
+                </div>
               </div>
               <div class="result-stat">
                 <div class="result-stat-label">Incident Labor</div>
-                <div class="result-stat-value" data-metric="incident-labor">—</div>
+                <div class="result-stat-value" data-metric="incident-labor">
+                  —
+                </div>
               </div>
               <div class="result-stat">
                 <div class="result-stat-label">Velocity (V)</div>
-                <div class="result-stat-value" data-metric="velocity">—</div>
+                <div class="result-stat-value" data-metric="velocity">
+                  —
+                </div>
               </div>
               <div class="result-stat">
                 <div class="result-stat-label">Debt % of ARR</div>
-                <div class="result-stat-value" data-metric="debt-pct-arr">—</div>
+                <div class="result-stat-value" data-metric="debt-pct-arr">
+                  —
+                </div>
               </div>
               <div class="result-stat">
                 <div class="result-stat-label">Break-even</div>
-                <div class="result-stat-value" id="payback-breakeven">—</div>
+                <div class="result-stat-value" id="payback-breakeven">
+                  —
+                </div>
               </div>
               <div class="result-stat">
                 <div class="result-stat-label">Est. Monthly Savings</div>
-                <div class="result-stat-value result-stat-value--teal" id="payback-savings">—</div>
+                <div class="result-stat-value result-stat-value--teal" id="payback-savings">
+                  —
+                </div>
               </div>
             </div>
             <div class="payback-disclaimer" id="payback-disclaimer"></div>
@@ -508,9 +568,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               productivity overhead associated with slower release cycles. Tiers follow the DORA
               State of DevOps classification: Elite (multiple/day&ndash;daily), High
               (weekly&ndash;biweekly), Medium (3-week&ndash;monthly), Low
-              (quarterly&ndash;annually). Source: Forsgren, N., Humble, J., &amp; Kim, G., <em
-                >Accelerate</em
-              > (2018); DORA State of DevOps Reports (2019&ndash;2023).
+              (quarterly&ndash;annually). Source: Forsgren, N., Humble, J., &amp; Kim, G.,{' '}
+              <em>Accelerate</em> (2018); DORA State of DevOps Reports (2019&ndash;2023).
             </p>
 
             <h4 class="tool-methodology__heading">Maintenance burden benchmarks</h4>
@@ -578,20 +637,26 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               id="export-pdf-btn"
               type="button"
               class="brutal-btn brutal-btn--secondary copy-link-btn"
-              aria-label="Export as PDF via print dialog">Export PDF</button
+              aria-label="Export as PDF via print dialog"
             >
+              Export PDF
+            </button>
             <button
               id="copy-summary-btn"
               type="button"
               class="brutal-btn brutal-btn--secondary copy-link-btn"
-              aria-label="Copy results summary to clipboard">Copy Summary</button
+              aria-label="Copy results summary to clipboard"
             >
+              Copy Summary
+            </button>
             <button
               id="copy-link-btn"
               type="button"
               class="brutal-btn brutal-btn--secondary copy-link-btn"
-              aria-label="Copy shareable link to clipboard">Copy Link</button
+              aria-label="Copy shareable link to clipboard"
             >
+              Copy Link
+            </button>
           </div>
         </div>
 
@@ -608,7 +673,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         </div>
       </div>
 
-      <a href="/hub/tools/" class="cta-button back-link">Return to Tools</a>
+      <a href="/hub/tools/" class="cta-button back-link">
+        Return to Tools
+      </a>
     </div>
   </section>
 </BaseLayout>

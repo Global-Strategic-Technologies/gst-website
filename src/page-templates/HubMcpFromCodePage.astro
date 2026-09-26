@@ -139,8 +139,12 @@ const CALL_SNIPPET = [
           <h2 class="brutal-heading-lg guide-heading">{t('prereq.heading')}</h2>
           <p class="guide-intro">{t('prereq.intro')}</p>
           <div class="btn-row">
-            <a href={TRIAL_HREF} class="cta-button">{t('prereq.trialCta')}</a>
-            <a href={CONTACT_HREF} class="text-cta">{t('prereq.accessCta')} →</a>
+            <a href={TRIAL_HREF} class="cta-button">
+              {t('prereq.trialCta')}
+            </a>
+            <a href={CONTACT_HREF} class="text-cta">
+              {t('prereq.accessCta')} →
+            </a>
           </div>
 
           <h3 class="guide-subheading">{t('prereq.what.title')}</h3>
@@ -149,7 +153,9 @@ const CALL_SNIPPET = [
           <h3 class="guide-subheading">{t('prereq.not.title')}</h3>
           <p class="guide-body">{t('prereq.not.body')}</p>
           <p class="guide-body">
-            <a href={CONNECTOR_HREF} hreflang="en" class="text-cta">{t('prereq.not.cta')} →</a>
+            <a href={CONNECTOR_HREF} hreflang="en" class="text-cta">
+              {t('prereq.not.cta')} →
+            </a>
             {!isEnglish && <span class="fineprint"> {common.t('notice.contentInEnglish')}</span>}
           </p>
 
@@ -169,8 +175,10 @@ const CALL_SNIPPET = [
               class="brutal-btn brutal-btn--secondary endpoint-copy"
               data-copy={TOKEN_URL}
               data-copied-label={t('copied')}
-              data-copy-kind="endpoint">{t('copy')}</button
+              data-copy-kind="endpoint"
             >
+              {t('copy')}
+            </button>
           </div>
 
           <h3 class="guide-subheading">{t('token.request.title')}</h3>
@@ -182,8 +190,10 @@ const CALL_SNIPPET = [
                 class="brutal-btn brutal-btn--secondary"
                 data-copy-prev
                 data-copied-label={t('copied')}
-                aria-label={t('token.request.copy')}>{t('copy')}</button
+                aria-label={t('token.request.copy')}
               >
+                {t('copy')}
+              </button>
             </div>
           </div>
 
@@ -210,13 +220,17 @@ const CALL_SNIPPET = [
                 class="brutal-btn brutal-btn--secondary"
                 data-copy-prev
                 data-copied-label={t('copied')}
-                aria-label={t('call.request.copy')}>{t('copy')}</button
+                aria-label={t('call.request.copy')}
               >
+                {t('copy')}
+              </button>
             </div>
           </div>
           <p class="guide-body" set:html={tHtml('call.result.body')} />
           <p class="guide-body">
-            <a href={DOCS_HREF} hreflang="en" class="text-cta">{t('call.result.cta')} →</a>
+            <a href={DOCS_HREF} hreflang="en" class="text-cta">
+              {t('call.result.cta')} →
+            </a>
             {!isEnglish && <span class="fineprint"> {common.t('notice.contentInEnglish')}</span>}
           </p>
 
@@ -253,9 +267,9 @@ const CALL_SNIPPET = [
                 <h3>{t('next.docs.title')}</h3>
               </div>
               <p class="brutal-gateway-card__features guide-card__blurb">{t('next.docs.blurb')}</p>
-              <a href={DOCS_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta"
-                >{t('next.docs.cta')}</a
-              >
+              <a href={DOCS_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta">
+                {t('next.docs.cta')}
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -264,9 +278,9 @@ const CALL_SNIPPET = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 {t('next.connector.blurb')}
               </p>
-              <a href={CONNECTOR_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta"
-                >{t('next.connector.cta')}</a
-              >
+              <a href={CONNECTOR_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta">
+                {t('next.connector.cta')}
+              </a>
             </article>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
@@ -275,18 +289,14 @@ const CALL_SNIPPET = [
               <p class="brutal-gateway-card__features guide-card__blurb">
                 {t('next.access.blurb')}
               </p>
-              <a href={CONTACT_HREF} class="cta-button brutal-gateway-card__cta"
-                >{t('next.access.cta')}</a
-              >
+              <a href={CONTACT_HREF} class="cta-button brutal-gateway-card__cta">
+                {t('next.access.cta')}
+              </a>
             </article>
           </div>
-          {
-            !isEnglish && (
-              <p class="brutal-text-tiny guide-english-note">
-                {common.t('notice.contentInEnglish')}
-              </p>
-            )
-          }
+          {!isEnglish && (
+            <p class="brutal-text-tiny guide-english-note">{common.t('notice.contentInEnglish')}</p>
+          )}
         </section>
       </div>
     </div>

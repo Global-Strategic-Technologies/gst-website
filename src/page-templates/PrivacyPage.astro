@@ -30,11 +30,9 @@ const common = useTranslations(locale, 'common');
       </header>
 
       <section class="legal-page-body">
-        {
-          !isDefaultLocale(locale) && (
-            <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
-          )
-        }
+        {!isDefaultLocale(locale) && (
+          <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
+        )}
 
         <p>{t('intro')}</p>
 
@@ -72,19 +70,15 @@ const common = useTranslations(locale, 'common');
           <li set:html={tHtml('thirdParty.item3')} />
         </ul>
         <p>{t('thirdParty.note')}</p>
-        {
-          /* BL-155: the Turnstile Privacy Addendum reference is a condition of
+        {/* BL-155: the Turnstile Privacy Addendum reference is a condition of
           service for the invisible widget, and the IP-hash sentence discloses
-          the 30-day identity key the trial signup keeps (TRIAL_IDENTITY_TTL). */
-        }
+          the 30-day identity key the trial signup keeps (TRIAL_IDENTITY_TTL). */}
         <p>{t('thirdParty.trial')}</p>
 
-        {
-          /* BL-152: the MCP server is a processing context of its own (OAuth
+        {/* BL-152: the MCP server is a processing context of its own (OAuth
           grants in KV, counters and caches in Upstash, aggregate telemetry in
           Analytics Engine, errors in Sentry). A connector-directory listing
-          requires a public policy that says so. */
-        }
+          requires a public policy that says so. */}
         <h2>{t('mcp.heading')}</h2>
         <p>{t('mcp.lead')}</p>
         <ul>

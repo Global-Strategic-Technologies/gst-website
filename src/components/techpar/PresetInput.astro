@@ -80,15 +80,29 @@ const chipGroupExtra: Record<string, boolean> = chipGroupAttr ? { [chipGroupAttr
 const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true } : {};
 ---
 
-{
-  chipsOnly ? (
-    <div
-      class="tp-arr-quick"
-      data-preset-input
-      data-input-name={inputName}
-      style={containerStyle}
-      {...chipGroupExtra}
-    >
+{chipsOnly ? (
+  <div
+    class="tp-arr-quick"
+    data-preset-input
+    data-input-name={inputName}
+    style={containerStyle}
+    {...chipGroupExtra}
+  >
+    {presets.map((p) => (
+      <button
+        class="tp-arr-chip"
+        aria-pressed="false"
+        data-preset-for={inputName}
+        data-preset-val={p.value}
+        type="button"
+      >
+        {p.label}
+      </button>
+    ))}
+  </div>
+) : (
+  <div data-preset-input data-input-name={inputName} style={containerStyle}>
+    <div class="tp-arr-quick" {...chipGroupExtra}>
       {presets.map((p) => (
         <button
           class="tp-arr-chip"
@@ -101,39 +115,23 @@ const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true }
         </button>
       ))}
     </div>
-  ) : (
-    <div data-preset-input data-input-name={inputName} style={containerStyle}>
-      <div class="tp-arr-quick" {...chipGroupExtra}>
-        {presets.map((p) => (
-          <button
-            class="tp-arr-chip"
-            aria-pressed="false"
-            data-preset-for={inputName}
-            data-preset-val={p.value}
-            type="button"
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-      <div class="brutal-field__input-wrap">
-        {prefix && <span class="brutal-field__prefix" set:html={prefix} />}
-        <input
-          type="number"
-          id={resolvedInputId}
-          data-input={inputName}
-          class={inputClasses}
-          min={min}
-          max={max}
-          step={step}
-          placeholder={placeholder}
-          value={initialValue}
-        />
-        {suffix && <span class="brutal-field__suffix" {...suffixExtra} set:html={suffix} />}
-      </div>
+    <div class="brutal-field__input-wrap">
+      {prefix && <span class="brutal-field__prefix" set:html={prefix} />}
+      <input
+        type="number"
+        id={resolvedInputId}
+        data-input={inputName}
+        class={inputClasses}
+        min={min}
+        max={max}
+        step={step}
+        placeholder={placeholder}
+        value={initialValue}
+      />
+      {suffix && <span class="brutal-field__suffix" {...suffixExtra} set:html={suffix} />}
     </div>
-  )
-}
+  </div>
+)}
 
 <script>
   // Hoisted: runs once after DOM parse regardless of how many <PresetInput>

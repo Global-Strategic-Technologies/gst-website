@@ -22,13 +22,11 @@ const { links } = Astro.props;
 ---
 
 <nav aria-label="On this page" class="onboarding-toc" data-onboarding-toc>
-  {
-    links.map((link) => (
-      <a href={`#${link.id}`} data-toc-link={link.id}>
-        <span>{link.label}</span>
-      </a>
-    ))
-  }
+  {links.map((link) => (
+    <a href={`#${link.id}`} data-toc-link={link.id}>
+      <span>{link.label}</span>
+    </a>
+  ))}
 </nav>
 
 <script>

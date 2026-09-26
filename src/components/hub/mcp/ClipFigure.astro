@@ -67,97 +67,95 @@ const { mp4, webm, poster, ariaLabel, badge, placeholder } = clip ?? {};
 const vars = { clipAspect: `${width} / ${height}`, clipMaxWidth: maxWidth };
 ---
 
-{
-  still ? (
-    <details class="clip-details" data-still-details>
-      <summary>
-        <DeltaIcon size={10} class="delta-chevron" />
-        {summary}
-      </summary>
-      <figure class="clip-figure">
-        <div class="clip-frame">
-          <img
-            src={still.src}
-            alt={still.alt}
-            width={width}
-            height={height}
-            loading="lazy"
-            decoding="async"
-          />
-        </div>
-        <figcaption class="clip-caption">{caption}</figcaption>
-      </figure>
-    </details>
-  ) : variant === 'collapsible' ? (
-    <details class="clip-details" data-clip-details>
-      <summary>
-        <DeltaIcon size={10} class="delta-chevron" />
-        {summary}
-      </summary>
-      <figure class="clip-figure">
-        <div class="clip-frame">
-          <video
-            data-clip
-            data-poster={poster}
-            data-mp4={mp4}
-            data-webm={webm}
-            width={width}
-            height={height}
-            preload="none"
-            aria-label={ariaLabel}
-          />
-          <button
-            type="button"
-            data-clip-toggle
-            hidden
-            class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--bottom"
-          >
-            Pause
-          </button>
-        </div>
-        <figcaption class="clip-caption">{caption}</figcaption>
-      </figure>
-    </details>
-  ) : (
-    <figure class="clip-wide">
-      <figcaption class="clip-caption clip-caption--above">{caption}</figcaption>
-      <div class="clip-scroll" data-clip-scroll>
-        <div class="clip-frame" data-clip-frame>
-          <video
-            data-clip
-            data-poster={poster}
-            data-mp4={mp4}
-            data-webm={webm}
-            width={width}
-            height={height}
-            preload="none"
-            aria-label={ariaLabel}
-          />
-          {placeholder && (
-            <span data-clip-placeholder class="clip-placeholder">
-              {placeholder}
-            </span>
-          )}
-          <button
-            type="button"
-            data-clip-toggle
-            hidden
-            class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--top"
-          >
-            Pause
-          </button>
-          {badge && (
-            <span data-clip-badge hidden class="clip-badge">
-              {badge}
-            </span>
-          )}
-        </div>
+{still ? (
+  <details class="clip-details" data-still-details>
+    <summary>
+      <DeltaIcon size={10} class="delta-chevron" />
+      {summary}
+    </summary>
+    <figure class="clip-figure">
+      <div class="clip-frame">
+        <img
+          src={still.src}
+          alt={still.alt}
+          width={width}
+          height={height}
+          loading="lazy"
+          decoding="async"
+        />
       </div>
-      <p class="clip-panhint">Swipe the frame sideways to pan</p>
-      <slot />
+      <figcaption class="clip-caption">{caption}</figcaption>
     </figure>
-  )
-}
+  </details>
+) : variant === 'collapsible' ? (
+  <details class="clip-details" data-clip-details>
+    <summary>
+      <DeltaIcon size={10} class="delta-chevron" />
+      {summary}
+    </summary>
+    <figure class="clip-figure">
+      <div class="clip-frame">
+        <video
+          data-clip
+          data-poster={poster}
+          data-mp4={mp4}
+          data-webm={webm}
+          width={width}
+          height={height}
+          preload="none"
+          aria-label={ariaLabel}
+        />
+        <button
+          type="button"
+          data-clip-toggle
+          hidden
+          class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--bottom"
+        >
+          Pause
+        </button>
+      </div>
+      <figcaption class="clip-caption">{caption}</figcaption>
+    </figure>
+  </details>
+) : (
+  <figure class="clip-wide">
+    <figcaption class="clip-caption clip-caption--above">{caption}</figcaption>
+    <div class="clip-scroll" data-clip-scroll>
+      <div class="clip-frame" data-clip-frame>
+        <video
+          data-clip
+          data-poster={poster}
+          data-mp4={mp4}
+          data-webm={webm}
+          width={width}
+          height={height}
+          preload="none"
+          aria-label={ariaLabel}
+        />
+        {placeholder && (
+          <span data-clip-placeholder class="clip-placeholder">
+            {placeholder}
+          </span>
+        )}
+        <button
+          type="button"
+          data-clip-toggle
+          hidden
+          class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--top"
+        >
+          Pause
+        </button>
+        {badge && (
+          <span data-clip-badge hidden class="clip-badge">
+            {badge}
+          </span>
+        )}
+      </div>
+    </div>
+    <p class="clip-panhint">Swipe the frame sideways to pan</p>
+    <slot />
+  </figure>
+)}
 
 <style define:vars={vars}>
   .clip-details {

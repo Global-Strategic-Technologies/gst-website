@@ -41,62 +41,60 @@ const { routePath } = localeFromPath(currentPath);
 const href = (path: string) => localizedHref(path, locale);
 ---
 
-{
-  links === undefined ? (
-    <ul>
+{links === undefined ? (
+  <ul>
+    <li>
+      <a
+        href={href('/services/')}
+        onclick="trackNavigation('/services', 'Services')"
+        class={routePath.startsWith('/services') ? 'active' : ''}
+      >
+        {t('nav.services')}
+      </a>
+    </li>
+    <li>
+      <a
+        href={href('/ma-portfolio/')}
+        onclick="trackNavigation('/ma-portfolio', 'M&A Portfolio')"
+        class={routePath.startsWith('/ma-portfolio') ? 'active' : ''}
+      >
+        {t('nav.ma')}
+      </a>
+    </li>
+    <li>
+      <a
+        href={href('/hub/')}
+        onclick="trackNavigation('/hub', 'Hub')"
+        class={routePath.startsWith('/hub') ? 'active' : ''}
+      >
+        {t('nav.hub')}
+      </a>
+    </li>
+    <li>
+      <a
+        href={href('/about/')}
+        onclick="trackNavigation('/about', 'About')"
+        class={routePath.startsWith('/about') ? 'active' : ''}
+      >
+        {t('nav.about')}
+      </a>
+    </li>
+    {/* Fifth item, only while ≥2 locales are live (BL-153) — see LanguageSwitcher. */}
+    <LanguageSwitcher locale={locale} currentPath={currentPath} />
+  </ul>
+) : (
+  <ul>
+    {links.map((link) => (
       <li>
-        <a
-          href={href('/services/')}
-          onclick="trackNavigation('/services', 'Services')"
-          class={routePath.startsWith('/services') ? 'active' : ''}
-        >
-          {t('nav.services')}
+        <a href={link.href} class={link.active ? 'active' : ''}>
+          {link.label}
         </a>
       </li>
-      <li>
-        <a
-          href={href('/ma-portfolio/')}
-          onclick="trackNavigation('/ma-portfolio', 'M&A Portfolio')"
-          class={routePath.startsWith('/ma-portfolio') ? 'active' : ''}
-        >
-          {t('nav.ma')}
-        </a>
-      </li>
-      <li>
-        <a
-          href={href('/hub/')}
-          onclick="trackNavigation('/hub', 'Hub')"
-          class={routePath.startsWith('/hub') ? 'active' : ''}
-        >
-          {t('nav.hub')}
-        </a>
-      </li>
-      <li>
-        <a
-          href={href('/about/')}
-          onclick="trackNavigation('/about', 'About')"
-          class={routePath.startsWith('/about') ? 'active' : ''}
-        >
-          {t('nav.about')}
-        </a>
-      </li>
-      {/* Fifth item, only while ≥2 locales are live (BL-153) — see LanguageSwitcher. */}
-      <LanguageSwitcher locale={locale} currentPath={currentPath} />
-    </ul>
-  ) : (
-    <ul>
-      {links.map((link) => (
-        <li>
-          <a href={link.href} class={link.active ? 'active' : ''}>
-            {link.label}
-          </a>
-        </li>
-      ))}
-      {/* Same rule as production so the specimen keeps mirroring it; inert. */}
-      <LanguageSwitcher locale={locale} currentPath={currentPath} demo />
-    </ul>
-  )
-}
+    ))}
+    {/* Same rule as production so the specimen keeps mirroring it; inert. */}
+    <LanguageSwitcher locale={locale} currentPath={currentPath} demo />
+  </ul>
+)}
 
 <style>
   ul {

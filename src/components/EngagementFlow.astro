@@ -26,42 +26,40 @@ const steps = ([1, 2, 3, 4] as const).map((n) => ({
       <p class="tagline">{t('engagement.tagline')}</p>
 
       <div class="flow-steps">
-        {
-          steps.map((step) => (
-            <div class="step brutal-frosted">
-              <div class="step-icon-container">
-                <svg
-                  class="step-icon"
-                  viewBox="0 0 64 64"
+        {steps.map((step) => (
+          <div class="step brutal-frosted">
+            <div class="step-icon-container">
+              <svg
+                class="step-icon"
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M32 12 L52 52 L12 52 Z"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+                  stroke="currentColor"
+                  stroke-width="5.5"
+                  stroke-linejoin="miter"
+                />
+                <text
+                  x="32"
+                  y="40"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  class="step-number"
                 >
-                  <path
-                    d="M32 12 L52 52 L12 52 Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="5.5"
-                    stroke-linejoin="miter"
-                  />
-                  <text
-                    x="32"
-                    y="40"
-                    text-anchor="middle"
-                    dominant-baseline="middle"
-                    class="step-number"
-                  >
-                    {step.number}
-                  </text>
-                </svg>
-                <span class="step-label">{step.label}</span>
-              </div>
-              <p class="step-text">{step.text}</p>
-              <div class="step-divider" />
-              <p class="step-detail">{step.detail}</p>
+                  {step.number}
+                </text>
+              </svg>
+              <span class="step-label">{step.label}</span>
             </div>
-          ))
-        }
+            <p class="step-text">{step.text}</p>
+            <div class="step-divider" />
+            <p class="step-detail">{step.detail}</p>
+          </div>
+        ))}
       </div>
     </div>
   </div>

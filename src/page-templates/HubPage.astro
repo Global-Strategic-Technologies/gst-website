@@ -85,250 +85,241 @@ const cards = (['tools', 'library', 'radar', 'mcp'] as const).map((id) => {
   <section class="hub-grid-section">
     <div class="container">
       <div class="hub-cards">
-        {
-          cards.map((card) => (
-            <a
-              href={card.href}
-              class="hub-card brutal-frosted"
-              hreflang={card.englishOnly ? 'en' : undefined}
-            >
-              {/* Decorative — the card is already the link, and already tracked. */}
-              {card.id === 'mcp' && announcement && <Sash label={cardBadge} scale="card" />}
-              <div class="hub-card-header">
-                {card.id === 'tools' && (
-                  <svg
-                    class="hub-card-icon"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 48 48"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x="4"
-                      y="8"
-                      width="40"
-                      height="32"
-                      rx="2"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <path
-                      d="M12 20L18 26L12 32"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <line
-                      x1="22"
-                      y1="32"
-                      x2="36"
-                      y2="32"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                )}
-                {card.id === 'library' && (
-                  <svg
-                    class="hub-card-icon"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 48 48"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M8 6H32L40 14V42H8V6Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="M32 6V14H40"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linejoin="round"
-                    />
-                    <line
-                      x1="16"
-                      y1="22"
-                      x2="32"
-                      y2="22"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="16"
-                      y1="28"
-                      x2="32"
-                      y2="28"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="16"
-                      y1="34"
-                      x2="28"
-                      y2="34"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                )}
-                {card.id === 'radar' && (
-                  <svg
-                    class="hub-card-icon"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 48 48"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <circle cx="24" cy="24" r="4" stroke="currentColor" stroke-width="2" />
-                    <circle
-                      cx="24"
-                      cy="24"
-                      r="12"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      opacity="0.6"
-                    />
-                    <circle
-                      cx="24"
-                      cy="24"
-                      r="20"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      opacity="0.3"
-                    />
-                    <line
-                      x1="24"
-                      y1="2"
-                      x2="24"
-                      y2="8"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="24"
-                      y1="40"
-                      x2="24"
-                      y2="46"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="2"
-                      y1="24"
-                      x2="8"
-                      y2="24"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="40"
-                      y1="24"
-                      x2="46"
-                      y2="24"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                )}
-                {card.id === 'mcp' && (
-                  <svg
-                    class="hub-card-icon"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 48 48"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x="6"
-                      y="6"
-                      width="14"
-                      height="14"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <rect
-                      x="28"
-                      y="6"
-                      width="14"
-                      height="14"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <rect
-                      x="6"
-                      y="28"
-                      width="14"
-                      height="14"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <path
-                      d="M35 28V35H28"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <line
-                      x1="20"
-                      y1="13"
-                      x2="28"
-                      y2="13"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="13"
-                      y1="20"
-                      x2="13"
-                      y2="28"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                    <line
-                      x1="35"
-                      y1="20"
-                      x2="35"
-                      y2="28"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                )}
-                <span class="hub-card-label">{card.label}</span>
-              </div>
-              <h2>{card.title}</h2>
-              <p>{card.body}</p>
-              {card.englishOnly && (
-                <span class="hub-card-notice">{common.t('notice.contentInEnglish')}</span>
+        {cards.map((card) => (
+          <a
+            href={card.href}
+            class="hub-card brutal-frosted"
+            hreflang={card.englishOnly ? 'en' : undefined}
+          >
+            {/* Decorative — the card is already the link, and already tracked. */}
+            {card.id === 'mcp' && announcement && <Sash label={cardBadge} scale="card" />}
+            <div class="hub-card-header">
+              {card.id === 'tools' && (
+                <svg
+                  class="hub-card-icon"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="4"
+                    y="8"
+                    width="40"
+                    height="32"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M12 20L18 26L12 32"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="22"
+                    y1="32"
+                    x2="36"
+                    y2="32"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
               )}
-              <span class="hub-card-cta">{card.cta}</span>
-            </a>
-          ))
-        }
+              {card.id === 'library' && (
+                <svg
+                  class="hub-card-icon"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8 6H32L40 14V42H8V6Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M32 6V14H40"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="16"
+                    y1="22"
+                    x2="32"
+                    y2="22"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="16"
+                    y1="28"
+                    x2="32"
+                    y2="28"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="16"
+                    y1="34"
+                    x2="28"
+                    y2="34"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              )}
+              {card.id === 'radar' && (
+                <svg
+                  class="hub-card-icon"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <circle cx="24" cy="24" r="4" stroke="currentColor" stroke-width="2" />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="12"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    opacity="0.6"
+                  />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    opacity="0.3"
+                  />
+                  <line
+                    x1="24"
+                    y1="2"
+                    x2="24"
+                    y2="8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="24"
+                    y1="40"
+                    x2="24"
+                    y2="46"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="2"
+                    y1="24"
+                    x2="8"
+                    y2="24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="40"
+                    y1="24"
+                    x2="46"
+                    y2="24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              )}
+              {card.id === 'mcp' && (
+                <svg
+                  class="hub-card-icon"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="6" y="6" width="14" height="14" stroke="currentColor" stroke-width="2" />
+                  <rect
+                    x="28"
+                    y="6"
+                    width="14"
+                    height="14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <rect
+                    x="6"
+                    y="28"
+                    width="14"
+                    height="14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M35 28V35H28"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="20"
+                    y1="13"
+                    x2="28"
+                    y2="13"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="13"
+                    y1="20"
+                    x2="13"
+                    y2="28"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <line
+                    x1="35"
+                    y1="20"
+                    x2="35"
+                    y2="28"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              )}
+              <span class="hub-card-label">{card.label}</span>
+            </div>
+            <h2>{card.title}</h2>
+            <p>{card.body}</p>
+            {card.englishOnly && (
+              <span class="hub-card-notice">{common.t('notice.contentInEnglish')}</span>
+            )}
+            <span class="hub-card-cta">{card.cta}</span>
+          </a>
+        ))}
       </div>
     </div>
   </section>
@@ -337,17 +328,15 @@ const cards = (['tools', 'library', 'radar', 'mcp'] as const).map((id) => {
     <div class="container">
       <h2 class="brutal-heading-lg">{t('faq.heading')}</h2>
       <div class="brutal-faq brutal-faq--lg">
-        {
-          faqItems.map((item) => (
-            <details class="brutal-faq__item">
-              <summary class="brutal-faq__question">
-                <span>{item.question}</span>
-                <DeltaIcon class="delta-chevron" />
-              </summary>
-              <div class="brutal-faq__answer" set:html={item.answer} />
-            </details>
-          ))
-        }
+        {faqItems.map((item) => (
+          <details class="brutal-faq__item">
+            <summary class="brutal-faq__question">
+              <span>{item.question}</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer" set:html={item.answer} />
+          </details>
+        ))}
       </div>
     </div>
   </section>

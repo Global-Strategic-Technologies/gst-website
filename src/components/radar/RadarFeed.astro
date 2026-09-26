@@ -141,19 +141,15 @@ if (!RADAR_BEARER) {
 const feed = mergeFeed(fyi, wire);
 ---
 
-{
-  feed.length > 0 ? (
-    <div class="feed-list">
-      {feed.map((item) =>
-        item.kind === 'fyi' ? <FyiItem item={item} /> : <WireItem item={item} />
-      )}
-    </div>
-  ) : (
-    <section class="radar-empty">
-      <p>Intelligence feed is currently being refreshed. Check back shortly.</p>
-    </section>
-  )
-}
+{feed.length > 0 ? (
+  <div class="feed-list">
+    {feed.map((item) => (item.kind === 'fyi' ? <FyiItem item={item} /> : <WireItem item={item} />))}
+  </div>
+) : (
+  <section class="radar-empty">
+    <p>Intelligence feed is currently being refreshed. Check back shortly.</p>
+  </section>
+)}
 
 <style>
   .feed-list {
