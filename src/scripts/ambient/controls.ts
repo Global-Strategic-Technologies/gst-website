@@ -81,7 +81,7 @@ function markup(): string {
       <span><strong>Reduced motion wins.</strong> A system set to reduce motion switches every effect off, whatever is chosen here. Colour follows the palette.</span>
     </p>
     <div class="ambient-controls__foot">
-      <span class="ambient-controls__state" id="ambient-state" aria-live="polite">Nothing on — the hero stays still</span>
+      <span class="ambient-controls__state" id="ambient-state" aria-live="polite"></span>
       <button type="button" class="brutal-btn brutal-btn--secondary ambient-controls__reset" id="ambient-reset" data-testid="ambient-reset" title="Restore the default effects, strengths, pace and scope">Reset motion</button>
     </div>`;
 }

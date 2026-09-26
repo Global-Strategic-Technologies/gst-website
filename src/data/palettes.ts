@@ -12,8 +12,7 @@ export const palettes: Palette[] = [
   {
     id: 0,
     name: 'Current',
-    concept:
-      'The base palette \u2014 teal primary with amber secondary. Monday\u2019s look in the daily rotation.',
+    concept: 'The base palette \u2014 teal primary with amber secondary.',
   },
   {
     id: 1,

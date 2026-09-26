@@ -1571,7 +1571,7 @@ The dim states of the four-state theme ([ADR-0038](../adr/0038-four-state-theme-
 - **Seed a different look with `seedLook(page, { palette, theme })`**, which writes the stamps too, on the first load only.
 - **Test the defaults themselves with `test.use({ storageState: LOOK_ONLY })`** (the ambient default) **or `EMPTY_STATE`** (nothing stored), and pin the date with `page.clock.setFixedTime` and a `timezoneId`, as `tests/e2e/daily-look.test.ts` does.
 - **Both dev-server origins are seeded**, 4321 and a 4325 scratch config. storageState is keyed by origin, so a config on any other origin starts on the rotated look; `tests/e2e/storage-baseline.test.ts` fails loudly if the baseline didn't land.
-- **A run that crosses local midnight** falls back to the rotation for contexts created after it. The stamps were computed when the config loaded. Re-run rather than chase the failure.
+- **A run that crosses local midnight** falls back to the rotation for contexts created after it. The stamps were computed when the config loaded. Capture the failing test's name, then re-run.
 
 ---
 

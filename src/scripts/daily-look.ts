@@ -16,7 +16,9 @@
  *
  * The inline init script in BaseLayout.astro cannot import this module and
  * duplicates it; tests/unit/daily-look.test.ts runs that script against this
- * module over a date matrix.
+ * module over a date matrix. resolveLook() and readStoredLook() are the
+ * reference that test measures the inline copy against — keep them even though
+ * no bundle calls them.
  */
 
 import { STORAGE_VALUES, type ThemeState, type ThemeStorageValue } from './theme-state';
