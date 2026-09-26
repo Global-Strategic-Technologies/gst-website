@@ -19,7 +19,13 @@ import {
   STRENGTH,
 } from '../../src/scripts/ambient-motion';
 
-const ALL_OFF = { on: [], strength: DEFAULT_STRENGTH, pace: PACE.default, scope: 'hero' };
+/** The public default (ADR-0039 § Amendment): every effect, every page. */
+const DEFAULTS = {
+  on: [...EFFECT_IDS],
+  strength: DEFAULT_STRENGTH,
+  pace: PACE.default,
+  scope: 'site',
+};
 
 describe('ambient-motion settings (BL-035)', () => {
   it('declares one labelled effect per id, in id order', () => {
@@ -27,14 +33,27 @@ describe('ambient-motion settings (BL-035)', () => {
     for (const e of EFFECTS) expect(e.label.length).toBeGreaterThan(0);
   });
 
-  it('visitors get nothing by default', () => {
-    expect(DEFAULT_SETTINGS.on).toEqual([]);
-    expect(parseSettings(null)).toEqual(ALL_OFF);
+  it('visitors get the shipped default: all six, every page, the operator’s strengths', () => {
+    expect(DEFAULT_SETTINGS.on).toEqual([...EFFECT_IDS]);
+    expect(DEFAULT_STRENGTH).toEqual({
+      grid: 15,
+      glow: 40,
+      scan: 5,
+      rails: 20,
+      deltas: 30,
+      arrows: 45,
+    });
+    expect(PACE.default).toBe(110);
+    expect(parseSettings(null)).toEqual(DEFAULTS);
+  });
+
+  it('a browser that switched motion off keeps it off', () => {
+    expect(parseSettings('{"on":[]}').on).toEqual([]);
   });
 
   it('reads anything malformed as the default', () => {
     for (const raw of ['', 'not json', '[]', '"glow"', '42', 'null', '{"on":"glow"}']) {
-      expect(parseSettings(raw), raw).toEqual(ALL_OFF);
+      expect(parseSettings(raw), raw).toEqual(DEFAULTS);
     }
   });
 
@@ -72,13 +91,13 @@ describe('ambient-motion settings (BL-035)', () => {
     expect(s.scope).toBe('site');
   });
 
-  it('reads the scope, and anything unknown as the hero', () => {
+  it('reads the scope, and anything unknown as the default (every page)', () => {
     expect(SCOPES).toEqual(['hero', 'page', 'site']);
-    expect(DEFAULT_SETTINGS.scope).toBe('hero');
+    expect(DEFAULT_SETTINGS.scope).toBe('site');
     for (const scope of SCOPES)
       expect(parseSettings(JSON.stringify({ on: ['glow'], scope })).scope).toBe(scope);
     for (const junk of ['everywhere', 3, null])
-      expect(parseSettings(JSON.stringify({ on: ['glow'], scope: junk })).scope).toBe('hero');
+      expect(parseSettings(JSON.stringify({ on: ['glow'], scope: junk })).scope).toBe('site');
   });
 
   it('applySettings writes the scope only while something is on', () => {
@@ -95,14 +114,14 @@ describe('ambient-motion settings (BL-035)', () => {
     expect(el.getAttribute(ATTR_ON)).toBe('glow');
     expect(el.hasAttribute(ATTR_LAYERED)).toBe(false);
     expect(el.style.getPropertyValue('--ambient-glow')).toBe('0.35');
-    expect(el.style.getPropertyValue('--ambient-pace')).toBe('1');
+    expect(el.style.getPropertyValue('--ambient-pace')).toBe('1.1');
 
     applySettings(el, parseSettings(JSON.stringify({ on: ['glow', 'rails'], pace: 150 })));
     expect(el.getAttribute(ATTR_ON)).toBe('glow rails');
     expect(el.hasAttribute(ATTR_LAYERED)).toBe(true);
     expect(el.style.getPropertyValue('--ambient-pace')).toBe('1.5');
 
-    applySettings(el, parseSettings(null));
+    applySettings(el, parseSettings('{"on":[]}'));
     expect(el.hasAttribute(ATTR_ON)).toBe(false);
     expect(el.hasAttribute(ATTR_LAYERED)).toBe(false);
   });
@@ -198,8 +217,10 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
     expect(m, 'scopes located').not.toBeNull();
     const list = [...m![1].matchAll(/'([a-z]+)'/g)].map((x) => x[1]);
     expect(list).toEqual([...SCOPES]);
-    expect(block).toContain(': scopes[0]');
-    expect(list[0]).toBe(DEFAULT_SETTINGS.scope);
+    expect(block).toContain(': defaultScope');
+    const d = /const defaultScope = '([a-z]+)'/.exec(block);
+    expect(d, 'defaultScope located').not.toBeNull();
+    expect(d![1]).toBe(DEFAULT_SETTINGS.scope);
   });
 
   it('its fallback default list is DEFAULT_SETTINGS.on', () => {

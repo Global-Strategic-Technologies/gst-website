@@ -6,7 +6,8 @@
  *
  * Imported with ?inline by runtime.ts and inserted as a style element: Astro would
  * attach a plainly imported sheet to every page that owns the importing
- * script, and this must reach only browsers that opted in.
+ * script, and this must reach only browsers that draw motion (on by default;
+ * never under reduced motion or for a browser that switched it off).
  * tests/unit/ambient-lazy-css-guard.test.ts holds that rule.
  */
 

@@ -1,8 +1,9 @@
 /**
  * Builds the ambient-motion effect layer (BL-035, ADR-0039) in the browser.
  *
- * Only browsers that opted in ever load this (src/scripts/ambient/loader.ts),
- * so a visitor who never switched motion on downloads none of it. It renders
+ * Loaded only by browsers that draw motion (src/scripts/ambient/loader.ts):
+ * motion is on by default, but a browser that switched it off, or prefers
+ * reduced motion, downloads none of it. It renders
  * the tables in src/data/ambient-effects.ts; tests/unit/ambient-build.test.ts
  * counts what it builds against them, and pins deltaSvg() to DeltaIcon.astro.
  *

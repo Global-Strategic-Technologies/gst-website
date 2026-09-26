@@ -2,12 +2,13 @@
  * Decides whether this browser loads ambient motion at all (BL-035, ADR-0039).
  *
  * Bundled into palette-manager.ts, which every page already loads, so it adds
- * no request of its own. A browser that never opted in stops here: it fetches
- * neither the effect (runtime.ts) nor its CSS.
+ * no request of its own. Motion is on by default (ADR-0039 § Amendment); a
+ * browser that switched it off stops here: it fetches neither the effect
+ * (runtime.ts) nor its CSS.
  *
  * BaseLayout's inline head script still writes the settings onto <html>
  * before first paint; this reads them.
- *  - Opted in at page start: wait for `load`, then an idle moment, then
+ *  - On at page start (the default): wait for `load`, then an idle moment, then
  *    import the runtime, so motion never competes with the page's own first
  *    render. It fades in when it arrives.
  *  - Switched on live from the panel: import straight away.

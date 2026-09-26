@@ -1,6 +1,7 @@
 /**
  * Ambient motion's runtime (BL-035, ADR-0039). Imported only by loader.ts, and
- * only in a browser that opted in, so no visitor who never did downloads it.
+ * only in a browser that draws motion — the default, unless it was switched
+ * off or reduced motion is set.
  *
  * start():
  *  1. inserts the effect CSS (a string, via ?inline: see ambient.css),

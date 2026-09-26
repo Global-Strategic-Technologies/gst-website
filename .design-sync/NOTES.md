@@ -96,8 +96,8 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 - **The Hero card deliberately omits the ambient-motion layer.** Since BL-035 (2026-09-22),
   the homepage `section.hero` carries `AmbientEffect.astro`. Since 2026-09-23 that is one
-  empty placeholder `<div class="ambient">`: the layer is built in the browser, only for a
-  browser that opted in from the palette panel, and its CSS lives outside `src/styles/`
+  empty placeholder `<div class="ambient">`: the layer is built in the browser (on by default
+  since 2026-09-25, switchable off in the palette panel), and its CSS lives outside `src/styles/`
   (STYLES_GUIDE § Lazily loaded stylesheets), so none of it reaches this bundle. It is a
   design-tool decoration, not part of the Hero's markup contract, so `neutralise()` still
   removes `.ambient` before `cidsIn()` runs, and the placeholder's scoped rules drop out of

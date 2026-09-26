@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y } from './helpers/a11y';
 import { palettes } from '../../src/data/palettes';
+import { LOOK_ONLY } from './helpers/storage-baseline';
 
 /**
  * Hero ambient motion (BL-035, ADR-0039): the /brand palette-panel section
@@ -13,9 +14,16 @@ import { palettes } from '../../src/data/palettes';
  * loader then reads "loaded". `off` and `skipped` are final, so an absence
  * gated on them proves something. Visibility is asserted with web-first
  * assertions, which poll (#23).
+ *
+ * Motion is on for every visitor by default (ADR-0039 § Amendment). Every spec
+ * starts from the E2E baseline storage, which switches it off
+ * (tests/e2e/helpers/storage-baseline.ts), so these tests begin from "a browser
+ * that switched motion off" unless they seed a choice; the public default is
+ * tested under LOOK_ONLY at the end.
  */
 
 const STORAGE_KEY = 'ambient-motion';
+const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
 
 /** Seed a stored choice before the page's own scripts run — first load only. */
 async function seed(page: Page, value: object): Promise<void> {
@@ -67,7 +75,9 @@ const htmlVar = (page: Page, name: string) =>
   page.evaluate((n) => document.documentElement.style.getPropertyValue(n), name);
 
 test.describe('Ambient motion — /brand panel section', () => {
-  test('starts with every effect off and a still preview', async ({ page }) => {
+  test('a browser that switched motion off starts with every effect off and a still preview', async ({
+    page,
+  }) => {
     await openBrandPanel(page);
     const chips = page.locator('[data-ambient-effect]');
     await expect(chips).toHaveCount(6);
@@ -86,6 +96,10 @@ test.describe('Ambient motion — /brand panel section', () => {
   test('multi-select toggles, layers, tunes, persists, and survives a palette change', async ({
     page,
   }) => {
+    // Hero scope: in the default Every-page scope the /brand preview pauses
+    // while it is off screen (the budget rule), and the open panel is where
+    // this test looks, not the stage.
+    await seed(page, { on: [], scope: 'hero' });
     await openBrandPanel(page);
     await page.getByTestId('ambient-chip-glow').click();
     await page.getByTestId('ambient-chip-rails').click();
@@ -141,19 +155,23 @@ test.describe('Ambient motion — /brand panel section', () => {
     await expect(page.locator('.hero .ambient__layer--grid')).toBeHidden();
   });
 
-  test('a single effect shows its full set; Reset forgets everything', async ({ page }) => {
+  test('a single effect shows its full set; Reset restores the shipped default', async ({
+    page,
+  }) => {
     await openBrandPanel(page);
     await page.getByTestId('ambient-chip-rails').click();
     expect(await htmlAttr(page, 'data-ambient-layered')).toBeNull();
     const stage = page.getByTestId('brand-ambient-stage');
     await expect(stage.locator('.ambient__layer--rails .ambient__el--solo').first()).toBeVisible();
 
+    // Reset removes the stored choice, so the browser gets the public default.
     await page.getByTestId('ambient-reset').click();
-    expect(await htmlAttr(page, 'data-ambient')).toBeNull();
-    await expect(page.getByTestId('ambient-chip-rails')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('#ambient-state')).toHaveText(/Nothing on/);
+    expect(await htmlAttr(page, 'data-ambient')).toBe(ALL.join(' '));
+    for (const id of ALL)
+      await expect(page.getByTestId(`ambient-chip-${id}`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('ambient-scope-site')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#ambient-state')).toHaveText(/6 of 6 on/);
     expect(await page.evaluate((k) => localStorage.getItem(k), STORAGE_KEY)).toBeNull();
-    await expect(stage.locator('.ambient__layer--rails')).toBeHidden();
   });
 
   // accessibility.test.ts scans /brand with the panel closed, where its body is
@@ -172,7 +190,7 @@ test.describe('Ambient motion — /brand panel section', () => {
 });
 
 test.describe('Ambient motion — homepage hero', () => {
-  test('a visitor with nothing stored sees a still hero', async ({ page }) => {
+  test('a browser that switched motion off sees a still hero', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await scriptsReady(page);
     expect(await htmlAttr(page, 'data-ambient')).toBeNull();
@@ -182,11 +200,11 @@ test.describe('Ambient motion — homepage hero', () => {
     await expect(page.locator('.hero .ambient__layer')).toHaveCount(0);
   });
 
-  // A visitor who never opted in downloads none of it (the lazy-loading
+  // A browser that switched motion off downloads none of it (the lazy-loading
   // change): not the effect, not its CSS, not the panel's Motion controls.
   // Gated on the loader's final `off` state, so the absence means something.
   // URLs are the dev server's module paths, which is what E2E runs against.
-  test('a visitor who never opted in fetches none of ambient motion', async ({ page }) => {
+  test('a browser that switched motion off fetches none of ambient motion', async ({ page }) => {
     const fetched: string[] = [];
     page.on('request', (r) => {
       if (/\/scripts\/ambient\/(runtime|controls)|ambient\.css|controls\.css/.test(r.url()))
@@ -440,8 +458,6 @@ test.describe('Ambient motion — homepage hero', () => {
 });
 
 test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
-  const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
-
   /** Real signal, not a class: animations whose target is inside the page layer.
    *  CSS animations only, so the layers' fade-in (a transition) never counts. */
   const pageLayer = (page: Page) =>
@@ -469,15 +485,15 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
       };
     });
 
-  test('the Scope control defaults to Hero and sets the scope live', async ({ page }) => {
+  test('the Scope control defaults to Every page and sets the scope live', async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await scriptsReady(page);
     await page.getByTestId('palette-motion-toggle').click();
     await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
-    await expect(page.getByTestId('ambient-scope-hero')).toBeDisabled();
+    await expect(page.getByTestId('ambient-scope-site')).toBeDisabled();
     await page.getByTestId('ambient-chip-glow').click();
-    await expect(page.getByTestId('ambient-scope-hero')).toHaveAttribute('aria-pressed', 'true');
-    expect(await htmlAttr(page, 'data-ambient-scope')).toBe('hero');
+    await expect(page.getByTestId('ambient-scope-site')).toHaveAttribute('aria-pressed', 'true');
+    expect(await htmlAttr(page, 'data-ambient-scope')).toBe('site');
     await page.getByTestId('ambient-scope-page').click();
     await expect(page.getByTestId('ambient-scope-page')).toHaveAttribute('aria-pressed', 'true');
     expect(await htmlAttr(page, 'data-ambient-scope')).toBe('page');
@@ -684,5 +700,58 @@ test.describe('Ambient motion — the rail Motion button', () => {
 
     await clone.click();
     await expect.poll(() => sectionInView(page)).toBe(true);
+  });
+});
+
+/**
+ * The public default (ADR-0039 § Amendment): a first visit, with nothing stored
+ * for motion, gets every effect on every page at the operator's settings.
+ */
+test.describe('Ambient motion — the public default', () => {
+  test.use({ storageState: LOOK_ONLY });
+
+  test('a first visit gets all six effects, every page, at the shipped strengths and pace', async ({
+    page,
+  }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    expect(await htmlAttr(page, 'data-ambient')).toBe(ALL.join(' '));
+    expect(await htmlAttr(page, 'data-ambient-layered')).toBe('');
+    expect(await htmlAttr(page, 'data-ambient-scope')).toBe('site');
+    const expected = {
+      grid: '0.15',
+      glow: '0.4',
+      scan: '0.05',
+      rails: '0.2',
+      deltas: '0.3',
+      arrows: '0.45',
+    };
+    for (const [id, value] of Object.entries(expected))
+      expect(await htmlVar(page, `--ambient-${id}`), id).toBe(value);
+    expect(await htmlVar(page, '--ambient-pace')).toBe('1.1');
+  });
+
+  test('the runtime loads after the page on the homepage and on other pages', async ({ page }) => {
+    for (const path of ['/', '/about/']) {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await effectReady(page);
+      await expect
+        .poll(async () => await page.locator('.ambient__layer').count(), path)
+        .toBeGreaterThan(0);
+    }
+  });
+
+  test('reduced motion still loads nothing', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/', { waitUntil: 'load' });
+    await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
+    await expect(page.locator('.ambient__layer')).toHaveCount(0);
+  });
+
+  test('has no axe violations on / with the default motion running', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
+    const result = await checkA11y(page);
+    const blocking = [...result.critical, ...result.serious];
+    expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
   });
 });

@@ -17,6 +17,8 @@ describe('ambient motion controls (BL-035)', () => {
   });
 
   it('builds every control, disabled until an effect is on, then signals ready', () => {
+    // A browser that switched motion off: nothing pressed, nothing adjustable.
+    localStorage.setItem('ambient-motion', '{"on":[]}');
     mountAmbientControls();
     const root = document.getElementById('ambient-controls')!;
     expect(root.dataset.ready).toBe('true');
@@ -47,6 +49,18 @@ describe('ambient motion controls (BL-035)', () => {
     document.querySelector<HTMLButtonElement>('[data-testid="ambient-chip-rails"]')!.click();
     expect(document.documentElement.getAttribute('data-ambient')).toBe('glow rails');
     expect(document.getElementById('ambient-state')!.textContent).toMatch(/^2 of 6 on/);
+  });
+
+  it('with nothing stored, comes up on the shipped default', () => {
+    mountAmbientControls();
+    for (const id of EFFECT_IDS)
+      expect(
+        document.querySelector(`[data-testid="ambient-chip-${id}"]`)!.getAttribute('aria-pressed')
+      ).toBe('true');
+    expect(
+      document.querySelector('[data-testid="ambient-scope-site"]')!.getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(document.getElementById('ambient-scope-hint')!.textContent).toBe('Every page');
   });
 
   it('mounts once', () => {

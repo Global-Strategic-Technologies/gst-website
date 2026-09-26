@@ -7,7 +7,7 @@ canvas they were drawn on.
 
 Canvas: `Hero Ambient Motion` (Artifact, private to the repo owner).
 
-**The real implementation** is [`src/scripts/ambient/`](../../src/scripts/ambient/build.ts) (built in the browser, only for visitors who opted in, into [`AmbientEffect.astro`](../../src/components/AmbientEffect.astro)'s placeholder), configured from the palette panel (its rail's Motion button jumps to the section) ([ADR-0039](../../src/docs/adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). It keeps these designs but uses relative units, and it draws at twice the intensity, so the panel's strength 50 matches an artboard at 100. The panel's toggles are the house `.brutal-choice-btn`, which is also 44px tall, rather than the artboard's checkbox chips.
+**The real implementation** is [`src/scripts/ambient/`](../../src/scripts/ambient/build.ts) (built in the browser, on by default for visitors since 2026-09-25, into [`AmbientEffect.astro`](../../src/components/AmbientEffect.astro)'s placeholder), configured from the palette panel (its rail's Motion button jumps to the section) ([ADR-0039](../../src/docs/adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). It keeps these designs but uses relative units, and it draws at twice the intensity, so the panel's strength 50 matches an artboard at 100. The panel's toggles are the house `.brutal-choice-btn`, which is also 44px tall, rather than the artboard's checkbox chips.
 
 ## What is here
 

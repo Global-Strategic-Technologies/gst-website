@@ -12,8 +12,8 @@ import {
 import { buildLayers, buildTile, deltaSvg } from '../../src/scripts/ambient/build';
 
 /**
- * The effect is built in the browser (BL-035, ADR-0039: loaded only when a
- * visitor opted in). This counts what the builder renders against the tables
+ * The effect is built in the browser (BL-035, ADR-0039: loaded only when the
+ * browser draws motion — on by default). This counts what the builder renders against the tables
  * the budget test sums, and pins its delta to the brand DeltaIcon.
  */
 describe('ambient effect builder (BL-035)', () => {

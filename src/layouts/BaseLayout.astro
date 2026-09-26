@@ -166,15 +166,16 @@ const isHomepage = routePath === '/' || routePath === '';
       try {
         const ids = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
         const strengthDefaults = {
-          grid: 45,
-          glow: 35,
-          scan: 40,
-          rails: 50,
+          grid: 15,
+          glow: 40,
+          scan: 5,
+          rails: 20,
           deltas: 30,
           arrows: 45,
         };
-        const defaultOn = [];
+        const defaultOn = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
         const scopes = ['hero', 'page', 'site'];
+        const defaultScope = 'site';
         let saved = null;
         try {
           saved = JSON.parse(localStorage.getItem('ambient-motion') || 'null');
@@ -196,7 +197,7 @@ const isHomepage = routePath === '/' || routePath === '';
           if (on.length > 1) root.setAttribute('data-ambient-layered', '');
           root.setAttribute(
             'data-ambient-scope',
-            scopes.includes(saved.scope) ? saved.scope : scopes[0]
+            scopes.includes(saved.scope) ? saved.scope : defaultScope
           );
           for (const id of ids) {
             const pct = clamp(strength[id], 0, 100, 5, strengthDefaults[id]);
@@ -204,7 +205,7 @@ const isHomepage = routePath === '/' || routePath === '';
           }
           root.style.setProperty(
             '--ambient-pace',
-            String(clamp(saved.pace, 50, 150, 10, 100) / 100)
+            String(clamp(saved.pace, 50, 150, 10, 110) / 100)
           );
         }
       } catch {

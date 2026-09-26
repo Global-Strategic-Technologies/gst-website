@@ -82,7 +82,7 @@ function markup(): string {
     </p>
     <div class="ambient-controls__foot">
       <span class="ambient-controls__state" id="ambient-state" aria-live="polite">Nothing on — the hero stays still</span>
-      <button type="button" class="brutal-btn brutal-btn--secondary ambient-controls__reset" id="ambient-reset" data-testid="ambient-reset" title="Switch every effect off and restore the default strengths and pace">Reset motion</button>
+      <button type="button" class="brutal-btn brutal-btn--secondary ambient-controls__reset" id="ambient-reset" data-testid="ambient-reset" title="Restore the default effects, strengths, pace and scope">Reset motion</button>
     </div>`;
 }
 

@@ -1,8 +1,9 @@
 /**
  * Hero ambient motion settings (BL-035, ADR-0039).
  *
- * A per-browser design-tool setting, chosen in the palette panel and
- * applied to <html> the same way the palette is:
+ * On for every visitor by default (the operator's chosen settings, below);
+ * each browser can change or switch it off in the palette panel. Applied to
+ * <html> the same way the palette is:
  *
  *   data-ambient="glow rails"   which effect layers render (space-separated)
  *   data-ambient-scope="page"   where it draws: hero | page (the whole
@@ -50,14 +51,15 @@ export const SCOPE_LABELS: Readonly<Record<Scope, string>> = {
 };
 
 export const STRENGTH = { min: 0, max: 100, step: 5 } as const;
-export const PACE = { min: 50, max: 150, step: 10, default: 100 } as const;
+export const PACE = { min: 50, max: 150, step: 10, default: 110 } as const;
 
-/** The approved design's starting strengths — 100 is the drawn intensity. */
+/** The public default strengths, set by the operator at go-live (ADR-0039 §
+ *  Amendment) — 100 is the drawn intensity, 50 the approved prototype. */
 export const DEFAULT_STRENGTH: Readonly<Record<EffectId, number>> = {
-  grid: 45,
-  glow: 35,
-  scan: 40,
-  rails: 50,
+  grid: 15,
+  glow: 40,
+  scan: 5,
+  rails: 20,
   deltas: 30,
   arrows: 45,
 };
@@ -69,12 +71,13 @@ export interface AmbientSettings {
   scope: Scope;
 }
 
-/** The visitor default: nothing moves until someone opts in from the palette panel. */
+/** The visitor default: every effect, on every page. A browser that stored
+ *  `{"on":[]}` switched motion off, and keeps it off (parseSettings). */
 export const DEFAULT_SETTINGS: Readonly<AmbientSettings> = {
-  on: [],
+  on: [...EFFECT_IDS],
   strength: { ...DEFAULT_STRENGTH },
   pace: PACE.default,
-  scope: 'hero',
+  scope: 'site',
 };
 
 export function defaultSettings(): AmbientSettings {
