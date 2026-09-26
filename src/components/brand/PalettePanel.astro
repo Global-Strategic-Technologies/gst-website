@@ -358,8 +358,9 @@ import { palettes } from '../../data/palettes';
   }
 
   /* The theme delta turns 90° clockwise per state of the four-state
-     theme; --theme-rotation is set by palette-manager.ts (ADR-0038). Scoped to
-     the theme button so the popout's own rotations above are untouched. */
+     theme; it inherits --theme-rotation from <html>, written by
+     theme-buttons.ts (ADR-0038). Scoped to the theme button so the
+     popout's own rotations above are untouched. */
   .palette-panel__theme-toggle .palette-panel__icon {
     transform: rotate(var(--theme-rotation, 0deg));
   }
