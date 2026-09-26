@@ -3,6 +3,8 @@
  * Provides a type-safe interface for Google Analytics 4 events
  */
 
+import type { ThemeStorageValue } from '../scripts/theme-state';
+
 export type EventCategory = 'navigation' | 'portfolio' | 'engagement' | 'ui' | 'tool';
 
 export interface AnalyticsEvent {
@@ -62,10 +64,10 @@ export function trackCTA(ctaType: string, location: string): void {
 }
 
 /**
- * Track theme toggle (dark mode)
+ * Track a footer theme-toggle click (the four-state cycle, ADR-0038)
  * @param theme - The theme that was switched to
  */
-export function trackThemeToggle(theme: 'light' | 'dark'): void {
+export function trackThemeToggle(theme: ThemeStorageValue): void {
   trackEvent({
     event: 'theme_toggle',
     category: 'ui',

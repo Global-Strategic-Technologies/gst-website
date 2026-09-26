@@ -53,5 +53,9 @@
   "skipNav": "c887f134",
   "switcher.current": "d99eed9b",
   "switcher.label": "a4fe6526",
-  "theme.toggle": "f4c4d215"
+  "theme.cycle.dark": "bb326526",
+  "theme.cycle.dimDark": "c8735549",
+  "theme.cycle.dimLight": "c79782ef",
+  "theme.cycle.light": "9d48a762",
+  "theme.toggle": "db1de510"
 }

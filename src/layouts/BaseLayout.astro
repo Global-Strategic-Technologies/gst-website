@@ -150,6 +150,9 @@ const isHomepage = routePath === '/' || routePath === '';
         if (theme === 'dark' || theme === 'dim-dark') root.classList.add('dark-theme');
         if (theme === 'dim-light' || theme === 'dim-dark') root.classList.add('theme-dim');
         if (palette !== '0') root.classList.add('palette-' + palette);
+        // Both theme deltas (footer + panel) inherit this, so they are turned
+        // for the restored state at first paint; theme-buttons.ts takes over.
+        root.style.setProperty('--theme-rotation', themes.indexOf(theme) * 90 + 'deg');
       } catch {
         // Never block the page — it renders light, palette 0
       }

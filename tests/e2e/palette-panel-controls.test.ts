@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { clickThemeToggle } from './helpers/theme';
 
 /**
  * Click a palette panel button via dispatchEvent (bypasses z-index hit-testing issues).
@@ -551,9 +552,7 @@ test.describe('Palette Panel Controls', () => {
         stored: localStorage.getItem('theme'),
       }));
 
-    test('cycles four states, persists each, and turns counter-clockwise every click', async ({
-      page,
-    }) => {
+    test('cycles four states, persists each, and turns clockwise every click', async ({ page }) => {
       await page.addInitScript(() => {
         try {
           // Top frame only: /brand's same-origin responsive-demo iframes run init
@@ -571,7 +570,7 @@ test.describe('Palette Panel Controls', () => {
         await expect(themeButton(page)).toHaveAttribute('data-theme-state', String((i + 1) % 4));
         expect(await htmlTheme(page)).toEqual(step);
         // Asserted on the counter, not the computed transform: a matrix reads
-        // −360° and 0° identically, so the fourth quarter turn would vanish.
+        // 360° and 0° identically, so the fourth quarter turn would vanish.
         await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i + 1));
       }
     });
@@ -594,29 +593,51 @@ test.describe('Palette Panel Controls', () => {
       await expect(themeButton(page)).toHaveAttribute('aria-label', /Dim dark/);
     });
 
-    for (const [start, expected] of [
-      ['dim-light', { stored: 'dark', dark: true, dim: false }],
-      ['dim-dark', { stored: 'light', dark: false, dim: false }],
-    ] as const) {
-      test(`the footer toggle stays binary: ${start} → ${expected.stored}, and the panel follows`, async ({
-        page,
-      }) => {
-        await page.addInitScript((t) => {
-          try {
-            if (window.top === window) localStorage.setItem('theme', t);
-          } catch {
-            // storage unavailable — the init script then defaults to light
-          }
-        }, start);
-        await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-        await page.getByTestId('theme-toggle').click();
-        await expect.poll(() => htmlTheme(page)).toEqual(expected);
-        await expect(themeButton(page)).toHaveAttribute(
-          'data-theme-state',
-          expected.dark ? '3' : '0'
+    // The footer delta and the panel delta are one control in two places: same
+    // cycle, same turn count, same direction, same promise about the next click
+    // (theme-buttons.ts, ADR-0038). Alternate the two for two full turns.
+    test('the footer toggle and the panel stay in sync, click for click', async ({ page }) => {
+      const footer = page.getByTestId('theme-toggle');
+      const nextNamed = async (btn: import('@playwright/test').Locator) =>
+        /Switch to (.+)$/.exec((await btn.getAttribute('aria-label')) ?? '')?.[1].toLowerCase();
+      const inherited = (selector: string) =>
+        page.evaluate(
+          (s) =>
+            getComputedStyle(document.querySelector(s)!)
+              .getPropertyValue('--theme-rotation')
+              .trim(),
+          selector
         );
-      });
-    }
+
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await expect(themeButton(page)).toHaveAttribute('data-theme-state', '0');
+      await expect(footer).toHaveAttribute('data-theme-state', '0');
+
+      for (let i = 1; i <= 8; i++) {
+        // Both buttons promise the same next state before the click…
+        const promised = await nextNamed(footer);
+        expect(await nextNamed(themeButton(page))).toBe(promised);
+
+        if (i % 2) await clickThemeToggle(page);
+        else await clickPanelButton(page, 'panel-theme-toggle');
+
+        // …and the click lands there, whichever button made it.
+        const state = String(i % 4);
+        await expect(footer).toHaveAttribute('data-theme-state', state);
+        await expect(themeButton(page)).toHaveAttribute('data-theme-state', state);
+        expect(CYCLE[(i - 1) % 4].stored.replace('-', ' ')).toBe(promised);
+        expect(await htmlTheme(page)).toEqual(CYCLE[(i - 1) % 4]);
+
+        // One counter: the turns match and only grow (3 → 0 keeps turning).
+        await expect(footer).toHaveAttribute('data-theme-turns', String(i));
+        await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i));
+        // One rotation, inherited by both icons.
+        const deg = `${i * 90}deg`;
+        expect(await inherited('#themeToggle .theme-toggle-icon')).toBe(deg);
+        expect(await inherited('#panel-theme-toggle .palette-panel__icon')).toBe(deg);
+        await expect(page.locator('#themeToggle .theme-toggle-icon')).toHaveCSS('rotate', deg);
+      }
+    });
 
     // Operator decision 2026-09-22: edits survive theme changes (panel and
     // footer alike) and reset only on a palette change.

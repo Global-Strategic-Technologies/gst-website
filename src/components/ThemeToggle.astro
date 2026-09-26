@@ -1,6 +1,7 @@
 ---
 // ThemeToggle.astro - Theme switcher component
-// Short click: toggles light/dark theme
+// Short click: cycles the four themes (ADR-0038) — the same cycle, and the
+// same delta rotation, as the palette panel's theme button (theme-buttons.ts)
 // Long-press (7s): triggers palette panel popout (easter egg for PWA users)
 //
 // The visual button lives in ThemeToggleButton.astro so /brand can render the
@@ -8,21 +9,35 @@
 // AC-2). This file owns the id, the test hook, and the script bound to them.
 import ThemeToggleButton from './ThemeToggleButton.astro';
 import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
 
 interface Props {
   locale?: Locale;
 }
 
 const { locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
+// One full sentence per state (current + next), indexed by ThemeState —
+// theme-buttons.ts picks the one for the live state.
+const themeLabels = [
+  t('theme.cycle.light'),
+  t('theme.cycle.dimLight'),
+  t('theme.cycle.dimDark'),
+  t('theme.cycle.dark'),
+];
 ---
 
-<ThemeToggleButton id="themeToggle" testId="theme-toggle" locale={locale} />
+<ThemeToggleButton
+  id="themeToggle"
+  testId="theme-toggle"
+  locale={locale}
+  themeLabels={themeLabels}
+/>
 
 <script>
   import { trackThemeToggle } from '../utils/analytics';
-  import * as Sentry from '@sentry/browser';
-  import { applyState, readState, storageValue, toggleBinary } from '../scripts/theme-state';
-  import { rememberChoice } from '../scripts/daily-look';
+  import { storageValue } from '../scripts/theme-state';
+  import { cycleTheme } from '../scripts/theme-buttons';
 
   const themeToggle = document.getElementById('themeToggle');
 
@@ -52,23 +67,9 @@ const { locale = DEFAULT_LOCALE } = Astro.props;
       }
     }
 
-    // Binary on purpose (ADR-0038): the footer flips light ↔ dark and ignores
-    // the panel's dim states — dim light goes to dark, dim dark to light.
     function toggleTheme(): void {
-      const state = toggleBinary(readState(document.documentElement));
-      applyState(document.documentElement, state);
-      const isDark = state === 3;
-      try {
-        // Today's pick: holds until local midnight (ADR-0040)
-        rememberChoice('theme', storageValue(state));
-      } catch {
-        Sentry.addBreadcrumb({
-          category: 'theme-toggle',
-          message: 'localStorage write failed',
-          level: 'warning',
-        });
-      }
-      trackThemeToggle(isDark ? 'dark' : 'light');
+      const state = cycleTheme('theme-toggle');
+      trackThemeToggle(storageValue(state));
     }
 
     function cancelPress(): void {

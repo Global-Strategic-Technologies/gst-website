@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'vitest';
 
 // ─── Pattern 1: localStorage error handling ─────────────────────────────────
-// Replicates: ThemeToggle.astro (toggleTheme's localStorage catch), palette-manager.ts (lines 281, 388, 418)
+// Replicates: theme-buttons.ts (cycleTheme's localStorage catch), palette-manager.ts (switchPalette, read/writeStoredOverrides, handlePopoutToggle)
 
 interface StorageLike {
   getItem(key: string): string | null;

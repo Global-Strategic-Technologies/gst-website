@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { currentTheme, nextTheme, waitForTheme } from './helpers/theme';
 
 /**
  * Dispatch a pointerdown on the theme toggle button.
@@ -48,29 +49,19 @@ test.describe('Theme Toggle — Long-Press Easter Egg', () => {
     await expect(page.locator('[data-testid="theme-toggle"]')).toBeVisible();
   });
 
-  test('short click still toggles theme', async ({ page }) => {
-    const before = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
+  test('short click still steps the theme cycle', async ({ page }) => {
+    const before = await currentTheme(page);
 
     await shortPress(page);
 
-    // Wait for actual state change
-    await page.waitForFunction(
-      (was: boolean) => document.documentElement.classList.contains('dark-theme') !== was,
-      before
-    );
-
-    const after = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
-    expect(after).not.toBe(before);
+    // One step of the four-state cycle (ADR-0038)
+    await waitForTheme(page, nextTheme(before));
   });
 
   test('long-press pops out palette panel and does not toggle theme', async ({ page }) => {
-    const themeBefore = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
+    // The full state: a stray click would land on dim light, which
+    // `dark-theme` alone cannot see.
+    const themeBefore = await currentTheme(page);
 
     await pressDown(page);
 
@@ -90,26 +81,18 @@ test.describe('Theme Toggle — Long-Press Easter Egg', () => {
     );
     expect(isPopped).toBe(true);
 
-    // Theme should NOT have toggled (long-press suppresses click)
-    const themeAfter = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
-    expect(themeAfter).toBe(themeBefore);
+    // Theme should NOT have changed (long-press suppresses click)
+    expect(await currentTheme(page)).toBe(themeBefore);
   });
 
   test('early release cancels popout and toggles theme', async ({ page }) => {
-    const before = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
+    const before = await currentTheme(page);
 
     // Press and immediately release — no need to hold for an arbitrary duration
     await shortPress(page);
 
-    // Wait for theme to toggle (proves click fired)
-    await page.waitForFunction(
-      (was: boolean) => document.documentElement.classList.contains('dark-theme') !== was,
-      before
-    );
+    // Wait for the theme to step (proves click fired)
+    await waitForTheme(page, nextTheme(before));
 
     // Should NOT pop out
     const isPopped = await page.evaluate(() =>
@@ -155,17 +138,12 @@ test.describe('Theme Toggle — Long-Press Easter Egg', () => {
       document.documentElement.classList.add('palette-popped-out');
     });
 
-    const themeBefore = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark-theme')
-    );
+    const themeBefore = await currentTheme(page);
 
-    // Short press — theme should still toggle normally
+    // Short press — theme should still step normally
     await shortPress(page);
 
-    await page.waitForFunction(
-      (was: boolean) => document.documentElement.classList.contains('dark-theme') !== was,
-      themeBefore
-    );
+    await waitForTheme(page, nextTheme(themeBefore));
 
     // No holding class should have appeared (startPress was never called)
     const hasHolding = await page.evaluate(

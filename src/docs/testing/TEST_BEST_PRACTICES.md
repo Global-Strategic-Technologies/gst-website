@@ -1160,11 +1160,11 @@ if (!isDark) {
 **Good:**
 
 ```typescript
-// ✅ Query the element that actually holds the class
-const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
-if (!isDark) {
-  await clickThemeToggle(page);
-}
+// ✅ Query the element that actually holds the classes — <html> — and read
+// both: the theme has four states (ADR-0038) and the footer toggle cycles
+// them, so `dark-theme` alone cannot tell dark from dim dark, and one click
+// from light lands on dim light.
+await cycleThemeTo(page, 'dark'); // helpers/theme.ts: reads <html>, clicks until there
 ```
 
 **How to detect:** If a test fails only on one browser (often Firefox) after an unrelated DOM change, check whether state queries target the correct element. Search for `body.evaluate(el => el.classList` and verify the class actually lives on `<body>`, not `<html>` or another ancestor.

@@ -10,7 +10,10 @@
 // omits them (plus passes its own title/ariaLabel), so `#themeToggle` and
 // `[data-testid="theme-toggle"]` stay unique and the bound script keeps
 // binding only the production instance. The specimen button is real but
-// intentionally inert. The footer-fit negative margin lives in Footer.astro
+// intentionally inert — its delta still turns with the site theme, since the
+// rotation is inherited from <html> (`--theme-rotation`, theme-buttons.ts).
+// `themeLabels` (the four translated per-state labels) is likewise
+// production-only. The footer-fit negative margin lives in Footer.astro
 // (the context that needs it), not here.
 import DeltaIcon from './DeltaIcon.astro';
 import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
@@ -22,14 +25,22 @@ interface Props {
   title?: string;
   ariaLabel?: string;
   locale?: Locale;
+  themeLabels?: string[];
 }
 
-const { id, testId, locale = DEFAULT_LOCALE } = Astro.props;
+const { id, testId, locale = DEFAULT_LOCALE, themeLabels } = Astro.props;
 const { t } = useTranslations(locale, 'common');
 const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props;
 ---
 
-<button class="theme-toggle" id={id} data-testid={testId} title={title} aria-label={ariaLabel}>
+<button
+  class="theme-toggle"
+  id={id}
+  data-testid={testId}
+  data-theme-labels={themeLabels ? JSON.stringify(themeLabels) : undefined}
+  title={title}
+  aria-label={ariaLabel}
+>
   <DeltaIcon class="theme-toggle-icon" />
 </button>
 
@@ -75,10 +86,16 @@ const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props
 
   /* :global() needed — .theme-toggle-icon is on a DeltaIcon child component
      whose rendered <svg> gets DeltaIcon's scope, not ThemeToggleButton's */
+  /* Turns 90° clockwise per theme state, in step with the palette
+     panel's delta: both inherit --theme-rotation from <html> (theme-buttons.ts,
+     ADR-0038). The individual `rotate` property, not `transform`, so the
+     hold-pulse keyframes' scale composes with it instead of replacing it. */
   .theme-toggle :global(.theme-toggle-icon) {
     width: 0.67em;
     height: 0.67em;
     display: block;
+    rotate: var(--theme-rotation, 0deg);
+    transition: rotate var(--transition-fast);
   }
 
   .theme-toggle--holding :global(.theme-toggle-icon) {
@@ -98,6 +115,10 @@ const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .theme-toggle :global(.theme-toggle-icon) {
+      transition: none;
+    }
+
     .theme-toggle--holding :global(.theme-toggle-icon) {
       animation: none;
     }
