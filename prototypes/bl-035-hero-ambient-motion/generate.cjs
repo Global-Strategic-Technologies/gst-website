@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const prettier = require('prettier');
 const root = __dirname;
 fs.mkdirSync(path.join(root, 'project'), { recursive: true });
 
@@ -243,6 +244,7 @@ const props = JSON.stringify({
   $preview: { width: W, height: H },
 });
 
+const written = [];
 for (const e of effects) {
   const html = `<!doctype html>
 <html lang="en">
@@ -288,7 +290,9 @@ toggleTheme: function () { self.setState({ dark: !isDark }); }
 </body>
 </html>
 `;
-  fs.writeFileSync(path.join(root, 'project', e.file), html);
+  const out = path.join(root, 'project', e.file);
+  fs.writeFileSync(out, html);
+  written.push(out);
 }
 
 const boards = {},
@@ -334,5 +338,16 @@ const canvas = {
     },
   ],
 };
-fs.writeFileSync(path.join(root, 'project', 'canvas.json'), JSON.stringify(canvas, null, 2));
-console.log('ok');
+const canvasFile = path.join(root, 'project', 'canvas.json');
+fs.writeFileSync(canvasFile, JSON.stringify(canvas, null, 2));
+written.push(canvasFile);
+
+// Write the artboards in the repo's prettier style, so regenerating them does
+// not reintroduce the drift the weekly `prettier --check .` job reports.
+(async () => {
+  for (const file of written) {
+    const options = { ...(await prettier.resolveConfig(file)), filepath: file };
+    fs.writeFileSync(file, await prettier.format(fs.readFileSync(file, 'utf8'), options));
+  }
+  console.log('ok');
+})();
