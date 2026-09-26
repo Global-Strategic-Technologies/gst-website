@@ -423,15 +423,18 @@ it('should open modal on click', async () => {
 ### Testing theme toggle
 
 ```typescript
-it('should toggle theme', async () => {
-  const isDark = await page.evaluate(() => document.body.classList.contains('dark-theme'));
+// The theme classes live on <html>, and the footer toggle cycles four states
+// (ADR-0038): light → dim light → dim dark → dark. Use helpers/theme.ts.
+it('should step the theme cycle', async () => {
+  const before = await currentTheme(page);
 
-  await page.click('[data-testid="theme-toggle"]');
+  await clickThemeToggle(page);
 
-  const isDarkAfter = await page.evaluate(() => document.body.classList.contains('dark-theme'));
-
-  expect(isDarkAfter).toBe(!isDark);
+  await waitForTheme(page, nextTheme(before));
 });
+
+// Need a particular state? Seed it (seedLook) or cycle to it:
+await cycleThemeTo(page, 'dark');
 ```
 
 ---

@@ -187,28 +187,20 @@ test('should track project card clicks', async ({ page }) => {
 test('should track theme toggle clicks', async ({ page }) => {
   await page.goto('/');
 
-  // Get initial theme
-  const initialTheme = await page.evaluate(() => {
-    return document.body.classList.contains('dark-theme') ? 'dark' : 'light';
-  });
+  // Every spec starts light (storage-baseline.ts); one click is one step of
+  // the four-state cycle (ADR-0038). Read both classes, never dark-theme alone.
+  expect(await currentTheme(page)).toBe('light');
 
-  // Click theme toggle
   const themeToggle = page.locator('[data-testid="theme-toggle"]');
   await expect(themeToggle).toBeVisible();
-  await themeToggle.click();
-
-  // Wait for theme to change
-  await page.waitForFunction((theme) => {
-    const isDark = document.body.classList.contains('dark-theme');
-    const newTheme = isDark ? 'dark' : 'light';
-    return newTheme !== theme;
-  }, initialTheme);
+  await clickThemeToggle(page); // helpers/theme.ts
+  await waitForTheme(page, 'dim-light');
 
   // Verify theme_toggle event was tracked
   const events = await page.evaluate(() => (window as any).gtagEvents || []);
   const toggleEvent = events.find((e: any) => e.eventName === 'theme_toggle');
   expect(toggleEvent).toBeDefined();
-  expect(['light', 'dark']).toContain(toggleEvent?.eventData.theme);
+  expect(toggleEvent?.eventData.theme).toBe('dim-light');
 });
 ```
 

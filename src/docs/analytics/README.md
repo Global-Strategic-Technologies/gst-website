@@ -22,7 +22,7 @@ Complete documentation for GA4 integration on the GST website.
 | `portfolio_view_details` | User opens project modal              | Portfolio page     |
 | `portfolio_close_modal`  | User closes project modal             | Portfolio page     |
 | `filter_applied`         | User applies portfolio filter         | Portfolio page     |
-| `theme_toggle`           | User switches light/dark theme        | Theme toggle       |
+| `theme_toggle`           | User cycles the theme (four states)   | Footer toggle      |
 | `cta_click`              | User clicks call-to-action            | Various CTAs       |
 | `booking_confirmed`      | User completes a booking              | /booking-confirmed |
 | `faq_interaction`        | User opens/closes FAQ item            | Services, Hub      |

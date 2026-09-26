@@ -33,10 +33,9 @@ The site is static (Vercel, prerendered HTML), so the look can only be chosen in
 
 **A pick holds until local midnight, per dimension.**
 
-- The three writers store a date stamp beside the value, through `rememberChoice()`:
+- The writers store a date stamp beside the value, through `rememberChoice()`:
   - palette tabs (`palette-manager.ts` `switchPalette`);
-  - the panel's theme button (`handleThemeToggle`);
-  - the footer toggle (`ThemeToggle.astro`).
+  - the panel's theme button and the footer toggle, which share `cycleTheme()` (`theme-buttons.ts`).
 - The keys are `palette` + `palette-date` and `theme` + `theme-date`, with the stamp as local `YYYY-MM-DD`.
 - A stored value counts only when its stamp is today and the value is valid. Palette `'0'` stamped today holds, even on a day that rotates to another palette.
 - The two dimensions are independent. Picking a theme leaves the palette on the rotation, which matches the two separate controls.

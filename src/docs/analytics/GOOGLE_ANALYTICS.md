@@ -53,7 +53,7 @@ TypeScript utility module providing type-safe event tracking functions:
 - `trackEvent(eventData)` - Low-level event tracking with custom parameters (use directly for one-off event types). Since BL-153 every event it sends carries a `locale` parameter (`en` / `es` / `pt-BR`, read from `<html lang>`), so engagement can be segmented by language in GA4. **Registered as an event-scope custom dimension ("Locale") on 2026-09-06** — verified in the property 2026-09-17; do not create a second definition on the same parameter, it only burns the property's quota. Registration is not retroactive, so a report showing nothing for it is either older than 2026-09-06 or a different problem. Event names, labels and destinations stay English in every locale; only the visible copy is translated
 - `trackNavigation(destination, label)` - Track navigation link clicks
 - `trackCTA(ctaType, location)` - Track call-to-action button clicks
-- `trackThemeToggle(theme)` - Track light/dark mode switches
+- `trackThemeToggle(theme)` - Track footer theme-toggle clicks (four-state cycle, ADR-0038)
 - `trackPageView(pageName, pageTitle)` - Track page views
 
 ## Tracked Events
@@ -199,9 +199,9 @@ TypeScript utility module providing type-safe event tracking functions:
 **Category:** `ui`
 **Parameters:**
 
-- `theme` - The theme switched to ("light" or "dark")
+- `theme` - The theme switched to: "light", "dim-light", "dim-dark" or "dark". The toggle cycles the four in that order ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)), so one click from light reports "dim-light". Events sent before 2026-09-26 carry only "light" or "dark", from the old binary toggle.
 
-**Triggered By:** Clicking the theme toggle button in the header
+**Triggered By:** Clicking the theme toggle (the delta) in the footer. The palette panel's theme button does not send this event.
 
 **Use Cases:**
 
@@ -424,7 +424,7 @@ The rule: **if a key event cannot be seen in DebugView from a real click before 
 - [ ] Filter applications include `filter_type` and `filter_value`
 - [ ] CTA clicks include `cta_type` and `location`
 - [ ] FAQ interactions include `question`, `action` ("open"/"close"), and `page`
-- [ ] Theme toggles include correct `theme` value ("light" or "dark")
+- [ ] Theme toggles include correct `theme` value ("light", "dim-light", "dim-dark" or "dark")
 
 ## Privacy Considerations
 
