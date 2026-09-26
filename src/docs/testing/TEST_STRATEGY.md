@@ -498,45 +498,48 @@ export default defineConfig({
 ### 5.2 playwright.config.ts
 
 ```typescript
+// Abridged — the file itself carries the reasoning for each setting.
 import { defineConfig, devices } from '@playwright/test';
+import { baselineStorageState } from './tests/e2e/helpers/storage-baseline';
 
 export default defineConfig({
+  globalSetup: './tests/e2e/global-setup.ts',
+  globalTeardown: './tests/e2e/global-teardown.ts',
   testDir: './tests/e2e',
+  testMatch: '**/*.test.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
+  timeout: 45000,
   use: {
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-  },
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:4321',
-    reuseExistingServer: !process.env.CI,
+    navigationTimeout: 20000,
+    actionTimeout: 10000,
+    // Palette 0, light, picked today; ambient motion off (ADR-0039, ADR-0040).
+    storageState: baselineStorageState({ ambient: 'off' }),
   },
   projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
+  webServer: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      command: 'npx astro dev --port 4321',
+      url: 'http://localhost:4321',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60 * 1000,
+      env: { ASTRO_DEV_BACKGROUND: '0' },
     },
   ],
 });
 ```
+
+The baseline `storageState` keeps every spec off the date-driven default look; see [TEST_BEST_PRACTICES § 29](TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours).
 
 ### 5.3 tests/setup.ts
 

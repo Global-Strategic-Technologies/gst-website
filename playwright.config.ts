@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { baselineStorageState } from './tests/e2e/helpers/storage-baseline';
 
 export default defineConfig({
   globalSetup: './tests/e2e/global-setup.ts',
@@ -17,6 +18,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     navigationTimeout: 20000,
     actionTimeout: 10000,
+    // Every context starts as a visitor who picked palette 0 in light theme
+    // today and switched ambient motion off, so no spec depends on the date's
+    // rotated look (ADR-0040) or runs under the public motion default
+    // (ADR-0039). Specs that test those defaults opt out with LOOK_ONLY or
+    // EMPTY_STATE — see tests/e2e/helpers/storage-baseline.ts.
+    storageState: baselineStorageState({ ambient: 'off' }),
   },
 
   projects: [

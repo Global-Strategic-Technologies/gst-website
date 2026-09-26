@@ -41,7 +41,7 @@
   --alt4-color-success: #ff6a00;
   --alt4-color-warning: #1d4ed8;
   --alt4-color-error: #d6006e;
-  --alt4-color-tertiary: #b84a00;
+  --alt4-color-tertiary: #a34200;
   --alt4-color-tertiary-dark: #8a3700;
 
   /* 5: Ultraviolet — vivacious violet + acid lime + hot pink */
@@ -53,6 +53,16 @@
   --alt5-color-error: #e11d74;
   --alt5-color-tertiary: #5a00b3;
   --alt5-color-tertiary-dark: #3d007a;
+
+  /* 6: Phosphor — terminal-phosphor green + hot fuchsia + crimson alarm */
+  --alt6-color-primary: #1fd65f;
+  --alt6-color-primary-dark: #17c255;
+  --alt6-color-secondary: #ff4fd8;
+  --alt6-color-success: #1fd65f;
+  --alt6-color-warning: #ff4fd8;
+  --alt6-color-error: #e5213b;
+  --alt6-color-tertiary: #0a6b2e;
+  --alt6-color-tertiary-dark: #064d20;
 
   /* ── Expanded tokens: authority / distinguish / subdued ── */
   --alt0-color-authority: #5b7a9d;
@@ -73,6 +83,9 @@
   --alt5-color-authority: #4f46e5;
   --alt5-color-distinguish: #e11d74;
   --alt5-color-subdued: #6e5c85;
+  --alt6-color-authority: #1f3d7a;
+  --alt6-color-distinguish: #e5213b;
+  --alt6-color-subdued: #5c6b5c;
 
   /* ── Ink counterparts, light theme (ADR-0035) ──
      Measured: every value clears 4.75:1 on #f5f5f5 and 4.5:1 on its own 12%
@@ -116,6 +129,14 @@
   --alt5-color-authority-ink: #4338ca;
   --alt5-color-distinguish-ink: #ad1253;
   --alt5-color-subdued-ink: #5c4c72;
+  /* Palette 6's inks also clear the dim-light bars, so it has no dim entry. */
+  --alt6-color-secondary-ink: #8f2c79;
+  --alt6-color-success-ink: #0e612b;
+  --alt6-color-warning-ink: #8f2c79;
+  --alt6-color-error-ink: #a4182a;
+  --alt6-color-authority-ink: #1f3d7a;
+  --alt6-color-distinguish-ink: #a4182a;
+  --alt6-color-subdued-ink: #4d594d;
 }
 
 html.dark-theme {
@@ -169,6 +190,16 @@ html.dark-theme {
   --alt5-color-tertiary: var(--alt5-color-primary);
   --alt5-color-tertiary-dark: var(--alt5-color-primary-dark);
 
+  /* 6: Phosphor */
+  --alt6-color-primary: #39ff6e;
+  --alt6-color-primary-dark: #2ef062;
+  --alt6-color-secondary: #ff7ae3;
+  --alt6-color-success: #5cff8a;
+  --alt6-color-warning: #ff7ae3;
+  --alt6-color-error: #ff5c70;
+  --alt6-color-tertiary: var(--alt6-color-primary);
+  --alt6-color-tertiary-dark: var(--alt6-color-primary-dark);
+
   /* ── Expanded tokens (dark theme) ── */
   --alt0-color-authority: #7a9dbd;
   --alt0-color-distinguish: #a78bfa;
@@ -188,6 +219,9 @@ html.dark-theme {
   --alt5-color-authority: #a5b4fc;
   --alt5-color-distinguish: #ff5fa8;
   --alt5-color-subdued: #9d8cb5;
+  --alt6-color-authority: #8fb0ff;
+  --alt6-color-distinguish: #ff5c70;
+  --alt6-color-subdued: #95a595;
 
   /* Ink counterparts in dark are the base colours themselves — the ink swap is
      a no-op in dark for every palette (ADR-0035). */
@@ -229,6 +263,13 @@ html.dark-theme {
   --alt5-color-authority-ink: var(--alt5-color-authority);
   --alt5-color-distinguish-ink: var(--alt5-color-distinguish);
   --alt5-color-subdued-ink: var(--alt5-color-subdued);
+  --alt6-color-secondary-ink: var(--alt6-color-secondary);
+  --alt6-color-success-ink: var(--alt6-color-success);
+  --alt6-color-warning-ink: var(--alt6-color-warning);
+  --alt6-color-error-ink: var(--alt6-color-error);
+  --alt6-color-authority-ink: var(--alt6-color-authority);
+  --alt6-color-distinguish-ink: var(--alt6-color-distinguish);
+  --alt6-color-subdued-ink: var(--alt6-color-subdued);
 }
 
 /* ── Tool color derivation (cascades from palette overrides) ── */
@@ -296,7 +337,6 @@ html.palette-1 {
   --color-authority-ink: var(--alt1-color-authority-ink);
   --color-distinguish-ink: var(--alt1-color-distinguish-ink);
   --color-subdued-ink: var(--alt1-color-subdued-ink);
-  --stat-item-border: var(--alt1-color-primary);
 }
 
 html.palette-2 {
@@ -319,7 +359,6 @@ html.palette-2 {
   --color-authority-ink: var(--alt2-color-authority-ink);
   --color-distinguish-ink: var(--alt2-color-distinguish-ink);
   --color-subdued-ink: var(--alt2-color-subdued-ink);
-  --stat-item-border: var(--alt2-color-primary);
 }
 
 html.palette-3 {
@@ -342,7 +381,6 @@ html.palette-3 {
   --color-authority-ink: var(--alt3-color-authority-ink);
   --color-distinguish-ink: var(--alt3-color-distinguish-ink);
   --color-subdued-ink: var(--alt3-color-subdued-ink);
-  --stat-item-border: var(--alt3-color-primary);
 }
 
 html.palette-4 {
@@ -369,7 +407,6 @@ html.palette-4 {
   --color-authority-ink: var(--alt4-color-authority-ink);
   --color-distinguish-ink: var(--alt4-color-distinguish-ink);
   --color-subdued-ink: var(--alt4-color-subdued-ink);
-  --stat-item-border: var(--alt4-color-primary);
 }
 
 html.palette-5 {
@@ -392,7 +429,28 @@ html.palette-5 {
   --color-authority-ink: var(--alt5-color-authority-ink);
   --color-distinguish-ink: var(--alt5-color-distinguish-ink);
   --color-subdued-ink: var(--alt5-color-subdued-ink);
-  --stat-item-border: var(--alt5-color-primary);
+}
+
+html.palette-6 {
+  --color-primary: var(--alt6-color-primary);
+  --color-primary-dark: var(--alt6-color-primary-dark);
+  --color-primary-rgb: 31, 214, 95;
+  --color-secondary: var(--alt6-color-secondary);
+  --color-success: var(--alt6-color-success);
+  --color-warning: var(--alt6-color-warning);
+  --color-error: var(--alt6-color-error);
+  --color-tertiary: var(--alt6-color-tertiary);
+  --color-tertiary-dark: var(--alt6-color-tertiary-dark);
+  --color-authority: var(--alt6-color-authority);
+  --color-distinguish: var(--alt6-color-distinguish);
+  --color-subdued: var(--alt6-color-subdued);
+  --color-secondary-ink: var(--alt6-color-secondary-ink);
+  --color-success-ink: var(--alt6-color-success-ink);
+  --color-warning-ink: var(--alt6-color-warning-ink);
+  --color-error-ink: var(--alt6-color-error-ink);
+  --color-authority-ink: var(--alt6-color-authority-ink);
+  --color-distinguish-ink: var(--alt6-color-distinguish-ink);
+  --color-subdued-ink: var(--alt6-color-subdued-ink);
 }
 
 /* ── Dark-theme primary triplets ──
@@ -418,6 +476,15 @@ html.dark-theme.palette-4 {
 
 html.dark-theme.palette-5 {
   --color-primary-rgb: 201, 92, 255;
+}
+
+html.dark-theme.palette-6 {
+  --color-primary-rgb: 57, 255, 110;
+}
+
+/* Dim light deepens palette 6's primary (see § Dim-light inks); its tints follow. */
+html.theme-dim:not(.dark-theme).palette-6 {
+  --color-primary-rgb: 24, 182, 79;
 }
 
 /* ── Announcement sash ink (see --sash-bg / --sash-ink in variables.css) ──
@@ -468,9 +535,26 @@ html.theme-dim:not(.dark-theme) {
   --alt5-color-warning-ink: #385d07;
   --alt5-color-error-ink: #9e104c;
   --alt5-color-distinguish-ink: #9e104c;
+  /* Palette 6's neon primary is brand-colour text like teal (exempt from AA by
+     ADR-0035 § 1, down to the 1.5:1 floor that keeps it legible). On the gray
+     dim-light surfaces #1fd65f drops to 1.41, so dim light deepens it just
+     enough to clear the floor on every dim surface and tint (worst 1.62) while
+     dark ink still reads on it as a fill (7.39). Success follows the primary
+     in this palette, so it deepens with it. */
+  --alt6-color-primary: #18b64f;
+  --alt6-color-primary-dark: #16aa49;
+  --alt6-color-success: #18b64f;
 }
 
-html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5) {
+html.theme-dim:not(
+    .dark-theme,
+    .palette-1,
+    .palette-2,
+    .palette-3,
+    .palette-4,
+    .palette-5,
+    .palette-6
+  ) {
   --color-secondary-ink: #734b00;
   --color-warning-ink: #734b00;
   --color-success-ink: #1b5f3b;
@@ -483,7 +567,14 @@ html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, 
 }
 
 /* Dim dark: palette 0's dark error ink (#e05050) is under 4.5:1 on the charcoal
-   surfaces; palettes 1-5 carry their own. Same :not() list as above. */
-html.theme-dim.dark-theme:not(.palette-1, .palette-2, .palette-3, .palette-4, .palette-5) {
+   surfaces; every other palette carries its own. Same :not() list as above. */
+html.theme-dim.dark-theme:not(
+    .palette-1,
+    .palette-2,
+    .palette-3,
+    .palette-4,
+    .palette-5,
+    .palette-6
+  ) {
   --color-error-ink: #e56a6a;
 }

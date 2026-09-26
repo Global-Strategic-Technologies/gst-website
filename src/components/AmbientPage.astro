@@ -1,0 +1,25 @@
+---
+/**
+ * Where the page-wide / site-wide ambient-motion background goes (BL-035,
+ * ADR-0039). BaseLayout renders this as the first child of <main>.
+ *
+ * An empty placeholder, hidden. src/scripts/ambient/runtime.ts shows it in
+ * the chosen scope, places it below the page's hero, and fills it with one
+ * tile per screen while that screen is in view; only a browser that draws
+ * motion (the default, unless switched off) ever loads the runtime (src/scripts/ambient/loader.ts). `data-home` tells
+ * both that the Homepage scope applies here.
+ */
+interface Props {
+  /** This is the homepage (any locale): the Homepage scope shows here too. */
+  home?: boolean;
+}
+const { home = false } = Astro.props;
+---
+
+<div class="ambient-page" id="ambient-page" aria-hidden="true" data-home={home || undefined}></div>
+
+<style>
+  .ambient-page {
+    display: none;
+  }
+</style>

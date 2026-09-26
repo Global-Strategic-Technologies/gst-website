@@ -15,6 +15,8 @@ import {
   STATE_LABELS,
   type ThemeState,
 } from './theme-state';
+import { initAmbientLoader } from './ambient/loader';
+import { rememberChoice } from './daily-look';
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -291,9 +293,9 @@ function switchPalette(id: number) {
   html.className = html.className.replace(/\bpalette-\d\b/g, '').trim();
   html.classList.add(`palette-${id}`);
 
-  // Persist
+  // Persist as today's pick: it holds until local midnight (ADR-0040)
   try {
-    localStorage.setItem('palette', String(id));
+    rememberChoice('palette', String(id));
   } catch {
     Sentry.addBreadcrumb({
       category: 'palette-manager',
@@ -317,8 +319,14 @@ function switchPalette(id: number) {
 // ── Persisted colour edits ─────────────────────────────────
 // Saved as { "--var": "value" } under OVERRIDES_KEY and re-applied by
 // BaseLayout's head script before first paint, so an edit survives navigation.
+// Edits belong to the palette they were made on, recorded under
+// OVERRIDES_PALETTE_KEY: the daily rotation (ADR-0040) can change the palette
+// between visits, and yesterday's edits must not paint onto today's palette.
+// The head script applies them only when the tag matches, and
+// dropStaleOverrides() clears them on a load where it doesn't.
 
 const OVERRIDES_KEY = 'palette-overrides';
+const OVERRIDES_PALETTE_KEY = 'palette-overrides-palette';
 
 function readStoredOverrides(): Record<string, string> {
   try {
@@ -336,8 +344,13 @@ function readStoredOverrides(): Record<string, string> {
 
 function writeStoredOverrides(map: Record<string, string>): void {
   try {
-    if (Object.keys(map).length === 0) localStorage.removeItem(OVERRIDES_KEY);
-    else localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map));
+    if (Object.keys(map).length === 0) {
+      localStorage.removeItem(OVERRIDES_KEY);
+      localStorage.removeItem(OVERRIDES_PALETTE_KEY);
+    } else {
+      localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map));
+      localStorage.setItem(OVERRIDES_PALETTE_KEY, lookKey());
+    }
   } catch {
     Sentry.addBreadcrumb({
       category: 'palette-manager',
@@ -386,6 +399,20 @@ function lookKey(): string {
   return /\bpalette-(\d)\b/.exec(document.documentElement.className)?.[1] ?? '0';
 }
 let lastLookKey = lookKey();
+
+/** Edits made on another palette, or saved before edits were tagged: the
+ *  head script skipped them, so clear them from storage too. */
+function dropStaleOverrides(): void {
+  try {
+    if (localStorage.getItem(OVERRIDES_KEY) === null) return;
+    if (localStorage.getItem(OVERRIDES_PALETTE_KEY) === lookKey()) return;
+    localStorage.removeItem(OVERRIDES_KEY);
+    localStorage.removeItem(OVERRIDES_PALETTE_KEY);
+  } catch {
+    // Storage unavailable — nothing was applied either
+  }
+}
+dropStaleOverrides();
 
 new MutationObserver(() => {
   // Runs for EVERY class change — the footer toggle, the /brand responsive
@@ -439,6 +466,24 @@ function ensureControlsInjected(): void {
   controlsInjected = true;
 }
 
+// Ambient motion (BL-035, ADR-0039). The loader decides, on every page,
+// whether this browser loads the effect at all; the panel's Motion controls
+// are built only when the panel first opens. Both keep ambient motion's code
+// off the page for every visitor who never switched it on.
+initAmbientLoader();
+
+let motionControls: Promise<void> | null = null;
+
+function loadMotionControls(): Promise<void> {
+  motionControls ??= import('./ambient/controls')
+    .then(({ mountAmbientControls }) => mountAmbientControls())
+    .catch((error: unknown) => {
+      motionControls = null; // let the next open try again
+      Sentry.captureException(error, { tags: { feature: 'ambient-motion' } });
+    });
+  return motionControls;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Defer swatch injection: on brand page, run at idle; on other pages, skip
   // entirely until the panel is opened.
@@ -465,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openPanel(): void {
     if (!panel) return;
     ensureControlsInjected();
+    void loadMotionControls();
     panel.classList.add('is-open');
     if (isMobile()) {
       document.body.style.overflow = 'hidden';
@@ -500,7 +546,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = nextState(readState(document.documentElement));
     applyState(document.documentElement, state);
     try {
-      localStorage.setItem('theme', storageValue(state));
+      // Today's pick: holds until local midnight (ADR-0040)
+      rememberChoice('theme', storageValue(state));
     } catch {
       Sentry.addBreadcrumb({
         category: 'palette-manager',
@@ -547,6 +594,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Shared action: jump to Ambient Motion (BL-035) ──────
+  // The section sits below the tall swatch grids; this opens the panel if it
+  // is closed, scrolls the body to the section, and puts focus on its first
+  // toggle. It never closes the panel — the delta toggle does that. The
+  // controls are built on first open, so it waits for them before focusing.
+  async function handleMotionJump(): Promise<void> {
+    if (!panel || !panelBody) return;
+    if (!panel.classList.contains('is-open')) openPanel();
+    await loadMotionControls();
+    requestAnimationFrame(() => {
+      const section = document.getElementById('panel-motion-section');
+      if (!section) return;
+      // #panel-body is not positioned, so offsetTop would measure from the panel.
+      const top =
+        section.getBoundingClientRect().top -
+        panelBody.getBoundingClientRect().top +
+        panelBody.scrollTop;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      panelBody.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
+      section.querySelector<HTMLElement>('[data-ambient-effect]')?.focus({ preventScroll: true });
+    });
+  }
+
   // ── Wire desktop controls ───────────────────────────────
 
   // Panel toggle (edge strip delta button)
@@ -575,6 +645,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     popoutBtn.addEventListener('click', handlePopoutToggle);
   }
+
+  // Ambient Motion jump
+  document
+    .getElementById('panel-motion-toggle')
+    ?.addEventListener('click', () => void handleMotionJump());
 
   // Reset all button
   document.getElementById('reset-all')?.addEventListener('click', resetAllOverrides);
@@ -608,6 +683,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const nowPopped = document.documentElement.classList.contains('palette-popped-out');
         popoutLabel.textContent = nowPopped ? 'All Pages' : 'Brand Only';
       });
+    }
+
+    // Clone the Ambient Motion jump (middle position). Its "Motion" label is
+    // already in the markup (hidden on the desktop rail), so the clone keeps
+    // PalettePanel's scope attribute and its styles. The test id goes too, so
+    // getByTestId still names only the desktop button.
+    const motionClone = document.getElementById('panel-motion-toggle')?.cloneNode(true) as
+      HTMLElement | undefined;
+    if (motionClone) {
+      motionClone.removeAttribute('id');
+      motionClone.removeAttribute('data-testid');
+      mobileHeader.appendChild(motionClone);
+      motionClone.addEventListener('click', () => void handleMotionJump());
     }
 
     // Clone theme toggle (right position)

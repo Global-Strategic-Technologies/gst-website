@@ -1,0 +1,36 @@
+---
+/**
+ * Where an ambient-motion effect layer goes (BL-035, ADR-0039): the homepage
+ * hero (Hero's `backdrop` slot) and the /brand preview stage.
+ *
+ * An empty placeholder. The layer itself is built in the browser by
+ * src/scripts/ambient/runtime.ts, which only a browser that draws motion ever
+ * loads (src/scripts/ambient/loader.ts), after the page has loaded; it fades
+ * in. Motion is on by default; a browser that switched it off, or prefers
+ * reduced motion, gets this one empty div.
+ *
+ * What must hold before any script runs stays here: the box fills its
+ * nearest positioned ancestor and never takes part in layout, so filling it
+ * later cannot shift anything, and reduced motion hides it. The parent must be
+ * `position: relative`; content that should sit above the layer needs its own
+ * stacking (the global `.container` rule already has it).
+ */
+---
+
+<div class="ambient" data-ambient-mount aria-hidden="true"></div>
+
+<style>
+  .ambient {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Reduced motion wins over any stored choice: the layer is not drawn at all. */
+  @media (prefers-reduced-motion: reduce) {
+    .ambient {
+      display: none;
+    }
+  }
+</style>

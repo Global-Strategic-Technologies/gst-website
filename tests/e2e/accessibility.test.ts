@@ -26,6 +26,7 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
+import { seedLook } from './helpers/storage-baseline';
 import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
 import { collectOrphanClasses, diffAgainstAllowlist } from './helpers/orphan-classes';
 
@@ -503,6 +504,62 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
           `Serious a11y violations on ${pg.name} (${stored}):\n${formatViolations(breaches)}`
         ).toHaveLength(0);
       });
+    }
+  }
+
+  // The daily rotation (ADR-0040) shows visitors every palette in every theme:
+  // the weekday picks the palette, the week of the month the theme. Palette 0
+  // is scanned in all four themes above; this covers palettes 1–6 in all four,
+  // on / and /brand/ (which exercise every token family) plus /services/ and
+  // TechPar. Primary-coloured text is exempted as brand teal is: the helper
+  // matches the live --color-primary and still fails anything under 1.5:1
+  // (ADR-0035 § 1, extended to each palette's primary by ADR-0040). The bar is
+  // zero critical and zero serious — no KNOWN_SERIOUS baseline applies here.
+  const ROTATION_ROUTES = ['/', '/services/', '/hub/tools/techpar/', '/brand/'];
+  const ROTATION_THEMES = [
+    ['light', 'rgb(255, 255, 255)'],
+    ['dim-light', 'rgb(235, 235, 235)'],
+    ['dim-dark', 'rgb(28, 28, 28)'],
+    ['dark', 'rgb(10, 10, 10)'],
+  ] as const;
+  for (const palette of [1, 2, 3, 4, 5, 6]) {
+    for (const [theme, bodyBg] of ROTATION_THEMES) {
+      for (const pg of PAGES.filter((p) => ROTATION_ROUTES.includes(p.path))) {
+        test(`${pg.name} (palette ${palette}, ${theme}) has no critical or serious violations`, async ({
+          page,
+        }) => {
+          await seedLook(page, { palette, theme });
+          if (pg.waitFor) {
+            await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
+            await page
+              .locator(pg.waitFor)
+              .first()
+              .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
+          } else {
+            await page.goto(pg.path, { waitUntil: 'load' });
+          }
+          const html = page.locator('html');
+          await expect(html).toHaveClass(new RegExp(`(^|\\s)palette-${palette}(\\s|$)`));
+          const dark = theme === 'dark' || theme === 'dim-dark';
+          const dim = theme === 'dim-light' || theme === 'dim-dark';
+          if (dark) await expect(html).toHaveClass(/(^|\s)dark-theme(\s|$)/);
+          else await expect(html).not.toHaveClass(/(^|\s)dark-theme(\s|$)/);
+          if (dim) await expect(html).toHaveClass(/(^|\s)theme-dim(\s|$)/);
+          else await expect(html).not.toHaveClass(/(^|\s)theme-dim(\s|$)/);
+          await expect
+            .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+            .toBe(bodyBg);
+          if (pg.setup) await pg.setup(page);
+
+          const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
+          expect(results.critical, formatViolations(results.critical)).toHaveLength(0);
+          expect(
+            results.serious,
+            `Serious a11y violations on ${pg.name} (palette ${palette}, ${theme}):
+${formatViolations(results.serious)}`
+          ).toHaveLength(0);
+        });
+      }
     }
   }
 

@@ -768,7 +768,7 @@ sweep and the E2E suite, and its numbers are already pinned to `tiers.ts`.
   `mcp-root-program-boundary.test.ts` so a future `skus.ts` field referencing `Env` fails a test.
 
 **Styling** (per STYLES_GUIDE.md): design-system tokens only — no hardcoded colors, spacing or font
-sizes; verify light **and** dark **and** all 6 palettes via the PalettePanel; desktop-first with the
+sizes; verify light **and** dark **and** every palette via the PalettePanel; desktop-first with the
 existing `max-width` overrides at 768px and 480px. The tier grid is four fixed tracks (`:1167-1171`)
 with `table-layout: fixed` beneath it (`:1253-1256`), so adding a price and CTA to one card makes it
 taller than its siblings — decide deliberately whether all three cards gain a price row. If they do,

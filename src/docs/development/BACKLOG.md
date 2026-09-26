@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Twelve cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Fifteen cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -62,6 +62,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Measured, not guarded:** every light ink clears ADR-0035's 4.75:1 on `#f5f5f5` and 4.5:1 on its 12% tint; every dark base clears 4.5:1 on `#0a0a0a`/`#1a1a1a`; the sash band and badge chip clear 4.5:1 in both themes.
 >   - **Readable fills:** screenshots showed dark text on the dark light-theme fills of 1, 3 and 5 (a pre-existing pattern — ~20 sites hardcode `--bg-dark` ink on `--color-primary`). The operator chose to lighten those three fills (gray `#8e8e8e`, blue `#5a8af2`, vivid purple `#c145ff` (operator follow-up: `#b566ff` read as lilac, too close to palette 3)) over adding an on-primary token; every primary and primary-dark now clears 4.5:1 under dark text in both themes, so the `--sash-ink` re-point is retired.
 >   - **Latent bug fixed on the way:** `--color-primary-rgb` had one value per palette, so dark-theme tints/borders used the LIGHT primary. Each palette now sets a dark-theme triplet, and the hand-copied rgba border/accent lines were deleted in favour of the `variables.css` derivations.
+> - **2026-09-25**: 1 stanza (BL-035, Dynamic Visual Effects) closed when the operator put ambient motion live with their own settings, which closed its stakeholder-review gate. Last pre-prune revision: `cae611d6`. Its live content was already in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md): the budget, the Lighthouse tables, and the scope and reduced-motion rules. That ADR's amendment records the public default and the go-live measurement.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -244,7 +245,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 **Slice 4 — Website UX and integration**
 
-- [ ] Purchase surface on the site presenting the tier table and price, built with design-system tokens only; works in light/dark and all 6 palettes; desktop-first responsive; E2E coverage per [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md). Route naming consistent with `/hub/radar` and `/hub/tools/*`
+- [ ] Purchase surface on the site presenting the tier table and price, built with design-system tokens only; works in light/dark and every palette; desktop-first responsive; E2E coverage per [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md). Route naming consistent with `/hub/radar` and `/hub/tools/*`
 - [ ] **Copy must not convert capability ceilings into a ratified SLA.** Tiers are "tunable, non-contractual capability ceilings" per [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) / [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md), and selling access against them is exactly where that framing is most likely to erode. SLA ratification stays deferred under [BL-033](#bl-033-mcp-server--external-pilot-phase-3); nothing on a pricing page may ratify one by implication
 - [ ] **CSP updated in BOTH `vercel.json` and `src/middleware.ts`** per [SECURITY_HEADERS.md](../security/SECURITY_HEADERS.md) — the site pins `form-action 'self'` and an explicit `connect-src`, so the vendor's checkout host, JS bundle, and any embedded-payment iframe need `form-action` / `connect-src` / `script-src` / `frame-src` entries. A redirect-to-hosted-checkout flow needs strictly fewer of these than an embedded element; weigh that in Slice 1
 - [ ] Whether the return/confirmation page is a Vercel on-demand route or a static page reading a Worker-issued token is decided explicitly. If an Astro API route is used: `export const prerender = false`, and keep the ISR `exclude: [/^\/api\/.+/]` regex in `astro.config.mjs` intact — without that regex, POSTs to `/api/*` return 403 through Vercel's `_isr` pipeline. **Do not reach for the `INTERNAL_ENDPOINTS` allowlist in `src/middleware.ts` for the buyer-facing page** — `isAnonymousProbe` treats any request without a `Bearer` header as a probe and 404s it before `next()`, and a buyer's browser has no bearer. That allowlist fits only a bearer-authed token-exchange route the page calls on the buyer's behalf. A working template survives in git: `git show 606f4848^:src/pages/api/inoreader/refresh.ts`
@@ -1335,33 +1336,6 @@ Consequences:
 ---
 
 ## Exploration
-
-### BL-035: Dynamic Visual Effects Prototype
-
-**Source**: DYNAMIC_VISUAL_EFFECTS.md | **Effort**: 2-4h prototype, 4-8h polish if approved | **Status**: Open
-
-**As a** site visitor, **I want** subtle ambient motion in the homepage hero section **so that** the page feels alive and signals an active, technology-forward brand.
-
-#### Acceptance Criteria
-
-- [ ] `src/components/AmbientEffect.astro` created with top 2 candidate effects (Grid Pulse and Ambient Glow Shift)
-- [ ] Rendered in Hero section only, behind all content
-- [ ] `prefers-reduced-motion: reduce` disables all motion entirely
-- [ ] Mobile (<768px): reduced or disabled without layout shift
-- [ ] Works with both light/dark themes and all 6 palettes (uses `--color-primary`, not hardcoded)
-- [ ] Lighthouse performance score does not drop more than 2 points on mobile
-- [ ] Stakeholder review before proceeding to production polish
-
-#### Technical Context
-
-- Brand alignment concern: brutalism rejects ornament; direct port of bubble/particle effects would NOT align. Must be geometrically structured, monochrome, very restrained — closer to "data field" than "bubbles"
-- Top candidates: (1) Grid Pulse — brightness pulses across existing checkerboard grid, (2) Ambient Glow Shift — slow-cycling radial gradients in hero background
-- Technical constraints: max 15 animated elements, CSS animations or GPU-composited `transform`/`opacity` only, no JS animation loops, no external dependencies, `pointer-events: none`, `aria-hidden="true"`
-- Evaluation criteria: brand test (technology advisory, not consumer), subtlety test (subconscious after a few seconds), performance test, theme test, reduced-motion test, mobile test
-- Decision framework: Go (passes all 6 criteria) / No-go (archive, document findings) / Kill (requires external dependencies or exceeds 8h)
-- This is exploratory — no commitment to ship
-
----
 
 ### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
 

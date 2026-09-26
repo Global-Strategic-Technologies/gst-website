@@ -1,0 +1,138 @@
+/*
+ * The palette panel's Ambient Motion controls (BL-035, ADR-0039), built on the
+ * panel's first open by controls.ts (they were once a scoped Astro component,
+ * which is why these rules were written unscoped). Rules are anchored on the
+ * `.ambient-controls` root: unscoped, a bare `.ambient-controls__reset` would
+ * tie `.brutal-btn` in form.css and win or lose by load order.
+ *
+ * Imported with ?inline by controls.ts and inserted as a style element, so no page
+ * carries it; tests/unit/ambient-lazy-css-guard.test.ts holds that rule.
+ */
+.ambient-controls .ambient-controls__chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.ambient-controls .ambient-controls__scope {
+  display: grid;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+}
+
+/* Neither .brutal-segmented nor its buttons have a disabled style: only the
+   buttons dim (as the slider tracks do), and they stop reading as clickable.
+   Already specific enough to beat form.css's button states without the root
+   anchor, which would take the hover rule past the specificity ceiling. */
+.ambient-controls__scope .brutal-segmented__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ambient-controls__scope .brutal-segmented__btn:disabled:hover {
+  color: var(--text-secondary);
+}
+
+.ambient-controls .ambient-controls__rows {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-light);
+}
+
+/* label | range | value — the .brutal-slider parts laid out on one line */
+.ambient-controls .ambient-controls__row {
+  display: grid;
+  grid-template-columns: 8rem 1fr 3rem;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.ambient-controls .ambient-controls__row .brutal-slider__value {
+  text-align: right;
+}
+
+/* An effect that is off keeps its row (so nothing jumps when a chip is
+   toggled) but reads as inactive. Neither .brutal-slider* nor the chip has
+   a disabled style of its own. Only the track dims: dimming the whole row
+   took the teal value to 1.37:1, so the value turns muted instead, which
+   holds AA at full opacity. */
+.ambient-controls .ambient-controls__row :disabled,
+.ambient-controls .ambient-controls__pace :disabled {
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.ambient-controls .ambient-controls__row:has(:disabled) .brutal-slider__value,
+.ambient-controls .ambient-controls__pace:has(:disabled) .brutal-slider__value {
+  color: var(--text-muted);
+}
+
+.ambient-controls .ambient-controls__row:has(:disabled) .brutal-slider__label,
+.ambient-controls .ambient-controls__pace:has(:disabled) .brutal-slider__label,
+.ambient-controls .brutal-slider__input:disabled {
+  cursor: not-allowed;
+}
+
+.ambient-controls .ambient-controls__pace {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-light);
+}
+
+.ambient-controls .ambient-controls__scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.ambient-controls .ambient-controls__note {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+  margin: var(--spacing-md) 0 0;
+  padding: var(--spacing-sm);
+  border-left: 3px solid var(--color-primary);
+  background: var(--accent-light-bg);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.ambient-controls .ambient-controls__note svg {
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
+.ambient-controls .ambient-controls__note strong {
+  color: var(--text-primary);
+}
+
+.ambient-controls .ambient-controls__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.ambient-controls .ambient-controls__state {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* The size of the panel header's colour Reset, which is scoped to
+   PalettePanel.astro and so cannot be borrowed here. */
+.ambient-controls .ambient-controls__reset {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .ambient-controls .ambient-controls__row {
+    grid-template-columns: 6.5rem 1fr 2.75rem;
+  }
+}

@@ -252,14 +252,12 @@
   --footer-text: light-dark(rgba(26, 26, 26, 0.85), rgba(153, 153, 153, 0.85));
   --footer-border: light-dark(rgba(26, 26, 26, 0.1), rgba(153, 153, 153, 0.15));
   --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
-  --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
   /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
      --color-primary; the ink is dark, and no palette currently re-points it
      (every primary is light enough for it — see palettes.css § Announcement
-     sash ink for when a palette would need to). Defined here (not in palettes.css) for the same reason
-     --stat-item-border is: variables.css owns the base value, palettes.css owns
-     the per-palette override. */
+     sash ink for when a palette would need to). variables.css owns the base
+     value, palettes.css the per-palette override. */
   --sash-bg: var(--color-primary);
   --sash-ink: var(--bg-dark);
   /* The badge chip's fill (2026-08-28, operator direction): the secondary
@@ -408,6 +406,11 @@ html.theme-dim {
   /* Root-only ink (no palette re-points it, see palettes.css § Dim-light inks
      for the rest): darkened for the gray dim-light page, dark half unchanged. */
   --color-editors-pick-ink: light-dark(#7e4410, #d4923a);
+
+  /* The sash ink sits ON the bright primary band, not on the page, so it must
+     not lift with --bg-dark: at #1c1c1c the band's 85%-opacity detail text
+     fell to 3.98:1 on palette 2's dim-dark red (ADR-0040's rotation scans). */
+  --sash-ink: #0a0a0a;
 
   /* Text alphas raised where a charcoal surface drops them under AA. */
   --text-muted: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.64));

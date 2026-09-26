@@ -1,0 +1,595 @@
+/*
+ * Ambient motion (BL-035, ADR-0039): the effect layer's styles, moved from
+ * AmbientEffect.astro's and AmbientPage.astro's scoped blocks when the layer
+ * began to be built in JS (src/scripts/ambient/build.ts). Unscoped, because
+ * that DOM carries no data-astro-cid.
+ *
+ * Imported with ?inline by runtime.ts and inserted as a style element: Astro would
+ * attach a plainly imported sheet to every page that owns the importing
+ * script, and this must reach only browsers that draw motion (on by default;
+ * never under reduced motion or for a browser that switched it off).
+ * tests/unit/ambient-lazy-css-guard.test.ts holds that rule.
+ */
+
+/* ── The effect layer (was AmbientEffect.astro) ── */
+
+/* The settings' "off" values. The panel and BaseLayout's init script write
+   the live values inline on <html>, which beats this rule. */
+html {
+  --ambient-grid: 0;
+  --ambient-glow: 0;
+  --ambient-scan: 0;
+  --ambient-rails: 0;
+  --ambient-deltas: 0;
+  --ambient-arrows: 0;
+  --ambient-pace: 1;
+}
+
+/* The layer is built after the page has loaded (loader.ts), and fades in
+   rather than popping. Tiles are built ready, so a tile cloned in on scroll
+   appears at once. */
+.ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-slow);
+}
+
+.ambient:not([data-ambient-ready]) {
+  opacity: 0;
+}
+
+.ambient__layer {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+/* Strength per layer, 0–1, from the panel. */
+.ambient__layer--grid {
+  opacity: var(--ambient-grid);
+}
+.ambient__layer--glow {
+  opacity: var(--ambient-glow);
+}
+.ambient__layer--scan {
+  opacity: var(--ambient-scan);
+}
+.ambient__layer--rails {
+  opacity: var(--ambient-rails);
+}
+.ambient__layer--deltas {
+  opacity: var(--ambient-deltas);
+}
+/* Also the size container Delta Arrows fly across (see 06). */
+.ambient__layer--arrows {
+  opacity: var(--ambient-arrows);
+  container-type: size;
+}
+
+/* Which layers render — <html data-ambient="glow rails"> */
+html[data-ambient~='grid'] .ambient__layer--grid,
+html[data-ambient~='glow'] .ambient__layer--glow,
+html[data-ambient~='scan'] .ambient__layer--scan,
+html[data-ambient~='rails'] .ambient__layer--rails,
+html[data-ambient~='deltas'] .ambient__layer--deltas,
+html[data-ambient~='arrows'] .ambient__layer--arrows {
+  display: block;
+}
+
+/* Budget: with several effects layered, or on a phone, each keeps only its
+   share (the prototype's Combined subset). */
+.ambient--tile .ambient__el--solo {
+  display: none;
+}
+
+html[data-ambient-layered] .ambient__el--solo {
+  display: none;
+}
+
+/* Every animated element takes its cycle (--d, s) and head start (--o, s)
+   inline; Pace divides both, so faster keeps the same rhythm. */
+.ambient__cell,
+.ambient__glow,
+.ambient__scan,
+.ambient__mark,
+.ambient__delta,
+.ambient__volley {
+  animation-duration: calc(var(--d, 1) * 1s / var(--ambient-pace));
+  animation-delay: calc(var(--o, 0) * -1s / var(--ambient-pace));
+  animation-iteration-count: infinite;
+}
+
+/* 01 Grid Pulse — accent cells breathing on the 50px lattice */
+.ambient__cell {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 50px;
+  height: 50px;
+  background: var(--color-primary);
+  opacity: 0;
+  animation-name: ambient-pulse;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes ambient-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  45%,
+  55% {
+    opacity: 0.18;
+  }
+}
+
+/* 02 Glow Shift — two slow radial washes */
+.ambient__glow {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 44%, transparent) 0%,
+    transparent 65%
+  );
+  animation-timing-function: ease-in-out;
+  animation-direction: alternate;
+}
+
+.ambient__glow--a {
+  --d: 38;
+
+  width: 70%;
+  left: -16%;
+  top: -42%;
+  animation-name: ambient-drift-a;
+}
+
+.ambient__glow--b {
+  --d: 46;
+
+  width: 55%;
+  right: -12%;
+  bottom: -44%;
+  opacity: 0.8;
+  animation-name: ambient-drift-b;
+}
+
+@keyframes ambient-drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+
+  to {
+    transform: translate(47%, 18%) scale(1.15);
+  }
+}
+
+@keyframes ambient-drift-b {
+  from {
+    transform: translate(0, 0) scale(1.1);
+  }
+
+  to {
+    transform: translate(-54%, -17%) scale(0.95);
+  }
+}
+
+/* A tile is one screen tall and clips at its own edges, so its glows sit
+   inside it, drift and scale included, sized against the shorter side so a
+   wide screen cannot push a wash past the tile's height. */
+.ambient--tile .ambient__glow--a,
+.ambient--tile .ambient__glow--b {
+  width: min(40%, 60lvh);
+}
+
+.ambient--tile .ambient__glow--a {
+  left: 4%;
+  top: 4%;
+}
+
+.ambient--tile .ambient__glow--b {
+  right: 4%;
+  bottom: 6%;
+}
+
+/* 03 Scan Sweep — a band that falls, decelerating and fading as it slows.
+   Translate is a percentage of the band's own height (19.5% of the layer). */
+.ambient__scan {
+  --d: 16;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 19.5%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-primary) 14%, transparent) 85%,
+    color-mix(in srgb, var(--color-primary) 70%, transparent) 99%,
+    transparent 100%
+  );
+  transform: translateY(-114%);
+  animation-name: ambient-scan;
+  animation-timing-function: linear;
+}
+
+@keyframes ambient-scan {
+  0% {
+    transform: translateY(-114%);
+    opacity: 1;
+  }
+
+  10% {
+    transform: translateY(86%);
+    opacity: 0.95;
+  }
+
+  20% {
+    transform: translateY(236%);
+    opacity: 0.8;
+  }
+
+  30% {
+    transform: translateY(343%);
+    opacity: 0.62;
+  }
+
+  40% {
+    transform: translateY(418%);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: translateY(468%);
+    opacity: 0.3;
+  }
+
+  60% {
+    transform: translateY(500%);
+    opacity: 0.17;
+  }
+
+  70% {
+    transform: translateY(519%);
+    opacity: 0.07;
+  }
+
+  78%,
+  100% {
+    transform: translateY(529%);
+    opacity: 0;
+  }
+}
+
+/* 04 Data Rails — faint lines in four directions; each carries one mark
+   that fires, fades, and stays dark for the rest of its cycle. The mark is
+   painted at the leading end of a full-length strip, so translate
+   percentages are percentages of the rail. */
+.ambient__rail {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-primary) calc(var(--tint) * 2%), transparent);
+}
+
+.ambient__rail--v {
+  top: 0;
+  bottom: 0;
+  left: var(--pos);
+  width: var(--w);
+}
+
+.ambient__rail--h {
+  left: 0;
+  right: 0;
+  top: var(--pos);
+  height: var(--w);
+}
+
+.ambient__mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  background-repeat: no-repeat;
+  animation-timing-function: linear;
+}
+
+.ambient__mark--up,
+.ambient__mark--down {
+  width: var(--thick);
+  height: 100%;
+  background-position: top;
+  background-size: 100% var(--len);
+}
+
+.ambient__mark--right,
+.ambient__mark--left {
+  width: 100%;
+  height: var(--thick);
+  background-position: left;
+  background-size: var(--len) 100%;
+}
+
+.ambient__mark--up {
+  background-image: linear-gradient(180deg, transparent, var(--color-primary));
+  animation-name: ambient-rail-up;
+}
+
+.ambient__mark--down {
+  background-image: linear-gradient(0deg, transparent, var(--color-primary));
+  animation-name: ambient-rail-down;
+}
+
+.ambient__mark--right {
+  background-image: linear-gradient(90deg, transparent, var(--color-primary));
+  animation-name: ambient-rail-right;
+}
+
+.ambient__mark--left {
+  background-image: linear-gradient(270deg, transparent, var(--color-primary));
+  animation-name: ambient-rail-left;
+}
+
+@keyframes ambient-rail-up {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  6%,
+  34% {
+    opacity: var(--pk);
+  }
+
+  52% {
+    opacity: calc(var(--pk) * 0.35);
+  }
+
+  64%,
+  100% {
+    transform: translateY(calc(-1 * var(--len)));
+    opacity: 0;
+  }
+}
+
+@keyframes ambient-rail-down {
+  0% {
+    transform: translateY(calc(-1 * var(--len)));
+    opacity: 0;
+  }
+
+  6%,
+  34% {
+    opacity: var(--pk);
+  }
+
+  52% {
+    opacity: calc(var(--pk) * 0.35);
+  }
+
+  64%,
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes ambient-rail-right {
+  0% {
+    transform: translateX(calc(-1 * var(--len)));
+    opacity: 0;
+  }
+
+  6%,
+  34% {
+    opacity: var(--pk);
+  }
+
+  52% {
+    opacity: calc(var(--pk) * 0.35);
+  }
+
+  64%,
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes ambient-rail-left {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  6%,
+  34% {
+    opacity: var(--pk);
+  }
+
+  52% {
+    opacity: calc(var(--pk) * 0.35);
+  }
+
+  64%,
+  100% {
+    transform: translateX(calc(-1 * var(--len)));
+    opacity: 0;
+  }
+}
+
+/* 05 Delta Drift — brand deltas (DeltaIcon: stroke 6 in a 64 box) */
+.ambient__delta {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  color: var(--color-primary);
+  opacity: 0.28;
+  animation-name: ambient-float;
+  animation-timing-function: ease-in-out;
+  animation-direction: alternate;
+}
+
+/* The delta's <svg> (build.ts deltaSvg) fills the span, which sets the size. */
+.ambient__delta svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes ambient-float {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  to {
+    transform: translateY(-36px) rotate(14deg);
+  }
+}
+
+/* 06 Delta Arrows — volleys of brand deltas that shoot from the bottom-left
+   corner to the top-right, pulsing in and out on the way. The layer is a
+   size container, so a flight line is always parallel to THIS layer's
+   diagonal (hero, preview stage or one-screen tile), and each volley's aim
+   turns the up-pointing delta onto it. The layer (its container-type is set
+   with its strength, above) is absolutely positioned with inset 0, so its
+   size never depends on its contents. */
+
+/* A point at the bottom-left corner; its travel and pulse are one
+   animation, so a whole volley counts as one animated element. */
+.ambient__volley {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  color: var(--color-primary);
+  opacity: 0;
+  animation-name: ambient-volley;
+  animation-timing-function: linear;
+}
+
+/* A separate element on purpose: the individual `rotate` property composes
+   with `transform`, so on the volley itself it would turn the travel too. */
+.ambient__volley-aim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  rotate: calc(90deg - atan2(100cqh, 100cqw));
+}
+
+/* Placed around the aim's origin: --ay behind the lead (the delta points
+   up, so behind is down), --ax to the side. The delta keeps the brand
+   geometry (DeltaIcon: outline, stroke 6 in a 64 box), never stretched. */
+.ambient__arrow {
+  position: absolute;
+  left: calc(var(--ax) - var(--s) / 2);
+  top: calc(var(--ay) - var(--s) / 2);
+  width: var(--s);
+  height: var(--s);
+  opacity: var(--ao);
+}
+
+.ambient__arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --lane shifts the flight line sideways; the trip (130% of the layer
+   along its diagonal) takes the first 66% of the cycle, then it is dark.
+   The two peaks sit where every lane in the table is on screen. */
+@keyframes ambient-volley {
+  0% {
+    transform: translate(calc((var(--lane) - 15) * 1cqw), 15cqh);
+    opacity: 0;
+  }
+
+  16% {
+    opacity: var(--pk);
+  }
+
+  28% {
+    opacity: calc(var(--pk) * 0.25);
+  }
+
+  42% {
+    opacity: var(--pk);
+  }
+
+  60% {
+    opacity: 0;
+  }
+
+  66%,
+  100% {
+    transform: translate(calc((var(--lane) + 115) * 1cqw), -115cqh);
+    opacity: 0;
+  }
+}
+
+/* Without container units and atan2() the arrows would freeze or point the
+   wrong way; show none rather than a broken effect. */
+@supports not ((width: 1cqw) and (rotate: atan2(1px, 1px))) {
+  .ambient__layer--arrows {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ambient__el--solo {
+    display: none;
+  }
+}
+
+/* Set by runtime.ts while a page background is active and this layer has
+   scrolled off screen, so no layer keeps running out of sight alongside the
+   background's tiles (ADR-0039's "≤32 running"). */
+.ambient[data-offscreen] .ambient__layer {
+  display: none;
+}
+
+/* Reduced motion wins over any stored choice: the layer is not drawn at all. */
+@media (prefers-reduced-motion: reduce) {
+  .ambient {
+    display: none;
+  }
+}
+
+/* ── The page background (was AmbientPage.astro) ── */
+
+.ambient-page {
+  --ambient-page-top: 0px;
+
+  position: absolute;
+  inset: var(--ambient-page-top) 0 0;
+  z-index: -1;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+
+  /* Hidden until the script has placed it below the hero: a laid-out box
+     that jumps from main's top to the hero's foot is a layout shift
+     (Lighthouse measured CLS 0.62 before this), even an empty one. */
+  visibility: hidden;
+}
+
+.ambient-page[data-placed] {
+  visibility: visible;
+}
+
+html[data-ambient][data-ambient-scope='site'] .ambient-page,
+html[data-ambient][data-ambient-scope='page'] .ambient-page[data-home] {
+  display: block;
+}
+
+/* One spacer per screen; runtime.ts clones a tile into it while it is on screen. */
+.ambient-page .ambient-page__tile {
+  position: relative;
+  height: 100lvh;
+}

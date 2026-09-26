@@ -10,6 +10,7 @@ import ThemeToggleButton from '../ThemeToggleButton.astro';
 import FooterLinks from '../FooterLinks.astro';
 import CTABox from '../CTABox.astro';
 import Sash from '../Sash.astro';
+import AmbientEffect from '../AmbientEffect.astro';
 import type { RadarWireItem } from '../../lib/inoreader/types';
 
 /**
@@ -230,6 +231,26 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         >
         <code class="brand-code"
           >.brutal-hero__trustline — monospace, var(--text-muted), 500 weight</code
+        >
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Hero Ambient Motion</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <!-- The real layer (AmbientEffect.astro), live: it follows the palette
+             panel's Ambient Motion section exactly as the homepage hero does. -->
+        <div class="brand-ambient-stage" data-testid="brand-ambient-stage">
+          <AmbientEffect />
+          <span class="brutal-hero__title brand-ambient-stage__title"
+            >Technology Advisory <span class="brand-ambient-stage__accent">&amp; Execution</span
+            ></span
+          >
+        </div>
+        <code class="brand-code"
+          >AmbientEffect — driven by the palette panel's Ambient Motion section (the Motion button
+          on the panel's edge rail jumps there). Still until an effect is chosen; hidden under
+          prefers-reduced-motion</code
         >
       </div>
     </div>

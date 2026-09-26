@@ -12,8 +12,7 @@ export const palettes: Palette[] = [
   {
     id: 0,
     name: 'Current',
-    concept:
-      'The production palette \u2014 teal primary with amber secondary. This is the baseline for comparison.',
+    concept: 'The base palette \u2014 teal primary with amber secondary.',
   },
   {
     id: 1,
@@ -42,6 +41,12 @@ export const palettes: Palette[] = [
     name: 'Ultraviolet',
     concept: 'Vivacious violet with acid-lime and hot-pink contrast. Nightclub energy.',
   },
+  {
+    id: 6,
+    name: 'Phosphor',
+    concept:
+      'Terminal-phosphor green on stark black and white, cut with hot fuchsia and a crimson alarm.',
+  },
 ];
 
 export const PALETTE_NAMES: Record<number, string> = {
@@ -51,6 +56,7 @@ export const PALETTE_NAMES: Record<number, string> = {
   3: '3. Admiralty',
   4: '4. Blaze',
   5: '5. Ultraviolet',
+  6: '6. Phosphor',
 };
 
 export const PALETTE_CONCEPTS: Record<number, string> = Object.fromEntries(

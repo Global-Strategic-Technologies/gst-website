@@ -6,6 +6,7 @@ import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import PalettePanel from '../components/brand/PalettePanel.astro';
+import AmbientPage from '../components/AmbientPage.astro';
 import LanguageBand from '../components/LanguageBand.astro';
 import { localeFromPath, resolveLocale } from '../i18n/locales';
 import { useTranslations } from '../i18n/t';
@@ -121,34 +122,53 @@ const isHomepage = routePath === '/' || routePath === '';
 
     <!-- Initialize theme synchronously to prevent FOUC and race conditions in E2E tests -->
     <script is:inline>
+      // Today's look (ADR-0040) — mirrors resolveLook() in
+      // src/scripts/daily-look.ts, which this script cannot import;
+      // tests/unit/daily-look.test.ts runs this block against the module. The
+      // palette follows the weekday (Monday = 0) and the theme the week of the
+      // month (ADR-0038's four states, lightest first). A pick stamped with
+      // today's local date wins, per dimension; without storage the rotation
+      // still applies.
       try {
-        // Mirrors src/scripts/theme-state.ts (ADR-0038) — this inline script
-        // cannot import it; tests/unit/theme-state.test.ts pins the literals.
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark' || theme === 'dim-dark') {
-          document.documentElement.classList.add('dark-theme');
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+        const themes = ['light', 'dim-light', 'dim-dark', 'dark'];
+        const dayToPalette = ['0', '1', '2', '3', '4', '5', '6'];
+        let theme = themes[Math.min(3, Math.floor((now.getDate() - 1) / 7))];
+        let palette = dayToPalette[(now.getDay() + 6) % 7];
+        try {
+          const t = localStorage.getItem('theme');
+          if (localStorage.getItem('theme-date') === today && themes.includes(t)) theme = t;
+          const p = localStorage.getItem('palette');
+          if (localStorage.getItem('palette-date') === today && dayToPalette.includes(p))
+            palette = p;
+        } catch {
+          // localStorage not available (e.g., private browsing) — rotation only
         }
-        if (theme === 'dim-light' || theme === 'dim-dark') {
-          document.documentElement.classList.add('theme-dim');
-        }
+        const root = document.documentElement;
+        if (theme === 'dark' || theme === 'dim-dark') root.classList.add('dark-theme');
+        if (theme === 'dim-light' || theme === 'dim-dark') root.classList.add('theme-dim');
+        if (palette !== '0') root.classList.add('palette-' + palette);
       } catch {
-        // localStorage not available (e.g., private browsing)
-        // Default to light theme silently
+        // Never block the page — it renders light, palette 0
       }
-      // Initialize palette synchronously to prevent color flash
       try {
-        const p = localStorage.getItem('palette');
-        if (p && p !== '0') document.documentElement.classList.add('palette-' + p);
         if (localStorage.getItem('palette-popped-out') === 'true')
           document.documentElement.classList.add('palette-popped-out');
       } catch {
-        // localStorage not available — palette init silently skipped
+        // localStorage not available — popout state silently skipped
       }
       // Re-apply palette-editor colour edits (palette-manager.ts § Persisted
       // colour edits) before first paint, so they survive navigation. Only
-      // custom properties are applied; they are cleared on a palette change.
+      // custom properties are applied, and only on the palette they were made
+      // on — the rotation can change it between visits (ADR-0040).
       try {
-        const edits = JSON.parse(localStorage.getItem('palette-overrides') || '{}');
+        const current = /\bpalette-(\d)\b/.exec(document.documentElement.className)?.[1] ?? '0';
+        const edits =
+          localStorage.getItem('palette-overrides-palette') === current
+            ? JSON.parse(localStorage.getItem('palette-overrides') || '{}')
+            : {};
         for (const name in edits) {
           if (name.startsWith('--') && typeof edits[name] === 'string') {
             document.documentElement.style.setProperty(name, edits[name]);
@@ -156,6 +176,59 @@ const isHomepage = routePath === '/' || routePath === '';
         }
       } catch {
         // Missing or malformed — no edits to restore
+      }
+      // Hero ambient motion (BL-035, ADR-0039) — mirrors applySettings() in
+      // src/scripts/ambient-motion.ts, which this script cannot import;
+      // tests/unit/ambient-motion.test.ts pins the key, ids, ranges and the
+      // default list. Numbers are clamped here too: an invalid custom property
+      // would make `opacity` fall back to 1, i.e. full strength.
+      try {
+        const ids = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
+        const strengthDefaults = {
+          grid: 15,
+          glow: 40,
+          scan: 5,
+          rails: 20,
+          deltas: 30,
+          arrows: 45,
+        };
+        const defaultOn = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
+        const scopes = ['hero', 'page', 'site'];
+        const defaultScope = 'site';
+        let saved = null;
+        try {
+          saved = JSON.parse(localStorage.getItem('ambient-motion') || 'null');
+        } catch {
+          saved = null;
+        }
+        if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = {};
+        const wanted = Array.isArray(saved.on) ? saved.on : defaultOn;
+        const on = ids.filter((id) => wanted.includes(id));
+        if (on.length) {
+          const clamp = (v, min, max, step, fallback) =>
+            typeof v === 'number' && isFinite(v)
+              ? Math.min(max, Math.max(min, Math.round(v / step) * step))
+              : fallback;
+          const strength =
+            saved.strength && typeof saved.strength === 'object' ? saved.strength : {};
+          const root = document.documentElement;
+          root.setAttribute('data-ambient', on.join(' '));
+          if (on.length > 1) root.setAttribute('data-ambient-layered', '');
+          root.setAttribute(
+            'data-ambient-scope',
+            scopes.includes(saved.scope) ? saved.scope : defaultScope
+          );
+          for (const id of ids) {
+            const pct = clamp(strength[id], 0, 100, 5, strengthDefaults[id]);
+            root.style.setProperty('--ambient-' + id, String(pct / 100));
+          }
+          root.style.setProperty(
+            '--ambient-pace',
+            String(clamp(saved.pace, 50, 150, 10, 110) / 100)
+          );
+        }
+      } catch {
+        // Ambient motion is decoration — never let it block the page
       }
     </script>
 
@@ -181,6 +254,11 @@ const isHomepage = routePath === '/' || routePath === '';
     }
     <LanguageBand locale={locale} currentPath={currentPath} />
     <main id="main-content" role="main">
+      {
+        /* Page-wide / site-wide ambient motion (BL-035) — behind every section,
+           shown only in those scopes. First child so it spans all of <main>. */
+      }
+      <AmbientPage home={isHomepage} />
       {
         !isHomepage && (
           <div class="container">

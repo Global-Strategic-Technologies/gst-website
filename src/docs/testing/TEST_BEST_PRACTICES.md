@@ -686,6 +686,7 @@ If your test has any of these, it's likely a false positive:
 28. ✗ Source emits a `data-*-ready` / `__*Initialized` signal before all `addEventListener` / D3 `.on()` calls have run — passes in isolation, fails under parallel worker load
 29. ✗ Gates on a readiness signal that was never observed false — a never-navigated iframe's `about:blank` already reports `readyState === 'complete'`, so the gate admits every frame and the assertion beneath it cannot fail
 30. ✗ Adds `html.dark-theme` to a loaded page and then measures colours or runs axe — reads mixed light/dark states; set `localStorage.theme` via `addInitScript` before `goto` and assert the theme loaded (anti-pattern 29)
+31. ✗ Clears storage, or uses `storageState: EMPTY_STATE`, and then asserts on colours or theme without pinning the clock — the look then depends on the run date (ADR-0040); keep the baseline storage, or pin it with `seedLook` / `page.clock.setFixedTime` (anti-pattern 29)
 
 ## E2E Cross-Browser Pitfalls
 
@@ -1563,6 +1564,14 @@ await expect
 `tests/e2e/accessibility.test.ts` (`applyTheme` / `expectThemeLoaded`) is the reference. It also checks one known element per theme, `.project-card` on `/ma-portfolio/`, so a regression in the switch fails loudly instead of producing numbers. Set light explicitly too, rather than trusting the default (#21).
 
 The dim states of the four-state theme ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)) follow the same rule. Store `'dim-light'` or `'dim-dark'`, then assert `theme-dim` (and `dark-theme` for dim dark) before measuring. Never add `theme-dim` after load.
+
+**The default look follows the date** ([ADR-0040](../adr/0040-daily-look-rotation.md)): with no pick stamped today, the palette follows the weekday and the theme the week of the month. A stored `theme` or `palette` counts only beside a `theme-date` / `palette-date` stamp of today's local date. The suite handles this once, in `playwright.config.ts`:
+
+- **Every context starts from a baseline `storageState`** (`tests/e2e/helpers/storage-baseline.ts`): palette `'0'` and theme `'light'`, both stamped today, and ambient motion switched off (`{"on":[]}`). A spec that sets only `localStorage.theme`, as above, still works, because the baseline stamp is already today's.
+- **Seed a different look with `seedLook(page, { palette, theme })`**, which writes the stamps too, on the first load only.
+- **Test the defaults themselves with `test.use({ storageState: LOOK_ONLY })`** (the ambient default) **or `EMPTY_STATE`** (nothing stored), and pin the date with `page.clock.setFixedTime` and a `timezoneId`, as `tests/e2e/daily-look.test.ts` does.
+- **Both dev-server origins are seeded**, 4321 and a 4325 scratch config. storageState is keyed by origin, so a config on any other origin starts on the rotated look; `tests/e2e/storage-baseline.test.ts` fails loudly if the baseline didn't land.
+- **A run that crosses local midnight** falls back to the rotation for contexts created after it. The stamps were computed when the config loaded. Capture the failing test's name, then re-run.
 
 ---
 

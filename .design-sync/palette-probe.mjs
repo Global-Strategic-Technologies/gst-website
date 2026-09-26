@@ -1,11 +1,11 @@
-// Probe: do html.palette-0 … html.palette-5 actually re-point the shipped
+// Probe: does every html.palette-N actually re-point the shipped
 // bundle's brand tokens — and does that reach a rendered element?
 //
 // Same pattern as dark-probe.mjs (read before re-syncing): opens a real preview
 // card, reads computed token values and one painted element, then applies each
 // palette class to <html> and reads again. Palette 0 is the default palette
 // (it overrides only --color-authority/-distinguish/-subdued), so --color-primary
-// is expected to stay put there and move under 1–5.
+// is expected to stay put there and move under every alternative.
 //
 // Needs a prior full package-build (ds-bundle/ is gitignored). Run from the
 // repo root: node .design-sync/palette-probe.mjs
@@ -29,7 +29,7 @@ const page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
 await page.goto(pathToFileURL(card).href, { waitUntil: 'networkidle' });
 
 const TOKENS = ['--color-primary', '--color-secondary', '--color-authority', '--color-subdued'];
-const PALETTES = [0, 1, 2, 3, 4, 5];
+const PALETTES = [0, 1, 2, 3, 4, 5, 6];
 
 const read = () =>
   page.evaluate((tokens) => {
@@ -69,7 +69,7 @@ for (const k of keys) {
   );
 }
 
-// Verdict: palettes 1–5 must move --color-primary AND the painted fill; palette-0 must not.
+// Verdict: every alternative palette must move --color-primary AND the painted fill; palette-0 must not.
 let ok = true;
 for (const n of PALETTES) {
   const movedPrimary = results[n]['--color-primary'] !== base['--color-primary'];
@@ -82,6 +82,6 @@ for (const n of PALETTES) {
   );
 }
 console.log(
-  ok ? '\nAll six palettes behave as expected against this bundle.' : '\nPALETTE PROBE FAILED'
+  ok ? '\nEvery palette behaves as expected against this bundle.' : '\nPALETTE PROBE FAILED'
 );
 process.exit(ok ? 0 : 1);

@@ -94,6 +94,15 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 ## Hard-won findings (don't rediscover these)
 
+- **The Hero card deliberately omits the ambient-motion layer.** Since BL-035 (2026-09-22),
+  the homepage `section.hero` carries `AmbientEffect.astro`. Since 2026-09-23 that is one
+  empty placeholder `<div class="ambient">`: the layer is built in the browser (on by default
+  since 2026-09-25, switchable off in the palette panel), and its CSS lives outside `src/styles/`
+  (STYLES_GUIDE § Lazily loaded stylesheets), so none of it reaches this bundle. It is a
+  design-tool decoration, not part of the Hero's markup contract, so `neutralise()` still
+  removes `.ambient` before `cidsIn()` runs, and the placeholder's scoped rules drop out of
+  the card with it. If the Hero card ever shows that div, the strip has been lost.
+
 - **The pinned face cannot ship through `cssEntry` — it must go through `cfg.extraFonts`.**
   Found 2026-08-29, the first sync after BL-144 pinned `--font-family-mono` to a self-hosted
   `GST Mono`. `cfg.cssEntry` becomes `_ds_bundle.css`, and the converter REWRITES that file's
@@ -396,8 +405,8 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
     **The chrome cards are different**: their scaffold is ours, and the class sits on the
     card's own root `<html>` — both reasons answered — so seven ship as dark twins, verified
     by `extract-chrome.mjs --check` (`--bg-light` → `#0a0a0a`).
-- **The six palettes are VERIFIED (by measurement).** Run `node .design-sync/palette-probe.mjs`
-  — it applies `html.palette-0…5` to a real card and checks `--color-primary` plus a painted
+- **The palettes are VERIFIED (by measurement) through palette 5; palette 6 (2026-09-25) is verified at its first re-sync.** Run `node .design-sync/palette-probe.mjs`
+  — it applies every `html.palette-N` to a real card and checks `--color-primary` plus a painted
   element (`.brutal-progress-bar__fill`). Result 2026-08-16: palette-0 (the default) leaves
   the primary at `#05cd99` as designed; 1–5 re-point both the token and the fill
   (`#1e40af`, `#7c3aed`, `#b45309`, `#059669`, `#166534`). Same root-only constraint as dark

@@ -132,7 +132,7 @@ Issued, plus **first** in the shell: `.brutal-callout.brutal-callout--warning[ro
 - Timings: long-verify copy at 2.5 s; copied feedback 2 s; rate-limit countdown 30 s (use the server's wait when present).
 - Motion: only the fade and skeleton dots; both off under `prefers-reduced-motion`.
 - Responsive: 768 collapses facts to 2 col, cards to 1 col, shell padding `--spacing-lg --spacing-md`, `state-region` min-height 0; 480 collapses facts and `.cred-grid` to 1 col, `.btn-row .brutal-btn` full width.
-- Theme `html.dark-theme`, palettes `html.palette-0…5`: nothing page-specific; every colour is a token. Use `light-dark(var(--border-light), var(--border-dark-default))` for borders.
+- Theme `html.dark-theme`, palettes `html.palette-N`: nothing page-specific; every colour is a token. Use `light-dark(var(--border-light), var(--border-dark-default))` for borders.
 
 ## State
 

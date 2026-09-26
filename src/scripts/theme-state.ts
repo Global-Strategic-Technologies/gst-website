@@ -10,10 +10,11 @@
  *   2 dim dark  dark-theme theme-dim
  *   3 dark      dark-theme
  *
- * localStorage.theme stores the name below. 'light' and 'dark' keep their
- * pre-ADR meaning, so no migration exists. The inline init script in
- * BaseLayout.astro cannot import this module and duplicates STORAGE_VALUES —
- * tests/unit/theme-state.test.ts pins the two together.
+ * localStorage.theme stores the name below, stamped with the day it was
+ * picked (src/scripts/daily-look.ts, ADR-0040): a pick holds until local
+ * midnight, and otherwise the theme follows the week of the month. The inline
+ * init script in BaseLayout.astro cannot import either module and duplicates
+ * STORAGE_VALUES — tests/unit/daily-look.test.ts runs it against them.
  */
 
 export type ThemeState = 0 | 1 | 2 | 3;
@@ -56,12 +57,6 @@ export function toggleBinary(state: ThemeState): ThemeState {
 
 export function storageValue(state: ThemeState): ThemeStorageValue {
   return STORAGE_VALUES[state];
-}
-
-/** Unknown or missing values read as light — the pre-ADR default. */
-export function stateFromStorage(value: string | null): ThemeState {
-  const i = STORAGE_VALUES.indexOf(value as ThemeStorageValue);
-  return (i < 0 ? 0 : i) as ThemeState;
 }
 
 /** Quarter turns between two states, always counter-clockwise (0–3). */

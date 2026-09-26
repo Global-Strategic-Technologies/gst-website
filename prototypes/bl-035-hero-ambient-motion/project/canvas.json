@@ -1,0 +1,88 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-22T17:37:42Z"
+  },
+  "title": "Hero Ambient Motion",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "title": "01 · Grid Pulse",
+      "is_interactive": true
+    },
+    "GlowShift.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "title": "02 · Ambient Glow Shift",
+      "is_interactive": true
+    },
+    "ScanSweep.dc.html": {
+      "x": 0,
+      "y": 840,
+      "w": 1280,
+      "h": 720,
+      "title": "03 · Scan Sweep",
+      "is_interactive": true
+    },
+    "DataRails.dc.html": {
+      "x": 1360,
+      "y": 840,
+      "w": 1280,
+      "h": 720,
+      "title": "04 · Data Rails",
+      "is_interactive": true
+    },
+    "DeltaDrift.dc.html": {
+      "x": 0,
+      "y": 1680,
+      "w": 1280,
+      "h": 720,
+      "title": "05 · Delta Drift",
+      "is_interactive": true
+    },
+    "Combined.dc.html": {
+      "x": 1360,
+      "y": 1680,
+      "w": 1280,
+      "h": 720,
+      "title": "06 · Combined",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "GlowShift.dc.html",
+    "ScanSweep.dc.html",
+    "DataRails.dc.html",
+    "DeltaDrift.dc.html",
+    "Combined.dc.html"
+  ],
+  "notes": {
+    "head": {
+      "x": 0,
+      "y": -300,
+      "text": "BL-035 · Hero ambient motion — 5 POCs",
+      "kind": "title1",
+      "maxW": 2640
+    }
+  },
+  "designSystems": [
+    {
+      "title": "GST Design System",
+      "namespace": "gst",
+      "artifact": "https://claude.ai/artifact/UAX3SZWtHRx5RSCKr4EAB8",
+      "version": "1790085777-4a68",
+      "copiedAt": "2026-09-22T20:39:17Z"
+    }
+  ]
+}

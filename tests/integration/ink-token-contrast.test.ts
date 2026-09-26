@@ -41,12 +41,24 @@ const PALETTE_SCOPED = [
 ] as const;
 const ALL_INKS = [...PALETTE_SCOPED, 'editors-pick'] as const;
 const EXPANDED = ['authority', 'distinguish', 'subdued'] as const;
+/** Every alternative palette (palette 0 is the default and is tested separately). */
+const ALT_PALETTES = [1, 2, 3, 4, 5, 6];
 
-/** The declarations inside the first block whose selector text matches exactly. */
+/** The declarations inside the first block whose selector matches, ignoring the
+ *  whitespace Prettier inserts when it wraps a long `:not(…)` list over lines. */
 function block(css: string, selector: string): string {
-  const start = css.indexOf(`${selector} {`);
-  if (start === -1) throw new Error(`no block for ${selector}`);
-  return css.slice(start, css.indexOf('}', start));
+  const pattern = [...selector]
+    .map((ch) => {
+      if (ch === ' ') return '\\s+';
+      const lit = ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (ch === '(' || ch === ',') return `${lit}\\s*`;
+      if (ch === ')') return `\\s*${lit}`;
+      return lit;
+    })
+    .join('');
+  const match = new RegExp(`(?:^|[\\s}])${pattern}\\s*\\{`).exec(css);
+  if (!match) throw new Error(`no block for ${selector}`);
+  return css.slice(match.index, css.indexOf('}', match.index + match[0].length));
 }
 function decl(body: string, name: string): string | undefined {
   return new RegExp(`${name}:\\s*([^;]+);`).exec(body)?.[1].trim();
@@ -109,7 +121,7 @@ describe('ink tokens — default palette (variables.css)', () => {
   });
 });
 
-describe.each([1, 2, 3, 4, 5])('ink tokens — palette-%i', (n) => {
+describe.each(ALT_PALETTES)('ink tokens — palette-%i', (n) => {
   const paletteBlock = block(palettes, `html.palette-${n}`);
 
   it.each(PALETTE_SCOPED)('maps --color-%s-ink to its own palette value', (x) => {
@@ -150,7 +162,7 @@ describe('ink tokens — dim light', () => {
   const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
   const dimP0 = block(
     palettes,
-    'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5)'
+    'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
   );
   const dimVars = block(variables, 'html.theme-dim');
 
@@ -167,7 +179,7 @@ describe('ink tokens — dim light', () => {
     }
   }
 
-  it.each([1, 2, 3, 4, 5])('palette-%i inks clear the dim-light bars', (n) => {
+  it.each(ALT_PALETTES)('palette-%i inks clear the dim-light bars', (n) => {
     for (const x of PALETTE_SCOPED) {
       const ink =
         decl(dimAlt, `--alt${n}-color-${x}-ink`) ?? decl(rootBlock, `--alt${n}-color-${x}-ink`);
@@ -187,6 +199,198 @@ describe('ink tokens — dim light', () => {
       assertDim(`dim palette-0 expanded ${x}`, alt0!);
     }
     assertDim('dim editors-pick', lightDark(decl(dimVars, '--color-editors-pick-ink'))[0]);
+  });
+});
+
+/* Dim dark (ADR-0038): surfaces lift to #1c1c1c / #202020 / #262626, and stop at
+ * #262626 because every palette's dark inks still clear 4.5:1 there. The bar is
+ * the plain surface — dark chips are not re-measured (ADR-0035). Palette 0's dark
+ * error is the one ink that needed its own dim-dark value. */
+describe('ink tokens — dim dark', () => {
+  const DIM_DARK_SURFACES = ['#1c1c1c', '#202020', '#262626'];
+
+  function assertDimDark(label: string, ink: string) {
+    for (const s of DIM_DARK_SURFACES) {
+      expect(
+        contrast(hexToRgb(ink), hexToRgb(s)),
+        `${label}: ${ink} on ${s}`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+
+  it.each(ALT_PALETTES)('palette-%i dark inks clear the dim-dark bar', (n) => {
+    for (const x of PALETTE_SCOPED) {
+      // Dark inks are var(--altN-color-X); the literal is the dark-block base.
+      const base = decl(darkBlock, `--alt${n}-color-${x}`);
+      expect(base, `--alt${n}-color-${x} missing from html.dark-theme`).toMatch(/^#[0-9a-f]{6}$/i);
+      assertDimDark(`dim-dark palette-${n} ${x}`, base!);
+    }
+  });
+
+  it('palette-0 dark inks clear the dim-dark bar', () => {
+    const dimDarkP0 = block(
+      palettes,
+      'html.theme-dim.dark-theme:not(.palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
+    );
+    // Its own inks are each light-dark()'s dark half, unless dim dark re-points
+    // one (only error needs to).
+    for (const x of ALL_INKS) {
+      const ink =
+        decl(dimDarkP0, `--color-${x}-ink`) ?? lightDark(decl(variables, `--color-${x}-ink`))[1];
+      assertDimDark(`dim-dark palette-0 ${x}`, ink);
+    }
+    // The expanded tokens come from the alt0 dark literals.
+    for (const x of EXPANDED) {
+      const base = decl(darkBlock, `--alt0-color-${x}`);
+      expect(base, `--alt0-color-${x} missing from html.dark-theme`).toMatch(/^#[0-9a-f]{6}$/i);
+      assertDimDark(`dim-dark palette-0 expanded ${x}`, base!);
+    }
+  });
+});
+
+/* Palette 6's neon primary is brand-colour text, exempt from AA like teal
+ * (ADR-0035 § 1) but held to the same 1.5:1 legibility floor the a11y helper
+ * applies to it. Dim light's gray surfaces push #1fd65f under that floor, so
+ * dim light deepens it; the fill must still carry dark ink. */
+describe('primary — palette 6 dim light', () => {
+  const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
+  const dimP6 = block(palettes, 'html.theme-dim:not(.dark-theme).palette-6');
+  const DIM_SURFACES = ['#ebebeb', '#e6e6e6', '#dcdcdc'];
+
+  it('the dim primary clears the 1.5:1 floor on every dim surface and tint', () => {
+    for (const name of ['--alt6-color-primary', '--alt6-color-primary-dark']) {
+      const g = decl(dimAlt, name);
+      expect(g, `${name} missing from the dim-light block`).toMatch(/^#[0-9a-f]{6}$/i);
+      const rgb = hexToRgb(g!);
+      for (const s of DIM_SURFACES) {
+        const bg = hexToRgb(s);
+        expect(contrast(rgb, bg), `${name} ${g} on ${s}`).toBeGreaterThanOrEqual(1.5);
+        for (const pct of [0.15, 0.25]) {
+          const t = rgb.map((v, k) => v * pct + bg[k] * (1 - pct));
+          expect(
+            contrast(rgb, t),
+            `${name} ${g} on its ${pct * 100}% tint over ${s}`
+          ).toBeGreaterThanOrEqual(1.5);
+        }
+      }
+      expect(contrast(hexToRgb('#0a0a0a'), rgb), `#0a0a0a on ${g}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('success deepens with it, as it follows the primary in this palette', () => {
+    expect(decl(rootBlock, '--alt6-color-success')).toBe(decl(rootBlock, '--alt6-color-primary'));
+    expect(decl(dimAlt, '--alt6-color-success')).toBe(decl(dimAlt, '--alt6-color-primary'));
+  });
+
+  it('its tints follow the dim primary', () => {
+    const g = hexToRgb(decl(dimAlt, '--alt6-color-primary')!);
+    expect(decl(dimP6, '--color-primary-rgb')).toBe(g.join(', '));
+  });
+});
+
+/* Tertiary is the text-safe partner of each palette's primary: active nav
+ * links, breadcrumbs, tags, labels (BL-096). The daily rotation (ADR-0040)
+ * shows every palette in every theme, so it is measured on each theme's
+ * surfaces, and on the primary's 15% tint (the tag chip) over the page ground
+ * the chips sit on. Light and dim light share the light value unless dim light
+ * re-points it; dark and dim dark share the dark value. */
+describe('tertiary — every palette, every theme (ADR-0040)', () => {
+  const THEMES = {
+    light: { plain: ['#ffffff', '#f5f5f5'], chip: ['#ffffff', '#f5f5f5'] },
+    dimLight: { plain: ['#ebebeb', '#e6e6e6', '#dcdcdc'], chip: ['#ebebeb'] },
+    dark: { plain: ['#0a0a0a', '#141414'], chip: ['#0a0a0a', '#141414'] },
+    dimDark: { plain: ['#1c1c1c', '#202020', '#262626'], chip: ['#1c1c1c'] },
+  };
+  const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
+
+  /** A literal hex, following one var(--altN-…) hop within the same block. */
+  const resolve = (body: string, value: string | undefined): string => {
+    const ref = /^var\((--[a-z0-9-]+)\)$/.exec(value ?? '');
+    const hex = ref ? decl(body, ref[1]) : value;
+    expect(hex, `unresolved: ${value}`).toMatch(/^#[0-9a-f]{6}$/i);
+    return hex!;
+  };
+  const assertOn = (
+    label: string,
+    ink: string,
+    primary: string,
+    { plain, chip }: { plain: string[]; chip: string[] }
+  ) => {
+    const i = hexToRgb(ink);
+    const p = hexToRgb(primary);
+    // Where tertiary IS the primary (every alt palette's dark theme), it is
+    // brand-colour text: exempt from AA like teal (ADR-0035 § 1, extended by
+    // ADR-0040), held only to the 1.5:1 floor that keeps it legible.
+    const bar = ink.toLowerCase() === primary.toLowerCase() ? 1.5 : 4.5;
+    for (const s of plain)
+      expect(contrast(i, hexToRgb(s)), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(bar);
+    for (const s of chip) {
+      const bg = hexToRgb(s);
+      const t = p.map((v, k) => v * 0.15 + bg[k] * 0.85);
+      expect(
+        contrast(i, t),
+        `${label}: ${ink} on ${primary}'s 15% tint over ${s}`
+      ).toBeGreaterThanOrEqual(bar);
+    }
+  };
+
+  it.each(ALT_PALETTES)('palette-%i tertiary clears every surface in all four themes', (n) => {
+    const light = resolve(rootBlock, decl(rootBlock, `--alt${n}-color-tertiary`));
+    const lightPrimary = resolve(rootBlock, decl(rootBlock, `--alt${n}-color-primary`));
+    assertOn(`palette-${n} light`, light, lightPrimary, THEMES.light);
+
+    const dim = decl(dimAlt, `--alt${n}-color-tertiary`) ?? light;
+    const dimPrimary = decl(dimAlt, `--alt${n}-color-primary`) ?? lightPrimary;
+    assertOn(`palette-${n} dim light`, dim, dimPrimary, THEMES.dimLight);
+
+    const dark = resolve(darkBlock, decl(darkBlock, `--alt${n}-color-tertiary`));
+    const darkPrimary = resolve(darkBlock, decl(darkBlock, `--alt${n}-color-primary`));
+    assertOn(`palette-${n} dark`, dark, darkPrimary, THEMES.dark);
+    assertOn(`palette-${n} dim dark`, dark, darkPrimary, THEMES.dimDark);
+  });
+
+  it('palette-0 tertiary clears every surface in all four themes', () => {
+    const [light, dark] = lightDark(decl(variables, '--color-tertiary'));
+    const primary = decl(variables, '--color-primary')!;
+    const dimP0 = block(
+      palettes,
+      'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5, .palette-6)'
+    );
+    assertOn('palette-0 light', light, primary, THEMES.light);
+    assertOn(
+      'palette-0 dim light',
+      decl(dimP0, '--color-tertiary') ?? light,
+      primary,
+      THEMES.dimLight
+    );
+    assertOn('palette-0 dark', dark, primary, THEMES.dark);
+    assertOn('palette-0 dim dark', dark, primary, THEMES.dimDark);
+  });
+});
+
+/* The sash ink sits ON the primary band, so it must not lift with --bg-dark in
+ * the dim states. The weakest use is the band's detail text at 85% opacity
+ * (sash.css), measured over every palette's primary in both schemes. */
+describe('sash ink — constant on the band in every theme (ADR-0040)', () => {
+  const dim = block(variables, 'html.theme-dim');
+  it('dim pins --sash-ink to #0a0a0a rather than the lifted --bg-dark', () => {
+    expect(decl(dim, '--sash-ink')).toBe('#0a0a0a');
+  });
+
+  it.each([0, ...ALT_PALETTES])('palette-%i: 85% detail text clears 4.5:1 on its band', (n) => {
+    const ink = hexToRgb('#0a0a0a');
+    const primaries =
+      n === 0
+        ? [decl(variables, '--color-primary')!]
+        : [
+            decl(rootBlock, `--alt${n}-color-primary`)!,
+            decl(darkBlock, `--alt${n}-color-primary`)!,
+          ];
+    for (const primary of primaries) {
+      const band = hexToRgb(primary);
+      const text = ink.map((v, k) => v * 0.85 + band[k] * 0.15);
+      expect(contrast(text, band), `detail on ${primary}`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 
