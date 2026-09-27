@@ -1,6 +1,6 @@
 # ADR-0029: The spacing scale is enforced by two instruments, and sixteen off-scale values are admitted with reasons
 
-**Status**: Accepted 2026-09-02
+- **Status**: Accepted 2026-09-02; **amended 2026-09-15** (BL-151 — the same two instruments extended to `px`; see § The px half)
 
 ## Context
 

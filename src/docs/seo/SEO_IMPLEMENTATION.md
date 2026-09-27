@@ -85,7 +85,7 @@ interface Props {
 - **`ogImageHeight`**: 630 (pixels)
 - **`ogImageType`**: "image/png"
 - **`ogSiteName`**: "GST"
-- **`ogLocale`**: "en_US"
+- **`ogLocale`**: the page locale's `ogLocale` from `src/i18n/locales.ts` (`en_US`, `es_CO`, `pt_BR`), since BL-153; not a constant
 - **`twitterSite`**: "@globalstrategic"
 - `faqItems`: undefined (optional array of `{question, answer}` for FAQPage schema)
 
@@ -475,8 +475,6 @@ npm run test:run        # Quick test run
 npm run test:coverage   # Coverage report
 ```
 
-**Current Status**: ✅ 432/432 tests passing
-
 ### Manual Verification
 
 #### 1. Validate JSON-LD
@@ -624,9 +622,3 @@ Test your social media previews:
 - **Facebook**: https://developers.facebook.com/tools/debug/
 - **Twitter**: https://cards-dev.twitter.com/validator
 - **General OG**: https://www.opengraph.xyz/
-
----
-
-**Last Updated**: March 20, 2026
-**Component Version**: 2.0 (Enhanced Social Media)
-**Implementation Status**: Production Ready ✓

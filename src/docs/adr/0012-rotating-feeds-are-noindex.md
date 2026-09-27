@@ -1,6 +1,6 @@
 # ADR-0012: Rotating aggregate feeds are `noindex`, and may defer their content
 
-- **Status**: Accepted (2026-08-02)
+- **Status**: Accepted (2026-08-02; closes BL-098, reverts `bbd96fbf`); **amended 2026-09-26** (Lighthouse CLS now gates merges; see Consequences)
 - **Source initiative**: BL-098 (closed by this decision — see [`../development/BACKLOG.md`](../development/BACKLOG.md))
 
 ## Context

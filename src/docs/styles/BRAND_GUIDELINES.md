@@ -409,10 +409,4 @@ For multi-series charts (max 6 colors), use this sequence for adequate color vis
 - [STYLES_GUIDE.md](./STYLES_GUIDE.md) — CSS conventions, component patterns
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
-- [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md) — Tracked remediation initiatives
-
----
-
-**Created**: March 23, 2026
-**Last Updated**: April 5, 2026
-**Status**: Complete — all requirements finalized
+- [STYLES_REMEDIATION_ROADMAP.md](../development/_archive/STYLES_REMEDIATION_ROADMAP.md) — Closed remediation initiatives (archived; open styling work is in the BACKLOG's CSS and Design System section)

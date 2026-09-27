@@ -21,20 +21,12 @@
 > number on the card** — re-read the lifecycle before building it.
 > **First task for whoever picks this up**: § Vendor behaviour: documented, not executed. The
 > lifecycle rests on Stripe behaviour inferred from docs and never exercised.
-> **Parked directive (2026-09-06)**: the operator asked for a self-serve 3-day trial, expiring
-> rather than auto-converting. It is **parked pending the staging pass named above**, because the
-> mechanism is constrained by the Managed Payments decision below. The directive, the three
-> candidate mechanisms and their costs, and the ADR-0008/BL-093 hazard it creates are recorded in
-> the [BL-133 stanza](BACKLOG.md#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
+> **Self-serve trial (2026-09-06)**: the operator asked for a self-serve 3-day trial, expiring
+> rather than auto-converting. It was built separately as BL-155 on GST-side rails with no Stripe
+> involvement, and went live on 2026-09-08 (see the ADR-0008 amendment). The two **Stripe-based**
+> trial mechanisms remain parked pending the staging pass named above; they and their costs are
+> recorded in the [BL-133 stanza](BACKLOG.md#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
 > — **not designed here**. Read it before treating this document as the whole scope.
-> **ADR number correction (2026-09-06)**: **ADR-0027 is taken** (container-query thresholds), so
-> every `ADR-0027` reference in this document means _the next free number_, to be **re-derived from
-> [`../adr/README.md`](../adr/README.md) at creation time** — never treated as a reservation, since
-> other open items also terminate in an ADR. As of 2026-09-06 the index runs to 0030 and 0031 is
-> unclaimed. Note § Slice 5's observation that the ADR's links and its `adr/README.md` row are
-> checked by `docs-link-integrity.test.ts` against `git ls-files`: the number becomes load-bearing
-> for `test:docs` once the ADR is actually written. Slice 1's instruction to update `adr/README.md`
-> ("a row per ADR through 0026") is likewise a snapshot, not a bound.
 
 ## Context
 
@@ -69,9 +61,9 @@ Net: **one webhook endpoint, one Worker page, seven subscribed event types.**
 
 ---
 
-## Slice 1 — Vendor decision → ADR-0027
+## Slice 1 — Vendor decision → ADR-NNNN (next free)
 
-Write `src/docs/adr/0027-payments-rail-stripe-managed-payments.md` per
+Write `src/docs/adr/NNNN-payments-rail-stripe-managed-payments.md` per
 [TEMPLATE.md](../adr/TEMPLATE.md) with the four-vendor matrix (Stripe direct, Stripe Managed
 Payments, Paddle, Polar) on BL-133's axes, the tax axis recorded as **the** decision, and the
 operator's low-volume rationale quoted. Must carry:
@@ -91,7 +83,7 @@ operator's low-volume rationale quoted. Must carry:
 - The Worker-hosted return page, the audit decision, and the deliberate deviation from Stripe's
   async-queue guidance — all three depart from a stated default and belong in the record.
 
-Update **`src/docs/adr/README.md`** (a row per ADR through 0026) in the same commit.
+Update **`src/docs/adr/README.md`** (one row per ADR) in the same commit.
 
 Amend **ADR-0008** in the same PR as Slice 3: post-payment provisioning is a bounded exception — the
 operator's checkout is the registration authority, so it is not DCR, and no user directory or public
@@ -150,7 +142,7 @@ for 15 days and `stripe events resend` for 30.
 Stripe's docs recommend an async queue and a fast 2xx. **We deliberately do the opposite**, because
 at this volume correctness beats throughput and the only durable queue here (the ADR-0009 pipeline)
 is deactivated. Record the deviation and its revisit trigger — sustained webhook bursts, e.g. many
-subscriptions renewing the same day — in ADR-0027. Stripe publishes **no numeric endpoint timeout**,
+subscriptions renewing the same day — in ADR-NNNN (next free). Stripe publishes **no numeric endpoint timeout**,
 so **do not cite one**: bound the budget by measurement and record the observed p99 from staging.
 The workerd side is not at risk — fulfilment is under ten subrequests against a 1000 ceiling, and
 HMAC-SHA256 over a small body is negligible CPU.
@@ -215,7 +207,7 @@ distinct signing secret.
 to a dead sink. ADR-0014's re-enable trigger is "the first client whose contract requires compliance
 audit capture" — a self-serve card purchase is not that client. Provenance is recorded **on the
 client record** instead, with `safeLog` and Analytics Engine covering operational traceability.
-State this in ADR-0027 so it cannot drift.
+State this in ADR-NNNN (next free) so it cannot drift.
 
 ---
 
@@ -621,7 +613,7 @@ reason the webhook itself never rotates.
 **Named deviation** from this item's own Slice 3 AC ending "The follow-up email carries setup links
 and the client id, not the secret". GST sends **no email in v1** — Stripe/Link sends the receipt and invoice, and adding a
 sender would pull in the BL-004 email-vendor decision this design otherwise avoids. Record it in
-ADR-0027 as a deliberate deviation rather than an omission, with the trigger for revisiting it: if
+ADR-NNNN (next free) as a deliberate deviation rather than an omission, with the trigger for revisiting it: if
 recovery contacts become routine, the follow-up email is the fix, not more page copy. The
 receipt-based recovery above is what makes the deviation tolerable.
 
@@ -653,7 +645,7 @@ already falsifies. (The `:118` paragraph is accurate for the status page; leave 
 a cross-origin fetch, meaning `connect-src` entries in **both** `vercel.json` and `src/middleware.ts`
 plus a CORS grant — and the secret would cross an origin boundary in a browser XHR. The Worker needs
 none of that and reuses `htmlShell()` / `escapeHtml()`, which already carry `noindex,nofollow`, dark
-mode, the GST delta favicon and the metric-matched mono stack. Record the deviation in ADR-0027.
+mode, the GST delta favicon and the metric-matched mono stack. Record the deviation in ADR-NNNN (next free).
 Do **not** touch `INTERNAL_ENDPOINTS` in `src/middleware.ts` — `isAnonymousProbe` 404s any request
 without a bearer, and a buyer's browser has none.
 
@@ -750,7 +742,7 @@ sweep and the E2E suite, and its numbers are already pinned to `tiers.ts`.
   hosted checkout**, not by GST: an abandoned session simply never emits `checkout.session.completed`,
   a declined card is retried on Stripe's page, and a Stripe outage means the buyer never leaves it.
   Nothing reaches the Worker in any of the three, so the graceful handling is Stripe's — say that
-  explicitly in ADR-0027 rather than leaving the AC looking unaddressed. The one state GST _does_ own
+  explicitly in ADR-NNNN (next free) rather than leaving the AC looking unaddressed. The one state GST _does_ own
   is the buyer arriving before the webhook, which is the "still provisioning" row above.
 - **Do not import the SKU catalog from `mcp-server`.** No file under `src/` imports mcp-server source;
   it would drag an `Env`-typed module graph into the Astro build and make a price parity test vacuous
@@ -862,7 +854,7 @@ engagement deposit) satisfies the interface by returning `{}` — and the restor
 already exercise that path. `webhook.ts` looks up the SKU by `metadata.sku` and calls `fulfill`, so a
 second product registers a handler rather than forking the route.
 
-Second-product sketch for ADR-0027: **client pays an engagement invoice** — larger amounts, ACH/wire
+Second-product sketch for ADR-NNNN (next free): **client pays an engagement invoice** — larger amounts, ACH/wire
 over card, POs, per-client invoice identity — served by Stripe Invoicing on the same account and the
 same webhook, **without** the `managed_payments` flag, so the MoR fee does not apply to large-ticket
 B2B. Remediation payment links re-run the same handler, restoring tier through the customer mapping.
@@ -877,7 +869,7 @@ B2B. Remediation payment links re-run the same handler, restoring tier through t
 4. `feat(payments): Stripe webhook rail with signature verification and Upstash leasing`
 5. `feat(payments): the completion page and its one-time credential handoff`
 6. `feat(payments): lifecycle demotion, revocation and subscription counting`
-7. `docs: ADR-0027, ADR-0008 amendment, ARCHITECTURE, security headers, privacy/terms, onboarding, secrets`
+7. `docs: ADR-NNNN (next free), ADR-0008 amendment, ARCHITECTURE, security headers, privacy/terms, onboarding, secrets`
 8. `feat(hub): publish the Deal Team price and purchase CTA on /hub/mcp/`
 
 Catalog precedes the webhook so no commit routes to a handler that does not exist; the completion
@@ -904,8 +896,8 @@ npx astro check && npm run lint && npm run lint:css && npm run test:run
 npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs
 ```
 
-`test:docs` matters here: ADR-0027's links and the adr/README row are checked by
-`docs-link-integrity.test.ts`, which resolves targets against **`git ls-files`** — so ADR-0027 must be
+`test:docs` matters here: ADR-NNNN (next free)'s links and the adr/README row are checked by
+`docs-link-integrity.test.ts`, which resolves targets against **`git ls-files`** — so ADR-NNNN (next free) must be
 **staged** before the guard passes locally.
 
 **E2E** — this task writes E2E, so running it is the verification step:

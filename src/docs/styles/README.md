@@ -8,20 +8,20 @@ CSS conventions, design tokens, brand guidelines, and typography reference for t
 
 ## All Documents
 
-| Doc                                                            | Purpose                                                       | Audience               |
-| -------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------- |
-| [STYLES_GUIDE.md](STYLES_GUIDE.md)                             | CSS conventions, patterns, responsive design                  | All developers         |
-| [VARIABLES_REFERENCE.md](VARIABLES_REFERENCE.md)               | Complete design token reference (colors, spacing, typography) | Developers writing CSS |
-| [BRAND_GUIDELINES.md](BRAND_GUIDELINES.md)                     | Color hierarchy, palettes, voice, asset rules                 | Design decisions       |
-| [TYPOGRAPHY_REFERENCE.md](TYPOGRAPHY_REFERENCE.md)             | Font stacks, size scale, utility classes                      | Developers, designers  |
-| [STYLES_REMEDIATION_ROADMAP.md](STYLES_REMEDIATION_ROADMAP.md) | Planned CSS improvements and migrations                       | Maintainers            |
+| Doc                                                                                   | Purpose                                                                                                             | Audience               |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| [STYLES_GUIDE.md](STYLES_GUIDE.md)                                                    | CSS conventions, patterns, responsive design                                                                        | All developers         |
+| [VARIABLES_REFERENCE.md](VARIABLES_REFERENCE.md)                                      | Complete design token reference (colors, spacing, typography)                                                       | Developers writing CSS |
+| [BRAND_GUIDELINES.md](BRAND_GUIDELINES.md)                                            | Color hierarchy, palettes, voice, asset rules                                                                       | Design decisions       |
+| [TYPOGRAPHY_REFERENCE.md](TYPOGRAPHY_REFERENCE.md)                                    | Font stacks, size scale, utility classes                                                                            | Developers, designers  |
+| [BACKLOG.md § CSS and Design System](../development/BACKLOG.md#css-and-design-system) | Open CSS work (the closed remediation roadmap is [archived](../development/_archive/STYLES_REMEDIATION_ROADMAP.md)) | Maintainers            |
 
 ## Key Rules
 
 - All colors must use CSS variables (never hardcode)
 - All spacing uses the `--spacing-*` scale
 - Desktop-first responsive design with `max-width` breakpoints
-- Theme switching via `light-dark()` color values in `variables.css`; the `html.dark-theme` class (not `body`) primarily flips `color-scheme` (plus a few non-`<color>` variable overrides that can't use `light-dark()`)
+- Theme switching via `light-dark()` color values in `variables.css`; the `html.dark-theme` class (not `body`) primarily flips `color-scheme` (plus a few non-`<color>` variable overrides that can't use `light-dark()`), and the orthogonal `html.theme-dim` class dims either scheme, giving four states — light, dim light, dim dark, dark ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md))
 - Palette system: 6 alternatives in `src/styles/palettes.css`
 - In-repo control examples: `src/pages/brand.astro` + `src/components/brand/` (see STYLES_GUIDE § In-repo Control Examples)
 

@@ -9,7 +9,7 @@
  *
  * It also makes the stanza's prohibitions executable. BL-155's design brief
  * produced a mockup with `X-GST-Client-*` headers and a `claude_desktop_config`
- * block, neither of which exists (SELF_SERVE_TRIAL_BL-155.md § Scope). Those
+ * block, neither of which exists (_archive/SELF_SERVE_TRIAL_BL-155.md § Scope). Those
  * strings failing here is the point: the page must never describe them.
  *
  * Deliberately NOT registered in `mcp-onboarding-parity.test.ts`: that guard's

@@ -530,5 +530,4 @@ Also overrides `--color-primary-rgb`, `--color-tertiary` / `-tertiary-dark` and 
 
 ---
 
-**Last Updated**: July 28, 2026
 **Parity**: every `:root` token in `variables.css` ↔ every table row here — machine-enforced by `tests/integration/docs-variables-sync.test.ts` (`npm run test:docs`); token counts are deliberately not stated (the test, not this footer, is the referee)

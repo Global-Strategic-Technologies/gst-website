@@ -1,6 +1,6 @@
 # ADR-0010: Per-client rate-limit tiers carried in the token claim; soft-limit warnings over the SSE notification channel
 
-- **Status**: Accepted 2026-07-26 (0.41.0)
+- **Status**: Accepted 2026-07-26 (0.41.0); **amended 2026-08-04** (BL-106 — the soft-limit channel rides the Logging capability, which SEP-2577 deprecates; see the amendment below)
 - **Source initiative**: BL-033 External Pilot (Phase 3), Slice 5 — the "Rate limiting (per-client, contractual)" AC block ([BACKLOG.md § BL-033](../development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3)). Builds on [ADR-0008](0008-mcp-oauth-embedded-authorization-server.md) (self-contained M2M tokens) and [ADR-0006](0006-inoreader-zone1-budget-protection.md) (Inoreader Zone-1 budget / circuit breaker).
 
 ## Context

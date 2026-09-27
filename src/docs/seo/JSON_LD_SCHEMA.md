@@ -993,9 +993,3 @@ For expired certifications, you have two options:
 - Update `CREDENTIALS_REFERENCE.md`
 
 Recommendation: Keep important credentials even if expired (shows comprehensive training).
-
----
-
-**Last Updated**: August 1, 2026
-**Schema Version**: 3.1
-**Validation Status**: ✓ Compliant

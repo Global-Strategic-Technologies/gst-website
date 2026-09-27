@@ -1,6 +1,6 @@
 # ADR-0024: Pin the brand typeface to one self-hosted variable mono, and collapse the sans onto it
 
-- **Status**: Accepted (2026-08-29)
+- **Status**: Accepted (2026-08-29); amended 2026-09-01 (three figures marked historical; the decision is unchanged)
 - **Source initiative**: BL-144. The design handoff that specified this was delivered out of band as a bundle (a README, a `.dc.html` decision record carrying a live drift comparison across nine candidate faces, and paste-ready reference CSS); it was never committed and was deleted once consumed, so this ADR and [TYPOGRAPHY_REFERENCE.md § The pinned mono](../styles/TYPOGRAPHY_REFERENCE.md) are the surviving record. The BACKLOG stanza was pruned on completion — recover it with `git log -- src/docs/development/BACKLOG.md`.
 
 ## Context

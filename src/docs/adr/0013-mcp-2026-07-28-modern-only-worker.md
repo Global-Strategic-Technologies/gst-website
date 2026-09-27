@@ -1,6 +1,6 @@
 # ADR-0013: The MCP Worker serves protocol `2026-07-28` only; stdio keeps serving the legacy era
 
-- **Status**: Accepted (2026-08-03, `@gst/mcp-server` 0.44.0)
+- **Status**: Accepted (2026-08-03, `@gst/mcp-server` 0.44.0); **decision 1 reverted 2026-08-04** (0.44.1 — modern-only broke Claude Desktop in production; both eras are served; see the amendment below)
 - **Source initiative**: BL-106 (closed 2026-08-04; design doc archived at [`../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md))
 
 ## Context

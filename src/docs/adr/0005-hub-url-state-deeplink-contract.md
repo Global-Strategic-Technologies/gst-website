@@ -1,6 +1,6 @@
 # ADR-0005: Hub URL-state deep-link contract
 
-- **Status**: Accepted (2026-05-03)
+- **Status**: Accepted (2026-05-03); noted 2026-08-05 (BL-109 — the invariant was enforced on inputs only; radar output is now bounded from a shared module; see § Note)
 - **Source initiative**: BL-031.95 (design doc archived at [`../development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
 
 ## Context

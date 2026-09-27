@@ -520,8 +520,6 @@ A static methodology section appears in the output after the attention areas, ex
 | `tests/unit/diligence-questions.test.ts` | Data validation | Question/area structure, ID formats, condition validity against wizard options, v2 metadata validation, wizard config integrity |
 | `tests/integration/diligence-wizard-navigation.test.ts` | Navigation | 10-step progress bar, forward/back/segment clicks, state persistence, edge cases |
 
-**Total**: 409 tests passing (all 3 files combined with broader test suite)
-
 ---
 
 ## Key Files

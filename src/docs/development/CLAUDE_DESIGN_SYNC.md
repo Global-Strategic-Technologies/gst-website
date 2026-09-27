@@ -28,7 +28,7 @@ does not apply here.
 What we publish instead is three things:
 
 1. **The CSS design system.** `src/styles/` flattened into one stylesheet — every token,
-   `html.dark-theme`, every `html.palette-N` block, and the full `.brutal-*` class
+   `html.dark-theme` and `html.theme-dim`, every `html.palette-N` block, and the full `.brutal-*` class
    vocabulary — plus four guideline docs from [`src/docs/styles/`](../styles/README.md).
 2. **Ten specimen galleries.** React components that render GST _markup + classes_
    (`ButtonSpecimen`, `TypographySpecimen`, `CardSpecimen`, `DataSpecimen`,
@@ -188,8 +188,13 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 - **`/brand` remains the human-browsable surface** for the design system; the Design
   project exists to steer the agent, not to replace [`/brand`](../../pages/brand.astro).
 
+## Sync history
+
+- **Initial sync**: tokens plus 8 specimen galleries.
+- **BL-135 Slice 1**: defects fixed, CI guards added, palettes verified.
+- **BL-135 Slice 2**: vocabulary widened to 10 galleries.
+- **BL-135 Slice 3 (2026-08-16)**: site chrome extracted from the build, 19 cards.
+
 ---
 
 <- Back to [Development Documentation](./README.md) | [Master Documentation Index](../README.md)
-
-_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified; Slice 2 — vocabulary widened, 10 galleries; Slice 3 — site chrome extracted from the build, 19 cards)_
