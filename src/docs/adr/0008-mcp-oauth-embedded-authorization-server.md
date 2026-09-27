@@ -1,6 +1,6 @@
 # ADR-0008: OAuth 2.1 as an embedded authorization server on the MCP Worker
 
-- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below)
+- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below; the rejected credential-recovery paths were added to it at BL-155's closure, 2026-09-27)
 - **Source initiative**: BL-033 Slice 2 (external-pilot auth; the BL-033 stanza in [`../development/BACKLOG.md`](../development/BACKLOG.md) remains the open initiative tracker — this slice closes its Authentication & authorization AC block)
 
 ## Context
@@ -49,5 +49,13 @@ Load-bearing choices:
 - Fail-closed minting: the endpoint 503s with nothing minted on any unbound dependency, Redis error, or unreachable Turnstile — the inverse of this Worker's fail-open substrate, because here Upstash is the anti-farming gate, not a throttle.
 
 **Residuals, disclosed rather than worked around.** A `mcp_m2m_*` token minted just before `expiresAt` lives ≤1h (self-contained JWT, as above). A **consent grant** made with a trial record runs to the `expiresAt` captured at consent — refresh and access TTLs are clamped to it at the code exchange and the API handler refuses a token past it — so a later PATCH/DELETE of the record does not cut an existing connector grant short (the exchange callback has no KV access by construction). An IP-derived identity is a speed bump, not an identity control.
+
+**Credential recovery is download plus re-issue.** The secret exists only in the mint response (`secretHash` is stored, never the secret), so it cannot be shown again. The signup page offers a client-side download beside copy, and a repeat signup from the same identity inside the window **rotates the secret on the existing record**: no second client, `expiresAt` unchanged, and the lease TTL untouched, so repeated re-issues cannot extend a trial. The previous secret dies at once. **Rejected, so they are not re-proposed** (distilled at closure, 2026-09-27, from the archived design doc):
+
+- _Email delivery_: reintroduces the email-vendor dependency (BL-004) that Turnstile-as-identity exists to avoid.
+- _A show-again token_ (single-use, short TTL): it only covers "I closed the tab", so it is strictly narrower than re-issue for more work.
+- _Relaxing one-per-identity when the credential was never used_: needs a new "has been used" flag and opens a sign-up, don't use, repeat farming path.
+- _Operator re-provisioning_: defeats the no-operator-in-the-loop goal the trial exists for.
+- _Minting a short-lived `MCP_KEY_*`_ instead of an M2M record: it would need no consent-page change, but `matchToken` scans Worker env vars, so issuing one means a deploy per signup. It is mechanically impossible for self-serve.
 
 **Revisit trigger.** If trials are farmed (many `trial` records per hour, or the constant-owner throttle line firing across many `rateLimitSubject`s), strengthen `trialIdentityKey` before adding friction to the page; if a real user directory becomes necessary, the Access-upstream-IdP trigger above applies unchanged.

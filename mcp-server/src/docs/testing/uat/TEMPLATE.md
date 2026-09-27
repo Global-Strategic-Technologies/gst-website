@@ -86,7 +86,3 @@ Conventions (case IDs, verdicts, the two execution modes, the fresh-thread rule)
 **Failure modes** — real errors, quoted from real failures, mapped to what they mean and what to do. Where the right response is "record Blocked and move on", say so; `SETUP.md` § 5 has the general rules, and this table carries the family-specific ones.
 
 **Run log** — ships with an empty row. Fill one in per execution. Never delete rows; a Fail that was later fixed is the most useful history the document has. Fill `Env` honestly: a Pass recorded against `local stdio` is not a Pass in production, and labelling it as one is how a suite starts lying.
-
----
-
-_Last updated: 2026-08-10 (BL-119 — initial authoring)_

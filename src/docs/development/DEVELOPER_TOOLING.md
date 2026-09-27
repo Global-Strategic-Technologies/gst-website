@@ -21,7 +21,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
 | Re-render the OAuth consent-page still for `/hub/mcp/get-started/` | `npm run media:consent-still` (esbuild + Playwright chromium + ffmpeg; write-once, see [MCP_ONBOARDING.md § Media catalog](../hub/MCP_ONBOARDING.md#media-catalog)) |
-| Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
+| Run E2E tests                          | `npm run test:e2e` runs chromium, firefox and webkit; `npm run test:e2e -- --project=chromium` matches the required CI job |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
 | Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
@@ -36,8 +36,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run the MCP server as a Worker locally | `cd mcp-server && npm run dev:worker` (= `wrangler dev --env staging`)        |
 | Test the Worker locally (programmatic) | `cd mcp-server && npx vitest run tests/integration/worker-roundtrip.test.ts` (boots Worker via `unstable_dev`) |
 | Validate Worker bundle without deploy  | `cd mcp-server && npx wrangler deploy --dry-run --env staging`                |
-| Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
-| Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
+| Deploy MCP Worker                      | CI only — staging deploys after a green MCP test run on a push, production on a `master` merge with `mcp-production` approval, rollback via `rollback-mcp.yml`. Never deploy by hand; see [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md) |
 | Provision an MCP client credential     | `cd mcp-server && npm run provision:client -- --name "<client>" --tier paid [--dry-run]` (admin key via `MCP_ADMIN_KEY` env var — never a flag; runbook: [PILOT_ONBOARDING.md](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md)) |
 | Reset a self-serve trial               | `cd mcp-server && npm run trial:reset -- --list` then `-- --client <clientId> --yes` (revokes the record AND frees its one-per-network identity lease; same `MCP_ADMIN_KEY` env var; runbook: [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md))                    |
 | Purge leaked audit seqof keys (ADR-0014) | `cd mcp-server && npm run purge:audit-seqof [-- --execute]` (dry-run by default; creds via `UPSTASH_MCP_REST_URL`/`UPSTASH_MCP_REST_TOKEN` env vars — never flags; runbook: [AUDIT_LOG.md § Deactivation](../../../mcp-server/src/docs/operations/AUDIT_LOG.md)) |
@@ -115,7 +114,7 @@ git commit -m "..."
 >
 > **BL-109 replaced the hand-maintained enumeration with directory globs** (`src/utils/**`, `src/schemas/**`, `src/data/common/**`, …) because the list had drifted twice: `src/utils/radar-url.ts` had been missing since it was introduced, and BL-109 was about to add three more entries one at a time while leaving ~10 others (the ICG / TechPar / tech-debt engines, the URL encoders, the stage adapters, the wizard config) equally unlisted. If you add a **new top-level directory** under `src/` that the Worker imports at runtime, add a glob for it. You no longer have to notice this yourself: [`workflow-paths-parity.test.ts`](../../../tests/integration/workflow-paths-parity.test.ts) walks the Worker's import graph (following website modules' own imports transitively, type-only imports included) and fails if any file it reaches matches no glob in `test-mcp-server.yml` or `deploy-mcp-production.yml`. It caught `src/data/techpar/**` (via `techpar-engine.ts`) and `src/types/**` (via `filterLogic.ts`) on its first run. Codegen inputs (`src/data/regulatory-map/**`, `src/data/library/**`) are deliberately not listed — they feed tracked generated files under `mcp-server/`, and the `test:docs` bundle-freshness guard forces a regenerate that touches `mcp-server/**`.
 
-> **Why `dependabot/**` is in the push list.** The required CI workflows (`test.yml`, `npm-audit.yml`, `test-mcp-server.yml`) use `pull_request: types: [opened, reopened]` — deliberately **not** `synchronize` — and rely on the `push` trigger to validate each new commit on a PR branch. Dependabot **rebases/recreates** force-push to a `dependabot/**` branch, which arrives as a `synchronize` event (ignored) on a branch that was historically absent from the push list. The result: a rebased Dependabot PR kept its stale/absent required checks and was **permanently BLOCKED** — and `@dependabot rebase` could never fix it (the rebase is the very event that doesn't trigger CI). Adding `dependabot/**` to the **push** branch list of those three CI workflows gives Dependabot branches the same per-commit validation as `feat/**`/`fix/**`, without re-introducing the duplicate-run problem `synchronize` would cause. The **deploy** workflows (`deploy-mcp-staging.yml`, `deploy-mcp-production.yml`) intentionally **omit** `dependabot/**` so dependency bumps are validated but never auto-deployed. If a Dependabot PR is stuck BLOCKED on a commit that predates this fix, close+reopen it (fires `reopened`) to re-run the required suite.
+> **Why `dependabot/**` is in the push list.** The push-validated CI workflows (`test.yml`, `npm-audit.yml`, `test-mcp-server.yml`; only `test.yml` supplies required checks) use `pull_request: types: [opened, reopened]` — deliberately **not** `synchronize` — and rely on the `push` trigger to validate each new commit on a PR branch. Dependabot **rebases/recreates** force-push to a `dependabot/**` branch, which arrives as a `synchronize` event (ignored) on a branch that was historically absent from the push list. The result: a rebased Dependabot PR kept its stale/absent required checks and was **permanently BLOCKED** — and `@dependabot rebase` could never fix it (the rebase is the very event that doesn't trigger CI). Adding `dependabot/**` to the **push** branch list of those three CI workflows gives Dependabot branches the same per-commit validation as `feat/**`/`fix/**`, without re-introducing the duplicate-run problem `synchronize` would cause. The **deploy** workflows (`deploy-mcp-staging.yml`, `deploy-mcp-production.yml`) intentionally **omit** `dependabot/**` so dependency bumps are validated but never auto-deployed. If a Dependabot PR is stuck BLOCKED on a commit that predates this fix, close+reopen it (fires `reopened`) to re-run the required suite.
 >
 > **Why `docs/**` and `chore/**` are in the push list (added 2026-07-15).** Same mechanism through a different door: GitHub's **"Update branch"** button pushes a merge commit to the PR branch, which arrives as `synchronize` (ignored). On a branch family absent from the push list, the updated head gets **zero check runs**, and because the master ruleset sets `strict_required_status_checks_policy: true` (branch must be up to date AND checks must pass on the current head), the PR stalls **BLOCKED** with checks stuck "expected" — observed on PR #316 (a `docs/**` branch updated after PR #315 merged). The remedy for an already-stuck PR is the same close+reopen; the fix is push-trigger parity for every branch-naming family actually used in the repo. If you introduce a new branch prefix, add it to all three CI workflows' push lists (and NOT to the deploy workflows) or its PRs will hit this trap.
 
@@ -162,10 +161,11 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 │                                      │        │                 │
 │                                      ▼        │                 │
 │                   ┌─ E2E Tests (Playwright) ──┴─┐               │
-│                   │  build                        │              │
+│                   │  build + radar stub           │              │
 │                   │  playwright test              │              │
-│                   │  (~17 minutes when code       │              │
-│                   │   changed)                    │              │
+│                   │   --project=chromium          │              │
+│                   │  (firefox/webkit: manual      │              │
+│                   │   test-cross-browser.yml)     │              │
 │                   └───────────────────────────────┘              │
 │                                                                  │
 │   When should_run is false (docs-only OR duplicate run): each    │
@@ -290,7 +290,10 @@ concurrency:
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment's required reviewer (BL-037 Phase C). The staging arm binds `mcp-staging` — no reviewer, still self-service; it binds an environment purely so its Cloudflare credentials are environment-scoped rather than repository-scoped (BL-111). **Has never executed** — worth a low-stakes staging drill before an incident forces the first run |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
-| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) plus the claude.ai/design sync guards (`tests/integration/design-sync-guards.test.ts`, BL-135: every class/token the `.design-sync/` docs name exists in `src/styles`; `build-css.mjs` ROOTS reaches every sheet; the specimens type-check via `tsc -p .design-sync`; every chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro` source; `conventions.md` stays under the 28,000-char guard for the consumer's 32,000-char README truncation) plus the published-tool-count guard (`tests/integration/mcp-published-tool-count.test.ts`: the ten tool counts published across `ARCHITECTURE.md`, `BREAKING_CHANGES.md`, `mcp-server/README.md` and `mcp-server/src/docs/testing/README.md`, on three different bases, bound to what `server.ts` / `tools/_local-only.ts` register) and the generated-bundle freshness guard (`tests/integration/mcp-generated-bundle-freshness.test.ts`: spawns `mcp-server/scripts/generate-regulations-index.mjs --check`, which re-renders the three committed `*.generated.ts` bundles in memory and diffs them against disk, catching one committed stale) and the i18n catalog guard (`tests/integration/i18n-catalog-parity.test.ts`, BL-153: every locale's `src/i18n/<locale>/<ns>.json` has exactly the English key set, its `.source.json` sidecar hashes match the current English so a translation cannot silently go stale, only the `tHtml` tag allowlist appears in strings, no empty strings). **The bundle-freshness guard makes this job spawn mcp-server tooling that loads prettier from the root `node_modules`** — covered by the existing root `npm ci` and cache paths, but a surprising dependency for a job named "Verify doc links". Runs on every PR + push to `master`. It exists as its own workflow because what these guards protect is markdown, so the commits that break them are docs-only diffs — the exact case `test.yml`'s `changes` gate skips. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
+| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) plus the claude.ai/design sync guards (`tests/integration/design-sync-guards.test.ts`, BL-135: every class/token the `.design-sync/` docs name exists in `src/styles`; `build-css.mjs` ROOTS reaches every sheet; the specimens type-check via `tsc -p .design-sync`; every chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro` source; `conventions.md` stays under the 28,000-char guard for the consumer's 32,000-char README truncation) plus the published-tool-count guard (`tests/integration/mcp-published-tool-count.test.ts`: every tool count published across `ARCHITECTURE.md`, `BREAKING_CHANGES.md`, `mcp-server/README.md` and `mcp-server/src/docs/testing/README.md`, on three different bases, bound to what `server.ts` / `tools/_local-only.ts` register) and the generated-bundle freshness guard (`tests/integration/mcp-generated-bundle-freshness.test.ts`: spawns `mcp-server/scripts/generate-regulations-index.mjs --check`, which re-renders the three committed `*.generated.ts` bundles in memory and diffs them against disk, catching one committed stale) and the i18n catalog guard (`tests/integration/i18n-catalog-parity.test.ts`, BL-153: every locale's `src/i18n/<locale>/<ns>.json` has exactly the English key set, its `.source.json` sidecar hashes match the current English so a translation cannot silently go stale, only the `tHtml` tag allowlist appears in strings, no empty strings). **The bundle-freshness guard makes this job spawn mcp-server tooling that loads prettier from the root `node_modules`** — covered by the existing root `npm ci` and cache paths, but a surprising dependency for a job named "Verify doc links". Runs on every PR + push to `master`. It exists as its own workflow because what these guards protect is markdown, so the commits that break them are docs-only diffs — the exact case `test.yml`'s `changes` gate skips. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
+| [.github/workflows/lighthouse.yml](../../../.github/workflows/lighthouse.yml) | PR-time Lighthouse CI — the `lighthouse` job blocks on CLS > 0.1 (desktop and mobile), behind a `changes` gate that reports a skipped-steps success on PRs that cannot move a score. Required once added in the ruleset UI. See § Lighthouse CI |
+| [.github/workflows/perf-dashboard.yml](../../../.github/workflows/perf-dashboard.yml) | Weekly cron (Sunday 02:00 UTC) + manual `workflow_dispatch` — collects Lighthouse history and deploys the trend dashboard. Not a check. See [PERFORMANCE_OBSERVABILITY.md](PERFORMANCE_OBSERVABILITY.md) |
+| [.github/workflows/test-cross-browser.yml](../../../.github/workflows/test-cross-browser.yml) | Manual `workflow_dispatch` only — the full E2E suite as a chromium / firefox / webkit matrix, with the same build and radar-stub steps as `test.yml`'s chromium-only required job. Not a check |
 | [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [scripts/await-mcp-test-run.sh](../../../scripts/await-mcp-test-run.sh)           | The production deploy's pre-flight guard (BL-111) — polls the GitHub API for an MCP Server Test Suite verdict on the exact SHA being deployed, and refuses the deploy without one. Its **exit code is the contract** (0–6, table in the script header); the incident Issue body renders that table for the operator. Lives at repo root, not `mcp-server/scripts/`, because `mcp-server/**` is the first entry of both the test and production `paths` allowlists — a CI helper there would run the full MCP suite and queue a production approval on every edit. Guarded by `tests/integration/await-mcp-test-run.test.ts` (there is no shell lint in this repo) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
@@ -393,7 +396,7 @@ give it an explicit `-text` override rather than relying on verbatim storage.
 See [.prettierignore](../../../.prettierignore) for the full list. Notable entries:
 
 - **Hand-curated data files**: `src/data/ma-portfolio/projects.json`, `src/data/canada-provinces.json`
-- **Regulatory map content collection**: `src/data/regulatory-map/` (123 JSON files curated manually)
+- **Regulatory map content collection**: `src/data/regulatory-map/` (one JSON file per regulation, curated manually)
 - **Lock files**: `package-lock.json`
 - **Generated output**: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`
 - **Archived initiative docs**: `src/docs/development/_archive/` (added 2026-07-15, BL-088) — archived docs are frozen verbatim point-in-time records; letting the pre-commit hook reformat them at `git mv` time would contradict the archive-verbatim policy and bloat move diffs
@@ -404,7 +407,7 @@ Four-part defense against the class of bug that surfaced in PR #207 (a markdown 
 
 1. **Pre-commit idempotency check** (`package.json` lint-staged): every chain runs `prettier --check` immediately after `prettier --write`. If `--write`'s output isn't its own fixed point at the currently-installed prettier version, the commit is rejected locally with prettier's standard error message. Contributors see the failure at commit time, not via CI on someone else's later unrelated PR. Catches the narrow class where prettier is internally inconsistent at commit time.
 
-2. **Prettier pinned to exact `3.8.3`** (`package.json` `devDependencies.prettier`): no caret. Every CI run installs exactly the same prettier version. Eliminates the patch-version-drift class that caused PR #207. To bump: edit `package.json` deliberately, run `npx prettier --write .` locally to flush any drift the new version surfaces, ship the bump alongside the cleanup in one PR.
+2. **Prettier pinned to an exact version** (`package.json` `devDependencies.prettier`): no caret. Every CI run installs exactly the same prettier version. Eliminates the patch-version-drift class that caused PR #207. To bump: edit `package.json` deliberately, run `npx prettier --write .` locally to flush any drift the new version surfaces, ship the bump alongside the cleanup in one PR.
 
 3. **CI Prettier check is scoped to PR diff** (`.github/workflows/test.yml` "Prettier check (PR-diff scoped)" step): computes the changed-files list against the merge base via `git diff --name-only --diff-filter=AMRCT <base>...HEAD -- <prettier-relevant globs>` and only checks those files. Latent drift in unrelated files no longer blocks a PR. The trade-off is intentional: PRs validate their own changes, not the whole repo's hygiene.
 
@@ -465,7 +468,7 @@ The following files are explicitly excluded from linting:
 - **`**/.wrangler/**`** (added 2026-08-04, BL-108) — Wrangler's build cache. The Worker integration tests use `unstable_dev`, which writes bundled Worker output here, so **after any `npm run test:mcp` these generated files added ~2,650 errors to `npm run lint`**. That matters more than it sounds: `lint` is one of the four authoritative validation commands, and the noise is not cosmetic — it buried a genuine one-line error in `mcp-server/src/schemas.ts` that only surfaced by grepping the output. If you see `lint` suddenly report thousands of errors in files you did not write, check for a newly generated directory rather than a newly broken rule.
 - **`ds-bundle/**` and `.ds-sync/**`** (added 2026-08-16) — claude.ai/design sync artifacts, and the same failure mode as `.wrangler` above. `ds-bundle/` is the converter's generated output; it embeds a vendored React UMD build that alone contributed **~1,980 errors to `npm run lint`**, enough to make the command unusable. `.ds-sync/` is the skill's staged scripts plus their isolated dep tree. Both are gitignored and regenerated on every sync. The **authored** sources under `.design-sync/` are deliberately NOT excluded — they are hand-written, committed, and should be linted. See [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md).
 - Minified vendor assets: `**/*.min.js`, `**/*.min.css`
-- CommonJS config files: `**/*.cjs` (the Lighthouse CI configs)
+- CommonJS files: `**/*.cjs` — the two Lighthouse CI configs and `prototypes/bl-035-hero-ambient-motion/generate.cjs`. Because they are ignored, the Node-globals override in § ESLint configuration notes only has an effect on `.mjs` files
 
 ---
 
@@ -520,9 +523,11 @@ Configuration notes — each of these is load-bearing, do not "simplify" them:
 1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme, so the token system is meaningless there. Wrapped in `/* stylelint-disable scale-unlimited/declaration-strict-value -- … */` with a justification.
 2. **R/G/B slider affordances** in `SwatchControlStyles.astro` — a red/green/blue channel control must stay red/green/blue regardless of palette. Declared once as component-local custom properties (which the rule does not check) rather than repeated inline.
 
-#### `no-invalid-position-declaration` disabled in the `.astro` override only
+#### `no-invalid-position-declaration` — re-enabled for `.astro` (2026-09-27)
 
-The `.astro` override sets `"no-invalid-position-declaration": null`, while the base config (plain `.css`) leaves it enabled. As of stylelint 17.13.0 this rule fires false positives on HTML **inline `style="…"` attributes** in `.astro` markup (an inline style is declaration-only, so "declaration after a nested rule" is nonsensical there) — it flagged 983 such attributes across 17 components with zero real `.css` violations, and `--fix` cannot resolve them. This surfaced as a hard `lint:css` failure on every Dependabot dev-dependency bump that pulled stylelint ≥17.13 (e.g. PRs #263, #267). Suppressing it for `.astro` unblocks those bumps while keeping the rule active for real stylesheets. Re-enable once the upstream inline-style false positive is fixed.
+The rule is active for both `.css` and `.astro`. From 2026-06 to 2026-09 the `.astro` override set it to `null`: as of stylelint 17.13.0 it fired false positives on HTML **inline `style="…"` attributes** in `.astro` markup (an inline style is declaration-only, so "declaration after a nested rule" is nonsensical there) — it flagged 983 such attributes across 17 components with zero real `.css` violations, and `--fix` cannot resolve them. This surfaced as a hard `lint:css` failure on every Dependabot dev-dependency bump that pulled stylelint ≥17.13 (e.g. PRs #263, #267). Suppressing it for `.astro` unblocks those bumps while keeping the rule active for real stylesheets.
+
+**Re-enabled 2026-09-27 on stylelint 17.15.0.** With the rule on, `src/**/*.astro` reports **zero** violations (17 components still carry inline `style="…"` attributes), and a probe file with a genuine misplaced declaration in a `<style>` block is flagged, so the upstream false positive is fixed. If a future bump regresses it, restore the `null` in the `.astro` override and record the version here.
 
 ### Running stylelint
 
@@ -554,7 +559,7 @@ Phase 9 (item #7) enabled two specificity rules at **warning** severity in both 
 - `selector-max-specificity: "0,4,1"` — caps specificity to 4 classes + 1 element. The `0,4,1` threshold accommodates `:global(html.dark-theme) .foo .bar .baz` patterns common in hub tool dark-theme overrides
 - `no-descending-specificity: true` — flags selectors whose specificity is lower than a preceding selector for the same property, which often indicates unintended cascade order
 
-**Baseline ratchet** (2026-04-13): 4 `selector-max-specificity` + 54 `no-descending-specificity` = 58 total warnings. New code must not increase this count. Existing violations should be reduced opportunistically during future refactors.
+**Baseline ratchet**: 58 warnings when the rules were enabled (2026-04-13: 4 `selector-max-specificity` + 54 `no-descending-specificity`); re-measured 2026-09-27 at 0 + 2 (`npx stylelint "src/**/*.{css,astro}" -f json`). New code must not increase the count — nothing enforces this, since warnings do not fail `lint:css`, so re-measure before citing it.
 
 ### Specimen styles in brand.astro
 
@@ -576,7 +581,7 @@ This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's
 
 `/hub/radar/` waits for its `server:defer` island to resolve before scanning. CI's E2E jobs bind the radar snapshot stub, so the scan covers the real feed items. Locally, with no `MCP_KEY_WEBSITE_RADAR` bound, it scans the shell plus the empty state; bind `npm run radar:stub` to cover the items.
 
-The `wcag22aa` tag was added 2026-08-03 and selects exactly one rule in axe-core 4.12.1: `target-size`. It enforces the AA half of the touch-target ruling (24×24) on every scanned route; `tests/integration/touch-target-floor.test.ts` enforces the 44px AAA floor on the guarded families from source. See [BRAND_GUIDELINES § Accessibility](../styles/BRAND_GUIDELINES.md#accessibility).
+The `wcag22aa` tag was added 2026-08-03 and selects exactly one rule — `target-size` (re-checked on the installed axe-core 4.13.0 with `axe.getRules(['wcag22aa'])`). It enforces the AA half of the touch-target ruling (24×24) on every scanned route; `tests/integration/touch-target-floor.test.ts` enforces the 44px AAA floor on the guarded families from source. See [BRAND_GUIDELINES § Accessibility](../styles/BRAND_GUIDELINES.md#accessibility).
 
 ### How the ratchet works
 
@@ -599,7 +604,7 @@ expect(results.critical).toHaveLength(0);
 
 ### Coverage reporting
 
-`npm run test:coverage` reports line coverage via `@vitest/coverage-v8`. Source files under `src/utils/`, `src/data/*.ts`, and `src/scripts/` are instrumented. Current threshold: 35% lines (ratchet — can only increase).
+`npm run test:coverage` reports line coverage via `@vitest/coverage-v8` over `src/utils/**` and `src/data/**/*.ts`, minus the browser-only modules listed in `vitest.config.ts` (covered by E2E instead). The threshold is **70% lines**; CI's Unit & Integration Tests job runs with coverage, so dropping below it fails a required check.
 
 ## Lighthouse CI (performance budgets)
 
@@ -641,6 +646,7 @@ All environment variables are declared in `astro.config.mjs` → `env.schema` us
 Vitest can't resolve `astro:env/*` virtual modules. Test stubs live at:
 - `tests/__mocks__/astro-env-server.ts` — exports `undefined` for all server vars
 - `tests/__mocks__/astro-env-client.ts` — exports defaults for public vars
+- `tests/__mocks__/astro-middleware.ts` — stands in for `astro:middleware`
 
 Tests that need specific env values should use `vi.mock('astro:env/server', () => ({ ... }))` with `vi.hoisted()` for the factory object.
 
@@ -663,7 +669,7 @@ The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides
 - `PUBLIC_SENTRY_DSN` — declared in env schema, set in Vercel (Production + Preview)
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — optional, for source map upload
 
-**Error tags used in `captureException`**: `area:portfolio-data`, `area:regulatory-map`, `area:techpar-calculation` _(2026-07-14 audit: `area:inoreader-api` and `area:redis-connection` emit sites were deleted with the website's Inoreader client + Redis usage in BL-032.8 Phase B; `area:file-cache` / `area:palette-manager` no longer exist in source either — the list now matches a live grep of `src/`)_
+**Error tags used in `captureException`** (a grep of `tags: {` in `src/`, 2026-09-27): `area:portfolio-data`, `area:regulatory-map`, `area:techpar-calculation`, and `feature:ambient-motion` (`src/scripts/ambient/loader.ts`, `src/scripts/palette-manager.ts`). `area:inoreader-api` and `area:redis-connection` emit sites were deleted with the website's Inoreader client + Redis usage in BL-032.8 Phase B; `area:file-cache` / `area:palette-manager` no longer exist in source either.
 
 **Viewing errors**: Log in to [sentry.io](https://sentry.io), select the `gst-website` project. Filter by tag (`area:regulatory-map`) to see specific subsystem failures.
 
@@ -675,10 +681,8 @@ Configure these in the Sentry dashboard under **Alerts → Create Alert Rule** f
 | --------------------------------------- | ---------------------------------------------------- | -------------- |
 | New issue                               | A new issue is created                               | Email (owner)  |
 | High-volume errors                      | >10 events/hour on any page                          | Email (owner)  |
-| Inoreader API failures                  | New issue with tag `area:inoreader-api`              | Email (owner)  |
-| Redis connection failures               | New issue with tag `area:redis-connection`            | Email (owner)  |
 
-These rules are configured externally in Sentry's UI, not in code. The tag filters rely on the `area` tags set in `captureException` calls throughout the codebase.
+These rules are configured externally in Sentry's UI, not in code. This table used to list two more, keyed on `area:inoreader-api` and `area:redis-connection`; nothing emits those tags any more (see above), so such rules can never fire — delete them in Sentry if they are still configured. A tag-filtered rule is only as good as the `captureException` calls that set its tag.
 
 ### Source map upload
 
@@ -703,7 +707,7 @@ Add all three to **Vercel → Project Settings → Environment Variables** (Prod
 
 ### Privacy and consent evaluation
 
-Evaluated during Phase 9 (2026-04-13):
+Evaluated 2026-04-13:
 
 - **Pure error capture** (`captureException`, `captureMessage`): Classified as **legitimate interest** under GDPR — diagnostic data for maintaining service reliability. No consent required.
 - **Error-only replay** (`replaysOnErrorSampleRate: 1.0`): Records DOM state only when an error occurs. Arguably still legitimate interest since it is diagnostic, not behavioral tracking. No session replay for general browsing.
@@ -757,7 +761,7 @@ If source contains BOTH a prefixed and unprefixed form of the same property with
 }
 ```
 
-This policy is enforced socially (code review + STYLES_GUIDE.md note) rather than mechanically. A future stylelint rule could catch it — tracked as a Phase 9 opportunity.
+This policy is enforced socially (code review + STYLES_GUIDE.md note) rather than mechanically. A stylelint rule could catch it; none is configured and none is tracked.
 
 ### Changing browser support
 
@@ -884,7 +888,7 @@ This runs [.claude/hooks/install.mjs](../../../.claude/hooks/install.mjs), which
 npm run format
 ```
 
-Be aware this will produce a large diff against the current state. The expected place to do this is as a single standalone commit during the Phase 9 sweep, not piecemeal during feature work.
+Be aware this can produce a large diff. Do it as a single standalone commit, not piecemeal during feature work — the same advice as for a `prettier-drift` Issue (§ Prettier idempotency + drift detection).
 
 ### "`prettier --check` fails locally but CI is green"
 
@@ -1021,21 +1025,8 @@ npm run test:coverage
 
 ---
 
-## Post-merge manual steps for Phase 2
-
-Two manual steps are required to complete Phase 2:
-
-1. **Update branch protection ruleset** to add `Lint & Type Check` to the required-checks list on ruleset 12237842. Must happen AFTER the Phase 2 PR merges to master. Full `gh` CLI recipe in the hardening doc.
-2. **Verify `astro dev` no longer emits the `[content] Content config not loaded` warning** — resolved by adding an empty `src/content.config.ts`, but only verifiable on a fresh dev server startup.
-
----
-
 ## Related documentation
 
 - [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md) — test patterns by component type
 - [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md) — E2E anti-patterns
 - [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md) — CSS conventions (enforced by stylelint)
-
----
-
-**Last Updated**: August 16, 2026 (MCP deploy-chain integrity asserted in `tests/integration/workflow-chain-integrity.test.ts`; the duplicate-run dedup section corrected to describe the hand-rolled tree-hash query that replaced `fkirc/skip-duplicate-actions`; ruleset `15011377` recorded as no longer existing; new troubleshooting entry for skipped-vs-cancelled staging deploys)

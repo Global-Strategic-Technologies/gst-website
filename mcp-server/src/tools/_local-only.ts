@@ -5,7 +5,8 @@
  * **Why this exists** (BL-032 Q12 — see
  * `mcp-server/src/docs/ARCHITECTURE.md#transport-binding-per-tool-q12`):
  * the offline radar tool (`search_radar_offline`, with the deprecated
- * `search_radar_cache` alias for one release per Q2) and the radar
+ * `search_radar_cache` alias — deprecated stdio-only alias, retained by
+ * operator ruling 2026-09, no removal planned) and the radar
  * Resources (`gst://radar/...`) read from `<repo>/.cache/inoreader/`
  * via [`content/radar-snapshot.ts`](../content/radar-snapshot.ts), which uses
  * `node:fs`, `node:crypto`, and `node:path` at module load time. Those APIs
@@ -26,9 +27,7 @@
  *
  * **CI invariant**: `tests/integration/protocol-roundtrip.test.ts` asserts the
  * full stdio tool-name list (createServer + this file), so removing or renaming
- * a local-only tool fails there. (This comment previously cited a
- * `tests/integration/registry-snapshot.test.ts` that has never existed in the
- * repo — corrected in BL-090.)
+ * a local-only tool fails there.
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
@@ -38,8 +37,8 @@ import { stdioSnapshotReader } from '../content/radar-snapshot-reader-stdio';
 
 export function registerLocalOnlyTools(server: McpServer): void {
   registerRadarOfflineTool(server);
-  // Deprecated alias for one release. Removed in mcp-server@0.2.0.
-  // See mcp-server/BREAKING_CHANGES.md.
+  // Deprecated stdio-only alias, retained by operator ruling (2026-09); no
+  // removal planned. See mcp-server/BREAKING_CHANGES.md.
   registerSearchRadarCacheAlias(server);
   // BL-032.5 Phase 3: pass the stdio reader explicitly. The Worker path
   // registers radar Resources separately in `server.ts` via the Upstash-

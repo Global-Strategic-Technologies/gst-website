@@ -144,7 +144,3 @@ Repeat UAT-03.2 but declare `_audit.revenueRange.nativeCurrency: "EUR"` **withou
 | ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Rejected with `BL-045-CURRENCY-CONVERSION-REQUIRED` + worked example                                                                               |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Rejected with `BL-045-CURRENCY-CONVERSION-REQUIRED`, the retry-discipline preamble, the offending path, and a worked example |
-
----
-
-_Last updated: 2026-08-11 (BL-119 — initial authoring; all three cases executed against local stdio 0.48.1)_

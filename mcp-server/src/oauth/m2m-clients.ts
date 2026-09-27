@@ -60,7 +60,7 @@ export interface M2mClientRecord {
    * That default is deliberately the *loose* one, which makes an omission on a
    * path that intends to expire a silent, permanent credential. Any caller
    * minting a time-boxed client must set this explicitly and assert it — see
-   * `SELF_SERVE_TRIAL_BL-155.md`.
+   * `src/docs/development/_archive/SELF_SERVE_TRIAL_BL-155.md` (Slice 1).
    *
    * Enforced at token mint (`m2m-token.ts`), **after** the auth branches, so an
    * unauthenticated caller cannot probe client existence or expiry. The record

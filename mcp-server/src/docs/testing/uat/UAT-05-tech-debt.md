@@ -133,7 +133,3 @@ Repeat UAT-05.1's numeric values (`incidents: 3`, `mttrHours: 8`) but declare `_
 | ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Both rule IDs reported in a single rejection                                                                                                             |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Both rule IDs reported in one response — no second round trip — each naming the field, the declared source, and the received value |
-
----
-
-_Last updated: 2026-08-11 (BL-119 — initial authoring; all three cases executed against local stdio 0.48.1)_

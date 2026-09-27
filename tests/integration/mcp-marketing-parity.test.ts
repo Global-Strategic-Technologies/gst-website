@@ -365,8 +365,8 @@ describe('MCP marketing page — tier parity', () => {
    *
    * This inverts the rule that stood here until 2026-09-08, which kept `trial`
    * OFF this table on the reasoning that the signup page should be the only
-   * public description of it (SELF_SERVE_TRIAL_BL-155.md § Decisions taken,
-   * amended in place). The trial is now the first column.
+   * public description of it (_archive/SELF_SERVE_TRIAL_BL-155.md § Operator
+   * decisions taken, amended in place). The trial is now the first column.
    */
   const UNPUBLISHED_TIERS: ReadonlySet<string> = new Set(['free-pilot']);
   const PUBLISHED_TIERS = ASSIGNABLE_TIERS.filter((t) => !UNPUBLISHED_TIERS.has(t));

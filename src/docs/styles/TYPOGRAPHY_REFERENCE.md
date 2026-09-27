@@ -197,8 +197,3 @@ metric-matched fallback per-glyph, which is correct.
 - [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) — Brand typography and font family guidelines
 - [STYLES_GUIDE.md](./STYLES_GUIDE.md) — CSS conventions and component patterns
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
-
----
-
-**Last Updated**: April 5, 2026
-**Source**: `src/styles/typography.css` (175 lines)

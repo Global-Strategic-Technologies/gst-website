@@ -1,6 +1,6 @@
 # ADR-0038: The theme has four states, encoded as two orthogonal classes
 
-- **Status**: Accepted (2026-09-22)
+- **Status**: Accepted (2026-09-22); amended 2026-09-25 (the default state follows the date, ADR-0040) and 2026-09-26 (the footer toggle cycles all four states)
 - **Source initiative**: operator directive 2026-09-22 (the palette panel's theme button gains two intermediate states); shipped with BL-165 in one PR
 
 ## Context

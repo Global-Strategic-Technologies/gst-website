@@ -6,7 +6,7 @@ tools:
   - search_radar_cache
   - get_latest_insights
 version: v1
-lastAuthored: 2026-08-05
+lastAuthored: 2026-09-27
 schema: mcp-server/src/tools/radar-offline.ts
 enumParity:
   - tableHeading: '`category`'
@@ -21,7 +21,7 @@ enumParity:
 >
 > **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
 >
-> **Deprecated alias**: `search_radar_cache` is registered as a deprecated alias that tail-calls this implementation; its tool description says only that it is scheduled for removal. It was originally documented as "removed in `mcp-server@0.2.0`" and outlived that — the removal is tracked as BL-113 in [`BACKLOG.md`](../../../../../src/docs/development/BACKLOG.md) and, being breaking, ships with a [`mcp-server/BREAKING_CHANGES.md`](../../../../BREAKING_CHANGES.md) entry.
+> **Deprecated alias**: `search_radar_cache` is registered as a deprecated alias that tail-calls this implementation; it is a deprecated stdio-only alias, retained by operator ruling (2026-09); no removal is planned. (It was once documented as "removed in `mcp-server@0.2.0`" and outlived that.) Removing it would be breaking and would ship with a [`mcp-server/BREAKING_CHANGES.md`](../../../../BREAKING_CHANGES.md) entry.
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >

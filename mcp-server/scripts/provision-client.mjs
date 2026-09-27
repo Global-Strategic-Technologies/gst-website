@@ -73,7 +73,11 @@ export const SUPPORTED_SCOPES = Object.freeze([
 
 /**
  * Scopes granted when `--scopes` is omitted — the minimum-scope example from
- * PILOT_ONBOARDING.md § 1, deliberately radar-free.
+ * PILOT_ONBOARDING.md § 1. Free of `resource:radar:read`, but NOT of the
+ * radar tools: `hasScope` matches by prefix, so `tool:*` already covers
+ * `tool:radar:*`, and withholding the radar scopes does not deny an M2M client
+ * the radar tools. The only radar-tool deny today is the tier gate
+ * (`src/pipeline/tier-gate.ts`), and it refuses the `trial` tier only.
  *
  * NOT named `DEFAULT_SCOPES`: `src/auth/scopes.ts` already exports that name
  * with a broader meaning (it includes `resource:radar:read`), and two

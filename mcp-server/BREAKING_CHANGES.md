@@ -35,6 +35,18 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.66.1 — 2026-09-27 — `search_radar_cache` alias wording
+
+**Wire-compatible, graded patch.** No tool, prompt, or Resource URI is added, renamed, or removed, and no input or output schema changes shape. No prompt moved, so the manifest hash is unchanged.
+
+**Tool-description corrections** (no schema change)
+
+- The `search_radar_cache` alias description, and the stderr warning it logs on each call, no longer say the name is "scheduled for removal". The alias is a deprecated stdio-only alias, retained by operator ruling (2026-09); no removal is planned. It still points callers at `search_radar_offline`, which it tail-calls with identical input and output. Same class of correction as the 0.66.0 alias-wording line.
+
+**Client impact**: none. A client that calls the alias keeps working.
+
+---
+
 ## 0.66.0 — 2026-09-24 — prompt and tool-description wording audit
 
 **Wire-compatible, graded minor.** No tool, prompt, or Resource URI is added, renamed, or removed, and no input or output schema changes shape; every payload valid under 0.65.0 still parses and computes identically. Minor rather than patch because the tool descriptions gain documented surface a client can now rely on (the ICG question-ID catalog, the error-code vocabularies). **Prompts**: eleven bumped, because their previous bytes were served (see the rule at the top of this file); `gst_irl_populate` is unchanged, confirmed by rendering it against master. **Manifest hash**: rebaselined (eleven tuples moved). **Body hashes**: all 16 `gst_irl_ingestion` scenarios rebaselined — every arm renders at least one edited literal (ledger in `tests/integration/irl-ingestion-body-hash-stability.test.ts`).

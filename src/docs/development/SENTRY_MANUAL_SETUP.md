@@ -58,7 +58,7 @@ Source maps give Sentry readable stack traces instead of minified code. The uplo
 
 ## 2. Configure Sentry Alert Rules (Phase 9 Item #14)
 
-Alert rules notify you when errors occur. The error tags (`area:inoreader-api`, `area:redis-connection`, etc.) are already set in the codebase — these rules trigger notifications based on them.
+Alert rules notify you when errors occur. Rules 1 and 2 match every issue; Rules 3 and 4 filtered on `area` tags whose emitters have since been removed, and are retired. The tags the website emits today are in the [Tag Reference](#tag-reference) below.
 
 ### Steps
 
@@ -117,15 +117,18 @@ Alert rules notify you when errors occur. The error tags (`area:inoreader-api`, 
 
 ### Tag Reference
 
-These are the `area` tags already instrumented in the codebase:
+Every `tags: { … }` passed to `Sentry.captureException` in `src/` (regenerate with a search for `tags: {` under `src/` when this table is in doubt):
 
-| Tag                        | Source                           | Fires When                                           |
-| -------------------------- | -------------------------------- | ---------------------------------------------------- |
-| `area:inoreader-api`       | `src/lib/inoreader/client.ts`    | Inoreader API calls fail (auth, fetch, refresh)      |
-| `area:redis-connection`    | `src/lib/inoreader/client.ts`    | Redis/KV connection or read/write fails              |
-| `area:file-cache`          | `src/lib/inoreader/cache.ts`     | Local file cache read/write fails                    |
-| `area:techpar-calculation` | `src/utils/techpar/chart.ts`     | TechPar chart rendering or calculation errors        |
-| `area:palette-manager`     | `src/scripts/palette-manager.ts` | Palette operations fail (breadcrumb only, not alert) |
+| Tag                        | Source                                                            | Fires When                                                               |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `area:portfolio-data`      | `src/components/portfolio/PortfolioHeader.astro`                  | The inlined portfolio JSON fails to parse                                |
+| `area:regulatory-map`      | `src/pages/hub/tools/regulatory-map/index.astro`                  | A regulation-detail fetch throws, or the copy-link clipboard write fails |
+| `area:techpar-calculation` | `src/utils/techpar/chart.ts`                                      | TechPar chart rendering or calculation errors                            |
+| `feature:ambient-motion`   | `src/scripts/ambient/loader.ts`, `src/scripts/palette-manager.ts` | The ambient-motion runtime or its controls chunk fails to load           |
+
+**Breadcrumb categories, not tags**: `palette-manager` (`src/scripts/palette-manager.ts`) and `ambient-motion` (`src/scripts/ambient/controls.ts`) are `Sentry.addBreadcrumb` categories recorded when a `localStorage` write fails. They attach context to a later error and never create an issue, so no alert rule can match them.
+
+The earlier `area:inoreader-api`, `area:redis-connection` and `area:file-cache` tags went with the website's Inoreader client in BL-032.8 Phase B.
 
 ---
 
@@ -204,7 +207,7 @@ Error monitoring is a recognized legitimate interest for website operators. The 
 
 ### When to Re-evaluate
 
-If the cookie consent banner (BUSINESS_ENABLEMENT_V1 Initiative 1) introduces a **"functional cookies"** or **"analytics"** consent tier, consider whether error-triggered replay crosses into the "analytics" category in your jurisdiction. Pure error capture (without replay) is unambiguously legitimate interest.
+If the cookie consent banner (BL-001 in [BACKLOG.md](./BACKLOG.md#bl-001-cookie-consent-and-gdpr-compliance); originally BUSINESS_ENABLEMENT_V1 Initiative 1, readable with `git show 8b2342c7^:src/docs/development/BUSINESS_ENABLEMENT_V1.md`) introduces a **"functional cookies"** or **"analytics"** consent tier, consider whether error-triggered replay crosses into the "analytics" category in your jurisdiction. Pure error capture (without replay) is unambiguously legitimate interest.
 
 A code comment in `sentry.client.config.ts` marks the integration point for future consent gating if needed.
 
@@ -221,14 +224,6 @@ if (consent !== 'accepted') {
 ```
 
 Note: this means errors occurring before or without consent will be invisible. Weigh this tradeoff against the privacy benefit.
-
----
-
-_Created: April 13, 2026 — Platform Hardening V1 Phase 9_
-_Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_
-_Updated: April 19, 2026 — CSP fixes, source map silent mode, GitHub stack trace linking, checklist refresh_
-_Updated: May 4, 2026 — Added MCP Worker section (BL-032 Phase 5)_
-_Updated: May 12, 2026 — MCP project fully wired post-production-deploy: corrected misleading Cloudflare Workers error-rate claim, switched Alerts #2/#3 to message-based filters (matches shipped captureMessage calls), added source-map upload setup section, verification checklist split into website + MCP halves, MCP half all green except Alert #4 (deferred to BL-032.75)_
 
 ---
 
@@ -323,18 +318,13 @@ The upload is wired into [`mcp-server/scripts/deploy.mjs`](../../../mcp-server/s
    - Name: `GST MCP Source Maps` (mirrors the website's `GST Website Source Maps` token convention)
    - Copy the token (`sntrys_...`) immediately — shown once only
 2. Store the token in your password manager (treat like any other secret — don't check in)
-3. Before running `npm run deploy:staging` or `:production`, set in your shell:
-   ```powershell
-   $env:SENTRY_AUTH_TOKEN = "sntrys_..."     # PowerShell
-   export SENTRY_AUTH_TOKEN="sntrys_..."     # bash / zsh
-   ```
-   Or persist via `[Environment]::SetEnvironmentVariable("SENTRY_AUTH_TOKEN", "...", "User")` on Windows.
+3. Set it as the `SENTRY_AUTH_TOKEN` **GitHub Actions secret**. Deploys run only in CI: `deploy-mcp-staging.yml` and `deploy-mcp-production.yml` pass that secret to `npm run deploy:staging` / `deploy:production`, which is where the upload happens. Nobody deploys the Worker by hand ([DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md)), so there is no local shell to set it in.
 
 `SENTRY_ORG` (`gst-7o`) and `SENTRY_PROJECT` (`gst-mcp-server`) are hardcoded defaults in `deploy.mjs`; override via env vars only if those values change.
 
 **If `SENTRY_AUTH_TOKEN` is not set**, the deploy.mjs script prints a warning and continues — the Worker still deploys successfully, only source-map upload is skipped. Source maps are a debug-experience nicety, not a runtime correctness gate.
 
-**Verification after a deploy**: the deploy script's tail output reads `> source maps uploaded for release <sha>; Sentry stack traces will resolve to original TypeScript.` Sentry → gst-mcp-server → Releases → click the new release → "Artifacts" tab should list `.map` files.
+**Verification after a deploy**: the deploy job's log (the `npm run deploy:*` step in the workflow run) ends with `> source maps uploaded for release <sha>; Sentry stack traces will resolve to original TypeScript.` Sentry → gst-mcp-server → Releases → click the new release → "Artifacts" tab should list `.map` files.
 
 #### Step-by-step UI walkthrough (current Sentry, 2026)
 

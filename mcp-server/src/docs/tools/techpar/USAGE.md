@@ -187,7 +187,3 @@ The engine is deterministic; per-category zones, KPIs, and the 36-month projecti
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, valid values, mode/capexView interactions, zone classification rules)
 - [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
 - [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) + [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — architecture and design rationale
-
----
-
-_Last Updated: 2026-04-28_

@@ -19,7 +19,11 @@ export declare const ASSIGNABLE_TIERS: readonly string[];
 /** Mirror of `SCOPES_SUPPORTED` in `src/auth/scopes.ts`. */
 export declare const SUPPORTED_SCOPES: readonly string[];
 
-/** Scopes granted when `--scopes` is omitted (radar-free by construction). */
+/**
+ * Scopes granted when `--scopes` is omitted. Free of the radar Resource only:
+ * `tool:*` covers the radar tools by prefix; only the `trial` tier is refused
+ * them (`src/pipeline/tier-gate.ts`).
+ */
 export declare const MINIMUM_SCOPES: readonly string[];
 
 /** Scopes that spend the shared Inoreader Zone-1 budget (ADR-0006). */

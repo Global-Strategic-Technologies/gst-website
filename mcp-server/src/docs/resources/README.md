@@ -52,7 +52,3 @@ All Resources are registered via `server.registerResource(name, uri, { title, de
 3. If the content is expensive to produce, wrap the handler in `readThroughCache`.
 4. Add the URI to `resource-uri-stability.test.ts` so drift is caught.
 5. Document the family in the table above and in `mcp-server/README.md` § "Resources".
-
----
-
-_Last updated: 2026-07-02 (BL-034 doc-structure pass — resources/ taxonomy formalized)._

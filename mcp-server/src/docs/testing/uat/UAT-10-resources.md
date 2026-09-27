@@ -5,7 +5,7 @@
 
 The read-only `gst://` surface: reference documents, per-framework regulatory records, and radar snapshots, addressed by stable URI. A full pass proves that a URI returned by a tool actually resolves — the property that makes the tool results traceable rather than merely quotable.
 
-> **Recorded runs are `local stdio`, not production.** Library and regulation resources are bundled at build time and should behave identically on the Worker; the radar family will not, because it reads a snapshot that only exists in Upstash on the deployment. A production run is outstanding.
+> **UAT-10.2 – 10.4 are verified in production** (cycle 2, 2026-08-11, `0.48.1`), and 10.4 exercised the populated radar branch for the first time in any environment. **UAT-10.1 has only a `local stdio` run.** Library and regulation resources are bundled at build time and should behave identically on the Worker; the radar family will not, because it reads a snapshot that only exists in Upstash on the deployment. A production run of 10.1 is outstanding.
 
 ## Scope
 
@@ -134,7 +134,3 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 | ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------- |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | Unpopulated as expected; error named both remedies and the breaker caveat                            |
 | 2026-08-11 | Cowork | prod        | 0.48.1  | A    | Pass    | **First observation of the populated branch** — 2 items, both annotated, `itemCount` self-consistent |
-
----
-
-_Last updated: 2026-08-11 (BL-119 cycle 2 — 10.2–10.4 executed against production; 10.4 exercised the populated branch for the first time in any environment)_

@@ -1,6 +1,6 @@
 # ADR-0006: Inoreader Zone-1 budget protection & circuit breaker
 
-- **Status**: Accepted (2026-05-13, BL-032.5 soak) — extended by BL-032.7 substrate safety + BL-032.75 spend accounting
+- **Status**: Accepted (2026-05-13, BL-032.5 soak) — extended by BL-032.7 substrate safety, BL-032.75 spend accounting and BL-032.77 cron single-flight; **amended 2026-07-27** (BL-091 — breaker-open serves the cached snapshot; see the amendment below)
 - **Source initiative**: BL-032.5 testing findings (archived at [`../development/_archive/BL-032_5_TESTING_FINDINGS.md`](../development/_archive/BL-032_5_TESTING_FINDINGS.md)); protections hardened under BL-032.7
 
 ## Context

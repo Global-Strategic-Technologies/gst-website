@@ -14,8 +14,9 @@
  * pre-refactor sweep body. Sentence boundaries shift (the rule prose was
  * fused mid-sentence with sweep-specific orchestration in single template
  * literals at `diligence-sweep.ts:123/127/129/131/133` pre-refactor); the
- * meaning of every rule is preserved verbatim. Confirmed by the
- * constant-presence test added in `tests/unit/prompts/diligence-sweep.test.ts`.
+ * meaning of every rule is preserved verbatim. The constants' presence in
+ * the rendered bodies is asserted by the consuming prompts' tests (e.g.
+ * `tests/unit/prompts/irl-ingestion.test.ts`).
  *
  * See: mcp-server/src/docs/library/irl-tool-input-mapping.md — the SOP each
  * rule constant derives from (per-constant JSDoc names the section).

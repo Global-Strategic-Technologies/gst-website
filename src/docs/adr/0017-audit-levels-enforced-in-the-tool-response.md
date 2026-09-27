@@ -1,6 +1,6 @@
 # ADR-0017: Audit levels are a display axis, enforced in the tool response
 
-- **Status**: Accepted (2026-08-13, mcp-server 0.50.0 / prompt 0.23.0)
+- **Status**: Accepted (2026-08-13, mcp-server 0.50.0 / prompt 0.23.0); **amended 2026-08-14** (BL-125, prompt 0.26.0 / server 0.53.0; see the amendment below)
 - **Source initiative**: BL-122 (consumes the `auditLevel` "sugar" reserved under BL-087)
 
 ## Context

@@ -50,20 +50,15 @@ Paste the output value when `wrangler secret put MCP_KEY_<INITIALS>` prompts. Co
 ```bash
 cd mcp-server
 
-# Stage + production are separate env namespaces. Set both if the team
-# member should hit production directly; staging-only for soak-week
-# onboarding.
+# Staging and production are separate env namespaces; set the key in
+# each environment the team member should reach.
 wrangler secret put MCP_KEY_<INITIALS> --env staging
 # Paste the generated token value at the prompt.
 
-wrangler secret put MCP_KEY_<INITIALS> --env production   # only after soak
+wrangler secret put MCP_KEY_<INITIALS> --env production
 ```
 
-The Worker picks up the new secret on its next deploy or on cold-start of a new isolate. If you need it active immediately on already-running isolates, redeploy:
-
-```bash
-npm run deploy:staging        # re-deploys with the new env
-```
+No redeploy is needed: `wrangler secret put` creates a new Worker version with the secret and deploys it immediately (so does `wrangler secret delete`). Verify with `/health` and one authenticated call using the new key. While a rollback is live, secret edits are refused; see [DEPLOY.md § While rolled back](DEPLOY.md#while-rolled-back--secrets-are-locked). That applies to an emergency revocation or an `OAUTH_M2M_SIGNING_KEY` change too.
 
 ### List active keys (names only)
 
@@ -297,6 +292,15 @@ What an operator needs to know:
   A `throttle` row means the caller was **allowed** but was ≥80% through some bucket — the same threshold that raises the client-facing soft-limit warning. A `deny` row is a 429 the caller actually received.
 
 - **Staging vs production**: staging pairs the documented always-pass Turnstile **test** secret (`1x0000000000000000000000000000000AA`) with the test sitekey on the page and accepts `localhost` / preview hostnames (`TURNSTILE_EXPECTED_HOSTNAMES`, `TRIAL_EXTRA_ORIGINS` in `wrangler.toml`); production accepts only the website's own hosts. The test secret reports `hostname: "example.com"` and no `action` (observed 2026-09-07), so staging lists `example.com` and the verifier waives a missing action only for a response Cloudflare flags as a testing-key result. A scripted staging mint is `curl -X POST …/trial/signup -H 'Content-Type: application/json' -d '{"turnstileToken":"XXXX.DUMMY.TOKEN.XXXX"}'`.
+- **Why the widget is Invisible, and the condition that carries.** The operator chose an **Invisible** Turnstile widget (rendered explicitly and loaded lazily on the first click), so no widget or Cloudflare logo appears in any challenge outcome. Hiding the logo on a visible widget ("Offlabel") is Enterprise-only, so Invisible is the only way to get that result. **Invisible mode has a condition of service: the privacy policy must link Cloudflare's Turnstile Privacy Addendum**, `https://www.cloudflare.com/turnstile-privacy-policy/` (the region-neutral URL, verified at design time to resolve to the document of that title). The link lives in the `privacy` catalog in all three locales, next to GST's own disclosure of the 30-day IP-HMAC identity key. **No guard checks it**, because `docs-link-integrity` skips external URLs. If Cloudflare moves the page, or someone removes the privacy paragraph, the condition breaks silently, so check the link by hand whenever the privacy copy changes. The addendum lists what Turnstile collects: client IP, TLS fingerprint, User-Agent, and the sitekey with its origin. Offlabel's plan gating is a commercial term, so re-check it before relying on it.
+- **Re-verifying the whole flow on staging** (after a change to the signup page, the consent identity branch, the tier gate or the token exchange). Use only what the page tells a stranger. Do not substitute knowledge the visitor does not have: the page failing to say something is exactly the defect this run exists to catch.
+  1. On the staging signup page (the always-pass test pair is set there), sign up and take the one credential string.
+  2. Follow the page's own three steps: add the connector in Claude Desktop, paste the string at the consent page, approve.
+  3. Confirm the GST tools are listed, a `search_radar` call is refused with `-32002`, and a `search_portfolio` call succeeds.
+  4. Sign up again from the same network. The previous credential must now be refused at consent, the new one must work, and the shown expiry must not change.
+  5. For expiry, don't wait 72 hours. Create a record with a past `expiresAt` via `POST /admin/oauth/m2m-clients` and prove both doors refuse it: consent re-renders "not recognized", and `/token` returns `invalid_client`.
+
+  Two results are expected, not defects: a `mcp_m2m_*` token minted before expiry lives up to 1h, and a consent grant runs to the `expiresAt` it captured.
 
 ### Introspect a token (support/debugging)
 
@@ -316,7 +320,7 @@ RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) i
 | One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client)                                                       |
 | One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                                                                                |
 | One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted `mcp_m2m_*` tokens carry ≤1h residual (introspection already reports them inactive). A **consent-page grant** made with the record runs to its captured `expiresAt` (see § An M2M record at the consent page) |
-| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                                                                               |
+| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies as soon as the put returns: `secret put` deploys the new version immediately                                                                                                                                             |
 
 ### Operational notes
 
@@ -328,7 +332,3 @@ RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) i
 ## Per-key scopes (resolved by BL-033 Slice 2)
 
 Per-key/per-client scope variation is live across all three credential paths: `MCP_KEY_<OWNER>_SCOPES` env-var subsets for static keys, requested-∩-key-scopes for OAuth grants, and `allowedScopes` for M2M clients — one catalog, one wildcard-aware checker (see [`ARCHITECTURE.md` § Scope gating](../ARCHITECTURE.md#scope-gating)).
-
----
-
-_Last updated: 2026-09-17 (BL-152 follow-up — `?releaseIdentity=true` and `npm run trial:reset`; `expiresAt` now listed by `GET /admin/oauth/m2m-clients`)_

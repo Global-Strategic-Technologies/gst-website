@@ -422,9 +422,3 @@ All credentials are also listed on Reid's LinkedIn profile:
 - **URL**: https://www.linkedin.com/in/reidperyam/
 - **Section**: Licenses & certifications
 - Cross-reference with website documentation
-
----
-
-**Last Updated**: March 20, 2026
-**Total Credentials**: 18 (15 active, 3 expired)
-**Status**: Current and Accurate ✓

@@ -1,18 +1,18 @@
 # Cloudflare Worker config for the GST MCP server (BL-032).
 #
-# Phase 1 scope: staging-only; minimal config to scaffold the Worker fetch
-# handler and prove the end-to-end transport story works. Production env,
-# routes, observability bindings, custom domain, and secret manifests land
-# in Phase 6 (deploy + soak).
+# Two Worker environments: [env.staging] → gst-mcp-staging and
+# [env.production] → gst-mcp. The top-level block is what `wrangler dev`
+# uses without --env.
 #
 # Architecture & rationale: mcp-server/src/docs/ARCHITECTURE.md
 #
 # To run locally:
 #   npm run dev:worker          # wrangler dev --env staging
 #
-# To deploy (Phase 6):
-#   npm run deploy:staging      # wrangler deploy --env staging
-#   npm run deploy:production   # wrangler deploy --env production
+# Deploys are CI-only: .github/workflows/deploy-mcp-staging.yml (after a
+# green MCP test run), deploy-mcp-production.yml (push to master, behind the
+# mcp-production approval) and rollback-mcp.yml. The `deploy:*` npm scripts
+# are break-glass only. Runbook: src/docs/operations/DEPLOY.md.
 
 name = "gst-mcp"
 main = "src/worker.ts"
@@ -47,8 +47,8 @@ upload_source_maps = true
 #   - Free:  100k writes/day + 10k reads/day + 3-month retention
 #   - Paid:  10M writes/mo + 1M reads/mo, then $0.25/M writes
 #
-# Column map (positional, 6 blobs + 2 doubles + 1 index) is pinned in
-# `src/metrics/_schema.ts` and snapshot-tested. Substrate caps enforced
+# Column map (positional blobs + doubles + 1 index) is pinned by
+# `BLOB_SLOTS` / `DOUBLE_SLOTS` in `src/metrics/_schema.ts` and snapshot-tested. Substrate caps enforced
 # by `src/metrics/guard.ts` at runtime.
 #
 # Top-level binding is for `wrangler dev` runs (un-tagged dataset).
@@ -150,37 +150,12 @@ traces = { enabled = true, persist = true, head_sampling_rate = 1 }
 # ---------------------------------------------------------------------------
 # Staging
 # ---------------------------------------------------------------------------
-# Secrets (set via `wrangler secret put <NAME> --env staging`):
-#   MCP_KEY_RP                    Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
-#
-#   # Upstash bindings — single MCP DB (post-BL-032.8 Phase B; see DEPLOY.md § A.3).
-#   # The historical two-DB split (Q13 / Path 2) retired the website-shared Inoreader DB
-#   # in Phase B alongside the website's direct Inoreader client.
-#   UPSTASH_MCP_REST_URL          MCP-only Upstash DB URL (Worker-owned, gst-mcp)
-#   UPSTASH_MCP_REST_TOKEN        MCP-DB Standard token (read+write) for mcp:* keys
-#                                  (incl. mcp:inoreader:* OAuth token state)
-#
-#   INOREADER_APP_ID              Registered Inoreader OAuth app ID
-#   INOREADER_APP_KEY             Registered Inoreader OAuth app key
-#   INOREADER_ACCESS_TOKEN        Optional env-var fallback for the access token. Primary
-#                                  read source is `mcp:inoreader:access_token` in the MCP DB
-#                                  (Worker-written); see inoreader-token-store.ts read cascade.
-#   INOREADER_REFRESH_TOKEN       Optional env-var fallback for the refresh token. Same
-#                                  cascade as access token. Used by inoreader-oauth.ts when
-#                                  the Upstash-stored value isn't present (bootstrap state).
-#   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
-#
-#   # BL-155 Slice 2 — self-serve trial mint (POST /trial/signup). The endpoint
-#   # FAILS CLOSED (503, nothing minted) while either is unbound, so set both
-#   # BEFORE the deploy that carries the code is approved. Staging pairs the
-#   # documented always-pass Turnstile TEST secret with the test sitekey on
-#   # the page; production gets the real widget's secret.
-#   TURNSTILE_SECRET_KEY          Turnstile widget secret (server-side siteverify only)
-#   TRIAL_IP_HMAC_SECRET          Keys the per-visitor identity (HMAC of client IP).
-#                                  Rotating it forgets every identity — rotate deliberately.
-#
-# Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only
-# code path exercised before Phase 2 ships auth is /health (uncached, no auth).
+# Secrets are set per environment with `wrangler secret put <NAME> --env <env>`
+# (each put deploys a new Worker version immediately). They are deliberately
+# NOT listed here — a copy in this file drifts. The authoritative inventory
+# (which secret lives in which environment, and why) is
+# (repo root) src/docs/operations/SECRETS_INVENTORY.md; the typed bindings the code
+# reads live in the `Env` interface in src/env.ts.
 
 [env.staging]
 name = "gst-mcp-staging"

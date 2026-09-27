@@ -26,7 +26,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 1. Use CSS variables for all colors, spacing, and typography — see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 2. Use typography utility classes — see [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md)
-3. Test in both light and dark themes and every palette
+3. Test in all four theme states (light, dim light, dim dark, dark — see [§ Dim states](#dim-states-four-state-theme)) and every palette
 4. Check responsive behavior at 768px and 480px breakpoints
 
 **Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
@@ -1177,7 +1177,7 @@ Colors must use CSS variables so dark theme works automatically.
 }
 ```
 
-Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
+Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [BL-094](../development/BACKLOG.md#bl-094-off-scale-font-size-literals--type-scale-ruling--sweep-deferred), the authoritative record. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
 
 ### 2. Duplicate Dark Theme Selectors
 
@@ -1341,10 +1341,6 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) — Brand color palette, usage rules, and asset guidelines
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
-- [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md) — Tracked initiatives for closing convention gaps
+- [STYLES_REMEDIATION_ROADMAP.md](../development/_archive/STYLES_REMEDIATION_ROADMAP.md) — The closed remediation initiatives 1–13 (archived; open styling work lives in [BACKLOG.md](../development/BACKLOG.md#css-and-design-system))
 - [CLAUDE_DESIGN_SYNC.md](../development/CLAUDE_DESIGN_SYNC.md) — This design system is published to claude.ai/design. **Renaming a `.brutal-*` class or a token requires a re-sync** — the published copy names classes explicitly and goes stale silently
 - [Development Backlog](../development/BACKLOG.md) — All open development initiatives
-
----
-
-**Last Updated**: July 28, 2026 (in-repo control examples section; z-index token scale; frosted `--heavy` blur corrected to match code; 6-palette checklist item)

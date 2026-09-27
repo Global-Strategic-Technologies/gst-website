@@ -11,9 +11,7 @@
  * downstream MCP handler. The clone is cheap; the JSON parse is sub-
  * millisecond on a typical 200-byte MCP request body.
  *
- * The deferred-work comment at `worker.ts:573-574` referenced this
- * extraction. BL-038 brings it forward for the rate-limit gate; the
- * broader safeLog tagging it once also covered remains for BL-032.75.
+ * BL-038 introduced it for the rate-limit gate (tool-aware radar bucket).
  */
 
 interface JsonRpcRequest {

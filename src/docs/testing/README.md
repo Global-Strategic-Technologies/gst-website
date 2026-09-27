@@ -1,46 +1,73 @@
 # Testing & CI/CD Documentation
 
-Complete reference for testing setup and continuous integration on the GST Website project.
+What to test at each tier, where tests live, and what E2E does in CI. Commands, the full CI pipeline and the required checks are owned by [DEVELOPER_TOOLING.md](../development/DEVELOPER_TOOLING.md); these docs link there rather than repeat it.
 
 ## By Use Case
 
-| I need to...                  | Go to                                                                        |
-| ----------------------------- | ---------------------------------------------------------------------------- |
-| Get started with testing      | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) (5 min)                           |
-| Run tests locally             | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md#available-commands)                |
-| Fix failing tests             | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)                                   |
-| Understand the CI/CD pipeline | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)                         |
-| Set up branch protection      | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md#branch-protection-rules) |
-| Write new tests               | [TEST_STRATEGY.md](./TEST_STRATEGY.md)                                       |
-| Follow E2E best practices     | [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)                           |
+| I need to...              | Go to                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| Run tests locally         | [§ Common commands](#common-commands) below                                  |
+| Fix failing tests         | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)                                   |
+| Understand what CI runs   | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)                         |
+| Check the required checks | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md#branch-protection-rules) |
+| Write new tests           | [TEST_STRATEGY.md](./TEST_STRATEGY.md)                                       |
+| Follow E2E best practices | [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)                           |
 
 ## All Documentation
 
-| File                                                 | Purpose                           | Read Time | Audience                 |
-| ---------------------------------------------------- | --------------------------------- | --------- | ------------------------ |
-| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)           | Commands and common tasks         | 5 min     | Developers               |
-| [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)           | Solutions to common issues        | 15 min    | Developers               |
-| [TEST_STRATEGY.md](./TEST_STRATEGY.md)               | Testing approach and patterns     | 30 min    | Architects, test writers |
-| [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)   | E2E patterns and anti-patterns    | 15 min    | E2E test writers         |
-| [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) | CI/CD pipeline, branch protection | 15 min    | DevOps, maintainers      |
+| File                                                 | Purpose                                                 | Audience                |
+| ---------------------------------------------------- | ------------------------------------------------------- | ----------------------- |
+| [TEST_STRATEGY.md](./TEST_STRATEGY.md)               | What to test at each tier, and the patterns for each    | Test writers            |
+| [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)   | Numbered catalog of E2E anti-patterns and their fixes   | E2E test writers        |
+| [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)           | Solutions to common failures, local and CI              | Developers              |
+| [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) | The workflows, which checks are required, what E2E does | Developers, maintainers |
 
 ## Quick Facts
 
-- **Total Tests**: 939+ unit/integration (Vitest) + E2E (Playwright, Chromium default)
-- **Coverage Target**: 70%+ (threshold enforced via vitest config)
-- **CI/CD**: GitHub Actions (`test.yml`) on push/PR to master
-- **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet, plus the orphan-class scan (BL-116: every DOM class needs a CSS rule or a reasoned `ALLOWED_UNSTYLED` entry)
+- **Unit and integration**: Vitest, Node environment, globals on (`vitest.config.ts`). Do not write value imports from `'vitest'` — ESLint bans them; a type-only import is fine.
+- **Coverage**: 70% line threshold over `src/utils/**` and `src/data/**/*.ts`, with browser-only modules excluded (the list is in `vitest.config.ts`).
+- **E2E**: Playwright with chromium, firefox and webkit projects. Local `npm run test:e2e` runs all three. The required CI job runs chromium only; the full three-browser run is the manual `test-cross-browser.yml` workflow.
+- **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet, plus the orphan-class scan (BL-116: every DOM class needs a CSS rule or a reasoned `ALLOWED_UNSTYLED` entry). See [DEVELOPER_TOOLING § Accessibility testing](../development/DEVELOPER_TOOLING.md#accessibility-testing).
 
-## Common Commands
+## Common commands
 
 ```bash
-npm run test:run              # Unit/integration (single run, site only)
-npm run test:e2e              # E2E tests (all browsers)
-npm run test:mcp              # MCP server workspace suite (delegates to mcp-server/)
-npm run test:all              # Everything: site unit/integration + e2e + mcp-server
-npm run test:coverage         # With coverage report
-npm run test:a11y             # Accessibility scan (chromium)
+npm run test:run                          # Unit + integration, once (site only)
+npm test                                  # Same, in watch mode
+npm run test:ui                           # Vitest UI in the browser
+npm run test:coverage                     # With coverage report (coverage/index.html)
+npx vitest run tests/unit/filterLogic.test.ts   # One file
+npx vitest run -t "categorizeGrowthStage"       # Tests whose name matches
+
+npm run test:e2e                          # E2E, all three browsers
+npm run test:e2e -- --project=chromium    # E2E, chromium only (what CI's required job runs)
+npm run test:e2e:ui                       # Playwright UI mode
+npm run test:e2e:debug                    # Playwright Inspector, step by step
+npx playwright show-report                # Open the last HTML report
+npm run test:a11y                         # Accessibility scan (chromium)
+
+npm run test:docs                         # Docs guards (links, anchors, parity) — a required check
+npm run test:mcp                          # MCP server workspace suite
+npm run test:all                          # test:run + test:e2e + test:mcp
 ```
+
+Run E2E only when the change calls for it (see `.claude/CLAUDE.md` Directive 5). The pre-push validation sequence is in [DEVELOPER_TOOLING § Quick reference](../development/DEVELOPER_TOOLING.md#quick-reference).
+
+## Layout
+
+```
+tests/
+├── unit/          # Fast, isolated, mocked — pure functions, engines, data validation
+├── integration/   # Guards and contracts over real files: docs links, token parity,
+│   │              #   CSS rules, workflow structure, MCP registry, i18n catalogs
+│   └── helpers/   # astro-markup, css-parse, mcp-registry, workflow-parse
+├── e2e/           # Playwright specs — critical user journeys, one file per page or feature
+│   ├── helpers/   # a11y, theme, palette, storage-baseline, radar, portfolio, …
+│   ├── global-setup.ts / global-teardown.ts
+└── __mocks__/     # Stubs for astro:env/server, astro:env/client, astro:middleware
+```
+
+There is no `tests/fixtures/` or `tests/visual/`. Every E2E context starts from the baseline `storageState` in `tests/e2e/helpers/storage-baseline.ts` (palette 0, light theme, ambient motion off), so no spec depends on the date's rotated look.
 
 ## Workspace test suites
 

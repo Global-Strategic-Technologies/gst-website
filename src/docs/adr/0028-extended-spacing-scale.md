@@ -1,6 +1,6 @@
 # ADR-0028: The extended spacing group completes a 4px ramp, and its members are named by value
 
-**Status**: Accepted 2026-09-02
+- **Status**: Accepted 2026-09-02
 
 ## Context
 

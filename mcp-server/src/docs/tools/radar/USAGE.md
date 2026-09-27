@@ -1,6 +1,6 @@
 # Usage — `search_radar_offline`: A Radar Brief Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_radar_offline` tool (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited); the deprecated `search_radar_cache` alias still works for one release) for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_radar_offline` tool (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited); `search_radar_cache` still works as a deprecated stdio-only alias, retained by operator ruling (2026-09) with no removal planned) for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
 
 > **Sister tool**: [`search_radar`](../../../../README.md) (live, Inoreader-touching, remote-MCP-only — ships under [BL-032 Phase 4c](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md)) — same shape, different source. Use `search_radar` when you want today's items; use `search_radar_offline` (this tool) when you want a deterministic snapshot for dev/CI/budget-exhausted contexts.
 
@@ -145,7 +145,3 @@ For other use cases (live agenda drafting, comparable-deal recall), see [`mcp-se
 - [`CONTRACT.md`](./CONTRACT.md) — per-field input reference + capability-mirror invariant rationale
 - [`../contracts/README.md`](../README.md) — registry of all per-tool contracts
 - [ADR-0005 — Hub URL-state deep-link contract](../../../../../src/docs/adr/0005-hub-url-state-deeplink-contract.md) (Phase 3 closure history: [archived design doc](../../../../../src/docs/development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
-
----
-
-_Last Updated: 2026-05-02_

@@ -198,7 +198,8 @@ describe('protocol roundtrip', () => {
       const payload = res.result as unknown as ListToolsResultPayload;
       const toolNames = payload.tools.map((t) => t.name).sort();
       // BL-032 Phase 4b: search_radar_cache renamed to search_radar_offline;
-      // alias still registered (removal tracked as BL-113).
+      // alias still registered (deprecated stdio-only alias, retained by
+      // operator ruling 2026-09; no removal planned).
       // BL-032 Phase 4c: search_radar + get_latest_insights register in
       // createServer() (transport-portable; live Inoreader-touching).
       expect(toolNames).toEqual(
@@ -215,7 +216,7 @@ describe('protocol roundtrip', () => {
           'list_regulation_facets',
           'search_portfolio',
           'search_radar', // BL-032 Phase 4c live (Inoreader + 6h cache)
-          'search_radar_cache', // deprecated alias — removal tracked as BL-113
+          'search_radar_cache', // deprecated alias — retained, no removal planned
           'search_radar_offline', // BL-032 Phase 4b rename
           'search_regulations',
           'validate_irl_provenance', // BL-045 PR B Phase 2B residual-fabrication guard

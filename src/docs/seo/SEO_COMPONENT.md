@@ -159,32 +159,32 @@ interface Props {
 - Supported formats: JPG, PNG, GIF, WebP
 - Can be relative (`/og-image.png`) or absolute (`https://example.com/image.png`)
 
-#### `ogImageAlt` (NEW)
+#### `ogImageAlt`
 - Alt text for social preview image
 - **Important for accessibility** and WCAG compliance
 - Target: 125 characters or less
 - Descriptive text for screen readers and when image fails to load
 - Example: "GST - M&A Strategic Technology Advisory"
 
-#### `ogImageWidth` / `ogImageHeight` (NEW)
+#### `ogImageWidth` / `ogImageHeight`
 - Dimensions of social preview image in pixels
 - **Default**: 1200x630px (optimal for LinkedIn, Twitter, Facebook)
 - Helps social platforms render image correctly
 - Should match actual image dimensions
 
-#### `ogImageType` (NEW)
+#### `ogImageType`
 - MIME type of the social preview image
 - **Default**: `image/png`
 - Common values: `image/jpeg`, `image/png`, `image/webp`
 - Must match actual image format
 
-#### `ogSiteName` (NEW)
+#### `ogSiteName`
 - Site name displayed in social cards
 - **Default**: "GST"
 - Provides brand attribution on social platforms
 - Typically your organization or brand name
 
-#### `ogLocale` (NEW)
+#### `ogLocale`
 - Language and region code for content
 - **Default**: the page locale's `ogLocale` from the registry (`en_US`, `es_CO`, `pt_BR`) — since BL-153 this is derived, not a constant
 - Format: language_TERRITORY (e.g., `en_US`, `es_CO`, `fr_FR`)
@@ -217,7 +217,7 @@ interface Props {
 - Often the same as `ogUrl`
 - Use when page has multiple URLs that should be consolidated
 
-#### `twitterSite` (NEW)
+#### `twitterSite`
 - Twitter/X handle for site attribution
 - **Default**: `@globalstrategic` (update with actual handle)
 - Format: `@username` (include the @ symbol)
@@ -499,8 +499,8 @@ rm -rf .astro
 # Rebuild
 npm run build
 
-# Or full reset
-npm run clean
+# Or full reset (there is no `npm run clean` script): also drop the build output
+rm -rf .astro dist
 npm run build
 ```
 
@@ -621,9 +621,3 @@ All social platforms now receive comprehensive image metadata:
 - **Before**: 9 meta tags (5 OG + 4 Twitter)
 - **After**: 17 meta tags (11 OG + 6 Twitter)
 - **New tags**: 8 additional tags for enhanced social sharing
-
----
-
-**Last Updated**: March 20, 2026
-**Component Version**: 2.0 (Enhanced Social Media)
-**Status**: Production Ready ✓

@@ -101,11 +101,11 @@ The server exposes **three** capability surfaces: tools, prompts, and resources.
 
 > Using the GST connector, list the portfolio facets.
 
-Expect a `list_portfolio_facets` call returning fifteen themes, two engagement categories, six growth stages, and a list of years.
+Expect a `list_portfolio_facets` call returning non-empty lists of themes, engagement categories and growth stages, plus a list of years.
 
-**3b. Prompts.** Open the client's prompt picker (in Claude Desktop, the "+" menu under the connector). Expect **nine** `gst_*` prompts, no duplicates, and nothing non-`gst_` under this connector.
+**3b. Prompts.** Open the client's prompt picker (in Claude Desktop, the "+" menu under the connector). Expect as many `gst_*` prompts as [globalstrategic.tech/hub/mcp/](https://globalstrategic.tech/hub/mcp/) says it publishes ("Browse all N prompts"), no duplicates, and nothing non-`gst_` under this connector. That page's figure is derived from the prompt registry and guarded in CI, so it is the number to check against.
 
-**3c. Resources.** Open the client's resource browser. Expect **133** resources — 4 library, 123 regulations, 6 radar.
+**3c. Resources.** Open the client's resource browser. Expect the resource total that the same page publishes ("Browse all N resources"): library articles, one record per regulation, and the radar feeds.
 
 > **Why 3b and 3c exist.** An earlier revision checked only 3a and told the tester they were "connected end to end". That is false for this server: a client reaching it through a **proxied connector surface** — a bridge or agent session that forwards tool calls only — passes 3a perfectly while seeing zero prompts and zero resources. The first UAT cycle ran that way and did not discover it until UAT-09, by which point two whole families had been recorded Blocked for a reason nobody had a name for. The symptom is _"tools work flawlessly, prompts and resources absent"_, and the verdict for the affected cases is **Blocked, not Fail** — the server is behaving correctly and your client cannot see part of it.
 
@@ -150,7 +150,3 @@ A full UAT pass sits well inside every one of these — a retry loop does not. I
 | Prompt attach fails with a bare "failed to attach" | **Blocked** | Almost always an invalid enum, with the server's field-level reason discarded by the client. Bisect the arguments against the family's `CONTRACT.md`; retrying unchanged always fails |
 
 Anything persistent or unexplained goes to the operator — the escalation criteria are in [`REMOTE_CLIENT_SETUP.md` § When to escalate](../../operations/REMOTE_CLIENT_SETUP.md).
-
----
-
-_Last updated: 2026-08-11 (BL-119 — addendum demoted to optional; § 3 now checks all three capability surfaces; two client-shaped symptoms added to § 5. All three changes came from the cycle-1 and cycle-2 UAT runs.)_

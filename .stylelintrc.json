@@ -144,7 +144,6 @@
             "severity": "warning"
           }
         ],
-        "no-invalid-position-declaration": null,
         "max-nesting-depth": [
           3,
           {

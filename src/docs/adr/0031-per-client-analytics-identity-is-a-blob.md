@@ -1,7 +1,7 @@
 # ADR-0031: Per-client analytics identity lives in an AE blob, never in the index
 
 - **Status**: Accepted (2026-09-08) · **Amended 2026-09-09 (BL-158)** — the decision is unchanged; the spelling of one function in it is. See _Amendment_ at the end.
-- **Source initiative**: BL-155 (self-serve 3-day MCP trial) — design doc [`../development/SELF_SERVE_TRIAL_BL-155.md`](../development/SELF_SERVE_TRIAL_BL-155.md)
+- **Source initiative**: BL-155 (self-serve 3-day MCP trial) — design doc [`../development/_archive/SELF_SERVE_TRIAL_BL-155.md`](../development/_archive/SELF_SERVE_TRIAL_BL-155.md) (archived at closure, 2026-09-27)
 
 ## Context
 

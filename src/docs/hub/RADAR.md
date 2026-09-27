@@ -104,7 +104,7 @@ vercel env add MCP_KEY_WEBSITE_RADAR
 # Apply to: production, preview, development.
 ```
 
-The website holds **no** Upstash bindings post-BL-032.8 Phase B — all radar state lives on the MCP Worker. If Vercel's Upstash integration still appears in **Storage** with `KV_REST_API_*` env vars surfaced on the project, they're inert (unused by any source file). You can safely disconnect the integration; the `gst-radar-tokens` database it pointed at was decommissioned in the same Phase B batch (see [`mcp-server/src/docs/operations/DEPLOY.md` § C.13](../../../mcp-server/src/docs/operations/DEPLOY.md)).
+The website holds **no** Upstash bindings post-BL-032.8 Phase B — all radar state lives on the MCP Worker. If Vercel's Upstash integration still appears in **Storage** with `KV_REST_API_*` env vars surfaced on the project, they're inert (unused by any source file). You can safely disconnect the integration; the `gst-radar-tokens` database it pointed at was decommissioned in the same Phase B batch (see [ARCHITECTURE.md § Decommissioned](../../../mcp-server/src/docs/ARCHITECTURE.md#decommissioned-phase-b-2026-05-27)).
 
 ## Inoreader Setup (operator reference — Worker-side credentials)
 
@@ -211,7 +211,7 @@ Inoreader OAuth state is now owned end-to-end by the MCP Worker (BL-032.8 Phase 
 - Refreshes proactively on the 6h cron tick (TTL-watch) and reactively on Inoreader 401 (single-flight via `mcp:inoreader:refresh-lock`, 10s SET-NX-EX)
 - Mints new tokens via `node scripts/inoreader-auth.mjs setup` when the refresh chain itself dies — operator runbook: [`mcp-server/src/docs/operations/DEPLOY.md` § C.5 — Inoreader budget recovery](../../../mcp-server/src/docs/operations/DEPLOY.md)
 
-The legacy `gst-radar-tokens` Upstash database (which held `inoreader:*` keys when the website was the refresh-writer) was decommissioned in the same Phase B operator batch. See DEPLOY.md § C.13 for the cleanup walkthrough.
+The legacy `gst-radar-tokens` Upstash database (which held `inoreader:*` keys when the website was the refresh-writer) was decommissioned in the same Phase B operator batch. The one-time cleanup walkthrough is archived in [DEPLOY_INITIAL_ROLLOUT_BL-032.md § C.13](../../../mcp-server/src/docs/operations/_archive/DEPLOY_INITIAL_ROLLOUT_BL-032.md#c13--decommission-legacy-inoreader-db-bl-0328-phase-b-one-time).
 
 ## Inoreader Budget (shared 200 req/day)
 
@@ -335,13 +335,14 @@ Emitted from [`src/components/radar/RadarFeed.astro`](../../components/radar/Rad
 
 | Log message                                                  | Severity | Meaning                                                                                                                                                                                                                                     |
 | ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `[Radar] MCP_KEY_WEBSITE_RADAR is not bound on the env. ...` | Warn     | Bearer key missing — set the Vercel env var (see § Environment Vars)                                                                                                                                                                        |
+| `[Radar] MCP_KEY_WEBSITE_RADAR is not bound on the env. ...` | Error    | Bearer key missing — set the Vercel env var (see § Environment Vars)                                                                                                                                                                        |
 | `[Radar] MCP /radar/snapshot returned {status} {statusText}` | Error    | Worker rejected the request — check status: 401 = bearer wrong; 403 = scope mismatch; 503 = rate-limit (the breaker itself no longer 503s this endpoint — it returns 200 with `degraded: true`); 5xx = Worker incident                      |
 | `[Radar] FYI tier failed: {reason} {message}`                | Error    | Worker delivered the response but `snapshot.fyi.ok === false` — `reason` is one of the Worker's failure-taxonomy reasons (`token-stale`, `inoreader-rate-limit`, `inoreader-error`, `cache-empty` = breaker open with nothing cached, etc.) |
 | `[Radar] Wire tier failed: {reason} {message}`               | Error    | Same as above but for the Wire tier — tiers fail independently                                                                                                                                                                              |
-| `[Radar] MCP /radar/snapshot fetch threw: {error}`           | Error    | Network-level failure (DNS, TLS, timeout) — Worker may be down or the URL is misconfigured                                                                                                                                                  |
+| `[Radar] MCP /radar/snapshot timed out after 5000ms ...`     | Error    | The 5s `AbortSignal.timeout` fired — the Worker is hung or very slow                                                                                                                                                                        |
+| `[Radar] MCP /radar/snapshot fetch threw: {error}`           | Error    | Network-level failure (DNS, TLS) — Worker may be down or the URL is misconfigured                                                                                                                                                           |
 
-**View in production**: Vercel Dashboard → your project → Logs → filter on `_isr` function + search `[Radar]`.
+**View in production**: Vercel Dashboard → your project → Logs → filter on the `/_server-islands/RadarFeed` request path and search `[Radar]`. The feed renders in the uncached server-island function, not the `_isr` function that serves the shell (§ Vercel Routing), so filtering on `_isr` finds nothing.
 
 ### Troubleshooting playbook
 
@@ -351,7 +352,7 @@ Emitted from [`src/components/radar/RadarFeed.astro`](../../components/radar/Rad
    - Non-200 / timeout → Worker incident; check Cloudflare status + `mcp-server/src/docs/operations/DEPLOY.md` § C.6
 2. `curl -H "Authorization: Bearer $MCP_KEY_WEBSITE_RADAR" https://mcp.globalstrategic.tech/radar/snapshot | jq .` — does the Worker return both tiers OK?
    - `wire.ok === false` or `fyi.ok === false` → check the `reason` field; map to Worker recovery path
-3. Check Vercel logs for `[Radar]` lines (above table) — if missing entirely, the SSR fetch never ran (likely missing `MCP_KEY_WEBSITE_RADAR` env var)
+3. Check Vercel logs for `[Radar]` lines (above table), on the server-island request path. Every failure branch logs, including a missing `MCP_KEY_WEBSITE_RADAR`, so no line at all means the island never rendered — check for a 500 on `/_server-islands/RadarFeed`.
 
 **Symptom: Page crashes / 500 error**
 
@@ -359,43 +360,29 @@ The radar code path doesn't throw on Worker failures (it returns empty arrays). 
 
 **Symptom: Content is stale (not updating)**
 
-1. Content refreshes every 6 hours via ISR — wait for the next cycle
-2. To force a refresh: trigger a redeployment from Vercel dashboard
+The feed is not cached at Vercel: every pageview renders the island afresh from the Worker's `/radar/snapshot` (§ Cache Lifecycle). **A Vercel redeploy does not refresh it** — it only rebuilds the shell. Stale items mean the Worker's Upstash cache is stale:
 
-## Unit Test Coverage
+1. Check the Worker's cron refresh — the [`radar-snapshot-stale`](../../../mcp-server/observability/runbooks/radar-snapshot-stale.md) runbook covers a cache the 6h cron has stopped warming.
+2. `curl` the snapshot as in step 2 above and compare the newest item's timestamp with Inoreader.
 
-### API Client Tests (`tests/unit/radar-client.test.ts`)
+## Test Map
 
-25 tests covering the fetch layer with `configOverride` injection (bypasses `getConfig()`):
+The website no longer fetches Inoreader or holds tokens, so its radar tests cover display logic and the page; the fetch, cache, token and cron layers are tested in the MCP server workspace.
 
-- `fetchAnnotatedItems` — URL construction, headers, success/failure, query params
-- `fetchFolderStream` — URL encoding, success/failure, query params
-- `fetchAllStreams` — Tag discovery, prefix filtering, dedup, sort, partial failures
-- Token refresh on 401 — Refresh attempt, retry with new token, refresh failure, missing refresh token
-
-### KV Persistence Tests (`tests/unit/radar-kv-persistence.test.ts`)
-
-18 tests covering the Upstash Redis token persistence layer. These call public functions **without** `configOverride` to exercise the real `getConfig()` → `loadTokensFromKV()` → `getRedis()` code path.
-
-| Group                  | Tests | What's Covered                                                                                                            |
-| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
-| KV Token Loading       | 6     | Token priority chain (in-memory > Redis > env), one-time load flag, env var fallback, exhausted sources                   |
-| Persistence on Refresh | 4     | Save both tokens on 401 refresh, skip when no refresh_token returned, in-memory cache update, KV write failure resilience |
-| Graceful Degradation   | 3     | Redis read failure, Redis write failure, cached null instance reuse                                                       |
-| resetTokenCache        | 1     | Full state reset triggers fresh KV reload (simulates new serverless invocation)                                           |
-| Edge Cases             | 3     | `UPSTASH_REDIS_REST_*` fallback env var names, 30-day TTL verification, correct Redis key names                           |
-
-**Mocking strategy:**
-
-- `@upstash/redis` is mocked at module level via `vi.mock()` — constructor and `get`/`set` methods are individually controllable
-- `import.meta.env` properties are set directly on the env object per test (with save/restore in `beforeEach`/`afterEach`)
-- Global `fetch` is stubbed to return controlled responses
-- Console spies are managed via `afterEach` cleanup to prevent leak on assertion failure
+| Area                                                        | Where                                                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Snapshot adapters, `CATEGORIES`, `mergeFeed`                | `tests/unit/radar-transform.test.ts`                                                                                 |
+| `RadarHeader` timestamp formatting (Santiago timezone)      | `tests/unit/radar-ui-logic.test.ts`                                                                                  |
+| Wire display bound (`MAX_WIRE`, `MIN_PER_CATEGORY`, order)  | `tests/unit/radar-feed-bounds.test.ts`                                                                               |
+| Radar URL state encoder/decoder                             | `tests/unit/radar-url.test.ts`                                                                                       |
+| `stripHtml` / `truncate`                                    | `tests/unit/html-text.test.ts`                                                                                       |
+| `noindex` ↔ sitemap-exclusion pairing                       | `tests/unit/indexability.test.ts`                                                                                    |
+| Page, feed content, `?category=` filtering, `noindex`       | `tests/e2e/radar-page.test.ts`, `tests/e2e/radar-noindex.test.ts` (content tests need the stub — § E2E Test Mocking) |
+| `/radar/snapshot`, live store, FYI caps, cron, offline tier | `mcp-server/tests/` — `radar-*` files under `unit/` and `integration/`                                               |
 
 ```bash
-npm run test:run                                           # All tests (581)
-npx vitest run tests/unit/radar-client.test.ts             # API client only (25)
-npx vitest run tests/unit/radar-kv-persistence.test.ts     # KV persistence only (18)
+npx vitest run tests/unit/radar-transform.test.ts   # one file
+npm run test:mcp                                     # the Worker-side radar suites
 ```
 
 ## Category Inference

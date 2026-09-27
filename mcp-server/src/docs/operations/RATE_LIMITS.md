@@ -205,7 +205,7 @@ export const TIER_LIMITS: Record<string, TierLimits> = {
 };
 ```
 
-To adjust: update the map, redeploy. The change takes effect on the next isolate cold-start (or via `wrangler deploy --env <env>` to force fresh isolates). These are **tunable capability ceilings, not SLA quotas** — don't publish them as contractual commitments.
+To adjust: update the map and merge; CI deploys it (staging on the green test run, production after the `mcp-production` approval — see [`DEPLOY.md` § How code reaches the Worker](./DEPLOY.md#how-code-reaches-the-worker)). A deploy replaces the running version, so the new limits apply as soon as it goes live. These are **tunable capability ceilings, not SLA quotas** — don't publish them as contractual commitments.
 
 **When to consider raising**: a caller doing legitimate work hits 429s repeatedly. **When to consider lowering**: cost / abuse signals (observability dashboards surface these).
 
@@ -260,7 +260,3 @@ The general tier still applies to radar calls — they count toward the general 
 ### Trial signup IP limiter (BL-155 Slice 2)
 
 `POST /trial/signup` carries its own bucket, `mcp:ratelimit:trial:ip` — a single sliding window of **10 per hour**, keyed on an HMAC of the visitor's full IP (never the raw address, never a /24). It bounds Turnstile and Upstash spend from retries; the one-trial-per-identity lease is the real control. Unlike every bucket above, **a null or throwing Upstash here is a 503, not a skip** — for a credential minter, fail-open is the wrong default (`src/trial/signup.ts`).
-
----
-
-_Last updated: 2026-09-07 (BL-155 Slice 2 — trial signup IP limiter)_

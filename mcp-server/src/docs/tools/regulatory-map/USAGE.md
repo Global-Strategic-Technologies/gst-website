@@ -187,7 +187,3 @@ The dataset is deterministic; matches and Resource bodies are direct functions o
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, URI taxonomy, sub-region detection, hidden semantics)
 - [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
 - [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) + [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — architecture and design rationale
-
----
-
-_Last Updated: 2026-04-28_

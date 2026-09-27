@@ -227,7 +227,3 @@ For other use cases (comparable-deal recall, pitch / scope mapping), see [`mcp-s
 - [`mcp-server/src/docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) — architecture and design rationale
 - [`src/docs/development/BACKLOG.md` § BL-031](../../../../../src/docs/development/BACKLOG.md) — initiative scope, acceptance criteria, sibling phases
 - [`mcp-server/src/docs/testing/README.md`](../../testing/README.md) — workspace testing conventions
-
----
-
-_Last Updated: 2026-04-28_

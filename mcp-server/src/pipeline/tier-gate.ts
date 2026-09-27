@@ -5,9 +5,10 @@
  * Why a TIER check and not a scope: `hasScope` matches by prefix, so the
  * `tool:*` every client holds already covers `tool:radar:search_radar`. A
  * scope assertion inside the radar tools would be satisfied by every trial
- * grant and contain nothing (SELF_SERVE_TRIAL_BL-155.md § Slice 2 records
- * the two rejected mechanisms). Until a per-tool scope catalog exists, the
- * tier is the only signal that distinguishes a trial from a pilot.
+ * grant and contain nothing (the archived SELF_SERVE_TRIAL_BL-155.md § Slice 2
+ * records the two rejected mechanisms). Until a per-tool scope catalog exists
+ * (BACKLOG BL-166), the tier is the only signal that distinguishes a trial
+ * from a pilot.
  *
  * Why it matters: radar is the Inoreader-funded product the operator gates
  * commercially. Handing strangers free radar is a pricing decision made by

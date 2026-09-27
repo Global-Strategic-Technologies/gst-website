@@ -22,6 +22,9 @@ This is the longest document in the suite and the one most worth running after a
 | `compose_dossier_envelope`               | tool   | UAT-07.5 | [CONTRACT.md](../../tools/irl-pipeline/CONTRACT.md)        |
 | `gst_irl_ingestion`                      | prompt | UAT-07.6 | [prompts/irl-ingestion.md](../../prompts/irl-ingestion.md) |
 | the reconstruction path + verbatim gate  | chain  | UAT-07.7 | [CONTRACT.md](../../tools/irl-pipeline/CONTRACT.md)        |
+| the attachment arrival path              | prompt | UAT-07.8 | [prompts/irl-ingestion.md](../../prompts/irl-ingestion.md) |
+
+Reusing the IRL extract record across prompts is [UAT-09.10](UAT-09-prompts.md), not a case here: that record added no resource or tool to this family, only `prepare_irl_body`'s optional `mintedAt` field, which UAT-07.3 covers. The record's design is [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md).
 
 ---
 
@@ -531,7 +534,3 @@ _No runs yet — authored 2026-08-20 alongside the arrival-flow change. What CI 
 `irl-extract-record-consumers.test.ts` (the context check precedes the ask in both interactive bodies). What CI **cannot**
 prove is the behaviour itself: there is no attachment in a `prompts/get` render, so every run above needs a human and a real
 client._
-
----
-
-_Last updated: 2026-08-20 (UAT-07.8 added for the attachment arrival path, prompt 0.30.0 / server 0.57.0; UAT-07.7 corrected where the `.describe()` fixes in that release falsified its observation about the field description naming only one accepted form). Prior: Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_
