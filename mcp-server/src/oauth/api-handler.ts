@@ -38,7 +38,7 @@ export interface OAuthGrantProps {
   /**
    * BL-166 — grant-model marker (`SCOPE_MODEL`), stamped by every consent
    * since radar became an explicit scope. Absent on older grants, which
-   * `effectiveScopes` treats as legacy (their `tool:*` keeps radar).
+   * `effectiveScopes` treats as legacy (they keep every tool, and radar unless trial).
    */
   scopeModel?: number;
 }
@@ -75,8 +75,9 @@ export const oauthApiHandler = {
       return unauthorized('Grant has expired');
     }
     // BL-166 — scopes as the grant actually carries them. A pre-BL-166 grant
-    // (no `scopeModel`) held radar through `tool:*`'s old prefix match, so
-    // `effectiveScopes` adds `tool:radar:*` back unless it is a trial grant.
+    // (no `scopeModel`) was consented when no tools/call checked a tool scope,
+    // so it could call every tool, and radar unless trial; `effectiveScopes`
+    // restores exactly that (`tool:*`, plus `tool:radar:*` unless trial).
     // Props are encrypted per token and cannot be rewritten in place, which
     // is why this is a read-time rule rather than a migration (ADR-0041).
     const auth: AuthSuccess = {

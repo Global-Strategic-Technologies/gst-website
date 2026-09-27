@@ -54,7 +54,7 @@ in lockstep when the registry shape changes.
 **Client impact**
 
 - **An M2M client that sends an explicit `scope` at `/token` without `tool:radar:*`** (for example `scope=tool:*`) loses radar after deploy until it adds `tool:radar:*` to its request. The published snippets send no `scope` and are unaffected.
-- A grant with a narrow tool scope (for example `tool:search_portfolio`) can now call only the tools it names; before, it could call any tool.
+- An M2M record, its tokens, or a new consent with a narrow tool scope (for example `tool:search_portfolio`) can now call only the tools it names; before, it could call any tool. Pre-0.67.0 OAuth consent grants are exempt: they keep every tool (see above).
 - **JSON-RPC batches containing a `tools/call` are rejected** with **HTTP 400** and JSON-RPC **`-32600` "JSON-RPC batches may not contain tools/call"** (`id: null`), logged as `mcp.batch-rejected`. Batched calls previously skipped the tier gate, the scope gate and the radar rate bucket. Batches without a `tools/call` pass through. Batching left the spec in 2025-06-18 and the official client SDKs do not emit it.
 - A static key with a `MCP_KEY_*_SCOPES` override that lacks `tool:radar:*` loses radar; one without `tool:*` or a matching `tool:<name>` loses every tool. `MCP_KEY_WEBSITE_RADAR` (`resource:radar:read` only) is refused tools, which is intended: it only calls `/radar/snapshot`.
 
