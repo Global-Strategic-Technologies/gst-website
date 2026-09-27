@@ -43,7 +43,7 @@
  */
 
 import type { AuthRequest, ClientInfo, OAuthHelpers } from '@cloudflare/workers-oauth-provider';
-import { hasScope, SCOPE_DESCRIPTIONS } from '../auth/scopes';
+import { hasScope, SCOPE_DESCRIPTIONS, SCOPE_MODEL } from '../auth/scopes';
 import { safeLog, scrubUrlForLog } from '../auth/safe-logger';
 import { mintNonce } from '../admin/admin-auth';
 import { escapeHtml, htmlShell } from '../lib/html-shell';
@@ -53,7 +53,8 @@ import type { Env } from '../env';
 
 /**
  * Granted scopes = requested ∩ key scopes, wildcard-aware (a request
- * for `tool:search_portfolio` passes when the key owns `tool:*`).
+ * for `tool:search_portfolio` passes when the key owns `tool:*`; a request
+ * for `tool:radar:*` does NOT — radar is an explicit namespace, BL-166).
  * Empty request → the key's full scope set (the delegation ceiling).
  * Exported for unit testing.
  */
@@ -367,8 +368,10 @@ export async function handleAuthorizePost(
   }
 
   // Props shape is the `OAuthGrantProps` contract in api-handler.ts. A
-  // roster grant writes exactly the four fields it always has; the three
-  // optional ones appear only for KV-backed identities.
+  // roster grant writes the four fields it always has plus the BL-166
+  // `scopeModel` marker; the three optional ones appear only for KV-backed
+  // identities. The marker tells `effectiveScopes` this grant was consented
+  // under the explicit-radar model, so its scopes are used as stored.
   const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
     request: authRequest,
     userId: identity.userId,
@@ -379,6 +382,7 @@ export async function handleAuthorizePost(
       userId: identity.userId,
       scopes: grantedScopes,
       authKind: 'oauth',
+      scopeModel: SCOPE_MODEL,
       ...(identity.tier ? { tier: identity.tier } : {}),
       ...(identity.expiresAt ? { expiresAt: identity.expiresAt } : {}),
       ...(identity.rateLimitSubject ? { rateLimitSubject: identity.rateLimitSubject } : {}),

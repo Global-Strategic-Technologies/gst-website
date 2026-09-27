@@ -14,7 +14,7 @@
  *
  * Bumping a release therefore touches TWO files: `package.json` and this one.
  */
-export const FALLBACK_VERSION = '0.66.1';
+export const FALLBACK_VERSION = '0.67.0';
 
 /** `env.VERSION` when deployed, the pinned fallback otherwise. */
 export function resolveVersion(env: { VERSION?: string } = {}): string {

@@ -23,6 +23,13 @@
  *   - `resource:library:read` is a literal scope (no wildcard).
  * Multi-level wildcards work: `tool:radar:*` matches `tool:radar:foo`
  * but NOT `tool:portfolio:search`.
+ *
+ * **Explicit namespaces (BL-166, ADR-0041)**: a wildcard does NOT reach into
+ * a namespace listed in `EXPLICIT_NAMESPACES` unless the wildcard itself sits
+ * inside that namespace. So `tool:*` does not cover `tool:radar:search_radar`
+ * (nor `tool:radar:*` itself); only `tool:radar:*` or the exact string does.
+ * Radar spends the shared Inoreader budget and is granted deliberately, so a
+ * broad `tool:*` grant must not carry it by accident.
  */
 
 /** Stable scope strings — never change once shipped. */
@@ -37,14 +44,18 @@ export const SCOPES = {
   // cover every Tool/Resource/Prompt without enumerating each name.
   TOOL_ALL: 'tool:*',
   PROMPT_ALL: 'prompt:*',
+  // BL-166 — the radar tools' own wildcard. `tool:*` does not cover it (see
+  // `EXPLICIT_NAMESPACES`), so radar is granted only by naming it.
+  TOOL_RADAR_ALL: 'tool:radar:*',
 } as const;
 
 export type Scope = (typeof SCOPES)[keyof typeof SCOPES];
 
 /**
- * Default scopes granted to every wrangler-issued bearer key in
- * BL-032.5. Covers every Tool, every Prompt, and the three Resource
- * families. Per-key variation is a BL-033 concern.
+ * Default scopes granted to every wrangler-issued bearer key with no
+ * `_SCOPES` override (the team roster and the latency probe). Covers every
+ * Tool, every Prompt, the three Resource families, and — since BL-166, when
+ * `tool:*` stopped covering radar — the radar tools explicitly.
  */
 export const DEFAULT_SCOPES: readonly string[] = Object.freeze([
   SCOPES.TOOL_ALL,
@@ -52,51 +63,58 @@ export const DEFAULT_SCOPES: readonly string[] = Object.freeze([
   SCOPES.RESOURCE_REGULATIONS_READ,
   SCOPES.RESOURCE_RADAR_READ,
   SCOPES.PROMPT_ALL,
+  SCOPES.TOOL_RADAR_ALL,
 ]);
 
 /**
  * BL-155 — the scope set a self-serve trial record is minted with: every
- * catalog scope EXCEPT the radar Resource. The radar TOOLS cannot be excluded
- * here — `tool:*` covers them by prefix — so those are refused by the
- * tier-scoped gate in `pipeline/tier-gate.ts`; this constant is what keeps
- * the radar Resource (`gst://radar/*`, `/radar/snapshot`) out. Prompts stay
- * in: a connector user's product experience is the `gst_*` prompts as much
- * as the tools. Pinned by a test that no scope here matches `radar`.
+ * catalog scope EXCEPT the two radar scopes (the radar Resource and the
+ * radar tools). Since BL-166 excluding `tool:radar:*` here really withholds
+ * the radar tools, because `tool:*` no longer covers them; the tier gate in
+ * `pipeline/tier-gate.ts` still refuses every trial radar call regardless,
+ * which is what covers legacy trial grants that hold `tool:radar:*`. Prompts
+ * stay in: a connector user's product experience is the `gst_*` prompts as
+ * much as the tools. Pinned by a test that no scope here matches `radar`.
  */
 export const TRIAL_SCOPES: readonly string[] = Object.freeze(
-  DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ)
+  DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ && s !== SCOPES.TOOL_RADAR_ALL)
 );
 
 /**
- * Scope strings advertised in AS metadata + PRM (catalog + the radar
- * narrowing wildcard), and the ceiling `PATCH /admin/oauth/m2m-clients/:id`
- * validates `allowedScopes` against. Lives here rather than in
+ * Scope strings advertised in AS metadata + PRM, and the ceiling
+ * `PATCH /admin/oauth/m2m-clients/:id` validates `allowedScopes` against.
+ * Since BL-166 `tool:radar:*` is a member of `DEFAULT_SCOPES`, so this is the
+ * same members in the same order. Lives here rather than in
  * `oauth/provider.ts` (which re-exports it) so admin code can import it
  * without pulling the provider's `cloudflare:workers` graph into the node
  * vitest pool. `scripts/provision-client.mjs` carries a mirror; the parity
  * test pins this declaration as text.
  */
-export const SCOPES_SUPPORTED: readonly string[] = Object.freeze([
-  ...DEFAULT_SCOPES,
-  'tool:radar:*',
-]);
+export const SCOPES_SUPPORTED: readonly string[] = Object.freeze([...DEFAULT_SCOPES]);
 
 /**
  * BL-033 Slice 2 — human-readable scope descriptions for the OAuth
- * consent page. Keys are the catalog strings above plus the radar
- * tool wildcard (`tool:radar:*` is a *narrowing* string used in
- * per-client `allowedScopes`, not a member of DEFAULT_SCOPES).
- * Consent renders whatever a client requests; an unknown scope string
- * falls back to the raw value (escaped) so nothing is hidden.
+ * consent page, one per catalog string above. Consent renders whatever a
+ * client requests; an unknown scope string falls back to the raw value
+ * (escaped) so nothing is hidden. The consent page is English-only.
  */
 export const SCOPE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
-  [SCOPES.TOOL_ALL]: 'Run all GST analysis tools (diligence, portfolio, TechPar, ICG, IRL)',
+  [SCOPES.TOOL_ALL]:
+    'Run all GST analysis tools (diligence, portfolio, TechPar, ICG, IRL), excluding Radar',
   [SCOPES.PROMPT_ALL]: 'Use all GST guided prompts (diligence kickoff, IRL, memos)',
   [SCOPES.RESOURCE_LIBRARY_READ]: 'Read the GST insight library',
   [SCOPES.RESOURCE_REGULATIONS_READ]: 'Read the GST regulatory map',
   [SCOPES.RESOURCE_RADAR_READ]: 'Read the GST Radar market-intelligence feed',
-  'tool:radar:*': 'Run GST Radar live-search tools (consumes the shared Inoreader budget)',
+  [SCOPES.TOOL_RADAR_ALL]: 'Run GST Radar live-search tools (consumes the shared Inoreader budget)',
 });
+
+/**
+ * BL-166 — namespaces a broader wildcard does not reach into. A scope is
+ * inside a namespace when it starts with that namespace string. `hasScope`
+ * lets an owned wildcard cover a required scope in one of these namespaces
+ * only when the wildcard itself is inside the same namespace.
+ */
+const EXPLICIT_NAMESPACES: readonly string[] = Object.freeze(['tool:radar:']);
 
 /**
  * Test whether an owned scope set covers a required scope.
@@ -104,20 +122,61 @@ export const SCOPE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freez
  * Match order:
  *   1. Exact string match in `owned`.
  *   2. Wildcard match — for each `prefix:*` in `owned`, `required`
- *      passes if it starts with `prefix:`.
+ *      passes if it starts with `prefix:`, UNLESS `required` sits in an
+ *      explicit namespace (`EXPLICIT_NAMESPACES`) that the wildcard is not
+ *      itself inside. So `tool:*` covers `tool:search_portfolio` but not
+ *      `tool:radar:search_radar` or `tool:radar:*`.
+ *
+ * The carve-out is also what stops grant-time escalation: consent
+ * (`grantedScopesFor`) and `/token` both filter requested scopes through
+ * this function, so a `tool:*` ceiling can no longer be widened to
+ * `tool:radar:*` by asking for it.
  *
  * Pure function; no I/O; safe to call inside any handler.
  */
 export function hasScope(owned: readonly string[], required: string): boolean {
   if (owned.includes(required)) return true;
+  const namespace = EXPLICIT_NAMESPACES.find((ns) => required.startsWith(ns));
   for (const ownedScope of owned) {
     if (!ownedScope.endsWith(':*')) continue;
     // Strip the trailing '*' but KEEP the ':' so we match on
     // segment boundaries (`tool:*` matches `tool:foo` but not `toolbar`).
     const prefix = ownedScope.slice(0, -1);
-    if (required.startsWith(prefix)) return true;
+    if (!required.startsWith(prefix)) continue;
+    if (namespace !== undefined && !prefix.startsWith(namespace)) continue;
+    return true;
   }
   return false;
+}
+
+/**
+ * BL-166 — the grant-model marker stamped into OAuth consent props
+ * (`OAuthGrantProps.scopeModel`). A grant WITHOUT it was consented before
+ * radar became an explicit scope; see `effectiveScopes`.
+ */
+export const SCOPE_MODEL = 2;
+
+/**
+ * The scopes a grant actually carries at request time.
+ *
+ * A grant stamped with `scopeModel >= SCOPE_MODEL` is used as stored. An
+ * unmarked grant is a pre-BL-166 artifact: under the old prefix rule its
+ * `tool:*` covered radar, so it gets `tool:radar:*` added and keeps exactly
+ * the tool access it was consented with — unless its tier is `trial`, which
+ * never had radar (the tier gate refused it). Grants without `tool:*` are
+ * unchanged: they never covered radar either.
+ *
+ * Permanent for as long as unmarked grants live (their props are encrypted
+ * per token and cannot be rewritten in place); ADR-0041 records why.
+ */
+export function effectiveScopes(
+  scopes: readonly string[],
+  { scopeModel, tier }: { scopeModel?: unknown; tier?: string }
+): readonly string[] {
+  if (typeof scopeModel === 'number' && scopeModel >= SCOPE_MODEL) return scopes;
+  if (tier === 'trial') return scopes;
+  if (!scopes.includes(SCOPES.TOOL_ALL) || scopes.includes(SCOPES.TOOL_RADAR_ALL)) return scopes;
+  return [...scopes, SCOPES.TOOL_RADAR_ALL];
 }
 
 /**

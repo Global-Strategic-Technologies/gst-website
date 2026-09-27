@@ -59,26 +59,63 @@ export async function extractToolName(request: Request): Promise<string | null> 
  * here; its contract is unchanged.
  */
 export async function extractToolCall(request: Request): Promise<ToolCall | null> {
+  return (await inspectToolCalls(request)).call;
+}
+
+/** What the boundary gates need from one body parse. */
+export interface ToolCallInspection {
+  /** The single-object `tools/call`, or `null` (see `extractToolCall`). */
+  readonly call: ToolCall | null;
+  /**
+   * BL-166 — `true` when the body is a JSON-RPC batch ARRAY holding at least
+   * one `tools/call`. `call` is always `null` for an array, so without this
+   * flag a batched call would slip past the tier gate, the scope gate and the
+   * radar rate bucket (the SDK's legacy lane accepts batches).
+   */
+  readonly batchedToolCall: boolean;
+}
+
+/**
+ * BL-166 — one clone-and-parse that answers both boundary questions: the
+ * single `tools/call` (unchanged `extractToolCall` semantics) and whether the
+ * body is a batch containing a `tools/call`, which the pipeline refuses.
+ * Kept as a separate field rather than a widened `ToolCall`, so every
+ * existing `ToolCall` consumer keeps its exact shape.
+ */
+export async function inspectToolCalls(request: Request): Promise<ToolCallInspection> {
+  const none: ToolCallInspection = { call: null, batchedToolCall: false };
   let bodyText: string;
   try {
     bodyText = await request.clone().text();
   } catch {
-    return null;
+    return none;
   }
-  if (!bodyText) return null;
+  if (!bodyText) return none;
 
-  let parsed: JsonRpcRequest;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(bodyText) as JsonRpcRequest;
+    parsed = JSON.parse(bodyText);
   } catch {
-    return null;
+    return none;
   }
 
-  if (parsed.method !== 'tools/call') return null;
-  const name = parsed.params?.name;
-  if (typeof name !== 'string') return null;
-  const id = parsed.id;
-  return { name, id: typeof id === 'string' || typeof id === 'number' ? id : null };
+  if (Array.isArray(parsed)) {
+    const batchedToolCall = parsed.some(
+      (m) => typeof m === 'object' && m !== null && (m as JsonRpcRequest).method === 'tools/call'
+    );
+    return { call: null, batchedToolCall };
+  }
+  if (typeof parsed !== 'object' || parsed === null) return none;
+
+  const message = parsed as JsonRpcRequest;
+  if (message.method !== 'tools/call') return none;
+  const name = message.params?.name;
+  if (typeof name !== 'string') return none;
+  const id = message.id;
+  return {
+    call: { name, id: typeof id === 'string' || typeof id === 'number' ? id : null },
+    batchedToolCall: false,
+  };
 }
 
 /**

@@ -13,6 +13,8 @@ const ADMIN_KEY = 'test-admin-key';
 const SIGNING_KEY = 'integration-test-m2m-signing-key';
 
 let worker: Unstable_DevWorker;
+/** undici's Response, which `worker.fetch` returns — not the Workers global. */
+type WorkerResponse = Awaited<ReturnType<Unstable_DevWorker['fetch']>>;
 let clientId: string;
 let clientSecret: string;
 let privateKey: CryptoKey;
@@ -289,6 +291,158 @@ describe('revocation semantics', () => {
       headers: { Authorization: 'Bearer not-the-admin-key' },
     });
     expect(res.status).toBe(401);
+  });
+});
+
+// BL-166 — radar is an explicit scope, every tools/call is scope-checked, and
+// batched tools/call is refused. "Not refused" means the body carries no
+// `-32002`: the handler itself needs Upstash/Inoreader, which are absent here,
+// so the proof is that the boundary let the call through (same convention as
+// the flow and trial-consent suites).
+describe('tool scopes at the boundary (BL-166)', () => {
+  const adminHeaders = {
+    Authorization: `Bearer ${ADMIN_KEY}`,
+    'Content-Type': 'application/json',
+  };
+
+  function mcpPost(bearer: string, body: unknown) {
+    return worker.fetch('/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  const callTool = (bearer: string, name: string, id: string | number = 1) =>
+    mcpPost(bearer, { jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: {} } });
+
+  async function expectNotRefused(res: WorkerResponse) {
+    expect(res.status).not.toBe(400);
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+    expect(await res.text()).not.toContain('-32002');
+  }
+
+  async function expectRadarRefused(res: WorkerResponse, id: string | number) {
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      id: unknown;
+      error?: { code: number; data?: { missingScope?: string } };
+    };
+    expect(body.id).toBe(id);
+    expect(body.error?.code).toBe(-32002);
+    expect(body.error?.data?.missingScope).toBe('tool:radar:*');
+  }
+
+  async function createClient(body: Record<string, unknown>) {
+    const res = await worker.fetch('/admin/oauth/m2m-clients', {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(res.status).toBe(201);
+    return (await res.json()) as { client: { clientId: string }; clientSecret: string };
+  }
+
+  async function mintToken(id: string, secret: string, scope?: string) {
+    const res = await worker.fetch('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: id,
+        client_secret: secret,
+        ...(scope ? { scope } : {}),
+      }).toString(),
+    });
+    expect(res.status).toBe(200);
+    return (await res.json()) as { access_token: string; scope: string };
+  }
+
+  it('a roster key (DEFAULT_SCOPES) is not refused search_radar', async () => {
+    await expectNotRefused(await callTool('test-token-rp', 'search_radar'));
+  });
+
+  it('a tool:* M2M client is refused search_radar but not search_portfolio', async () => {
+    const { access_token } = await mintToken(clientId, clientSecret);
+    await expectRadarRefused(await callTool(access_token, 'search_radar', 'r-1'), 'r-1');
+    await expectNotRefused(await callTool(access_token, 'search_portfolio'));
+  });
+
+  it('a tool:* M2M client asking /token for tool:radar:* gets invalid_scope', async () => {
+    const res = await worker.fetch('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'tool:radar:*',
+      }).toString(),
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('invalid_scope');
+  });
+
+  it('after an admin PATCH adds tool:radar:*, a new token calls search_radar', async () => {
+    // The migration script's exact move: PATCH the full array with radar appended.
+    const { client, clientSecret: secret } = await createClient({
+      name: 'bl-166-migrated',
+      allowedScopes: ['tool:*', 'resource:regulations:read'],
+      tier: 'paid',
+    });
+    const before = await mintToken(client.clientId, secret);
+    await expectRadarRefused(await callTool(before.access_token, 'search_radar', 7), 7);
+
+    const patched = await worker.fetch(`/admin/oauth/m2m-clients/${client.clientId}`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({
+        allowedScopes: ['tool:*', 'resource:regulations:read', 'tool:radar:*'],
+      }),
+    });
+    expect(patched.status).toBe(200);
+
+    const after = await mintToken(client.clientId, secret);
+    expect(after.scope.split(' ')).toContain('tool:radar:*');
+    await expectNotRefused(await callTool(after.access_token, 'search_radar'));
+  });
+
+  it('a trial-tier client whose token HOLDS tool:radar:* is still refused radar (legacy-trial regression)', async () => {
+    // Pre-BL-166 prefix matching let a trial be granted tool:radar:*, so live
+    // trial grants can hold it. The unconditional tier gate is what refuses
+    // them; the scope gate alone would let this through.
+    const { client, clientSecret: secret } = await createClient({
+      name: 'trial',
+      allowedScopes: ['tool:*', 'tool:radar:*'],
+      tier: 'trial',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
+    const token = await mintToken(client.clientId, secret);
+    expect(token.scope.split(' ')).toContain('tool:radar:*');
+    await expectRadarRefused(await callTool(token.access_token, 'search_radar', 'lt-1'), 'lt-1');
+  });
+
+  it('a JSON-RPC batch holding a tools/call is rejected with 400 -32600', async () => {
+    const res = await mcpPost('test-token-rp', [
+      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+      {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: { name: 'search_radar', arguments: {} },
+      },
+    ]);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: 'JSON-RPC batches may not contain tools/call' },
+    });
   });
 });
 

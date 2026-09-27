@@ -59,7 +59,7 @@ export const ASSIGNABLE_TIERS = Object.freeze(['trial', 'free-pilot', 'paid', 'e
 /**
  * Mirror of `SCOPES_SUPPORTED` in `src/auth/scopes.ts` — the scope strings
  * advertised in AS metadata + PRM, i.e. `DEFAULT_SCOPES` from
- * `src/auth/scopes.ts` plus the `tool:radar:*` narrowing wildcard. Same
+ * `src/auth/scopes.ts`, which since BL-166 includes `tool:radar:*`. Same
  * parity test guards it.
  */
 export const SUPPORTED_SCOPES = Object.freeze([
@@ -73,11 +73,12 @@ export const SUPPORTED_SCOPES = Object.freeze([
 
 /**
  * Scopes granted when `--scopes` is omitted — the minimum-scope example from
- * PILOT_ONBOARDING.md § 1. Free of `resource:radar:read`, but NOT of the
- * radar tools: `hasScope` matches by prefix, so `tool:*` already covers
- * `tool:radar:*`, and withholding the radar scopes does not deny an M2M client
- * the radar tools. The only radar-tool deny today is the tier gate
- * (`src/pipeline/tier-gate.ts`), and it refuses the `trial` tier only.
+ * PILOT_ONBOARDING.md § 1. Free of both radar scopes, and since BL-166 that
+ * really withholds radar: `tool:*` no longer covers `tool:radar:*` (radar is
+ * an explicit namespace in `hasScope`), and the tool-scope gate
+ * (`src/pipeline/tool-scope-gate.ts`) refuses a radar call without it. A
+ * client that should have radar is provisioned with `--allow-radar` and
+ * `tool:radar:*` in `--scopes`.
  *
  * NOT named `DEFAULT_SCOPES`: `src/auth/scopes.ts` already exports that name
  * with a broader meaning (it includes `resource:radar:read`), and two
@@ -160,7 +161,9 @@ export function parseArgs(argv) {
  *      `unsafeScopes`. Narrowing below the advertised catalog is legitimate
  *      (`hasScope` in `src/auth/scopes.ts` matches wildcards by prefix), but
  *      it should cost a deliberate keystroke rather than being the default —
- *      otherwise a typo provisions a client that can call nothing.
+ *      otherwise a typo provisions a client that can call nothing. (Such a
+ *      client is also one `migrate-radar-scope.mjs` cannot patch: PATCH
+ *      validates the whole array against the catalog.)
  *   2. Any radar scope requires `allowRadar`. This is deliberately STRICTER
  *      than the prose it mechanizes: PILOT_ONBOARDING.md named only
  *      `tool:radar:*`, but `resource:radar:read` reads the same

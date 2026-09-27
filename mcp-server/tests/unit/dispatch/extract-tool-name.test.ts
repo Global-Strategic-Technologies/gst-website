@@ -9,6 +9,7 @@ import {
   RADAR_TOOLS,
   extractToolCall,
   extractToolName,
+  inspectToolCalls,
   toolClassFor,
 } from '../../../src/dispatch/extract-tool-name';
 
@@ -108,6 +109,58 @@ describe('extractToolCall (BL-155 — name + JSON-RPC id)', () => {
       await extractToolCall(post(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })))
     ).toBeNull();
     expect(await extractToolCall(post('nope{'))).toBeNull();
+  });
+});
+
+describe('inspectToolCalls (BL-166 — batch detection)', () => {
+  const msg = (method: string, extra: Record<string, unknown> = {}) => ({
+    jsonrpc: '2.0',
+    id: 1,
+    method,
+    ...extra,
+  });
+
+  it('flags a batch array that holds a tools/call, and reports no single call', async () => {
+    const body = JSON.stringify([
+      msg('tools/list'),
+      msg('tools/call', { id: 2, params: { name: 'search_radar' } }),
+    ]);
+    expect(await inspectToolCalls(post(body))).toEqual({ call: null, batchedToolCall: true });
+    // The legacy single-call reader still sees nothing — which is exactly why
+    // the separate flag exists.
+    expect(await extractToolCall(post(body))).toBeNull();
+  });
+
+  it('flags a batched tools/call even when its params are malformed', async () => {
+    const body = JSON.stringify([msg('tools/call')]);
+    expect((await inspectToolCalls(post(body))).batchedToolCall).toBe(true);
+  });
+
+  it('does not flag a batch without a tools/call', async () => {
+    const body = JSON.stringify([msg('tools/list'), msg('prompts/list'), null, 7]);
+    expect(await inspectToolCalls(post(body))).toEqual({ call: null, batchedToolCall: false });
+  });
+
+  it('reports a single tools/call with the flag off', async () => {
+    const body = JSON.stringify(msg('tools/call', { params: { name: 'search_portfolio' } }));
+    expect(await inspectToolCalls(post(body))).toEqual({
+      call: { name: 'search_portfolio', id: 1 },
+      batchedToolCall: false,
+    });
+  });
+
+  it('fails safe on empty, non-JSON and JSON-null bodies', async () => {
+    const none = { call: null, batchedToolCall: false };
+    expect(await inspectToolCalls(post(undefined))).toEqual(none);
+    expect(await inspectToolCalls(post('nope{'))).toEqual(none);
+    expect(await inspectToolCalls(post('null'))).toEqual(none);
+  });
+
+  it('leaves the original body readable downstream', async () => {
+    const body = JSON.stringify([msg('tools/call', { params: { name: 'x' } })]);
+    const req = post(body);
+    await inspectToolCalls(req);
+    expect(await req.text()).toBe(body);
   });
 });
 

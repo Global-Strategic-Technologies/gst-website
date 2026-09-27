@@ -14,6 +14,7 @@ vi.mock('../../../src/pipeline/handle-authenticated', () => ({
 }));
 
 import { oauthApiHandler } from '../../../src/oauth/api-handler';
+import { SCOPE_MODEL } from '../../../src/auth/scopes';
 import { handleAuthenticated } from '../../../src/pipeline/handle-authenticated';
 import type { Env } from '../../../src/env';
 
@@ -42,8 +43,14 @@ describe('oauthApiHandler', () => {
     expect(pipeline).not.toHaveBeenCalled();
   });
 
-  it('a roster grant (four fields) reaches the pipeline with no tier and no subject', async () => {
-    const props = { keyOwner: 'OAUTH:RP', userId: 'RP', scopes: ['tool:*'], authKind: 'oauth' };
+  it('a marked roster grant reaches the pipeline with its stored scopes, no tier and no subject', async () => {
+    const props = {
+      keyOwner: 'OAUTH:RP',
+      userId: 'RP',
+      scopes: ['tool:*'],
+      authKind: 'oauth',
+      scopeModel: SCOPE_MODEL,
+    };
     await oauthApiHandler.fetch(req(), env, ctxWith(props));
     expect(pipeline).toHaveBeenCalledTimes(1);
     expect(pipeline.mock.calls[0]![3]).toEqual({
@@ -53,7 +60,30 @@ describe('oauthApiHandler', () => {
     });
   });
 
-  it('a KV-backed grant threads tier and rateLimitSubject onto AuthSuccess', async () => {
+  it('a legacy (unmarked, four-field) roster grant keeps radar: tool:radar:* is added (BL-166)', async () => {
+    const props = { keyOwner: 'OAUTH:RP', userId: 'RP', scopes: ['tool:*'], authKind: 'oauth' };
+    await oauthApiHandler.fetch(req(), env, ctxWith(props));
+    expect(pipeline.mock.calls[0]![3]).toEqual({
+      ok: true,
+      keyOwner: 'OAUTH:RP',
+      scopes: ['tool:*', 'tool:radar:*'],
+    });
+  });
+
+  it('a legacy converted (non-trial KV) grant keeps radar too', async () => {
+    const props = {
+      keyOwner: 'OAUTH:M2M:PAID',
+      userId: 'm2m_y',
+      scopes: ['tool:*'],
+      authKind: 'oauth',
+      tier: 'paid',
+      rateLimitSubject: 'OAUTH:m2m_y',
+    };
+    await oauthApiHandler.fetch(req(), env, ctxWith(props));
+    expect(pipeline.mock.calls[0]![3]!.scopes).toEqual(['tool:*', 'tool:radar:*']);
+  });
+
+  it('a KV-backed grant threads tier and rateLimitSubject onto AuthSuccess (a legacy trial gains no radar)', async () => {
     const props = {
       keyOwner: 'OAUTH:M2M:TRIAL',
       userId: 'm2m_x',

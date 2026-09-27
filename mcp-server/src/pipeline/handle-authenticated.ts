@@ -11,7 +11,8 @@
  * The `AuthSuccess` contract ({ keyOwner, scopes, tier?, rateLimitSubject? })
  * is the seam: whatever produced it, everything downstream — limiter
  * buckets, AE metrics attribution (blob3), safeLog lines, Sentry tags,
- * scope gating, the tier gate — behaves identically. Living in its own
+ * scope gating, the tier gate, the BL-166 tool-scope gate and batch
+ * refusal — behaves identically. Living in its own
  * module (not worker.ts) breaks the would-be import cycle
  * worker.ts → oauth/* → worker.ts.
  */
@@ -36,8 +37,9 @@ import {
   tooManyRequestsResponse,
   withRateLimitHeaders,
 } from '../ratelimit/headers';
-import { extractToolCall, toolClassFor } from '../dispatch/extract-tool-name';
+import { inspectToolCalls, toolClassFor } from '../dispatch/extract-tool-name';
 import { trialRadarDenial } from './tier-gate';
+import { toolScopeDenial } from './tool-scope-gate';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
 import { QueueAuditSink, newRequestId, truncateIp, type AuditContext } from '../audit/_index';
@@ -52,6 +54,25 @@ import {
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { Env } from '../env';
+
+/** BL-166 — the refusal text for a batch carrying a `tools/call`. */
+export const BATCHED_TOOL_CALL_MESSAGE = 'JSON-RPC batches may not contain tools/call';
+
+/**
+ * BL-166 — HTTP 400 + JSON-RPC `-32600 Invalid Request`, the same shape the
+ * SDK uses for its own request-level refusals. `id: null` because a batch has
+ * no single id to echo.
+ */
+function batchedToolCallResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: BATCHED_TOOL_CALL_MESSAGE },
+    }),
+    { status: 400, headers: { 'Content-Type': 'application/json' } }
+  );
+}
 
 export async function handleAuthenticated(
   request: Request,
@@ -75,14 +96,36 @@ export async function handleAuthenticated(
   // Inoreader budget. Tool name is extracted at the Worker boundary via
   // a cloned-body JSON-RPC parse; non-tools/call requests + parse
   // failures fail-safe to `'general'`.
-  const call = await extractToolCall(request);
+  const { call, batchedToolCall } = await inspectToolCalls(request);
   const toolClass = toolClassFor(call?.name ?? null);
+
+  // BL-166 — a JSON-RPC batch array carrying a `tools/call` is refused
+  // outright, BEFORE both gates. The gates and the radar bucket read only a
+  // single-object body, and the SDK's legacy lane accepts batches, so a
+  // batched call would otherwise skip the tier gate, the scope gate and the
+  // radar rate bucket. Batching left the spec in 2025-06-18 and the official
+  // client SDKs do not emit it; the log line below is how a real client that
+  // does would show up. Batches with no `tools/call` pass through unchanged.
+  if (batchedToolCall) {
+    safeLog({
+      event: 'mcp.batch-rejected',
+      keyOwner: auth.keyOwner,
+      rateLimitSubject: auth.rateLimitSubject,
+      path: url.pathname,
+      status: 400,
+      reason: 'batch-contains-tools-call',
+      success: false,
+      errorCode: 'invalid-request',
+    });
+    return withCors(batchedToolCallResponse(), origin);
+  }
 
   // BL-155 Slice 2b — tier gate. A `trial` identity is refused the radar
   // tools here, BEFORE the limiter (so the refusal burns no radar-window
-  // token) and before the MCP handler (so no stream starts). Scopes cannot
-  // do this — `tool:*` covers radar by prefix — and it is a commercial gate,
-  // not a cost one; the reasoning lives in `tier-gate.ts`.
+  // token) and before the MCP handler (so no stream starts). It stays even
+  // with the BL-166 scope gate below, because a legacy trial grant can hold
+  // `tool:radar:*` — the scope check alone would let it through. It is a
+  // commercial gate, not a cost one; the reasoning lives in `tier-gate.ts`.
   const denied = trialRadarDenial(auth, call);
   if (denied) {
     safeLog({
@@ -105,6 +148,26 @@ export async function handleAuthenticated(
       toolName: call?.name ?? 'unknown',
     });
     return withCors(denied, origin);
+  }
+
+  // BL-166 — tool-scope gate: the call's tool must be covered by the
+  // caller's scopes (`tool:radar:*` for radar, `tool:<name>` / `tool:*`
+  // otherwise). Same placement rules as the tier gate. Deliberately a log
+  // line and NO AE event: `tier_denial` keeps its exact trial-radar meaning,
+  // and `scope_denial` is the 403 attack signal behind a paging alert.
+  const scopeDenied = toolScopeDenial(auth, call);
+  if (scopeDenied) {
+    safeLog({
+      event: 'tool.scope-denied',
+      keyOwner: auth.keyOwner,
+      rateLimitSubject: auth.rateLimitSubject,
+      path: url.pathname,
+      tool: call?.name,
+      reason: `missing-scope=${scopeDenied.missingScope}`,
+      success: false,
+      errorCode: 'missing-scope',
+    });
+    return withCors(scopeDenied.response, origin);
   }
 
   // BL-033 Slice 5: the client's tier (carried on the M2M token claim or,

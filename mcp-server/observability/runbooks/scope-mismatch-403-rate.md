@@ -1,20 +1,22 @@
 # Runbook — `scope-mismatch-403-rate`
 
-lastReviewedAt: 2026-09-09
+lastReviewedAt: 2026-09-27
 
-**Trigger**: more than 5 scope-rejected (403) tool invocations per minute sustained over a 15-minute window (i.e. >75 in the window). Threshold provenance: design-doc attack-signal rule, carried into `observability/slo-baselines.md` § Phase 3 unblock criteria (signed off 2026-07-14). Severity: page — a valid bearer being used outside its scope grant is the strongest available signal of a leaked/replayed key.
+**Trigger**: more than 5 scope-rejected (403) radar Resource reads per minute sustained over a 15-minute window (i.e. >75 in the window). Threshold provenance: design-doc attack-signal rule, carried into `observability/slo-baselines.md` § Phase 3 unblock criteria (signed off 2026-07-14). Severity: page — a valid bearer being used outside its scope grant is the strongest available signal of a leaked/replayed key.
 
 **Data source**: AE SQL (`blob1='scope_denial'`, last 15 min) via the Worker's AE secrets. Fails open when unbound.
 
 > **This rule could not fire before 2026-09-09 (BL-159).** It queried `blob1='tool_invocation' AND blob4='error' AND blob6='403'`, and was dead twice over: nothing writes `status_code` on `tool_invocation`, and the scope refusal emitted no AE event at all — only a `safeLog` line. It therefore reported a healthy `0 scope-mismatch 403s` on `/status` for its entire life, which is the most dangerous shape a monitoring defect can take, because a rule that cannot fire is indistinguishable from a rule with nothing to report. **Treat any pre-2026-09-09 quiet period as unmeasured, not as clean.** The fix added a `scope_denial` event emitted at both RUNTIME denial paths — the plain-HTTP `/radar/snapshot` gate and the MCP `resources/read` gate. It is deliberately NOT emitted at the consent-time 403 in `oauth/consent.ts` (a client asking for scopes its key does not cover): that is a registration mistake fixed by broadening the key or narrowing the client, not a key being exercised beyond its scopes, and paging on it would mix two populations. So this rule counts scope refusals **against live resources**, which is the population the response below assumes. Found by executing the dashboard's SQL against production, not by review or by tests, which were green throughout. **The repaired rule has not fired yet either.** Its first probe (2026-09-09) returned a legitimate zero, which looks exactly like the zero the broken rule returned. Only a real scope 403 will prove it fires; until then, the guard in `alert-rules-sql.test.ts` is the only thing checking it.
 
+> **Tool calls are not covered by this alert (corrected 2026-09-27, BL-166 / ADR-0041).** Since 0.67.0 every `tools/call` is scope-checked, but a refusal there is an HTTP 200 carrying JSON-RPC `-32002`, logged as a `tool.scope-denied` `safeLog` line (`keyOwner`, `rateLimitSubject`, `tool`, `reason: missing-scope=<scope>`) with **no AE event**. So a leaked `resource:radar:read`-only key (such as `MCP_KEY_WEBSITE_RADAR`) calling tools surfaces as `tool.scope-denied` lines in `wrangler tail`, not as a page from this rule. This rule still counts only the two radar Resource paths (`/radar/snapshot` and MCP `resources/read`). Leak detection for tool calls means reading those log lines; no alert watches them.
+
 ## First 5 minutes
 
 1. Identify the key: `Verify-AeEmission.ps1 -Env production -WindowHours 1` + `SELECT index1, blob2, sum(_sample_interval) FROM mcp_events WHERE blob1='scope_denial' AND timestamp >= NOW() - INTERVAL '1' HOUR GROUP BY index1, blob2` narrows which `keyOwner` is generating denials and which scope they are reaching for. `blob8` (`client_ref`) separates individual OAuth clients sharing a tier.
 2. Distinguish the two causes:
-   - **Leaked/probing key** — a narrow-scope bearer (e.g. `MCP_KEY_WEBSITE_RADAR`, radar-read-only) invoking non-radar tools. This is the attack case.
+   - **Leaked/probing key** — a bearer without `resource:radar:read` repeatedly reading the radar Resource or `/radar/snapshot`. This is the attack case. (The same key calling tools shows up only as `tool.scope-denied` log lines — see the correction above.)
    - **Deployment skew** — a legitimate client whose expected scopes were tightened in a recent deploy (check `git log` on `auth/scopes.ts` / recent BREAKING_CHANGES entries).
-3. Check `wrangler tail` for the `auth.scope-rejected` safeLog lines (path + tool detail).
+3. Check `wrangler tail` for the `radar-snapshot.scope-denied` safeLog lines (path + missing scope); the MCP `resources/read` path logs no line of its own, only the AE event. Look for `tool.scope-denied` lines from the same `keyOwner` too.
 
 ## Recovery
 

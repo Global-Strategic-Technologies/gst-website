@@ -122,10 +122,12 @@ describe('tier denial → tier_denial event', () => {
 
   it('emits nothing when a non-trial tier calls the same tool', async () => {
     // The gate is a TIER gate. If this ever emits, the denial has widened to
-    // paying customers — a commercial incident, not a metrics one.
+    // paying customers — a commercial incident, not a metrics one. (Holding
+    // the radar scope, so the BL-166 scope gate lets the call through too.)
     check.mockResolvedValue(allowed());
+    const withRadar: AuthSuccess = { ...paidAuth, scopes: ['tool:*', 'tool:radar:*'] };
 
-    await handleAuthenticated(toolCall('search_radar'), env(), ctx(), paidAuth);
+    await handleAuthenticated(toolCall('search_radar'), env(), ctx(), withRadar);
 
     expect(eventsOfType('tier_denial')).toEqual([]);
   });
@@ -139,6 +141,124 @@ describe('tier denial → tier_denial event', () => {
     await handleAuthenticated(toolCall('search_radar'), env(), ctx(), trialAuth);
 
     expect(check).not.toHaveBeenCalled();
+  });
+});
+
+/** Every `safeLog` line written during `fn`, parsed. */
+async function capturingLogs(fn: () => Promise<unknown>) {
+  const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  try {
+    await fn();
+    return spy.mock.calls.map((args) => JSON.parse(String(args[0])) as Record<string, unknown>);
+  } finally {
+    spy.mockRestore();
+  }
+}
+
+describe('tool-scope gate (BL-166) → tool.scope-denied log, no AE event', () => {
+  it('refuses radar to a non-trial tool:*-only client, logs it, and emits nothing to AE', async () => {
+    check.mockResolvedValue(allowed());
+    let res: Response | undefined;
+    const logs = await capturingLogs(async () => {
+      res = await handleAuthenticated(toolCall('search_radar'), env(), ctx(), paidAuth);
+    });
+
+    expect(res!.status).toBe(200);
+    const body = (await res!.json()) as { error: { code: number; data: { missingScope: string } } };
+    expect(body.error.code).toBe(-32002);
+    expect(body.error.data.missingScope).toBe('tool:radar:*');
+
+    expect(logs.filter((l) => l.event === 'tool.scope-denied')).toEqual([
+      expect.objectContaining({
+        keyOwner: 'OAUTH:M2M:ACME',
+        rateLimitSubject: 'OAUTH:m2m_acme_xyz',
+        tool: 'search_radar',
+        reason: 'missing-scope=tool:radar:*',
+        success: false,
+      }),
+    ]);
+    // `tier_denial` keeps its exact trial-radar meaning, and `scope_denial` is
+    // the 403 paging signal — this refusal is neither.
+    expect(aePoints).toEqual([]);
+    // Placed before the limiter, like the tier gate.
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  it('a trial radar refusal is still the tier gate, and still emits tier_denial', async () => {
+    check.mockResolvedValue(allowed());
+    const legacyTrial: AuthSuccess = { ...trialAuth, scopes: ['tool:*', 'tool:radar:*'] };
+    const logs = await capturingLogs(() =>
+      handleAuthenticated(toolCall('search_radar'), env(), ctx(), legacyTrial)
+    );
+    expect(eventsOfType('tier_denial')).toHaveLength(1);
+    expect(logs.map((l) => l.event)).toContain('tool.tier-denied');
+    expect(logs.map((l) => l.event)).not.toContain('tool.scope-denied');
+  });
+
+  it('lets a covered call through to the limiter', async () => {
+    check.mockResolvedValue(allowed({ minRemainingRatio: 0.9 }));
+    const withRadar: AuthSuccess = { ...paidAuth, scopes: ['tool:*', 'tool:radar:*'] };
+    const logs = await capturingLogs(() =>
+      handleAuthenticated(toolCall('search_radar'), env(), ctx(), withRadar)
+    );
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(logs.map((l) => l.event)).not.toContain('tool.scope-denied');
+  });
+});
+
+describe('batched tools/call (BL-166) → 400 -32600, mcp.batch-rejected', () => {
+  const batch = (messages: unknown[]) =>
+    new Request('https://mcp.test/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages),
+    });
+
+  it('rejects a batch holding a tools/call before both gates and the limiter', async () => {
+    check.mockResolvedValue(allowed());
+    let res: Response | undefined;
+    const logs = await capturingLogs(async () => {
+      res = await handleAuthenticated(
+        batch([{ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'search_radar' } }]),
+        env(),
+        ctx(),
+        trialAuth
+      );
+    });
+
+    expect(res!.status).toBe(400);
+    expect(await res!.json()).toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: 'JSON-RPC batches may not contain tools/call' },
+    });
+    expect(logs.filter((l) => l.event === 'mcp.batch-rejected')).toEqual([
+      expect.objectContaining({
+        keyOwner: 'OAUTH:M2M:TRIAL',
+        rateLimitSubject: 'OAUTH:m2m_trial_abc',
+        status: 400,
+        success: false,
+      }),
+    ]);
+    // Before the tier gate: no tier_denial, even though a trial asked for radar.
+    expect(eventsOfType('tier_denial')).toEqual([]);
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  it('passes a batch without a tools/call through', async () => {
+    check.mockResolvedValue(allowed({ minRemainingRatio: 0.9 }));
+    let res: Response | undefined;
+    const logs = await capturingLogs(async () => {
+      res = await handleAuthenticated(
+        batch([{ jsonrpc: '2.0', id: 1, method: 'tools/list' }]),
+        env(),
+        ctx(),
+        paidAuth
+      );
+    });
+    expect(res!.status).toBe(200);
+    expect(logs.map((l) => l.event)).not.toContain('mcp.batch-rejected');
+    expect(check).toHaveBeenCalledTimes(1);
   });
 });
 

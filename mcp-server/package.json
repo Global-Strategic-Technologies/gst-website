@@ -1,6 +1,6 @@
 {
   "name": "@gst/mcp-server",
-  "version": "0.66.1",
+  "version": "0.67.0",
   "description": "MCP server (local stdio and Cloudflare Worker) exposing the GST Hub surface (diligence, portfolio, ICG, TechPar, Tech Debt, Regulations, Radar) and Library + Regulation + Radar Resources.",
   "type": "module",
   "private": true,
@@ -24,6 +24,7 @@
     "irl:extract": "node scripts/extract-irl-markdown.mjs",
     "provision:client": "node scripts/provision-client.mjs",
     "trial:reset": "node scripts/reset-trial.mjs",
+    "radar:migrate-scope": "node scripts/migrate-radar-scope.mjs",
     "ae:baseline": "node scripts/invoke-ae-baseline.mjs",
     "purge:audit-seqof": "node scripts/purge-audit-seqof.mjs"
   },

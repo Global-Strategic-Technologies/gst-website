@@ -36,12 +36,13 @@ import {
 } from './content/radar-snapshot-reader-worker';
 import {
   NO_FRESH_CURATED_ITEMS,
+  RADAR_NOT_GRANTED_REMOTE,
   SNAPSHOT_MISSING_STDIO,
   SNAPSHOT_UNAVAILABLE_REMOTE,
 } from './content/radar-messages';
 import type { SnapshotReader } from './content/radar-snapshot-reader';
 import { registerPrompts } from './prompts/_registry';
-import { DEFAULT_SCOPES } from './auth/scopes';
+import { DEFAULT_SCOPES, hasScope, SCOPES } from './auth/scopes';
 import {
   InMemoryIrlBodyCache,
   InMemoryToolCallCounters,
@@ -470,17 +471,31 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
   // `server.ts` must never import `stdioSnapshotReader`: that would pull
   // node:fs into the Worker bundle, which is the bug class this fix closes.
   // The stdio entrypoint supplies it via `ctx.radarReader` instead.
+  //
+  // BL-166: the embed reads the same feed as the radar Resource, so on the
+  // Worker it is scope-gated the same way. A caller without
+  // `resource:radar:read` (every trial) gets NO reader and the not-granted
+  // wording, so `prompts/get` cannot become a side door to radar. The prompt
+  // template itself is untouched; only the embedded block differs.
+  const radarGranted = hasScope(scopes, SCOPES.RESOURCE_RADAR_READ);
   registerPrompts(
     server,
     metrics,
     ctx.radarSource === 'worker'
-      ? {
-          radarReader: createWorkerCachedSnapshotReader(env),
-          messages: {
-            unavailable: SNAPSHOT_UNAVAILABLE_REMOTE,
-            empty: NO_FRESH_CURATED_ITEMS,
-          },
-        }
+      ? radarGranted
+        ? {
+            radarReader: createWorkerCachedSnapshotReader(env),
+            messages: {
+              unavailable: SNAPSHOT_UNAVAILABLE_REMOTE,
+              empty: NO_FRESH_CURATED_ITEMS,
+            },
+          }
+        : {
+            messages: {
+              unavailable: RADAR_NOT_GRANTED_REMOTE,
+              empty: NO_FRESH_CURATED_ITEMS,
+            },
+          }
       : {
           radarReader: ctx.radarReader,
           messages: { unavailable: SNAPSHOT_MISSING_STDIO, empty: NO_FRESH_CURATED_ITEMS },

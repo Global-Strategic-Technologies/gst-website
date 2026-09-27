@@ -6,7 +6,10 @@
 import {
   SCOPES,
   DEFAULT_SCOPES,
+  SCOPES_SUPPORTED,
+  SCOPE_MODEL,
   TRIAL_SCOPES,
+  effectiveScopes,
   hasScope,
   assertScope,
   MissingScopeError,
@@ -16,8 +19,25 @@ describe('TRIAL_SCOPES (BL-155)', () => {
   it('is DEFAULT_SCOPES with every radar scope removed, and nothing else', () => {
     expect(TRIAL_SCOPES.some((s) => s.includes('radar'))).toBe(false);
     expect(TRIAL_SCOPES.every((s) => DEFAULT_SCOPES.includes(s))).toBe(true);
-    expect(TRIAL_SCOPES).toEqual(DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ));
+    // BL-166: both radar scopes — the Resource and the tools' own wildcard.
+    expect(TRIAL_SCOPES).toEqual(
+      DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ && s !== SCOPES.TOOL_RADAR_ALL)
+    );
     expect(TRIAL_SCOPES).toContain(SCOPES.PROMPT_ALL);
+  });
+
+  it('keeps its pre-BL-166 contents (the radar exclusion changed mechanism, not membership)', () => {
+    expect([...TRIAL_SCOPES]).toEqual([
+      'tool:*',
+      'resource:library:read',
+      'resource:regulations:read',
+      'prompt:*',
+    ]);
+  });
+
+  it('really withholds the radar tools now that tool:* stops at the radar namespace', () => {
+    expect(hasScope(TRIAL_SCOPES, 'tool:radar:search_radar')).toBe(false);
+    expect(hasScope(TRIAL_SCOPES, 'tool:search_portfolio')).toBe(true);
   });
 });
 
@@ -28,6 +48,21 @@ describe('SCOPES catalog', () => {
     expect(SCOPES.RESOURCE_RADAR_READ).toBe('resource:radar:read');
     expect(SCOPES.TOOL_ALL).toBe('tool:*');
     expect(SCOPES.PROMPT_ALL).toBe('prompt:*');
+    expect(SCOPES.TOOL_RADAR_ALL).toBe('tool:radar:*');
+  });
+});
+
+describe('SCOPES_SUPPORTED (BL-166)', () => {
+  it('has the same members in the same order as before — radar just moved into DEFAULT_SCOPES', () => {
+    expect([...SCOPES_SUPPORTED]).toEqual([...DEFAULT_SCOPES]);
+    expect([...SCOPES_SUPPORTED]).toEqual([
+      'tool:*',
+      'resource:library:read',
+      'resource:regulations:read',
+      'resource:radar:read',
+      'prompt:*',
+      'tool:radar:*',
+    ]);
   });
 });
 
@@ -38,6 +73,10 @@ describe('DEFAULT_SCOPES', () => {
     expect(DEFAULT_SCOPES).toContain(SCOPES.RESOURCE_LIBRARY_READ);
     expect(DEFAULT_SCOPES).toContain(SCOPES.RESOURCE_REGULATIONS_READ);
     expect(DEFAULT_SCOPES).toContain(SCOPES.RESOURCE_RADAR_READ);
+  });
+
+  it('carries the radar tools explicitly, so roster keys and the probe keep radar (BL-166)', () => {
+    expect(DEFAULT_SCOPES).toContain(SCOPES.TOOL_RADAR_ALL);
   });
 
   it('is frozen so callers cannot accidentally mutate the global default', () => {
@@ -84,10 +123,72 @@ describe('hasScope — multi-level wildcard', () => {
     expect(hasScope(['tool:radar:*'], 'tool:search_portfolio')).toBe(false);
   });
 
-  it('respects segment boundaries — `tool:*` covers `tool:radar:foo`', () => {
-    // `tool:*` is a single-segment wildcard at the `tool:` boundary. Multi-
-    // segment requests still match because they share the `tool:` prefix.
-    expect(hasScope(['tool:*'], 'tool:radar:search_radar')).toBe(true);
+  it('does NOT let `tool:*` reach into the explicit radar namespace (BL-166)', () => {
+    // Pre-BL-166 this was `true`: `tool:*` covered `tool:radar:foo` by prefix,
+    // which is how every pilot grant reached radar by accident.
+    expect(hasScope(['tool:*'], 'tool:radar:search_radar')).toBe(false);
+    expect(hasScope(['tool:*'], 'tool:radar:get_latest_insights')).toBe(false);
+  });
+
+  it('still lets `tool:*` cover non-radar multi-segment tool scopes', () => {
+    expect(hasScope(['tool:*'], 'tool:portfolio:search')).toBe(true);
+  });
+});
+
+describe('hasScope — explicit radar namespace (BL-166)', () => {
+  it('refuses `tool:radar:*` itself to a `tool:*` holder (closes grant-time escalation)', () => {
+    // consent's `grantedScopesFor` and `/token` both filter requests through
+    // hasScope, so this is what stops a `tool:*` ceiling granting radar.
+    expect(hasScope(['tool:*'], 'tool:radar:*')).toBe(false);
+  });
+
+  it('matches the exact radar scope strings', () => {
+    expect(hasScope(['tool:radar:*'], 'tool:radar:*')).toBe(true);
+    expect(hasScope(['tool:radar:search_radar'], 'tool:radar:search_radar')).toBe(true);
+    expect(hasScope(['tool:radar:search_radar'], 'tool:radar:get_latest_insights')).toBe(false);
+  });
+
+  it('keeps segment boundaries: `tool:*` still does not cover `toolbar`', () => {
+    expect(hasScope(['tool:*'], 'toolbar')).toBe(false);
+  });
+
+  it('does not affect non-tool radar scopes', () => {
+    expect(hasScope(['resource:*'], 'resource:radar:read')).toBe(true);
+  });
+});
+
+describe('effectiveScopes (BL-166 grant marker)', () => {
+  it('uses a marked grant exactly as stored', () => {
+    const scopes = ['tool:*', 'prompt:*'];
+    expect(effectiveScopes(scopes, { scopeModel: SCOPE_MODEL })).toBe(scopes);
+    expect(effectiveScopes(scopes, { scopeModel: SCOPE_MODEL + 1 })).toBe(scopes);
+  });
+
+  it('adds tool:radar:* to an unmarked (legacy) tool:* grant — it had radar by prefix', () => {
+    expect(effectiveScopes(['tool:*', 'prompt:*'], {})).toEqual([
+      'tool:*',
+      'prompt:*',
+      'tool:radar:*',
+    ]);
+    // A malformed marker is treated as absent.
+    expect(effectiveScopes(['tool:*'], { scopeModel: '2' })).toEqual(['tool:*', 'tool:radar:*']);
+    expect(effectiveScopes(['tool:*'], { scopeModel: 1 })).toEqual(['tool:*', 'tool:radar:*']);
+  });
+
+  it('never adds radar to a legacy trial grant — trials never had it', () => {
+    const scopes = ['tool:*', 'prompt:*'];
+    expect(effectiveScopes(scopes, { tier: 'trial' })).toBe(scopes);
+  });
+
+  it('adds radar to a legacy converted (non-trial tier) grant', () => {
+    expect(effectiveScopes(['tool:*'], { tier: 'paid' })).toEqual(['tool:*', 'tool:radar:*']);
+  });
+
+  it('leaves legacy grants without tool:*, or already holding radar, unchanged', () => {
+    const narrow = ['tool:search_portfolio'];
+    expect(effectiveScopes(narrow, {})).toBe(narrow);
+    const withRadar = ['tool:*', 'tool:radar:*'];
+    expect(effectiveScopes(withRadar, {})).toBe(withRadar);
   });
 });
 
@@ -95,6 +196,7 @@ describe('hasScope — DEFAULT_SCOPES covers expected requests', () => {
   it.each([
     ['tool:search_portfolio'],
     ['tool:radar:search_radar'],
+    ['tool:radar:*'],
     ['resource:library:read'],
     ['resource:regulations:read'],
     ['resource:radar:read'],

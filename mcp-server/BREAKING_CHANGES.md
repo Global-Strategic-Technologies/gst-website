@@ -35,6 +35,33 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.67.0 — 2026-09-27 — radar is an explicit scope; `tools/call` enforces tool scopes (BL-166)
+
+**Breaking for one narrow client shape (below); wire-compatible for every other client.** No tool, prompt, or Resource URI is added, renamed, or removed, and no input or output schema changes shape. No prompt moved and the `gst_radar_brief_today` template bytes are unchanged, so **the manifest hash is unchanged** and no prompt version is bumped. Design and rejected options: [ADR-0041](../src/docs/adr/0041-radar-is-an-explicit-scope.md).
+
+**Radar is an explicit scope**
+
+- `tool:*` no longer covers the radar tools (`search_radar`, `get_latest_insights`). `hasScope` treats `tool:radar:` as an explicit namespace: only `tool:radar:*` or the exact `tool:radar:<name>` covers it. `tool:radar:*` joins `DEFAULT_SCOPES`, so the team roster keys and the latency probe keep radar; `TRIAL_SCOPES` excludes both radar scopes; `SCOPES_SUPPORTED` has the same members in the same order.
+- The same rule closes grant-time escalation: a `tool:*` ceiling that asks for `tool:radar:*` at consent or at `/token` is no longer granted it (`/token` answers `400 invalid_scope` when nothing requested is allowed).
+- **Every `tools/call` is now scope-checked** at the Worker boundary (`pipeline/tool-scope-gate.ts`), after the unchanged trial tier gate and before the limiter. A call needs `tool:radar:<name>` for a radar tool and `tool:<name>` otherwise (`tool:*` covers every non-radar tool). A refusal is **HTTP 200 carrying JSON-RPC `-32002`**, the same shape as the tier gate, with `data.missingScope` `tool:radar:*` for radar and `tool:<name>` otherwise. It logs `tool.scope-denied` and emits no Analytics Engine event.
+- The `gst_radar_brief_today` embed on the Worker is gated on `resource:radar:read`; without it the embedded block is a not-granted message instead of the snapshot.
+
+**Existing clients keep radar**
+
+- **OAuth grants** keep the scopes they were consented with. New consents stamp `scopeModel: 2` into the grant props; a grant without it (every pre-0.67.0 grant) that holds `tool:*` gets `tool:radar:*` added at request time, unless its tier is `trial`. This holds for as long as those grants live.
+- **M2M client records** get `tool:radar:*` from the one-time `npm run radar:migrate-scope` script (dry run by default, `--apply` to patch, safe to re-run). It patches every non-trial record holding `tool:*` without `tool:radar:*`, including trials converted in place; it lists, without patching, records with no `tool:*` and records holding off-catalog scopes (PATCH would refuse them — re-provision with `--allow-radar`). Run it at least 1h before approving the production deploy, so every live M2M token of a client that sends no `scope` already carries `tool:radar:*`.
+
+**Client impact**
+
+- **An M2M client that sends an explicit `scope` at `/token` without `tool:radar:*`** (for example `scope=tool:*`) loses radar after deploy until it adds `tool:radar:*` to its request. The published snippets send no `scope` and are unaffected.
+- A grant with a narrow tool scope (for example `tool:search_portfolio`) can now call only the tools it names; before, it could call any tool.
+- **JSON-RPC batches containing a `tools/call` are rejected** with **HTTP 400** and JSON-RPC **`-32600` "JSON-RPC batches may not contain tools/call"** (`id: null`), logged as `mcp.batch-rejected`. Batched calls previously skipped the tier gate, the scope gate and the radar rate bucket. Batches without a `tools/call` pass through. Batching left the spec in 2025-06-18 and the official client SDKs do not emit it.
+- A static key with a `MCP_KEY_*_SCOPES` override that lacks `tool:radar:*` loses radar; one without `tool:*` or a matching `tool:<name>` loses every tool. `MCP_KEY_WEBSITE_RADAR` (`resource:radar:read` only) is refused tools, which is intended: it only calls `/radar/snapshot`.
+
+**Rollback stays safe.** The previous build ignores `scopeModel` in grant props, and under its prefix semantics a migrated record's added `tool:radar:*` is already covered by `tool:*`, so reverting changes nothing for migrated records or new grants. The batch rejection is one check in `pipeline/handle-authenticated.ts` and can be reverted on its own.
+
+---
+
 ## 0.66.1 — 2026-09-27 — `search_radar_cache` alias wording
 
 **Wire-compatible, graded patch.** No tool, prompt, or Resource URI is added, renamed, or removed, and no input or output schema changes shape. No prompt moved, so the manifest hash is unchanged.
