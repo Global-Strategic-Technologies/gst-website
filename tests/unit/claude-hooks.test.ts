@@ -253,6 +253,8 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['cat "notes <<\'EOF\' here"\ngit push origin x', true], // a data sink, but the operator is quoted
     ["cat <<'EOF' | bash\ngit push origin x\nEOF", true], // body piped to a shell
     ["sudo bash <<'EOF'\ngit push\nEOF", true],
+    ["cat <<'EOF' 2>&1 | bash\ngit push origin x\nEOF", true], // `&` in a redirect, then a pipe
+    ["cat <<'EOF' > /dev/null 2>&1 | sh\ngit push\nEOF", true],
     ["bash -s -- a <<'EOF'\ngit push\nEOF", true],
     ["git commit -F - <<'EOF'\nnever run `git push` here\nEOF", false], // data sink
     ['gh pr create --body "$(cat <<\'EOF\'\nthen `git push`\nEOF\n)"', false],
@@ -329,6 +331,8 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     // …and thousands of operators on ONE line (each segment judged once).
     isGitPush(`echo ${"<<'E' ".repeat(5000)}\ngit push`);
     isGitPush(`${"x <<'E'; ".repeat(3000)}\n`);
+    isGitPush(`${"cat <<'E' | x; ".repeat(3000)}\n`); // piped sinks: disjoint pipe scans
+    isGitPush(`${"cat <<'E'; ".repeat(3000)}| x\n`); // one far pipe, found once
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });

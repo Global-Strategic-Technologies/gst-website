@@ -126,6 +126,8 @@ function maskHeredocs(text) {
   let scanned = 0;
   let segStart = 0; // start of the command segment `scanned` is in
   let judged = -1; // segStart of the last operator examined
+  let lineEnd = -1; // end of the line the last sink was on (-1: none yet)
+  let pipeAt = -1; // next unquoted `|` on that line at/after the last scan, or lineEnd
   HEREDOC.lastIndex = 0;
   let m;
   while ((m = HEREDOC.exec(out))) {
@@ -142,21 +144,29 @@ function maskHeredocs(text) {
     if (segStart === judged) continue;
     judged = segStart;
     if (!DATA_SINK.test(out.slice(segStart, m.index))) continue;
-    const lineEnd = out.indexOf('\n', m.index);
-    if (lineEnd === -1) break; // no body
-    // Piped onward? Scan the rest of this segment (quotes skipped) for `|`.
-    let piped = false;
-    for (let i = m.index + m[0].length, q = null; i < lineEnd; i++) {
-      const c = out[i];
-      if (q) {
-        if (c === q) q = null;
-      } else if (c === '"' || c === "'") q = c;
-      else if (c === '|') {
-        piped = true;
-        break;
-      } else if (c === ';' || c === '&') break;
+    if (m.index >= lineEnd) {
+      lineEnd = out.indexOf('\n', m.index);
+      pipeAt = -1; // new line: nothing scanned on it yet
     }
-    if (piped) continue;
+    if (lineEnd === -1) break; // no body
+    // Piped onward? Look for an unquoted `|` anywhere later on the LINE — not
+    // just in this segment: `&` also appears in redirections (`2>&1 | bash`),
+    // and a pipe in a later command only errs toward gating. The next pipe's
+    // position is cached, so repeated sinks on one line scan disjoint ranges.
+    if (pipeAt <= m.index) {
+      pipeAt = lineEnd; // none found
+      for (let i = m.index + m[0].length, q = null; i < lineEnd; i++) {
+        const c = out[i];
+        if (q) {
+          if (c === q) q = null;
+        } else if (c === '"' || c === "'") q = c;
+        else if (c === '|') {
+          pipeAt = i;
+          break;
+        }
+      }
+    }
+    if (pipeAt < lineEnd) continue; // piped: the body may run
     // The body runs to the delimiter line (tabs stripped for <<-) or the end.
     let end = out.length;
     for (let i = lineEnd + 1; i < out.length;) {
