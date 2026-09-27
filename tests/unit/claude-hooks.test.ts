@@ -247,6 +247,18 @@ describe('push-review-gate: isGitPush command detection', () => {
     ["bash <<'EOF'\ngit push\nEOF", true], // a shell runs the body
     ["cat <<'EOF' > x.txt\ndon't\nEOF\ngit push", true], // body apostrophe can't hide a later push
     ['cat <<EOF\n$(git push)\nEOF', true], // unquoted delimiter: substitution runs
+    // Found at code review of the heredoc masking, 2026-09-27
+    ['git commit -m "mask <<\'EOF\' bodies"\ngit push -u origin x', true], // operator inside quotes
+    ['echo "<<\'X\' "\ngit push origin other', true],
+    ['cat "notes <<\'EOF\' here"\ngit push origin x', true], // a data sink, but the operator is quoted
+    ["cat <<'EOF' | bash\ngit push origin x\nEOF", true], // body piped to a shell
+    ["sudo bash <<'EOF'\ngit push\nEOF", true],
+    ["bash -s -- a <<'EOF'\ngit push\nEOF", true],
+    ["git commit -F - <<'EOF'\nnever run `git push` here\nEOF", false], // data sink
+    ['gh pr create --body "$(cat <<\'EOF\'\nthen `git push`\nEOF\n)"', false],
+    ['git push origin x # --dry-run later', true], // dry-run flag in a comment
+    ['git push origin x # -n', true],
+    ['git push --dry-run # really', false],
     ['powershell -File deploy.ps1', false],
     ['pwsh -NoProfile -ExecutionPolicy Bypass -Command "git status"', false],
     // NOT pushes:
@@ -310,6 +322,8 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     const started = performance.now();
     isGitPush(`xargs ${flags} echo`);
     isGitPush(`sudo ${flags} echo`);
+    // Thousands of unterminated heredoc operators: one pass, not one scan each.
+    isGitPush(`cat ${"<<'E1'\n".repeat(3000)}`);
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });

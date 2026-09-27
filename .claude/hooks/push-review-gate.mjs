@@ -50,9 +50,9 @@ const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 // aliases (`git -c alias.p=push p`), pushes run from a script file,
 // `Start-Process git -ArgumentList …`, and escaped quotes inside a quoted
 // span (`"a \" git push"`), which the mask does not model. In the other
-// direction, an UNQUOTED-delimiter heredoc body (`<<EOF`) is read as
-// commands, so prose in one that puts `git push` in command position is
-// gated (use `<<'EOF'`, whose body is masked like a quoted string).
+// direction, a heredoc body is read as commands unless its delimiter is
+// quoted AND a data sink reads it (see maskHeredocs), so prose in one that
+// puts `git push` in command position is gated (use `cat > f <<'EOF'`).
 // ---------------------------------------------------------------------------
 
 const QUOTED = /@'[\s\S]*?'@|'[^']*'|"[^"]*"/g;
@@ -100,28 +100,62 @@ const ENCODED = new RegExp(
 const DRY_RUN = /(?:^|\s)(?:--dry-run|-n)(?=\s|$)/;
 
 // A heredoc with a QUOTED delimiter (`<<'EOF'`, `<<"EOF"`) has a literal body:
-// no expansion, no substitution — it is data, like a quoted string (a commit
-// message written with `cat > msg <<'EOF'` routinely quotes `git push`). Its
-// body is masked, unless the heredoc feeds a shell (`bash <<'EOF'`), whose
-// body runs as commands. An unquoted delimiter's body can execute `$(…)` and
-// backticks, so it stays visible.
-const HEREDOC = /<<(-?)\s*(['"])(\w+)\2[^\n]*\n/g;
-const SHELL_FED =
-  /(?:^|[;&|(])\s*(?:\S*[/\\])?(?:bash|sh|zsh|dash|pwsh|powershell)(?:\.exe)?(?:\s+-\S+)*\s*$/i;
+// no expansion, no substitution. When a known DATA SINK reads it — `cat`,
+// `tee`, `git commit -F -` — and nothing after the operator pipes it onward,
+// the body is data (a commit message routinely quotes `git push`) and is
+// masked like a quoted string. Anything else reading it might run it
+// (`bash <<'EOF'`, `sudo bash`, `cat <<'EOF' | bash`), so it stays visible,
+// as does every unquoted-delimiter body, where `$(…)` and backticks run.
+const HEREDOC = /<<(-?)\s*(['"])(\w+)\2/g;
+const DATA_SINK = /(?:^|[;&|(])\s*(?:cat|tee|git\s+commit\b[^;&|<]*?\s-F\s*-)(?:\s[^;&|<]*)?$/;
 
-/** Same-length mask of quoted-delimiter heredoc bodies (newlines kept). */
+/**
+ * Same-length mask of data-sink heredoc bodies (newlines kept). One
+ * left-to-right pass: quote state is tracked incrementally, so an operator
+ * that only appears inside a quoted string (`-m "mask <<'EOF' bodies"`)
+ * never starts a body, and each body is skipped once masked.
+ */
 function maskHeredocs(text) {
   let out = text;
-  for (const m of text.matchAll(HEREDOC)) {
-    const lineStart = text.lastIndexOf('\n', m.index) + 1;
-    if (SHELL_FED.test(text.slice(lineStart, m.index))) continue;
-    const bodyStart = m.index + m[0].length;
-    const end = new RegExp(`^${m[1] ? '\\t*' : ''}${m[3]}\\r?$`, 'm').exec(text.slice(bodyStart));
-    const bodyEnd = end ? bodyStart + end.index : text.length;
+  let quote = null; // the open quote character at `scanned`, if any
+  let scanned = 0;
+  HEREDOC.lastIndex = 0;
+  let m;
+  while ((m = HEREDOC.exec(out))) {
+    for (; scanned < m.index; scanned++) {
+      const c = out[scanned];
+      if (quote) {
+        if (c === quote) quote = null;
+      } else if (c === '"' || c === "'") quote = c;
+    }
+    if (quote) continue; // inside a quoted string: not an operator
+    const lineStart = out.lastIndexOf('\n', m.index) + 1;
+    const lineEnd = out.indexOf('\n', m.index);
+    if (lineEnd === -1) break; // no body
+    const head = out.slice(lineStart, m.index);
+    const tail = maskQuotes(out.slice(m.index + m[0].length, lineEnd));
+    if (!DATA_SINK.test(head) || tail.includes('|')) continue;
+    // The body runs to the delimiter line (tabs stripped for <<-) or the end.
+    let end = out.length;
+    for (let i = lineEnd + 1; i < out.length;) {
+      const nl = out.indexOf('\n', i);
+      let line = out.slice(i, nl === -1 ? out.length : nl).replace(/\r$/, '');
+      if (m[1]) line = line.replace(/^\t+/, '');
+      if (line === m[3]) {
+        end = i;
+        break;
+      }
+      if (nl === -1) break;
+      i = nl + 1;
+    }
     out =
-      out.slice(0, bodyStart) +
-      text.slice(bodyStart, bodyEnd).replace(/[^\n]/g, '_') +
-      out.slice(bodyEnd);
+      out.slice(0, lineEnd + 1) +
+      out.slice(lineEnd + 1, end).replace(/[^\n]/g, '_') +
+      out.slice(end);
+    // Resume after the body; the quote scan continues from here, unquoted.
+    HEREDOC.lastIndex = end;
+    scanned = end;
+    quote = null;
   }
   return out;
 }
@@ -174,9 +208,11 @@ export function pushSegments(command, depth = 0) {
   for (const [start, end] of segmentRanges(masked)) {
     const seg = text.slice(start, end);
     const segMasked = masked.slice(start, end);
-    // The dry-run flags count only after `push` (`xargs -n 1 git push` is real).
+    // The dry-run flags count only after `push` (`xargs -n 1 git push` is
+    // real), and not inside a trailing `# comment` (quoted `#` is filler).
     const push = PUSH.exec(segMasked);
-    if (push && !DRY_RUN.test(segMasked.slice(push[0].length))) found.push(seg);
+    const args = push ? segMasked.slice(push[0].length).replace(/(?:^|\s)#.*$/s, '') : '';
+    if (push && !DRY_RUN.test(args)) found.push(seg);
     for (const wrapper of WRAPPERS) {
       const m = wrapper.exec(segMasked);
       if (m) found.push(...pushSegments(payloadAt(seg, m[0].length), depth + 1));
