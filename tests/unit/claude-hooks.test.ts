@@ -257,6 +257,8 @@ describe('push-review-gate: isGitPush command detection', () => {
     ["cat <<'EOF' > /dev/null 2>&1 | sh\ngit push\nEOF", true],
     // Two heredocs on one line: bash reads A's body first, then B's.
     ["cat <<'A' | bash; cat > b <<'B'\ngit push\nA\nx\nB", true],
+    ["bash <<EOF; cat > b <<'B'\ngit push\nEOF\nx\nB", true], // unquoted first delimiter counts too
+    ['cat <<< "x"; cat > m.txt <<\'EOF\'\ngit push\nEOF', false], // a here-string is not a heredoc
     ["bash -s -- a <<'EOF'\ngit push\nEOF", true],
     ["git commit -F - <<'EOF'\nnever run `git push` here\nEOF", false], // data sink
     ['gh pr create --body "$(cat <<\'EOF\'\nthen `git push`\nEOF\n)"', false],

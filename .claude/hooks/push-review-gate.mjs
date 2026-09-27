@@ -157,7 +157,8 @@ function maskHeredocs(text) {
       );
       // (A separate regex: `match` on the shared global HEREDOC would reset
       // its lastIndex and restart the outer exec loop.)
-      multiOnLine = (maskQuotes(line).match(/<<-?\s*(['"])\w+\1/g) ?? []).length > 1;
+      // Every heredoc counts here, quoted delimiter or not; `<<<` here-strings don't.
+      multiOnLine = (maskQuotes(line).match(/(?<!<)<<(?!<)-?\s*(['"]?)\w+\1/g) ?? []).length > 1;
     }
     if (lineEnd === -1) break; // no body
     if (multiOnLine) continue;
