@@ -41,9 +41,9 @@ Claude calls `list_portfolio_facets` to get the deduplicated themes / engagement
 ### What it does NOT replace
 
 - The website wizard's visual scaffolding remains the right surface for stakeholders who want to _see_ the question hierarchy and tweak inputs interactively. The MCP path is for users already in a Claude conversation who'd rather not leave it.
-- This is an internal tool today — no client-facing endpoints. Remote HTTP, OAuth, and rate-limiting are tracked under BL-032 / BL-033.
+- It is not a separate product surface with its own UI: the same engines serve the website, the local stdio server, and the remote Worker at `mcp.globalstrategic.tech` (see [Remote](#remote-cloudflare-worker) below).
 
-> **Want to see one of these scenarios end-to-end?** [`src/docs/tools/diligence/USAGE.md`](src/docs/tools/diligence/USAGE.md) walks through scenario #1 (live agenda drafting) for a hypothetical PE majority-stake TDD — full prose prompt, schema mapping, engine output, trigger map, comparable engagements, and iteration patterns. Each per-tool directory under `src/docs/<tool>/` ships its own `USAGE.md` walkthrough.
+> **Want to see one of these scenarios end-to-end?** [`src/docs/tools/diligence/USAGE.md`](src/docs/tools/diligence/USAGE.md) walks through scenario #1 (live agenda drafting) for a hypothetical PE majority-stake TDD — full prose prompt, schema mapping, engine output, trigger map, comparable engagements, and iteration patterns. Each per-tool directory under `src/docs/tools/<tool>/` ships its own `USAGE.md` walkthrough.
 
 ---
 
@@ -84,9 +84,9 @@ URI stability is enforced by [`tests/integration/resource-uri-stability.test.ts`
 
 **Resource embedding pattern** (V1 finding, fixed in Commit 5): MCP Resources are not model-fetchable from prompt expansion in Claude Desktop — they're surfaced through the connectors UX as user-pinnable references. Prompts that need a Resource's body inline (canonical taxonomies, snapshots) ship it as an `EmbeddedResource` content block (second message in `build()`'s output), implemented in [`src/prompts/embed.ts`](src/prompts/embed.ts) — `embedLibraryArticle()` and `embedFyiRadarSnapshot()`. The 123-framework `gst://regulations/...` set is too large to embed; instead, the search-result `summary` / `scope` / `keyRequirements` / `penalties` fields ground the `gst_regulatory_exposure_brief` body's per-framework prose. URI changes to these patterns require updating the corresponding prompt's `orchestrates` field (the registry-invariant test catches drift).
 
-Same engines, same outputs as the website — calling via MCP eliminates the browser round-trip. Remote HTTP transport, OAuth, and Workers deployment are tracked separately as BL-032 / BL-032.5 / BL-032.75 / BL-033.
+Same engines, same outputs as the website — calling via MCP eliminates the browser round-trip, locally over stdio or remotely through the Worker.
 
-Per-tool input contracts live alongside their domain in [`src/docs/<tool>/CONTRACT.md`](src/docs/tools/README.md). The contracts registry at [`src/docs/tools/README.md`](src/docs/tools/README.md) tracks all of them and explains the pattern.
+Per-tool input contracts live alongside their domain in [`src/docs/tools/<tool>/CONTRACT.md`](src/docs/tools/README.md). The contracts registry at [`src/docs/tools/README.md`](src/docs/tools/README.md) tracks all of them and explains the pattern.
 
 ### Prompts (12): GST consultant workflows
 
@@ -256,11 +256,15 @@ Edit `~/.cursor/mcp.json` (or use Cursor Settings → MCP):
 }
 ```
 
-### Remote (BL-032 — bearer-token auth, in progress)
+### Remote (Cloudflare Worker)
 
-Once BL-032 ships to production, the same surface is reachable over HTTPS at `mcp.globalstrategic.tech` with a per-team-member bearer token — no clone, no `npm run build`, no `dist/index.js` path. Useful for: borrowed laptops, mobile, ephemeral CI agents, Slack/Discord bots.
+The same surface is live over HTTPS at `mcp.globalstrategic.tech` (staging: `mcp-staging.globalstrategic.tech`) — no clone, no `npm run build`, no `dist/index.js` path. Topology: [ARCHITECTURE.md § Auth, CORS & deploy topology](src/docs/ARCHITECTURE.md#auth-cors--deploy-topology).
 
-**Phase 2 status (2026-05-04)**: bearer-token auth + CORS substrate is in place; `wrangler dev` works locally; production URL goes live in [deploy topology](src/docs/ARCHITECTURE.md#auth-cors--deploy-topology).
+- **Auth**: OAuth 2.1 from an embedded authorization server (PKCE, pre-registered and M2M `client_credentials` clients — [ADR-0008](../src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md)) alongside static bearer keys for the team. A self-serve 3-day trial issues short-lived M2M credentials from `/hub/mcp/trial/` (`src/trial/`).
+- **Rate limits**: per-client tier ceilings with `RateLimit-Policy` headers ([ADR-0010](../src/docs/adr/0010-per-client-rate-limit-tiers.md), [RATE_LIMITS.md](src/docs/operations/RATE_LIMITS.md)) — tunable capability ceilings, not an SLA.
+- **Still open under BL-033** ([BACKLOG.md](../src/docs/development/BACKLOG.md)): the compliance audit log shipped its emission half ([ADR-0009](../src/docs/adr/0009-compliance-audit-log-hash-chain.md)) and was then deactivated for lack of a consumer ([ADR-0014](../src/docs/adr/0014-deactivate-audit-pipeline.md)); pen test, SLA ratification and regional latency remain open.
+
+For onboarding an external pilot client: see [`src/docs/operations/PILOT_ONBOARDING.md`](src/docs/operations/PILOT_ONBOARDING.md).
 
 For team members configuring a remote client (per-client snippets, troubleshooting, rate-limit etiquette): see [`src/docs/operations/REMOTE_CLIENT_SETUP.md`](src/docs/operations/REMOTE_CLIENT_SETUP.md).
 
@@ -390,16 +394,16 @@ Engine parity with zero behavioral divergence is the explicit BL-031 outcome.
 
 ## How this fits with sibling initiatives
 
-| BL        | Adds                                                                                         | File-system footprint                                                                                                             | Status  |
-| --------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| BL-031    | Local stdio + diligence + portfolio tools                                                    | `mcp-server/src/{index,schemas}.ts`, `mcp-server/src/tools/*`                                                                     | ✅ Done |
-| BL-031.5  | Hub Surface Extension — ICG/TechPar/Tech Debt tools, Library + Regulations + Radar Resources | `mcp-server/src/resources/`, `mcp-server/src/content/`, `mcp-server/src/tools/{icg,techpar,tech-debt,regulations,radar-cache}.ts` | ✅ Done |
-| BL-031.75 | Prompts primitive (`gst_*` slash-commands)                                                   | `mcp-server/src/prompts/`, `mcp-server/tests/prompts/`                                                                            | ✅ Done |
-| BL-031.85 | Tool Input Contracts (registry + per-tool CONTRACT.md docs)                                  | `mcp-server/src/docs/tools/`, `mcp-server/src/docs/<tool>/CONTRACT.md`                                                            | ✅ Done |
-| BL-032    | HTTP transport on Cloudflare Workers                                                         | `mcp-server/src/worker.ts`, `mcp-server/src/auth/`                                                                                | Backlog |
-| BL-032.5  | Remote Resources + Prompts, scope catalog, Worker Cron for radar refresh                     | `mcp-server/src/cache/`, `mcp-server/src/cron/`                                                                                   | Backlog |
-| BL-032.75 | Production observability maturity (SLOs, dashboards, alerts)                                 | `mcp-server/src/metrics/`, `mcp-server/observability/`                                                                            | Backlog |
-| BL-033    | OAuth, audit logs, prompt-injection hardening                                                | `mcp-server/src/auth/oauth/`                                                                                                      | Backlog |
+| BL        | Adds                                                                                                                                                                                                                                                         | File-system footprint                                                                                                             | Status  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| BL-031    | Local stdio + diligence + portfolio tools                                                                                                                                                                                                                    | `mcp-server/src/{index,schemas}.ts`, `mcp-server/src/tools/*`                                                                     | ✅ Done |
+| BL-031.5  | Hub Surface Extension — ICG/TechPar/Tech Debt tools, Library + Regulations + Radar Resources                                                                                                                                                                 | `mcp-server/src/resources/`, `mcp-server/src/content/`, `mcp-server/src/tools/{icg,techpar,tech-debt,regulations,radar-cache}.ts` | ✅ Done |
+| BL-031.75 | Prompts primitive (`gst_*` slash-commands)                                                                                                                                                                                                                   | `mcp-server/src/prompts/`, `mcp-server/tests/prompts/`                                                                            | ✅ Done |
+| BL-031.85 | Tool Input Contracts (registry + per-tool CONTRACT.md docs)                                                                                                                                                                                                  | `mcp-server/src/docs/tools/`, `mcp-server/src/docs/tools/<tool>/CONTRACT.md`                                                      | ✅ Done |
+| BL-032    | HTTP transport on Cloudflare Workers                                                                                                                                                                                                                         | `mcp-server/src/worker.ts`, `mcp-server/src/auth/`                                                                                | ✅ Done |
+| BL-032.5  | Remote Resources + Prompts, scope catalog, Worker Cron for radar refresh                                                                                                                                                                                     | `mcp-server/src/cache/`, `mcp-server/src/cron/`                                                                                   | ✅ Done |
+| BL-032.75 | Production observability maturity (SLOs, dashboards, alerts)                                                                                                                                                                                                 | `mcp-server/src/metrics/`, `mcp-server/observability/`                                                                            | ✅ Done |
+| BL-033    | External-pilot hardening: OAuth 2.1, rate-limit tiers, audit log, onboarding (bearer hardening, OAuth and tiers shipped; audit log half-shipped then deactivated; status page and onboarding playbook half shipped; pen test, SLA and regional latency open) | `mcp-server/src/oauth/`, `mcp-server/src/ratelimit/`, `mcp-server/src/audit/`                                                     | Open    |
 
 The `src/` layout is additive — sibling work drops in alongside `tools/` without restructuring.
 
@@ -450,16 +454,16 @@ Why bundle instead of vanilla `tsc`? The website source uses extensionless impor
 
 **Cross-cutting secrets** — [`../src/docs/operations/SECRETS_INVENTORY.md`](../src/docs/operations/SECRETS_INVENTORY.md)
 
-**Per-tool docs** — `src/docs/<tool>/` each contains a `CONTRACT.md` (input schema + downstream effects) and `USAGE.md` (operator-facing how-to):
+**Per-tool docs** — `src/docs/tools/<tool>/` each contains a `CONTRACT.md` (input schema + downstream effects) and `USAGE.md` (operator-facing how-to):
 
 - Contracts: [diligence/CONTRACT.md](src/docs/tools/diligence/CONTRACT.md) · [portfolio/CONTRACT.md](src/docs/tools/portfolio/CONTRACT.md) · [icg/CONTRACT.md](src/docs/tools/icg/CONTRACT.md) · [techpar/CONTRACT.md](src/docs/tools/techpar/CONTRACT.md) · [tech-debt/CONTRACT.md](src/docs/tools/tech-debt/CONTRACT.md) · [regulatory-map/CONTRACT.md](src/docs/tools/regulatory-map/CONTRACT.md) · [radar/CONTRACT.md](src/docs/tools/radar/CONTRACT.md)
 - Registries / indexes: [contracts/](src/docs/tools/) (per-tool input contract registry) · [library/](src/docs/library/) · [prompts/](src/docs/prompts/)
 
-**Architecture / design** — `../src/docs/development/MCP_SERVER_*.md` (22 docs spanning BL-031 → BL-048). Master index: [BACKLOG.md](../src/docs/development/BACKLOG.md).
+**Architecture / design** — maintained reference: [`src/docs/ARCHITECTURE.md`](src/docs/ARCHITECTURE.md); closed-initiative history: `../src/docs/development/_archive/MCP_SERVER_*.md`. Open work: [BACKLOG.md](../src/docs/development/BACKLOG.md).
 
 **Observability** — `observability/`
 
-- [slo-baselines.md](observability/slo-baselines.md) — Phase 2 baselining in progress (first data-pull 2026-06-07)
+- [slo-baselines.md](observability/slo-baselines.md) — baselines filled and signed off 2026-07-14
 - Architecture: [`src/docs/ARCHITECTURE.md` § Observability](src/docs/ARCHITECTURE.md#observability); design + closure history: [archived initiative doc](../src/docs/development/_archive/MCP_SERVER_OBSERVABILITY_BL-032_75.md)
 
 ---

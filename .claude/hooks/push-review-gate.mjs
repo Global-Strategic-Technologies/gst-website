@@ -1,13 +1,22 @@
 /**
  * Claude Code PreToolUse hook — git-push gate (Implementation Review Gate).
  *
- * Fires on every Bash/PowerShell tool call; fast-exits 0 unless the command is
- * a real `git push`. On a push, requires a fresh impl-review marker written by
- * the code-reviewer agent (.claude/tasks/impl-review.json) whose recorded
+ * Fires on every Bash/PowerShell tool call; fast-exits 0 unless the command
+ * contains a `git push`. On a push, requires a fresh impl-review marker written
+ * by the code-reviewer agent (.claude/tasks/impl-review.json) whose recorded
  * headSha matches the repo's CURRENT HEAD — so yesterday's review cannot
  * approve today's unrelated commits, new commits after review force re-review,
  * and a failed push retries without burning the review (SHA-binding, no
  * consumption).
+ *
+ * Detection is deliberately blunt: `git … push` ANYWHERE in the command text,
+ * quoted or not. That catches wrapped pushes (`bash -c "git push"`,
+ * `pwsh -Command '…'`, `cmd /c`, `eval`, a quoted path to git.exe) without
+ * modelling any shell. The cost is an occasional false block on a command
+ * that merely MENTIONS a push (e.g. in an inline commit message) — write such
+ * text to a file (`git commit -F`), as CLAUDE.md Directive 15 already asks.
+ * This hook guards against accidental unreviewed pushes; the merge itself is
+ * guarded by the branch ruleset and required checks.
  *
  * Exit semantics: exit 2 BLOCKS (stderr fed to Claude); exit 0 allows; any
  * other exit is NON-blocking (fail-open) — hence the $CLAUDE_PROJECT_DIR-
@@ -27,29 +36,14 @@ const MARKER = resolve(MARKER_DIR, 'impl-review.json');
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // loose belt; the SHA is the real check
 const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 
-/**
- * Detect a real `git push` in a shell command string.
- * - Quoted segments are stripped first so `git commit -m "explain git push"`
- *   never trips the gate.
- * - The command is split on shell separators (;, &, |, &&, ||, newline,
- *   then/do) and EACH segment is tested independently: `git` must be in
- *   command position within its segment (optional sudo/path prefix), with
- *   `push` as its subcommand (allowing intervening `-C dir` / `-c key=val`).
- *   Per-segment evaluation means a real push anywhere in a compound command
- *   gates, and a `--dry-run` in one segment cannot exempt a different one.
- * - `--dry-run` pushes are exempt (harmless by definition).
- */
+// `git` (optionally git.exe, optionally a quoted path to it), then only
+// git's own options (`-C dir`, `-c k=v`, `--flag`), then `push`. Options only,
+// so `git stash push` is not a push.
+const PUSH = /\bgit(?:\.exe)?["']?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/i;
+
+/** True when the command contains a `git push` anywhere, quoted or not. */
 export function isGitPush(command) {
-  if (typeof command !== 'string' || command.length === 0) return false;
-  const unquoted = command
-    .replace(/'[^']*'/g, ' ')
-    .replace(/"[^"]*"/g, ' ')
-    .replace(/@'[\s\S]*?'@/g, ' '); // PowerShell here-strings
-  const pushSegment =
-    /^\s*(?:sudo\s+)?(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
-  return unquoted
-    .split(/&&|\|\||[;&|\n]|\bthen\b|\bdo\b/)
-    .some((segment) => pushSegment.test(segment) && !segment.includes('--dry-run'));
+  return typeof command === 'string' && PUSH.test(command);
 }
 
 function block(reason) {
@@ -59,7 +53,8 @@ function block(reason) {
       `conventions, records the HEAD sha, and writes ${MARKER}). ` +
       `If (and only if) the user explicitly authorized pushing without review (e.g. a trivial ` +
       `docs-only diff), write the marker yourself with verdict "USER_WAIVED", the user's quoted ` +
-      `waiver in a "waiver" field, and the current HEAD sha.\n`
+      `waiver in a "waiver" field, and the current HEAD sha. If the command only MENTIONS a ` +
+      `push (e.g. an inline commit message), write that text to a file instead.\n`
   );
   process.exit(2);
 }
@@ -74,8 +69,7 @@ if (isMain) {
     /* no/invalid stdin: not a recognizable tool call — stay inert */
   }
 
-  const command = payload?.tool_input?.command ?? '';
-  if (!isGitPush(command)) {
+  if (!isGitPush(payload?.tool_input?.command)) {
     process.exit(0); // fast path: not a push — inert for all other traffic
   }
 
@@ -88,6 +82,10 @@ if (isMain) {
     marker = JSON.parse(readFileSync(MARKER, 'utf-8'));
   } catch {
     block('impl-review marker is unreadable/malformed JSON (fail closed).');
+  }
+  // `null` parses fine but would throw below, exiting 1 — which fails open.
+  if (!marker || typeof marker !== 'object') {
+    block('impl-review marker is not a JSON object (fail closed).');
   }
 
   if (!ALLOWED_VERDICTS.has(marker.verdict)) {

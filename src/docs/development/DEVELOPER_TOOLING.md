@@ -848,8 +848,8 @@ Two Claude Code PreToolUse hooks mechanically enforce the review directives in [
 
 | Gate                          | Blocks                     | Requires                                                                                                                                                                     | Reviewer agent  |
 | ----------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| **Design Review Gate**        | `ExitPlanMode` (plan exit) | `.claude/tasks/plan-review.json` — verdict `APPROVE`/`USER_WAIVED`, `planContentSha256` matching the CURRENT plan-file bytes, `reviewedAt` < 24 h                             | `plan-reviewer` |
-| **Implementation Review Gate** | any real `git push`        | `.claude/tasks/impl-review.json` — verdict `APPROVE`/`USER_WAIVED`, `headSha` equal to current `git rev-parse HEAD`                                                          | `code-reviewer` |
+| **Design Review Gate**        | `ExitPlanMode` (plan exit) | `.claude/tasks/plan-review.json` — verdict `APPROVE`/`USER_WAIVED`, `reviewedPlanFile` equal to the plan being exited, `planContentSha256` matching its CURRENT bytes, `reviewedAt` < 24 h | `plan-reviewer` |
+| **Implementation Review Gate** | any command containing `git … push` | `.claude/tasks/impl-review.json` — verdict `APPROVE`/`USER_WAIVED`, `headSha` equal to current `git rev-parse HEAD` | `code-reviewer` |
 
 ### Setup (once per machine/clone)
 
@@ -864,13 +864,14 @@ This runs [.claude/hooks/install.mjs](../../../.claude/hooks/install.mjs), which
 - **Content/SHA binding, not consumption**: the plan marker stores a sha256 of the plan file it reviewed; the push marker stores the HEAD sha it reviewed. Editing the plan (or adding commits) after review invalidates the marker automatically — and a user *rejection* without edits, or a *failed push retry*, does NOT burn the review.
 - **Fail-open pitfall (load-bearing)**: for PreToolUse hooks, only **exit 2 blocks** — any other non-zero exit is a non-blocking error and the tool call PROCEEDS. This is why the registered commands are `$CLAUDE_PROJECT_DIR`-absolute (a relative path would "Cannot find module"-exit-1 whenever the session has `cd`'d, silently disarming the gate) and why the scripts fail CLOSED (exit 2) on missing/malformed/stale markers. Unit coverage: [tests/unit/claude-hooks.test.ts](../../../tests/unit/claude-hooks.test.ts).
 - **Waivers**: only the user can waive a gate. The main agent then writes the marker with verdict `USER_WAIVED`, a `waiver` field quoting the user, and the current plan-hash/HEAD-sha. Agents must never hand-write an `APPROVE`.
-- The push gate ignores everything that isn't a real push: quoted mentions (`git commit -m "about git push"`), `git stash push`, `git push --dry-run`, and all non-git traffic fast-exit clean.
+- **Bound to the plan being exited**: the ExitPlanMode payload carries `tool_input.planFilePath` (and the plan text). The gate blocks when the marker's `reviewedPlanFile` is a different file, and fails closed when the payload names no plan. Before 2026-09-27 it trusted the marker's own `reviewedPlanFile`, so an APPROVE for an earlier plan let a new, unreviewed plan exit.
+- **Push detection is deliberately blunt**: `git … push` anywhere in the command text counts, quoted or not (only git's own options may sit between, so `git stash push` doesn't). That catches wrapped pushes — `bash -c "git push"`, `pwsh -Command`, `cmd /c`, `eval`, a quoted path to `git.exe` — without modelling any shell. The accepted cost is a false block on a command that merely mentions a push, such as an inline commit message: write that text to a file and use `git commit -F`. The hook guards against accidental unreviewed pushes; the merge is guarded by the branch ruleset and required checks. (A 2026-09-27 attempt to parse shell structure precisely grew to ~300 lines and kept leaking; don't revive it.)
 
 ### Troubleshooting
 
 - **"Design Review Gate: … EDITED since it was reviewed"** — expected after revising a plan; send the revised plan back to `plan-reviewer`.
 - **"Implementation Review Gate: … new commits exist since the review"** — expected after adding commits; re-run `code-reviewer` on the final state.
-- **Gate blocks something it shouldn't** — inspect the marker (`.claude/tasks/*.json`), fix or delete it, re-run the reviewer. Markers are gitignored runtime state; deleting them is always safe (the next review recreates them).
+- **Gate blocks something it shouldn't** — inspect the marker (`.claude/tasks/*.json`), fix or delete it, re-run the reviewer. Markers are gitignored runtime state in `.claude/tasks/` (the directory is kept by a tracked `.gitkeep`); deleting them is always safe (the next review recreates them).
 - **Gates not firing at all** — `npm run setup:claude-hooks` hasn't been run on this machine, or `settings.local.json` was replaced; re-run the installer.
 
 ---

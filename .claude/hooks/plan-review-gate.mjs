@@ -8,6 +8,9 @@
  *  - user rejects the plan without edits → same hash → re-exit allowed, no
  *    wasted re-review;
  *  - ANY post-review edit to the plan → hash mismatch → re-review required.
+ * The marker is also bound to the plan being EXITED (the payload's
+ * tool_input.planFilePath, or its plan text as a fallback): a marker for a
+ * different plan file blocks, and a payload naming no plan fails closed.
  *
  * Exit semantics (load-bearing): exit 2 BLOCKS the tool call and feeds stderr
  * back to Claude; exit 0 allows. Any other exit code is NON-blocking (the tool
@@ -44,12 +47,30 @@ function block(reason) {
   process.exit(2);
 }
 
-// Drain stdin (hook payload) — this gate needs no fields from it, but leaving
-// stdin unread can block the parent on some platforms.
+// An uncaught error would exit 1, which does not block (fail open). This gate
+// only ever runs on ExitPlanMode, so any unexpected error blocks instead.
+process.on('uncaughtException', (err) => block(`internal error (fail closed): ${err?.message}`));
+
+// The hook payload names the plan being exited: tool_input.planFilePath (and
+// tool_input.plan, its text). The marker is only valid for THAT plan — an
+// APPROVE for some other plan file must not let this one through (it did, on
+// 2026-09-26, when a stale marker for an earlier plan approved a new one).
+let toolInput = {};
 try {
-  readFileSync(0, 'utf-8');
+  toolInput = JSON.parse(readFileSync(0, 'utf-8'))?.tool_input ?? {};
 } catch {
-  /* stdin may be empty/closed — fine */
+  /* stdin empty/invalid — handled below as "no plan identity" (fail closed) */
+}
+
+/** Compare file paths the way the OS does: case-insensitively on Windows. */
+function samePath(a, b) {
+  const norm = (p) => (process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p));
+  return norm(a) === norm(b);
+}
+
+/** Plan text compared without line-ending or trailing-whitespace noise. */
+function normalizePlanText(text) {
+  return String(text).replace(/\r\n/g, '\n').trimEnd();
 }
 
 if (!existsSync(MARKER)) {
@@ -61,6 +82,9 @@ try {
   marker = JSON.parse(readFileSync(MARKER, 'utf-8'));
 } catch {
   block('plan-review marker is unreadable/malformed JSON (fail closed).');
+}
+if (!marker || typeof marker !== 'object') {
+  block('plan-review marker is not a JSON object (fail closed).');
 }
 
 if (!ALLOWED_VERDICTS.has(marker.verdict)) {
@@ -81,11 +105,43 @@ if (!marker.reviewedPlanFile || !existsSync(marker.reviewedPlanFile)) {
   block('marker does not reference a readable plan file (fail closed).');
 }
 
+// Bind the marker to the plan being exited. planFilePath is preferred; the
+// plan text is the fallback; a payload carrying neither fails closed rather
+// than trusting the marker's own claim about which plan it reviewed.
+const exitingPath = typeof toolInput.planFilePath === 'string' ? toolInput.planFilePath : '';
+const exitingText = typeof toolInput.plan === 'string' ? toolInput.plan : null;
+if (exitingPath) {
+  if (!samePath(exitingPath, marker.reviewedPlanFile)) {
+    block(
+      `the marker reviewed ${marker.reviewedPlanFile}, but you are exiting ${exitingPath} — ` +
+        're-run the plan-reviewer on the plan being exited.'
+    );
+  }
+} else if (exitingText !== null) {
+  if (
+    normalizePlanText(exitingText) !==
+    normalizePlanText(readFileSync(marker.reviewedPlanFile, 'utf-8'))
+  ) {
+    block(
+      'the plan being exited is not the plan the marker reviewed (text mismatch) — ' +
+        're-run the plan-reviewer on the plan being exited.'
+    );
+  }
+} else {
+  block(
+    'the ExitPlanMode payload names no plan (no tool_input.planFilePath or plan), so the ' +
+      'marker cannot be bound to it (fail closed).'
+  );
+}
+
+// Hash the plan being exited (same file as the marker's once the path check passed).
 let currentHash;
 try {
-  currentHash = createHash('sha256').update(readFileSync(marker.reviewedPlanFile)).digest('hex');
+  currentHash = createHash('sha256')
+    .update(readFileSync(exitingPath || marker.reviewedPlanFile))
+    .digest('hex');
 } catch {
-  block('could not hash the referenced plan file (fail closed).');
+  block('could not hash the plan file (fail closed).');
 }
 
 if (currentHash !== marker.planContentSha256) {

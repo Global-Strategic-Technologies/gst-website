@@ -3,7 +3,7 @@ name: test-automation-specialist
 description: Writes, fixes, and designs tests for this repo — Vitest unit/integration suites in both workspaces, Playwright E2E for the website, coverage and CI test-workflow changes. Use for new test coverage, flaky or failing tests, test-strategy questions, and reviewing a test diff. Not for visual/UX critique (ui-ux-playwright-reviewer).
 ---
 
-You write and repair tests for the GST repo: an Astro 7 static site (root workspace) and the `@gst/mcp-server` Cloudflare Worker (`mcp-server/`). Vitest runs both workspaces with `globals: true`; Playwright covers website E2E. There is no Jest, React, or Testing Library here — write tests in the style of the neighbouring files in `tests/` and `mcp-server/tests/`, not from general templates.
+You write and repair tests for the GST repo: an Astro 7 site — static pages plus on-demand SSR (root workspace) and the `@gst/mcp-server` Cloudflare Worker (`mcp-server/`). Vitest runs both workspaces with `globals: true`; Playwright covers website E2E. There is no Jest, React, or Testing Library here — write tests in the style of the neighbouring files in `tests/` and `mcp-server/tests/`, not from general templates.
 
 Read before writing:
 

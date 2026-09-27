@@ -1,6 +1,6 @@
 # Global Strategic Technologies — Website & MCP Server
 
-A high-performance website for GST built with Astro and deployed to Vercel — tech brutalist design with dark mode, alternative color palettes, and a suite of interactive hub tools — plus the **GST MCP server** (`mcp-server/` workspace) that exposes the same hub capabilities to LLM clients, deployed as a Cloudflare Worker at `mcp.globalstrategic.tech`.
+A high-performance website for GST built with Astro and deployed to Vercel — tech brutalist design with a four-state theme (light, dim light, dim dark, dark), alternative color palettes, and a suite of interactive hub tools — plus the **GST MCP server** (`mcp-server/` workspace) that exposes the same hub capabilities to LLM clients, deployed as a Cloudflare Worker at `mcp.globalstrategic.tech`.
 
 ## Quick Start
 
@@ -55,21 +55,21 @@ gst-website/
 
 ## Commands
 
-| Command                      | Action                                                                             |
-| :--------------------------- | :--------------------------------------------------------------------------------- |
-| `npm run dev`                | Start dev server at `http://localhost:4321`                                        |
-| `npm run build`              | Build production site to `./dist/`                                                 |
-| `npm run preview`            | Preview production build locally                                                   |
-| `npm run test:run`           | Run website unit + integration tests once                                          |
-| `npm run test:mcp`           | Run the MCP server suite (delegates to the workspace)                              |
-| `npm run test:docs`          | Documentation link & anchor integrity guard (required CI check)                    |
-| `npm run test:e2e`           | Run E2E tests (all browsers)                                                       |
-| `npm run test:all`           | Run everything (unit + integration + E2E + MCP)                                    |
-| `npm run test:coverage`      | Run with coverage report                                                           |
-| `npm run lint`               | ESLint                                                                             |
-| `npm run lint:css`           | Stylelint (CSS + .astro scoped styles)                                             |
-| `npm run radar:seed`         | Populate the local stdio MCP radar snapshot with mock data (`radar:unseed` clears) |
-| `npm run setup:claude-hooks` | One-time per machine: arm the Claude Code review-gate hooks                        |
+| Command                      | Action                                                                                                                                                                                                     |
+| :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                | Start dev server at `http://localhost:4321`                                                                                                                                                                |
+| `npm run build`              | Build production site to `./dist/`                                                                                                                                                                         |
+| `npm run preview`            | Preview production build locally                                                                                                                                                                           |
+| `npm run test:run`           | Run website unit + integration tests once                                                                                                                                                                  |
+| `npm run test:mcp`           | Run the MCP server suite (delegates to the workspace)                                                                                                                                                      |
+| `npm run test:docs`          | Docs guards: link/anchor integrity, VARIABLES_REFERENCE↔variables.css parity, design-sync parity, published MCP tool counts, generated-bundle freshness, i18n catalog parity/staleness (required CI check) |
+| `npm run test:e2e`           | Run E2E tests (all browsers)                                                                                                                                                                               |
+| `npm run test:all`           | Run everything (unit + integration + E2E + MCP)                                                                                                                                                            |
+| `npm run test:coverage`      | Run with coverage report                                                                                                                                                                                   |
+| `npm run lint`               | ESLint                                                                                                                                                                                                     |
+| `npm run lint:css`           | Stylelint (CSS + .astro scoped styles)                                                                                                                                                                     |
+| `npm run radar:seed`         | Populate the local stdio MCP radar snapshot with mock data (`radar:unseed` clears)                                                                                                                         |
+| `npm run setup:claude-hooks` | One-time per machine: arm the Claude Code review-gate hooks                                                                                                                                                |
 
 ### Local Validation (matches CI)
 
@@ -98,7 +98,7 @@ npx astro check && npm run lint && npm run lint:css && npm run test:run
 
 ## Design System
 
-Desktop-first responsive design with tech brutalist aesthetic. Dark mode via `html.dark-theme` class; alternative color palettes via `html.palette-N` classes.
+Desktop-first responsive design with tech brutalist aesthetic. Four theme states from two classes on `<html>` — `html.dark-theme` picks the color scheme and `html.theme-dim` the dim variant (see [STYLES_GUIDE.md § Dim states](src/docs/styles/STYLES_GUIDE.md#dim-states-four-state-theme)); alternative color palettes via `html.palette-N` classes. The default look rotates daily and a visitor's pick holds until local midnight (ADR-0040).
 
 - **Tokens**: `src/styles/variables.css` (colors, spacing, typography, transitions, z-index)
 - **Conventions**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md)
