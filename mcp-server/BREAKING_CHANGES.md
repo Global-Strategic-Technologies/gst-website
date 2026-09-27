@@ -48,7 +48,7 @@ in lockstep when the registry shape changes.
 
 **Existing clients keep radar**
 
-- **OAuth grants** keep the scopes they were consented with. New consents stamp `scopeModel: 2` into the grant props; a grant without it (every pre-0.67.0 grant) that holds `tool:*` gets `tool:radar:*` added at request time, unless its tier is `trial`. This holds for as long as those grants live.
+- **OAuth grants** keep the scopes they were consented with. New consents stamp `scopeModel: 2` into the grant props; a grant without it (every pre-0.67.0 grant) keeps the tool access it had in practice, when no tool scope was enforced: it gets `tool:*`, plus `tool:radar:*` unless its tier is `trial`, at request time. This holds for as long as those grants live.
 - **M2M client records** get `tool:radar:*` from the one-time `npm run radar:migrate-scope` script (dry run by default, `--apply` to patch, safe to re-run). It patches every non-trial record holding `tool:*` without `tool:radar:*`, including trials converted in place; it lists, without patching, records with no `tool:*` and records holding off-catalog scopes (PATCH would refuse them — re-provision with `--allow-radar`). Run it at least 1h before approving the production deploy, so every live M2M token of a client that sends no `scope` already carries `tool:radar:*`.
 
 **Client impact**

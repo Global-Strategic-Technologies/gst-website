@@ -196,7 +196,10 @@ describe('MCP onboarding pages — supported clients and the consent page', () =
     // carries canvas width-1/height-1 as 24-bit LE at bytes 24/27.
     const bytes = readFileSync(resolve('public/images/hub/mcp/consent-page-still.webp'));
     const chunk = bytes.toString('ascii', 12, 16);
-    expect(['VP8 ', 'VP8X']).toContain(chunk);
+    expect(
+      ['VP8 ', 'VP8X'],
+      `unsupported WebP chunk "${chunk}" (lossless VP8L is not parsed here; re-render lossy)`
+    ).toContain(chunk);
     const [width, height] =
       chunk === 'VP8X'
         ? [bytes.readUIntLE(24, 3) + 1, bytes.readUIntLE(27, 3) + 1]

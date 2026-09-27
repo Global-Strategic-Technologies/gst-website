@@ -805,7 +805,7 @@ An outage is user-visible but not contractual. The Worker serves the team, OAuth
 | Unpatchable                              | Needs the patch but holds a scope outside the catalog (an `--unsafe-scope` one) | Re-provision, or accept that radar is lost |
 | Already hold `tool:radar:*` / trial-tier | Already migrated, or a trial (never had radar)                                  | Counted and left alone                     |
 
-- **Review.** These records were narrowed below `tool:*`, so under the old prefix rule their tools never covered radar and there is nothing to keep. Read each one's scopes. If a client was meant to have radar, PATCH its `allowedScopes` to add `tool:radar:*` ([AUTH.md § Change an M2M client's tier, scopes or expiry](./AUTH.md#change-an-m2m-clients-tier-scopes-or-expiry-in-place)). Since 0.67.0 a narrowed record is also held to exactly the tools it names, so check that its `tool:<name>` scopes cover what the client actually calls.
+- **Review.** These records were narrowed below `tool:*` on paper, but before 0.67.0 no `tools/call` checked a tool scope, so in practice their clients could call radar and every other tool. From 0.67.0 they lose whatever they don't name, by design. That is the enforcement this release adds, so don't dismiss the group. Read each one's scopes. If a client was meant to have radar, PATCH its `allowedScopes` to add `tool:radar:*` ([AUTH.md § Change an M2M client's tier, scopes or expiry](./AUTH.md#change-an-m2m-clients-tier-scopes-or-expiry-in-place)). Since 0.67.0 a narrowed record is also held to exactly the tools it names, so check that its `tool:<name>` scopes cover what the client actually calls.
 - **Unpatchable.** `PATCH` validates the whole `allowedScopes` array against the catalog, so a record with an off-catalog scope is refused. Either re-provision the client with `npm run provision:client -- --allow-radar` plus its extra scopes (via `--unsafe-scope`), which issues a new credential you must hand over, or accept that it loses radar at deploy.
 
 ### Steps
@@ -818,13 +818,14 @@ An outage is user-visible but not contractual. The Worker serves the team, OAuth
    ```
    For every `MCP_KEY_*_SCOPES` other than `MCP_KEY_WEBSITE_RADAR_SCOPES` (which holds only `resource:radar:read` and needs no tools): add `tool:radar:*` to the override if that key should keep radar (`wrangler secret put … --env <env>`, value on stdin). Flag any override with neither `tool:*` nor a `tool:<name>` for the tools it uses, because from 0.67.0 it loses every tool, not just radar.
 2. **Put the admin key in the environment**, never on the command line (Directive 15):
+   Read it from a masked prompt, pasting from the password manager, so it never lands in shell history or scrollback:
    ```powershell
-   $env:MCP_ADMIN_KEY = '<key>'      # PowerShell
+   $env:MCP_ADMIN_KEY = Read-Host -MaskInput 'MCP admin key'   # PowerShell 7
    ```
    ```bash
-   export MCP_ADMIN_KEY='<key>'      # bash / zsh
+   read -rs MCP_ADMIN_KEY && export MCP_ADMIN_KEY              # bash / zsh
    ```
-3. **Staging** (it auto-deploys from the pushed branch, so do this first):
+3. **Staging, before the branch is pushed.** Staging auto-deploys the pushed branch as soon as its MCP tests pass, so the migration has to be done by then. Running it before the push is harmless: under the old code `tool:*` already covers `tool:radar:*`.
    ```bash
    npm run radar:migrate-scope -- --env staging            # dry run: read the groups
    npm run radar:migrate-scope -- --env staging --apply

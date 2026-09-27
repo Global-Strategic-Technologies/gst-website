@@ -5,16 +5,12 @@
  * result. A handler that wants to gate access checks the auth's `scopes`
  * array via `hasScope(...)` or `assertScope(...)` before doing work.
  *
- * **For BL-032.5** (internal team only, single shared bearer key per
- * member) every wrangler-issued key is configured with the full
- * `DEFAULT_SCOPES` set — every key can do everything. The scope-check
- * call sites still ship so the discipline is exercised in production
- * traffic from day one; they just never reject anything yet.
- *
- * **For BL-033** (external pilot, per-client OAuth tokens) the same
- * scope strings will appear in OAuth-issued tokens with per-client
- * variation. Strings ship now and never change so external clients
- * don't have to adapt their scope handling later.
+ * **Where scopes are enforced** (since BL-166, ADR-0041): every `tools/call`
+ * at the boundary (`pipeline/tool-scope-gate.ts`, after the trial tier gate),
+ * the radar Resource, `/radar/snapshot`, and the radar prompt's embed. Static
+ * roster keys default to `DEFAULT_SCOPES`; OAuth and M2M clients carry
+ * per-client sets. Scope strings never change once shipped, so clients never
+ * have to adapt their scope handling.
  *
  * **Wildcard semantics**: a scope ending in `:*` covers any required
  * scope that starts with the same `prefix:`. So:
@@ -160,11 +156,12 @@ export const SCOPE_MODEL = 2;
  * The scopes a grant actually carries at request time.
  *
  * A grant stamped with `scopeModel >= SCOPE_MODEL` is used as stored. An
- * unmarked grant is a pre-BL-166 artifact: under the old prefix rule its
- * `tool:*` covered radar, so it gets `tool:radar:*` added and keeps exactly
- * the tool access it was consented with — unless its tier is `trial`, which
- * never had radar (the tier gate refused it). Grants without `tool:*` are
- * unchanged: they never covered radar either.
+ * unmarked grant is a pre-BL-166 artifact, consented when no `tools/call`
+ * checked any tool scope: whatever its stored tool scopes said, it could
+ * call every tool, and radar too unless its tier was `trial` (the tier gate
+ * refused that). So it keeps exactly that access: `tool:*`, plus
+ * `tool:radar:*` unless trial. Only tools are restored; resource and prompt
+ * scopes were already enforced (or ungated) and stay as stored.
  *
  * Permanent for as long as unmarked grants live (their props are encrypted
  * per token and cannot be rewritten in place); ADR-0041 records why.
@@ -174,9 +171,9 @@ export function effectiveScopes(
   { scopeModel, tier }: { scopeModel?: unknown; tier?: string }
 ): readonly string[] {
   if (typeof scopeModel === 'number' && scopeModel >= SCOPE_MODEL) return scopes;
-  if (tier === 'trial') return scopes;
-  if (!scopes.includes(SCOPES.TOOL_ALL) || scopes.includes(SCOPES.TOOL_RADAR_ALL)) return scopes;
-  return [...scopes, SCOPES.TOOL_RADAR_ALL];
+  const legacy = [SCOPES.TOOL_ALL, ...(tier === 'trial' ? [] : [SCOPES.TOOL_RADAR_ALL])];
+  const missing = legacy.filter((s) => !scopes.includes(s));
+  return missing.length === 0 ? scopes : [...scopes, ...missing];
 }
 
 /**

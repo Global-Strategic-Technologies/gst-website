@@ -14,8 +14,11 @@
  *   - converted-trial patch  the same, on a record named `trial` (a trial
  *                            converted in place). It reaches radar today, so
  *                            it keeps it; listed apart so the operator sees it.
- *   - review                 non-trial with NO `tool:*` — never covered radar
- *                            by prefix, so nothing to keep; listed, not patched.
+ *   - review                 non-trial with NO `tool:*` — narrowed on paper, but
+ *                            before 0.67.0 nothing enforced tool scopes, so its
+ *                            client could call radar and every tool; it loses
+ *                            what it doesn't name, by design. Listed, not
+ *                            patched: the operator decides.
  *   - unpatchable            needs the patch but holds a scope outside the
  *                            catalog (an `--unsafe-scope` provision). PATCH
  *                            validates the WHOLE array against

@@ -184,9 +184,21 @@ describe('effectiveScopes (BL-166 grant marker)', () => {
     expect(effectiveScopes(['tool:*'], { tier: 'paid' })).toEqual(['tool:*', 'tool:radar:*']);
   });
 
-  it('leaves legacy grants without tool:*, or already holding radar, unchanged', () => {
-    const narrow = ['tool:search_portfolio'];
-    expect(effectiveScopes(narrow, {})).toBe(narrow);
+  it('restores every tool to a narrowed legacy grant — no tool scope was enforced before', () => {
+    // Pre-BL-166 no tools/call checked a tool scope, so a grant naming one
+    // tool (or none) could call all of them, and radar unless trial.
+    expect(effectiveScopes(['tool:search_portfolio'], {})).toEqual([
+      'tool:search_portfolio',
+      'tool:*',
+      'tool:radar:*',
+    ]);
+    expect(effectiveScopes(['resource:library:read'], { tier: 'trial' })).toEqual([
+      'resource:library:read',
+      'tool:*',
+    ]);
+  });
+
+  it('returns a legacy grant that already has its old access unchanged', () => {
     const withRadar = ['tool:*', 'tool:radar:*'];
     expect(effectiveScopes(withRadar, {})).toBe(withRadar);
   });
