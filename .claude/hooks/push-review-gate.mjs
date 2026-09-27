@@ -63,6 +63,8 @@ const QUOTED = /@'[\s\S]*?'@|'[^']*'|"[^"]*"/g;
 // command position; a backtick splits for `…` substitution. `then` and `do`
 // split only as whole shell words — `\bdo\b` would also split the branch name
 // `do-other`, hiding its refspec from the ref check.
+// (The `&` in a redirection such as `2>&1` splits too; the leftover `2>` is
+// skipped as a redirection by pushedSources, so no refspec is misread.)
 const SEPARATOR = /&&|\|\||[;&|\n{}()`]|(?<![^\s;&|])(?:then|do)(?![^\s;&|])/g;
 // A line continuation (bash `\`, PowerShell backtick) joins two lines into one
 // command; blank it (same length) so the split halves are read together.
@@ -289,6 +291,8 @@ function shellWords(segment) {
 
 const VALUE_OPTIONS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
 const UNBINDABLE = new Set(['--all', '--mirror', '--branches']);
+// A redirection operator at the start of a word: `>`, `>>`, `2>`, `2>&`, `&>`, `<`.
+const REDIRECT = /^(?:\d*|&)(?:>>?|<)&?/;
 
 /**
  * What a push segment sends: the source side of each refspec (`+src:dst`),
@@ -306,6 +310,13 @@ export function pushedSources(segment) {
   let deleting = false;
   for (let i = at + 1; i < words.length; i++) {
     const w = words[i];
+    // Redirections (`2>&1`, `>log`, `> log`, `&>log`) are the shell's, not
+    // git's; a bare operator's target is the next word.
+    const redirect = REDIRECT.exec(w);
+    if (redirect) {
+      if (redirect[0] === w) i++;
+      continue;
+    }
     if (w === '--') {
       positional.push(...words.slice(i + 1));
       break;

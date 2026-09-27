@@ -239,6 +239,9 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['for b in a; do git push; done', true], // `do` as a shell word still splits
     ['git push origin do-other:refs/heads/master', true], // `do` inside a ref must NOT split
     ['git push -n', false], // short dry run
+    ['git push -u origin x 2>&1 | tail -4', true],
+    ['sleep 1 & git push', true], // a background `&` separates
+    ['npm test &>/dev/null && git push', true],
     // Heredocs: a quoted delimiter makes the body literal data (a commit
     // message quoting `git push`), unless a shell reads it.
     ["cat > m.txt <<'EOF'\nfix: a bare `git push` here\ngit push\nEOF\ngit commit -F m.txt", false],
@@ -305,6 +308,12 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     ['git push origin feat/do-thing', ['feat/do-thing'], false],
     ['git push origin then-x', ['then-x'], false],
     ['git push origin x # note', ['x'], false], // a comment is not a refspec
+    // Redirections are the shell's (this gate once blocked its own push over `2>`)
+    ['git push -u origin feat/x 2>&1', ['feat/x'], false],
+    ['git push origin x > log.txt 2>&1', ['x'], false],
+    ['git push origin x >log.txt', ['x'], false],
+    ['git push origin x &> log.txt', ['x'], false],
+    ['git push origin x 2> err.txt', ['x'], false],
     ['git push origin "#x"', ['#x'], false], // a quoted `#` is
   ])('%j → %j (unbindable %s)', (segment, sources, unbindable) => {
     expect(pushedSources(segment as string)).toEqual({ sources, unbindable });
@@ -413,6 +422,12 @@ describe('push-review-gate (Implementation Review Gate)', () => {
   // The review covers HEAD; every ref the push names must be HEAD's commit.
   const parentSha = () =>
     execFileSync('git', ['rev-parse', 'HEAD~1'], { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+
+  it('allows a reviewed push whose output is redirected (`2>&1`)', () => {
+    writeMarker();
+    const r = runHook(PUSH_GATE, payload('git push -u origin HEAD 2>&1 | tail -4'), env());
+    expect(r.status).toBe(0);
+  });
 
   it('allows pushing HEAD by name', () => {
     writeMarker();
