@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
 // Hook script lives outside src/ by design (.claude/hooks/); imported directly for unit tests.
-import { isGitPush } from '../../.claude/hooks/push-review-gate.mjs';
+import { isGitPush, pushedSources } from '../../.claude/hooks/push-review-gate.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -58,6 +58,11 @@ afterEach(() => {
 
 describe('plan-review-gate (Design Review Gate)', () => {
   const env = () => ({ GST_HOOK_MARKER_DIR: dir });
+  /** ExitPlanMode payload for the plan being exited (default: the reviewed plan.md). */
+  const exiting = (planFilePath = join(dir, 'plan.md'), plan?: string) => ({
+    tool_name: 'ExitPlanMode',
+    tool_input: plan === undefined ? { planFilePath } : { plan, planFilePath },
+  });
 
   function writePlanAndMarker(
     overrides: Record<string, unknown> = {},
@@ -80,54 +85,106 @@ describe('plan-review-gate (Design Review Gate)', () => {
   }
 
   it('blocks (exit 2) when no marker exists', () => {
-    const r = runHook(PLAN_GATE, {}, env());
+    const r = runHook(PLAN_GATE, exiting(), env());
     expect(r.status).toBe(2);
     expect(r.stderr).toContain('Design Review Gate');
   });
 
   it('allows (exit 0) on fresh APPROVE with matching plan hash', () => {
     writePlanAndMarker();
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(0);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(0);
   });
 
   it('re-allows without re-review when the plan is unchanged (no consumption)', () => {
     writePlanAndMarker();
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(0);
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(0); // user rejected, agent re-exits same plan
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(0);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(0); // user rejected, agent re-exits same plan
   });
 
   it('blocks when the plan was edited after review (hash mismatch)', () => {
     const planFile = writePlanAndMarker();
     writeFileSync(planFile, '# The Plan\n\ndo DIFFERENT things\n', 'utf-8');
-    const r = runHook(PLAN_GATE, {}, env());
+    const r = runHook(PLAN_GATE, exiting(), env());
     expect(r.status).toBe(2);
     expect(r.stderr).toContain('EDITED');
   });
 
   it('blocks on REVISE verdict', () => {
     writePlanAndMarker({ verdict: 'REVISE' });
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(2);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(2);
   });
 
   it('allows USER_WAIVED with matching hash', () => {
     writePlanAndMarker({ verdict: 'USER_WAIVED', waiver: 'user said: skip review' });
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(0);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(0);
   });
 
   it('blocks a stale (>24h) marker', () => {
     writePlanAndMarker({ reviewedAt: new Date(Date.now() - 25 * 3600_000).toISOString() });
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(2);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(2);
   });
 
   it('fails CLOSED (exit 2, not 1) on malformed marker JSON', () => {
     writeFileSync(join(dir, 'plan-review.json'), '{not json', 'utf-8');
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(2);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(2);
   });
 
   it('fails CLOSED when the referenced plan file is missing', () => {
     writePlanAndMarker({ reviewedPlanFile: join(dir, 'gone.md') });
-    expect(runHook(PLAN_GATE, {}, env()).status).toBe(2);
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(2);
   });
+
+  // The marker must approve the plan being EXITED, not whichever plan it
+  // names. On 2026-09-26 an APPROVE for an earlier plan let a new one exit.
+  it('blocks when the marker reviewed a different plan file than the one being exited', () => {
+    writePlanAndMarker();
+    const other = join(dir, 'other-plan.md');
+    writeFileSync(other, '# Another plan\n', 'utf-8');
+    const r = runHook(PLAN_GATE, exiting(other), env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('you are exiting');
+  });
+
+  it('blocks when the plan being exited was edited after review', () => {
+    const planFile = writePlanAndMarker();
+    writeFileSync(planFile, '# The Plan\n\nedited\n', 'utf-8');
+    expect(runHook(PLAN_GATE, exiting(planFile), env()).status).toBe(2);
+  });
+
+  it('falls back to the plan text when the payload has no planFilePath', () => {
+    writePlanAndMarker();
+    const payload = {
+      tool_name: 'ExitPlanMode',
+      tool_input: { plan: '# The Plan\r\n\r\ndo things' },
+    };
+    expect(runHook(PLAN_GATE, payload, env()).status).toBe(0);
+  });
+
+  it('blocks when the plan text differs from the reviewed plan', () => {
+    writePlanAndMarker();
+    const payload = { tool_name: 'ExitPlanMode', tool_input: { plan: '# A different plan\n' } };
+    const r = runHook(PLAN_GATE, payload, env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('text mismatch');
+  });
+
+  it('fails CLOSED when the payload names no plan at all', () => {
+    writePlanAndMarker();
+    const r = runHook(PLAN_GATE, {}, env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('names no plan');
+  });
+
+  // Windows paths are case-insensitive, and the harness and the reviewer can
+  // spell the drive letter differently. CI runs on ubuntu, so this case only
+  // runs on a local Windows checkout.
+  it.skipIf(process.platform !== 'win32')(
+    'matches the plan path case-insensitively on Windows',
+    () => {
+      const planFile = writePlanAndMarker();
+      expect(runHook(PLAN_GATE, exiting(planFile.toUpperCase()), env()).status).toBe(0);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -145,6 +202,27 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['git push\necho --dry-run', true], // --dry-run in a LATER segment must not exempt a real push
     ['git push --dry-run\ngit push', true], // second, real push after an exempt one
     ['cd x; git push --dry-run', false], // chained dry-run is still exempt (per-segment eval)
+    // Wrapped pushes — each of these slipped past the gate before 2026-09-27.
+    ['bash -c "git push origin x"', true],
+    ["bash -lc 'git push'", true], // flag cluster containing c
+    ['sh -ec "cd x && git push"', true],
+    ["powershell -Command 'git push'", true],
+    ['pwsh -NoProfile -ExecutionPolicy Bypass -Command "git push -u origin x"', true],
+    ['powershell.exe -NoProfile -Command "& { git push }"', true], // script block body
+    [`pwsh -EncodedCommand ${Buffer.from('git push', 'utf16le').toString('base64')}`, true],
+    ['cmd /c git push', true],
+    ['cmd.exe /d /c "git push origin x"', true],
+    ['iex "git push"', true],
+    ['& "C:\\Program Files\\Git\\cmd\\git.exe" push', true], // quoted path to git
+    ['bash -c "bash -c \'git push\'"', true], // nested wrapper
+    ['echo $(git push)', true], // command substitution
+    // Command-position prefixes
+    ['env GIT_TRACE=1 git push', true],
+    ['GIT_TRACE=1 git push', true],
+    ['echo origin | xargs git push', true],
+    ['xargs -n 1 git push', true],
+    ['nohup git push', true],
+    ['command git push', true],
     // NOT pushes:
     ['git commit -m "docs: explain the git push gate"', false], // push inside quotes
     ["git commit -m 'mention git push here'", false],
@@ -154,8 +232,34 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['gh pr create --title "x"', false],
     ['npm run build', false],
     ['', false],
+    // Wrappers that run something else, and wrappers only MENTIONED in quotes
+    ['bash -c "echo git push"', false],
+    ['pwsh -Command "git status"', false],
+    ['git commit -m "bash -c \'git push\'"', false], // shell named inside a message
+    ['cmd /c "git push --dry-run"', false],
+    ['bash -c "git push --dry-run"', false],
   ])('%j → %s', (cmd, expected) => {
     expect(isGitPush(cmd as string)).toBe(expected);
+  });
+});
+
+describe('push-review-gate: pushedSources refspec parsing', () => {
+  it.each([
+    ['git push', [], false],
+    ['git push origin', [], false],
+    ['git push -u origin feat/x', ['feat/x'], false],
+    ['git push origin "abc123:refs/heads/master"', ['abc123'], false], // quoted refspec
+    ['git push origin +x:y', ['x'], false], // force prefix
+    ['git push origin :y', [], false], // deletion refspec
+    ['git push origin --delete x', [], false],
+    ['git push -o ci.skip origin x', ['x'], false], // -o consumes its value
+    ['git push --receive-pack git-receive-pack origin x', ['x'], false],
+    ['git push origin tag v1.0', [], false], // tag push, as --tags
+    ['git push origin a b', ['a', 'b'], false],
+    ['git push --all origin', [], true],
+    ['git push --mirror', [], true],
+  ])('%j → %j (unbindable %s)', (segment, sources, unbindable) => {
+    expect(pushedSources(segment as string)).toEqual({ sources, unbindable });
   });
 });
 
@@ -226,6 +330,53 @@ describe('push-review-gate (Implementation Review Gate)', () => {
   it('fails CLOSED on malformed marker JSON', () => {
     writeFileSync(join(dir, 'impl-review.json'), '{oops', 'utf-8');
     expect(runHook(PUSH_GATE, payload('git push'), env()).status).toBe(2);
+  });
+
+  // The review covers HEAD; every ref the push names must be HEAD's commit.
+  const parentSha = () =>
+    execFileSync('git', ['rev-parse', 'HEAD~1'], { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+
+  it('allows pushing HEAD by name', () => {
+    writeMarker();
+    expect(runHook(PUSH_GATE, payload('git push origin HEAD'), env()).status).toBe(0);
+  });
+
+  it('blocks a push that sends a ref other than the reviewed HEAD', () => {
+    writeMarker();
+    const r = runHook(PUSH_GATE, payload(`git push origin ${parentSha()}:refs/heads/x`), env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('not the reviewed HEAD');
+  });
+
+  it('blocks an unreviewed ref even when the refspec is quoted', () => {
+    writeMarker();
+    const r = runHook(PUSH_GATE, payload(`git push origin "${parentSha()}:refs/heads/x"`), env());
+    expect(r.status).toBe(2);
+  });
+
+  it('fails CLOSED on a pushed ref that does not resolve', () => {
+    writeMarker();
+    const r = runHook(PUSH_GATE, payload('git push origin no-such-ref-xyz-123'), env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('could not resolve');
+  });
+
+  it('blocks --all, which a single review cannot cover', () => {
+    writeMarker();
+    expect(runHook(PUSH_GATE, payload('git push --all origin'), env()).status).toBe(2);
+  });
+
+  it('allows a branch deletion (no content is sent)', () => {
+    writeMarker();
+    expect(runHook(PUSH_GATE, payload('git push origin --delete old-branch'), env()).status).toBe(
+      0
+    );
+  });
+
+  it('gates a wrapped push with no marker', () => {
+    const r = runHook(PUSH_GATE, payload('bash -c "git push origin x"'), env());
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('Implementation Review Gate');
   });
 
   it('does not gate a quoted mention of git push even with no marker present', () => {

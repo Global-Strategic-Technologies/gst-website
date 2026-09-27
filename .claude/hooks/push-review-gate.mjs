@@ -7,7 +7,10 @@
  * headSha matches the repo's CURRENT HEAD — so yesterday's review cannot
  * approve today's unrelated commits, new commits after review force re-review,
  * and a failed push retries without burning the review (SHA-binding, no
- * consumption).
+ * consumption). Every ref the push names must resolve to that same commit, so
+ * a review of this branch cannot approve `git push origin other-branch`.
+ * Pushes wrapped in `bash -c`, `pwsh -Command`, `cmd /c` etc. are unwrapped
+ * and gated too (see "Push detection" below for the shapes and known gaps).
  *
  * Exit semantics: exit 2 BLOCKS (stderr fed to Claude); exit 0 allows; any
  * other exit is NON-blocking (fail-open) — hence the $CLAUDE_PROJECT_DIR-
@@ -27,29 +30,170 @@ const MARKER = resolve(MARKER_DIR, 'impl-review.json');
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // loose belt; the SHA is the real check
 const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 
+// ---------------------------------------------------------------------------
+// Push detection.
+//
+// The command is read through a MASK: every quoted span (PowerShell
+// here-strings, '…', "…") has its contents replaced by filler of the same
+// length. Positions in the mask line up with the original, so structure is
+// found in the mask (where quoted text can never look like a command — so
+// `git commit -m "explain git push"` is not a push) and payloads/arguments
+// are read from the original at the same positions.
+//
+// A push is found when, in some segment of the command or of a wrapped
+// payload, `git` is in command position with `push` as its subcommand.
+// Wrapped payloads are unwrapped recursively: `bash|sh|zsh|dash -c …` (any
+// flag cluster containing c: -lc, -ec, …), `pwsh|powershell -Command …` and
+// `-EncodedCommand <base64>`, `cmd /c|/k …`, `Invoke-Expression|iex …`.
+//
+// Known gaps (the gate stops accidental bypass, not a determined one): git
+// aliases (`git -c alias.p=push p`), pushes run from a script file,
+// `Start-Process git -ArgumentList …`.
+// ---------------------------------------------------------------------------
+
+const QUOTED = /@'[\s\S]*?'@|'[^']*'|"[^"]*"/g;
+// Separators between commands. Braces and parens split too, so the body of a
+// PowerShell `& { git push }` script block is in command position.
+const SEPARATOR = /&&|\|\||[;&|\n{}()]|\bthen\b|\bdo\b/g;
+// Things that may precede a command without changing what runs.
+const PREFIX = String.raw`(?:(?:sudo|command|exec|nohup|time)\s+|env(?:\s+-\w+)*\s+|xargs(?:\s+-\w+(?:\s+\S+)?)*\s+|\w+=\S*\s+)*`;
+const EXE_DIR = String.raw`(?:[\w./\\:-]*[/\\])?`;
+const PUSH = new RegExp(
+  String.raw`^\s*${PREFIX}${EXE_DIR}git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b`
+);
+const WRAPPERS = [
+  // bash -c / -lc / -ec …
+  new RegExp(
+    String.raw`^\s*${PREFIX}${EXE_DIR}(?:bash|sh|zsh|dash)(?:\.exe)?\s+(?:-[\w-]+\s+)*?-[a-zA-Z]*c[a-zA-Z]*\s+`
+  ),
+  // pwsh -Command …
+  new RegExp(
+    String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+(?:-[\w-]+(?:\s+[^-\s]\S*)?\s+)*?-(?:Command|c)\s+`,
+    'i'
+  ),
+  // cmd /c, /k
+  new RegExp(String.raw`^\s*${EXE_DIR}cmd(?:\.exe)?\s+(?:\/\w+\s+)*?\/[ck]\s+`, 'i'),
+  // Invoke-Expression / iex
+  /^\s*(?:Invoke-Expression|iex)\s+/i,
+];
+const ENCODED = new RegExp(
+  String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+(?:-[\w-]+(?:\s+[^-\s]\S*)?\s+)*?-(?:EncodedCommand|enc|ec|e)\s+([A-Za-z0-9+/=]+)`,
+  'i'
+);
+
+/** Same-length mask: quoted contents become filler; quote characters stay. */
+function maskQuotes(command) {
+  return command.replace(QUOTED, (m) =>
+    m.length <= 2 ? m : m[0] + '_'.repeat(m.length - 2) + m[m.length - 1]
+  );
+}
+
+/** [start, end) ranges of the separated segments of `masked`. */
+function segmentRanges(masked) {
+  const ranges = [];
+  let start = 0;
+  for (const m of masked.matchAll(SEPARATOR)) {
+    ranges.push([start, m.index]);
+    start = m.index + m[0].length;
+  }
+  ranges.push([start, masked.length]);
+  return ranges;
+}
+
+/** The text a wrapper runs: a quoted argument's contents, else the rest of the segment. */
+function payloadAt(text, from) {
+  const q = text[from];
+  if (q === '"' || q === "'") {
+    const close = text.indexOf(q, from + 1);
+    return close === -1 ? text.slice(from + 1) : text.slice(from + 1, close);
+  }
+  return text.slice(from);
+}
+
 /**
- * Detect a real `git push` in a shell command string.
- * - Quoted segments are stripped first so `git commit -m "explain git push"`
- *   never trips the gate.
- * - The command is split on shell separators (;, &, |, &&, ||, newline,
- *   then/do) and EACH segment is tested independently: `git` must be in
- *   command position within its segment (optional sudo/path prefix), with
- *   `push` as its subcommand (allowing intervening `-C dir` / `-c key=val`).
- *   Per-segment evaluation means a real push anywhere in a compound command
- *   gates, and a `--dry-run` in one segment cannot exempt a different one.
- * - `--dry-run` pushes are exempt (harmless by definition).
+ * The segments of `command` (and of every wrapped payload, recursively) that
+ * are real `git push` calls, as ORIGINAL text with quotes intact.
+ * `--dry-run` pushes are exempt (harmless by definition).
  */
+export function pushSegments(command, depth = 0) {
+  if (typeof command !== 'string' || command.length === 0 || depth > 3) return [];
+  // A quoted path to the git executable is still git in command position.
+  const text = command.replace(QUOTED, (m) =>
+    /^["']?(?:[^"']*[/\\])?git(?:\.exe)?["']?$/i.test(m) ? 'git' : m
+  );
+  const masked = maskQuotes(text);
+  const found = [];
+  for (const [start, end] of segmentRanges(masked)) {
+    const seg = text.slice(start, end);
+    const segMasked = masked.slice(start, end);
+    if (PUSH.test(segMasked) && !segMasked.includes('--dry-run')) found.push(seg);
+    for (const wrapper of WRAPPERS) {
+      const m = wrapper.exec(segMasked);
+      if (m) found.push(...pushSegments(payloadAt(seg, m[0].length), depth + 1));
+    }
+    const enc = ENCODED.exec(segMasked);
+    if (enc) {
+      const decoded = Buffer.from(enc[1], 'base64').toString('utf16le');
+      found.push(...pushSegments(decoded, depth + 1));
+    }
+  }
+  return found;
+}
+
+/** Detect a real `git push` anywhere in a shell command string. */
 export function isGitPush(command) {
-  if (typeof command !== 'string' || command.length === 0) return false;
-  const unquoted = command
-    .replace(/'[^']*'/g, ' ')
-    .replace(/"[^"]*"/g, ' ')
-    .replace(/@'[\s\S]*?'@/g, ' '); // PowerShell here-strings
-  const pushSegment =
-    /^\s*(?:sudo\s+)?(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
-  return unquoted
-    .split(/&&|\|\||[;&|\n]|\bthen\b|\bdo\b/)
-    .some((segment) => pushSegment.test(segment) && !segment.includes('--dry-run'));
+  return pushSegments(command).length > 0;
+}
+
+/** Shell words of a segment, honouring '…' and "…". */
+function shellWords(segment) {
+  return [...segment.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((m) => m[1] ?? m[2] ?? m[3]);
+}
+
+const VALUE_OPTIONS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
+const UNBINDABLE = new Set(['--all', '--mirror', '--branches']);
+
+/**
+ * What a push segment sends: the source side of each refspec (`+src:dst`),
+ * whether it pushes something a single review cannot bind to (--all,
+ * --mirror, --branches), and nothing for deletions (`:dst`, --delete),
+ * which carry no content. An empty `sources` means "the current branch".
+ */
+export function pushedSources(segment) {
+  const words = shellWords(segment);
+  const at = words.findIndex(
+    (w, i) => w === 'push' && words.slice(0, i).some((p) => /(^|[/\\])git(\.exe)?$/i.test(p))
+  );
+  const positional = [];
+  let unbindable = false;
+  let deleting = false;
+  for (let i = at + 1; i < words.length; i++) {
+    const w = words[i];
+    if (w === '--') {
+      positional.push(...words.slice(i + 1));
+      break;
+    }
+    if (w.startsWith('-')) {
+      if (VALUE_OPTIONS.has(w)) i++;
+      else if (UNBINDABLE.has(w)) unbindable = true;
+      else if (w === '--delete' || w === '-d') deleting = true;
+      continue;
+    }
+    positional.push(w);
+  }
+  const sources = [];
+  if (!deleting) {
+    const refspecs = positional.slice(1); // the first positional is the remote
+    for (let i = 0; i < refspecs.length; i++) {
+      if (refspecs[i] === 'tag') {
+        i++; // `tag <name>` pushes a tag, as --tags does
+        continue;
+      }
+      const src = refspecs[i].replace(/^\+/, '').split(':')[0];
+      if (src) sources.push(src);
+    }
+  }
+  return { sources, unbindable };
 }
 
 function block(reason) {
@@ -75,7 +219,8 @@ if (isMain) {
   }
 
   const command = payload?.tool_input?.command ?? '';
-  if (!isGitPush(command)) {
+  const pushes = pushSegments(command);
+  if (pushes.length === 0) {
     process.exit(0); // fast path: not a push — inert for all other traffic
   }
 
@@ -99,12 +244,18 @@ if (isMain) {
     block('impl-review marker is stale or has an invalid timestamp — re-run the code-reviewer.');
   }
 
-  let head;
-  try {
-    head = execFileSync('git', ['rev-parse', 'HEAD'], {
+  // rev-parse runs in THIS repo, whatever `-C` or `cd` the command used —
+  // a push from another repo is checked against this one (known gap).
+  const revParse = (rev) =>
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', rev], {
       cwd: process.env.GST_HOOK_REPO_DIR || REPO_ROOT,
       encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
+
+  let head;
+  try {
+    head = revParse('HEAD');
   } catch {
     block('could not resolve current git HEAD (fail closed).');
   }
@@ -114,6 +265,33 @@ if (isMain) {
       `impl-review marker was written for HEAD ${String(marker.headSha).slice(0, 12)} but current ` +
         `HEAD is ${head.slice(0, 12)} — new commits exist since the review; re-run the code-reviewer.`
     );
+  }
+
+  // The review covers HEAD. A push that names other refs must send HEAD's
+  // commit and nothing else — `git push origin other-branch` would otherwise
+  // pass on a review of the current branch.
+  for (const segment of pushes) {
+    const { sources, unbindable } = pushedSources(segment);
+    if (unbindable) {
+      block(
+        '--all / --mirror / --branches push refs a single review cannot cover — push the ' +
+          'reviewed branch by name.'
+      );
+    }
+    for (const src of sources) {
+      let sha;
+      try {
+        sha = revParse(`${src}^{commit}`);
+      } catch {
+        block(`could not resolve pushed ref "${src}" (fail closed).`);
+      }
+      if (sha !== marker.headSha) {
+        block(
+          `the push sends "${src}" (${sha.slice(0, 12)}), which is not the reviewed HEAD ` +
+            `${String(marker.headSha).slice(0, 12)} — review that ref, or push the reviewed branch.`
+        );
+      }
+    }
   }
 
   process.exit(0);
