@@ -355,10 +355,23 @@ describe('push-review-gate (Implementation Review Gate)', () => {
   // non-HEAD commit. CI's shallow checkout has no HEAD~1 of its own.
   let repo: string;
   const git = (...args: string[]) =>
-    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
-      cwd: repo,
-      encoding: 'utf-8',
-    }).trim();
+    // Pin identity, and neutralize signing and global hooks, so a developer's
+    // global git config cannot make the fixture commits fail.
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=t',
+        '-c',
+        'user.email=t@t',
+        '-c',
+        'commit.gpgsign=false',
+        '-c',
+        'core.hooksPath=',
+        ...args,
+      ],
+      { cwd: repo, encoding: 'utf-8' }
+    ).trim();
   beforeAll(() => {
     repo = mkdtempSync(join(tmpdir(), 'gst-hooks-repo-'));
     git('init', '-q');
