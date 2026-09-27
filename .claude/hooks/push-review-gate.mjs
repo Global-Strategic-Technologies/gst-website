@@ -49,7 +49,9 @@ const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 // Known gaps (the gate stops accidental bypass, not a determined one): git
 // aliases (`git -c alias.p=push p`), pushes run from a script file,
 // `Start-Process git -ArgumentList …`, and escaped quotes inside a quoted
-// span (`"a \" git push"`), which the mask does not model. In the other
+// span (`"a \" git push"`), which the mask does not model, and a data-sink
+// heredoc whose OUTPUT is run (`$(cat <<'EOF' …)` as a command, or inside
+// `bash -c "$(cat <<'EOF' …)"` / `eval`) — its body is masked. In the other
 // direction, a heredoc body is read as commands unless its delimiter is
 // quoted AND a data sink reads it (see maskHeredocs), so prose in one that
 // puts `git push` in command position is gated (use `cat > f <<'EOF'`).
@@ -107,18 +109,23 @@ const DRY_RUN = /(?:^|\s)(?:--dry-run|-n)(?=\s|$)/;
 // (`bash <<'EOF'`, `sudo bash`, `cat <<'EOF' | bash`), so it stays visible,
 // as does every unquoted-delimiter body, where `$(…)` and backticks run.
 const HEREDOC = /<<(-?)\s*(['"])(\w+)\2/g;
-const DATA_SINK = /(?:^|[;&|(])\s*(?:cat|tee|git\s+commit\b[^;&|<]*?\s-F\s*-)(?:\s[^;&|<]*)?$/;
+// The command before the operator, from its segment's start.
+const DATA_SINK = /^\s*(?:cat|tee|git\s+commit\b[^<]*?\s-F\s*-)(?:\s[^<]*)?$/;
+const SEGMENT_BREAK = new Set([';', '&', '|', '(', '\n']);
 
 /**
  * Same-length mask of data-sink heredoc bodies (newlines kept). One
- * left-to-right pass: quote state is tracked incrementally, so an operator
- * that only appears inside a quoted string (`-m "mask <<'EOF' bodies"`)
- * never starts a body, and each body is skipped once masked.
+ * left-to-right pass: quote state and the current segment's start are
+ * tracked incrementally, so an operator that only appears inside a quoted
+ * string (`-m "mask <<'EOF' bodies"`) never starts a body, each segment is
+ * judged at most once, and each body is skipped once masked.
  */
 function maskHeredocs(text) {
   let out = text;
   let quote = null; // the open quote character at `scanned`, if any
   let scanned = 0;
+  let segStart = 0; // start of the command segment `scanned` is in
+  let judged = -1; // segStart of the last operator examined
   HEREDOC.lastIndex = 0;
   let m;
   while ((m = HEREDOC.exec(out))) {
@@ -127,14 +134,29 @@ function maskHeredocs(text) {
       if (quote) {
         if (c === quote) quote = null;
       } else if (c === '"' || c === "'") quote = c;
+      else if (SEGMENT_BREAK.has(c)) segStart = scanned + 1;
     }
     if (quote) continue; // inside a quoted string: not an operator
-    const lineStart = out.lastIndexOf('\n', m.index) + 1;
+    // A second operator in the same segment has `<<` in its head, so it can
+    // never be a sink; skipping it keeps many operators on one line linear.
+    if (segStart === judged) continue;
+    judged = segStart;
+    if (!DATA_SINK.test(out.slice(segStart, m.index))) continue;
     const lineEnd = out.indexOf('\n', m.index);
     if (lineEnd === -1) break; // no body
-    const head = out.slice(lineStart, m.index);
-    const tail = maskQuotes(out.slice(m.index + m[0].length, lineEnd));
-    if (!DATA_SINK.test(head) || tail.includes('|')) continue;
+    // Piped onward? Scan the rest of this segment (quotes skipped) for `|`.
+    let piped = false;
+    for (let i = m.index + m[0].length, q = null; i < lineEnd; i++) {
+      const c = out[i];
+      if (q) {
+        if (c === q) q = null;
+      } else if (c === '"' || c === "'") q = c;
+      else if (c === '|') {
+        piped = true;
+        break;
+      } else if (c === ';' || c === '&') break;
+    }
+    if (piped) continue;
     // The body runs to the delimiter line (tabs stripped for <<-) or the end.
     let end = out.length;
     for (let i = lineEnd + 1; i < out.length;) {
@@ -155,6 +177,7 @@ function maskHeredocs(text) {
     // Resume after the body; the quote scan continues from here, unquoted.
     HEREDOC.lastIndex = end;
     scanned = end;
+    segStart = end;
     quote = null;
   }
   return out;
@@ -231,9 +254,14 @@ export function isGitPush(command) {
   return pushSegments(command).length > 0;
 }
 
-/** Shell words of a segment, honouring '…' and "…". */
+/** Shell words of a segment, honouring '…' and "…", up to an unquoted `# comment`. */
 function shellWords(segment) {
-  return [...segment.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((m) => m[1] ?? m[2] ?? m[3]);
+  const words = [];
+  for (const m of segment.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
+    if (m[3]?.startsWith('#')) break;
+    words.push(m[1] ?? m[2] ?? m[3]);
+  }
+  return words;
 }
 
 const VALUE_OPTIONS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);

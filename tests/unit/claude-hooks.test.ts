@@ -298,6 +298,8 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     ['git push --mirror', [], true],
     ['git push origin feat/do-thing', ['feat/do-thing'], false],
     ['git push origin then-x', ['then-x'], false],
+    ['git push origin x # note', ['x'], false], // a comment is not a refspec
+    ['git push origin "#x"', ['#x'], false], // a quoted `#` is
   ])('%j → %j (unbindable %s)', (segment, sources, unbindable) => {
     expect(pushedSources(segment as string)).toEqual({ sources, unbindable });
   });
@@ -324,6 +326,9 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     isGitPush(`sudo ${flags} echo`);
     // Thousands of unterminated heredoc operators: one pass, not one scan each.
     isGitPush(`cat ${"<<'E1'\n".repeat(3000)}`);
+    // …and thousands of operators on ONE line (each segment judged once).
+    isGitPush(`echo ${"<<'E' ".repeat(5000)}\ngit push`);
+    isGitPush(`${"x <<'E'; ".repeat(3000)}\n`);
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });
