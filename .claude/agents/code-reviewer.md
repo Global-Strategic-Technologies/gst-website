@@ -21,7 +21,7 @@ Review checklist — general:
 
 Review checklist — repo conventions (open the doc when the diff touches its surface):
 
-- **CSS/styling** → `src/docs/styles/STYLES_GUIDE.md` + `VARIABLES_REFERENCE.md`: no hardcoded colors/spacing/transitions, dark theme via `html.dark-theme`, DeltaIcon component not `<img>`
+- **CSS/styling** → `src/docs/styles/STYLES_GUIDE.md` + `VARIABLES_REFERENCE.md`: no hardcoded colors/spacing/transitions, theme states via `html.dark-theme` / `html.theme-dim` (all four must work), DeltaIcon component not `<img>`
 - **Tests** → `src/docs/testing/TEST_BEST_PRACTICES.md`: no timeout band-aids masking root causes (BLOCKER if a timeout was raised to make a test pass), no project-level Playwright permissions, no flaky-pattern reintroduction; pre-existing failing tests in touched areas are fixed, not waved through
 - **MCP server** → `mcp-server/src/docs/ARCHITECTURE.md`, relevant ADRs, per-tool `CONTRACT.md`/`USAGE.md`; extending a tool's inputs must extend its companion `gst_*` prompt (wire-shape parity)
 - **Tooling/CI/config** → `src/docs/development/DEVELOPER_TOOLING.md` must be updated in the same diff when hooks/lint/CI change
@@ -38,7 +38,7 @@ Include specific examples of how to fix issues.
 
 ## Marker (required — the push gate depends on it)
 
-After delivering your review, record the reviewed state and write `.claude/tasks/impl-review.json`:
+After delivering your review, record the reviewed state and write `.claude/tasks/impl-review.json` (repo-relative; create the `.claude/tasks/` directory first if it is missing):
 
 ```json
 {

@@ -87,7 +87,8 @@ This document provides Claude with essential context about the GST Website proje
 
 - Feature branches cut from `master` and PR straight back to `master` — scope is simply `git log master..HEAD`
 - Before creating a PR, confirm every commit on the branch belongs to this change; if the branch is stale, rebase-or-merge from `master` first rather than shipping unrelated divergence
-- Never reuse a branch for a second initiative — one branch, one PR, one concern
+- **A branch may bundle minor one-off tasks** to simplify the review cycle and integration. Work the user asks for mid-session goes on the **current** branch unless they say otherwise — never split it onto a new branch on your own call
+- **Never commit to a branch whose PR has already merged** — cut a fresh branch from `master`
 
 ### 14. Developer Tooling is Authoritative
 
@@ -101,19 +102,21 @@ This document provides Claude with essential context about the GST Website proje
   ```
   npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs
   ```
-- **Every commit is auto-formatted by the husky pre-commit hook** — lint-staged runs `eslint --fix` then `prettier --write` on staged files. Your staged files may look different in the final commit than in your working tree. This is intentional and documented
+- **Every commit is auto-formatted by the husky pre-commit hook** — lint-staged runs `eslint --fix` (scripts and `.astro`), `stylelint --fix` (`.astro` and `.css`), then `prettier --write` and `prettier --check` on staged files (exact globs: `lint-staged` in `package.json`). Your staged files may look different in the final commit than in your working tree. This is intentional and documented
 - **`npm audit` policy**: production dependencies must stay at zero advisories (enforced via `--audit-level=moderate --omit=dev` in CI). Dev-only advisories are tolerated case-by-case
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
 ### 15. Shell Commands, Permissions & Secrets
 
-Claude Code's permission matcher evaluates compound commands **per-subcommand** (separators: `&&`, `||`, `;`, `|`, `&`, and newlines): a chained command runs without prompting when every subcommand matches an allow rule or is built-in read-only (`ls`, `cat`, `cd`, `grep`, read-only `git`, …). The curated allowlist lives in the gitignored [`.claude/settings.local.json`](.claude/settings.local.json) (the same file carrying the review-gate hook registration) as **broad family prefix rules** — `Bash(git *)`, `Bash(npm *)`, PowerShell mirrors, plus a small deny set (sudo, catastrophic `rm -rf` shapes, `git push --force`) that always overrides allows.
+**Permission mode is per-developer.** It lives in the gitignored [`.claude/settings.local.json`](.claude/settings.local.json) (the same file carrying the review-gate hook registration) and `.claude/settings.json`. Some developers run `defaultMode: "bypassPermissions"`, which is an accepted choice; others keep an allowlist of **broad family prefix rules** (`Bash(git *)`, `Bash(npm *)`, PowerShell mirrors) plus a small deny set (sudo, catastrophic `rm -rf` shapes, `git push --force`). Either way, the **review-gate hooks (Directives 2 and 7) fire regardless of permission mode** — they are PreToolUse hooks, not permission rules.
 
-**Rules:**
+For allowlist setups: the permission matcher evaluates compound commands **per-subcommand** (separators: `&&`, `||`, `;`, `|`, `&`, and newlines) — a chained command runs without prompting when every subcommand matches an allow rule or is built-in read-only (`ls`, `cat`, `cd`, `grep`, read-only `git`, …).
 
-- **Compound commands are fine** when every part is an allowlisted family or read-only — use them where they read naturally (e.g. `git add X && git commit -F msg.txt` for atomic sequences).
-- **A permission prompt signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file.
+**Rules (every mode):**
+
+- **Compound commands are fine** — use them where they read naturally (e.g. `git add X && git commit -F msg.txt` for atomic sequences).
+- **On a prompted setup, a permission prompt signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file.
 - **Quoted multiline content fragments matching** — newlines act as subcommand separators, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
 - **Env-var prefixes on non-safe variables aren't stripped**: `FOO=bar cmd` prompts even when `cmd` is allowed. Set env inside scripts, or use an env-override the script reads.
 - **Never inline raw secrets in any shell command** (yours or ones you ask the user to run) — use env-var references so tokens stay out of scrollback, history, and transcripts. `wrangler secret put` reads from stdin.
@@ -126,17 +129,17 @@ Claude Code's permission matcher evaluates compound commands **per-subcommand** 
 
 **GST Website** — a modern, high-performance static site for Global Strategic Technologies, plus the GST MCP server exposing the Hub tools to LLM clients.
 
-- **Website**: Astro 7.x + Vite, static output, deployed to Vercel
+- **Website**: Astro 7.x + Vite, static pages plus on-demand SSR via the Vercel adapter (`/hub/radar`, ISR-cached), deployed to Vercel
 - **MCP server** (`mcp-server/`, workspace `@gst/mcp-server`): TypeScript MCP server; runs over stdio locally and as a **Cloudflare Worker** remotely (staging + production); Upstash Redis for caching/rate-limiting; Sentry + custom observability
 - **Testing**: Vitest (unit/integration, both workspaces) + Playwright (E2E, website)
 - **Package Manager**: npm (workspaces: `.` and `mcp-server`)
-- **Node Version**: 22+ (LTS)
+- **Node Version**: `^22.12.0 || ^24.0.0 || >=26.0.0` (`engines` in `package.json`; `.nvmrc` pins 22)
 
 ## 🎨 Design System
 
-- **Design Philosophy**: Tech brutalist with dark mode support and frosted-glass aesthetic
+- **Design Philosophy**: Tech brutalist with a four-state theme (light, dim light, dim dark, dark) and frosted-glass aesthetic
 - **Start here for any styling work**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point; it links the token catalog ([VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)) and brand decisions ([BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md))
-- **Palette system**: alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
+- **Palette system**: alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class; the look rotates daily and a manual pick holds until local midnight (ADR-0040, BRAND_GUIDELINES § Alternative Palette System)
 - **Delta icon**: Use `DeltaIcon.astro` component (inline SVG with `currentColor`) — never `<img>` tags
 - **Published downstream to claude.ai/design**: the tokens + `.brutal-*` vocabulary are synced to a Claude Design project so the design agent builds on-brand UI — see [CLAUDE_DESIGN_SYNC.md](src/docs/development/CLAUDE_DESIGN_SYNC.md). **Renaming a class or token means re-syncing**; it goes stale silently. Never hand-write React versions of `.astro` components for it
 
@@ -156,7 +159,10 @@ gst-website/
 │   │   ├── regulatory-map/     # Per-regulation JSON files
 │   │   └── palettes.ts         # Palette metadata
 │   ├── pages/                  # Routes: index, brand, services, about, ma-portfolio,
-│   │   └── hub/                #   privacy, terms, 404/500 + hub/{tools/,radar/,library/}
+│   │   └── hub/                #   privacy, terms, 404/500, [locale]/, data/ + hub/{tools/,radar/,library/,mcp/}
+│   ├── page-templates/         # One body per Tier A route, shared by every locale (LOCALIZATION.md)
+│   ├── i18n/                   # Locale registry + per-locale string catalogs
+│   ├── lib/                    # Server-side helpers (e.g. the Inoreader client)
 │   ├── schemas/                # Zod input schemas shared with the MCP tools
 │   ├── scripts/                # Client-side TS (palette-manager, …)
 │   ├── styles/                 # variables.css → typography → interactions → palettes →
@@ -166,14 +172,14 @@ gst-website/
 │   │                           #   hub/ operations/ security/ seo/ styles/ testing/)
 │   └── utils/                  # Engine modules for Hub tools (TechPar, ICG, Tech Debt)
 ├── mcp-server/                 # MCP SERVER workspace (@gst/mcp-server)
-│   ├── src/tools/ prompts/ resources/ schemas/ lib/ observability/ auth/ cache/
+│   ├── src/tools/ prompts/ resources/ schemas/ lib/ observability/ auth/ oauth/ trial/ ratelimit/ cache/
 │   ├── src/docs/               # SERVER doc tree — ARCHITECTURE.md is the maintained
 │   │                           #   system reference; tools/<tool>/CONTRACT.md + USAGE.md
 │   ├── tests/                  # Server unit + integration suites (run: npm run test:mcp)
 │   ├── observability/          # SLO baselines, runbooks, alert evaluator scripts
 │   └── wrangler.toml           # Worker config (staging + production envs)
 ├── tests/                      # Website unit/ integration/ e2e/ suites
-├── .claude/                    # CLAUDE.md, PERMISSIONS.md, agents/, skills/, hooks/
+├── .claude/                    # CLAUDE.md, agents/, skills/, hooks/, tasks/ (review-gate markers)
 ├── .github/workflows/          # CI/CD (see DEVELOPER_TOOLING.md for the pipeline map)
 └── public/                     # Static assets (+ runtime-fetched data)
 ```
@@ -274,7 +280,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 ### PR Requirements
 
-- Required status checks (branch ruleset): **E2E Tests (Playwright)**, **Unit & Integration Tests**, **Lint & Type Check**, **Verify doc links**, and **`lighthouse`** (CLS ≤ 0.1 gate — required once added in the ruleset UI; see DEVELOPER_TOOLING.md) — plus branch up-to-date (strict policy). A PR stuck BLOCKED after "Update branch": close + reopen (see DEVELOPER_TOOLING.md § push-trigger notes)
+- Required status checks (branch ruleset): **E2E Tests (Playwright)**, **Unit & Integration Tests**, **Lint & Type Check**, **Verify doc links**, and **`lighthouse`** (CLS ≤ 0.1 gate — required once added in the ruleset UI; see DEVELOPER_TOOLING.md) — plus branch up-to-date (strict policy). A PR stuck BLOCKED after "Update branch": close + reopen (see [DEVELOPER_TOOLING.md § On every push to …](src/docs/development/DEVELOPER_TOOLING.md#on-every-push-to-master-feat-fix-feature-dependabot-docs-chore-and-prs-to-master))
 - Review gates (Directives 2 & 7) precede the PR; CI enforces the rest
 
 ## 📊 Data Management
@@ -292,7 +298,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **Doc pointers**: see 📚 Testing & CI/CD above — TEST_STRATEGY for what to write, TEST_BEST_PRACTICES before touching E2E
 - **Unit**: fast, isolated, mocked · **Integration**: real dependencies, isolated data · **E2E**: critical user journeys only
 - **Coverage**: 70% line threshold on the covered scopes (see `vitest.config.ts` / mcp-server config for exact include lists)
-- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. In the mcp-server suite, a 5000ms timeout in a Worker-booting (`unstable_dev`) file is a real signal, not a flake to rerun: `unstable_dev` resolves when workerd spawns, but the first `worker.fetch()` pays seconds of module-graph JIT, which lands on the first `it` (5000ms default) unless the file spends it in `beforeAll` (60s budget). So a new `unstable_dev` file must warm in `beforeAll` via `tests/helpers/warm-worker.ts`, and if a warmed file still times out locally, purge `mcp-server/.wrangler` (accumulated local state inflates first-KV-touch; CI is unaffected). For any suite failure, **capture the failing test name before you rerun** — a green rerun destroys the evidence — and **redirect suite output to a file rather than piping it through `grep`**. Measurements: [WORKER_BOOT_LATENCY_BL-149.md](src/docs/development/_archive/WORKER_BOOT_LATENCY_BL-149.md)
+- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. In the mcp-server suite, a 5000ms timeout in a Worker-booting (`unstable_dev`) file is a real signal, not a flake to rerun: `unstable_dev` resolves when workerd spawns, but the first `worker.fetch()` pays seconds of module-graph JIT, which lands on the first `it` (5000ms default) unless the file spends it in `beforeAll` (60s budget). So a new `unstable_dev` file must warm in `beforeAll` via `mcp-server/tests/helpers/warm-worker.ts`, and if a warmed file still times out locally, purge `mcp-server/.wrangler` (accumulated local state inflates first-KV-touch; CI is unaffected). For any suite failure, **capture the failing test name before you rerun** — a green rerun destroys the evidence — and **redirect suite output to a file rather than piping it through `grep`**. Measurements: [WORKER_BOOT_LATENCY_BL-149.md](src/docs/development/_archive/WORKER_BOOT_LATENCY_BL-149.md)
 - **Pre-existing test debt is not a free pass** — small failing tests in your touched area get fixed in the current PR, not waved through
 - **Playwright: never set `permissions` at project level** in `playwright.config.ts` — desktop permissions crash mobile device contexts; grant per-test with `context.grantPermissions()` guarded by `browserName`
 
@@ -300,7 +306,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 - **Before writing or modifying any CSS**, read [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point for all styling conventions (tokens catalog: [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md))
 - **All colors, spacing, font sizes, and transitions come from the design system** — CSS variables and utility classes only; never hardcode values
-- **Dark theme must work automatically** — use variables; the selector is `html.dark-theme`, not `body.dark-theme`
+- **All four theme states must work automatically** — use variables; the selectors are `html.dark-theme` and `html.theme-dim` (never on `body`) — see STYLES_GUIDE § Dim states
 - **Palette overrides** in `palettes.css` — applied to `<html>` via class (like dark-theme); see BRAND_GUIDELINES.md § Alternative Palette System
 - **Delta icons**: use `DeltaIcon.astro` component — never `<img>` tags (cannot inherit palette/theme colors via `currentColor`)
 - **Buttons include frosted-glass** by default (`backdrop-filter: blur(2px)`, semi-transparent backgrounds) — see STYLES_GUIDE.md § Frosted Glass
@@ -320,13 +326,13 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 1. Create `.astro` file in `src/components/`
 2. Follow existing component patterns and CSS Styling Standards (above)
 3. Add unit tests; if user-facing, add E2E tests
-4. Test in both light and dark themes at desktop, 768px, and 480px
+4. Test in all four theme states (light, dim light, dim dark, dark) at desktop, 768px, and 480px
 
 ### Adding a New Page
 
 1. **Model page**: [src/page-templates/HubPage.astro](src/page-templates/HubPage.astro) with its one-line route wrapper [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy that shape (BaseLayout + composed components, copy from a catalog, `locale` prop), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
 2. Design-system tokens only — no hardcoded colors, spacing, font sizes (stylelint enforces colors; see STYLES_GUIDE)
-3. Verify in light AND dark theme AND every palette (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
+3. Verify in all four theme states AND every palette (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
 4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
 5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
 6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
