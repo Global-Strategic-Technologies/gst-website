@@ -255,6 +255,8 @@ describe('push-review-gate: isGitPush command detection', () => {
     ["sudo bash <<'EOF'\ngit push\nEOF", true],
     ["cat <<'EOF' 2>&1 | bash\ngit push origin x\nEOF", true], // `&` in a redirect, then a pipe
     ["cat <<'EOF' > /dev/null 2>&1 | sh\ngit push\nEOF", true],
+    // Two heredocs on one line: bash reads A's body first, then B's.
+    ["cat <<'A' | bash; cat > b <<'B'\ngit push\nA\nx\nB", true],
     ["bash -s -- a <<'EOF'\ngit push\nEOF", true],
     ["git commit -F - <<'EOF'\nnever run `git push` here\nEOF", false], // data sink
     ['gh pr create --body "$(cat <<\'EOF\'\nthen `git push`\nEOF\n)"', false],

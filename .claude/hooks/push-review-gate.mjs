@@ -128,6 +128,7 @@ function maskHeredocs(text) {
   let judged = -1; // segStart of the last operator examined
   let lineEnd = -1; // end of the line the last sink was on (-1: none yet)
   let pipeAt = -1; // next unquoted `|` on that line at/after the last scan, or lineEnd
+  let multiOnLine = false; // that line holds more than one heredoc operator
   HEREDOC.lastIndex = 0;
   let m;
   while ((m = HEREDOC.exec(out))) {
@@ -147,8 +148,19 @@ function maskHeredocs(text) {
     if (m.index >= lineEnd) {
       lineEnd = out.indexOf('\n', m.index);
       pipeAt = -1; // new line: nothing scanned on it yet
+      // Bash reads the bodies of several heredocs on one line one after the
+      // other, not each from the next line; rather than model that, a line
+      // with more than one operator masks nothing (errs toward gating).
+      const line = out.slice(
+        out.lastIndexOf('\n', m.index) + 1,
+        lineEnd === -1 ? out.length : lineEnd
+      );
+      // (A separate regex: `match` on the shared global HEREDOC would reset
+      // its lastIndex and restart the outer exec loop.)
+      multiOnLine = (maskQuotes(line).match(/<<-?\s*(['"])\w+\1/g) ?? []).length > 1;
     }
     if (lineEnd === -1) break; // no body
+    if (multiOnLine) continue;
     // Piped onward? Look for an unquoted `|` anywhere later on the LINE — not
     // just in this segment: `&` also appears in redirections (`2>&1 | bash`),
     // and a pipe in a later command only errs toward gating. The next pipe's
