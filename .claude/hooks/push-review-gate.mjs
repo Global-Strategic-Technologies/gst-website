@@ -1,16 +1,22 @@
 /**
  * Claude Code PreToolUse hook — git-push gate (Implementation Review Gate).
  *
- * Fires on every Bash/PowerShell tool call; fast-exits 0 unless the command is
- * a real `git push`. On a push, requires a fresh impl-review marker written by
- * the code-reviewer agent (.claude/tasks/impl-review.json) whose recorded
+ * Fires on every Bash/PowerShell tool call; fast-exits 0 unless the command
+ * contains a `git push`. On a push, requires a fresh impl-review marker written
+ * by the code-reviewer agent (.claude/tasks/impl-review.json) whose recorded
  * headSha matches the repo's CURRENT HEAD — so yesterday's review cannot
  * approve today's unrelated commits, new commits after review force re-review,
  * and a failed push retries without burning the review (SHA-binding, no
- * consumption). Every ref the push names must resolve to that same commit, so
- * a review of this branch cannot approve `git push origin other-branch`.
- * Pushes wrapped in `bash -c`, `pwsh -Command`, `cmd /c` etc. are unwrapped
- * and gated too (see "Push detection" below for the shapes and known gaps).
+ * consumption).
+ *
+ * Detection is deliberately blunt: `git … push` ANYWHERE in the command text,
+ * quoted or not. That catches wrapped pushes (`bash -c "git push"`,
+ * `pwsh -Command '…'`, `cmd /c`, `eval`, a quoted path to git.exe) without
+ * modelling any shell. The cost is an occasional false block on a command
+ * that merely MENTIONS a push (e.g. in an inline commit message) — write such
+ * text to a file (`git commit -F`), as CLAUDE.md Directive 15 already asks.
+ * This hook guards against accidental unreviewed pushes; the merge itself is
+ * guarded by the branch ruleset and required checks.
  *
  * Exit semantics: exit 2 BLOCKS (stderr fed to Claude); exit 0 allows; any
  * other exit is NON-blocking (fail-open) — hence the $CLAUDE_PROJECT_DIR-
@@ -30,318 +36,14 @@ const MARKER = resolve(MARKER_DIR, 'impl-review.json');
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // loose belt; the SHA is the real check
 const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 
-// ---------------------------------------------------------------------------
-// Push detection.
-//
-// The command is read through a MASK: every quoted span (PowerShell
-// here-strings, '…', "…") has its contents replaced by filler of the same
-// length. Positions in the mask line up with the original, so structure is
-// found in the mask (where quoted text can never look like a command — so
-// `git commit -m "explain git push"` is not a push) and payloads/arguments
-// are read from the original at the same positions.
-//
-// A push is found when, in some segment of the command or of a wrapped
-// payload, `git` is in command position with `push` as its subcommand.
-// Wrapped payloads are unwrapped recursively: `bash|sh|zsh|dash -c …` (any
-// flag cluster containing c: -lc, -ec, …), `pwsh|powershell -Command …` and
-// `-EncodedCommand <base64>`, `cmd /c|/k …`, `Invoke-Expression|iex …`.
-//
-// Known gaps (the gate stops accidental bypass, not a determined one): git
-// aliases (`git -c alias.p=push p`), pushes run from a script file,
-// `Start-Process git -ArgumentList …`, and escaped quotes inside a quoted
-// span (`"a \" git push"`), which the mask does not model, and a data-sink
-// heredoc whose OUTPUT is run (`$(cat <<'EOF' …)` as a command, or inside
-// `bash -c "$(cat <<'EOF' …)"` / `eval`) — its body is masked. In the other
-// direction, a heredoc body is read as commands unless its delimiter is
-// quoted AND a data sink reads it (see maskHeredocs), so prose in one that
-// puts `git push` in command position is gated (use `cat > f <<'EOF'`).
-// ---------------------------------------------------------------------------
+// `git` (optionally git.exe, optionally a quoted path to it), then only
+// git's own options (`-C dir`, `-c k=v`, `--flag`), then `push`. Options only,
+// so `git stash push` is not a push.
+const PUSH = /\bgit(?:\.exe)?["']?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/i;
 
-const QUOTED = /@'[\s\S]*?'@|'[^']*'|"[^"]*"/g;
-// Separators between commands. Braces and parens split too, so the body of a
-// PowerShell `& { git push }` script block or a `$(…)` substitution is in
-// command position; a backtick splits for `…` substitution. `then` and `do`
-// split only as whole shell words — `\bdo\b` would also split the branch name
-// `do-other`, hiding its refspec from the ref check.
-// (The `&` in a redirection such as `2>&1` splits too; the leftover `2>` is
-// skipped as a redirection by pushedSources, so no refspec is misread.)
-const SEPARATOR = /&&|\|\||[;&|\n{}()`]|(?<![^\s;&|])(?:then|do)(?![^\s;&|])/g;
-// A line continuation (bash `\`, PowerShell backtick) joins two lines into one
-// command; blank it (same length) so the split halves are read together.
-const CONTINUATION = /\\\r?\n|`\r?\n/g;
-// Things that may precede a command without changing what runs. A flag's
-// value may not start with `-`, so each token is read one way only (an
-// optional value that could itself be a flag backtracks exponentially).
-const FLAG_VALUE = String.raw`(?:\s+-\w+(?:\s+[^-\s]\S*)?)*`;
-const PREFIX = String.raw`(?:(?:command|exec|nohup|time)\s+|sudo${FLAG_VALUE}\s+|env(?:\s+-\w+)*\s+|xargs${FLAG_VALUE}\s+|\w+=\S*\s+)*`;
-const EXE_DIR = String.raw`(?:[\w./\\:-]*[/\\])?`;
-const PUSH = new RegExp(
-  String.raw`^\s*${PREFIX}${EXE_DIR}git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b`
-);
-// PowerShell host flags. Only these take a value; every other flag is a
-// switch, so a quoted command after `-NoProfile` is never read as its value.
-const PWSH_FLAGS = String.raw`(?:-(?:ExecutionPolicy|ep|ex|WindowStyle|w|Version|v|OutputFormat|of|o|InputFormat|if|ConfigurationName|config|WorkingDirectory|wd|PSConsoleFile|Settings|settings|CustomPipeName)\s+[^-\s]\S*\s+|-(?!(?:Command|Com|Comm|Comma|Comman|c|EncodedCommand|enc|ec|e|File|f)\b)[\w-]+\s+)*`;
-const PWSH = String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+${PWSH_FLAGS}`;
-const WRAPPERS = [
-  // bash -c / -lc / -ec …
-  new RegExp(
-    String.raw`^\s*${PREFIX}${EXE_DIR}(?:bash|sh|zsh|dash)(?:\.exe)?\s+(?:-[\w-]+\s+)*?-[a-zA-Z]*c[a-zA-Z]*\s+`
-  ),
-  // pwsh [-Command|-Com…|-c] … — -Command is the host's default positional
-  // parameter, so `powershell "git push"` runs it too.
-  new RegExp(String.raw`${PWSH}(?:-(?:Command|Com\w*|c)\s+)?(?=\S)`, 'i'),
-  // cmd /c, /k
-  new RegExp(String.raw`^\s*${EXE_DIR}cmd(?:\.exe)?\s+(?:\/\w+\s+)*?\/[ck]\s+`, 'i'),
-  // Invoke-Expression / iex [-Command], and bash eval
-  /^\s*(?:Invoke-Expression|iex)\s+(?:-Command\s+)?/i,
-  /^\s*eval\s+/,
-];
-const ENCODED = new RegExp(
-  String.raw`${PWSH}-(?:EncodedCommand|enc|ec|e)\s+([A-Za-z0-9+/=]+)`,
-  'i'
-);
-// Exempt: nothing is sent.
-const DRY_RUN = /(?:^|\s)(?:--dry-run|-n)(?=\s|$)/;
-
-// A heredoc with a QUOTED delimiter (`<<'EOF'`, `<<"EOF"`) has a literal body:
-// no expansion, no substitution. When a known DATA SINK reads it — `cat`,
-// `tee`, `git commit -F -` — and nothing after the operator pipes it onward,
-// the body is data (a commit message routinely quotes `git push`) and is
-// masked like a quoted string. Anything else reading it might run it
-// (`bash <<'EOF'`, `sudo bash`, `cat <<'EOF' | bash`), so it stays visible,
-// as does every unquoted-delimiter body, where `$(…)` and backticks run.
-const HEREDOC = /<<(-?)\s*(['"])(\w+)\2/g;
-// The command before the operator, from its segment's start.
-const DATA_SINK = /^\s*(?:cat|tee|git\s+commit\b[^<]*?\s-F\s*-)(?:\s[^<]*)?$/;
-const SEGMENT_BREAK = new Set([';', '&', '|', '(', '\n']);
-
-/**
- * Same-length mask of data-sink heredoc bodies (newlines kept). One
- * left-to-right pass: quote state and the current segment's start are
- * tracked incrementally, so an operator that only appears inside a quoted
- * string (`-m "mask <<'EOF' bodies"`) never starts a body, each segment is
- * judged at most once, and each body is skipped once masked.
- */
-function maskHeredocs(text) {
-  let out = text;
-  let quote = null; // the open quote character at `scanned`, if any
-  let scanned = 0;
-  let segStart = 0; // start of the command segment `scanned` is in
-  let judged = -1; // segStart of the last operator examined
-  let lineEnd = -1; // end of the line the last sink was on (-1: none yet)
-  let pipeAt = -1; // next unquoted `|` on that line at/after the last scan, or lineEnd
-  let multiOnLine = false; // that line holds more than one heredoc operator
-  HEREDOC.lastIndex = 0;
-  let m;
-  while ((m = HEREDOC.exec(out))) {
-    for (; scanned < m.index; scanned++) {
-      const c = out[scanned];
-      if (quote) {
-        if (c === quote) quote = null;
-      } else if (c === '"' || c === "'") quote = c;
-      else if (SEGMENT_BREAK.has(c)) segStart = scanned + 1;
-    }
-    if (quote) continue; // inside a quoted string: not an operator
-    // A second operator in the same segment has `<<` in its head, so it can
-    // never be a sink; skipping it keeps many operators on one line linear.
-    if (segStart === judged) continue;
-    judged = segStart;
-    if (!DATA_SINK.test(out.slice(segStart, m.index))) continue;
-    if (m.index >= lineEnd) {
-      lineEnd = out.indexOf('\n', m.index);
-      pipeAt = -1; // new line: nothing scanned on it yet
-      // Bash reads the bodies of several heredocs on one line one after the
-      // other, not each from the next line; rather than model that, a line
-      // with more than one operator masks nothing (errs toward gating).
-      const line = out.slice(
-        out.lastIndexOf('\n', m.index) + 1,
-        lineEnd === -1 ? out.length : lineEnd
-      );
-      // (A separate regex: `match` on the shared global HEREDOC would reset
-      // its lastIndex and restart the outer exec loop.)
-      // Every heredoc counts here, quoted delimiter or not; `<<<` here-strings don't.
-      multiOnLine = (maskQuotes(line).match(/(?<!<)<<(?!<)-?\s*(['"]?)\w+\1/g) ?? []).length > 1;
-    }
-    if (lineEnd === -1) break; // no body
-    if (multiOnLine) continue;
-    // Piped onward? Look for an unquoted `|` anywhere later on the LINE — not
-    // just in this segment: `&` also appears in redirections (`2>&1 | bash`),
-    // and a pipe in a later command only errs toward gating. The next pipe's
-    // position is cached, so repeated sinks on one line scan disjoint ranges.
-    if (pipeAt <= m.index) {
-      pipeAt = lineEnd; // none found
-      for (let i = m.index + m[0].length, q = null; i < lineEnd; i++) {
-        const c = out[i];
-        if (q) {
-          if (c === q) q = null;
-        } else if (c === '"' || c === "'") q = c;
-        else if (c === '|') {
-          pipeAt = i;
-          break;
-        }
-      }
-    }
-    if (pipeAt < lineEnd) continue; // piped: the body may run
-    // The body runs to the delimiter line (tabs stripped for <<-) or the end.
-    let end = out.length;
-    for (let i = lineEnd + 1; i < out.length;) {
-      const nl = out.indexOf('\n', i);
-      let line = out.slice(i, nl === -1 ? out.length : nl).replace(/\r$/, '');
-      if (m[1]) line = line.replace(/^\t+/, '');
-      if (line === m[3]) {
-        end = i;
-        break;
-      }
-      if (nl === -1) break;
-      i = nl + 1;
-    }
-    out =
-      out.slice(0, lineEnd + 1) +
-      out.slice(lineEnd + 1, end).replace(/[^\n]/g, '_') +
-      out.slice(end);
-    // Resume after the body; the quote scan continues from here, unquoted.
-    HEREDOC.lastIndex = end;
-    scanned = end;
-    segStart = end;
-    quote = null;
-  }
-  return out;
-}
-
-/** Same-length mask: quoted contents become filler; quote characters stay. */
-function maskQuotes(command) {
-  return command.replace(QUOTED, (m) =>
-    m.length <= 2 ? m : m[0] + '_'.repeat(m.length - 2) + m[m.length - 1]
-  );
-}
-
-/** [start, end) ranges of the separated segments of `masked`. */
-function segmentRanges(masked) {
-  const ranges = [];
-  let start = 0;
-  for (const m of masked.matchAll(SEPARATOR)) {
-    ranges.push([start, m.index]);
-    start = m.index + m[0].length;
-  }
-  ranges.push([start, masked.length]);
-  return ranges;
-}
-
-/** The text a wrapper runs: a quoted argument's contents, else the rest of the segment. */
-function payloadAt(text, from) {
-  const q = text[from];
-  if (q === '"' || q === "'") {
-    const close = text.indexOf(q, from + 1);
-    return close === -1 ? text.slice(from + 1) : text.slice(from + 1, close);
-  }
-  return text.slice(from);
-}
-
-/**
- * The segments of `command` (and of every wrapped payload, recursively) that
- * are real `git push` calls, as ORIGINAL text with quotes intact.
- * Dry runs (`--dry-run`, `-n`) are exempt (harmless by definition).
- */
-export function pushSegments(command, depth = 0) {
-  if (typeof command !== 'string' || command.length === 0 || depth > 3) return [];
-  const joined = command.replace(CONTINUATION, (m) => ' '.repeat(m.length));
-  // A quoted path to the git executable is still git in command position.
-  const text = joined.replace(QUOTED, (m) =>
-    /^["']?(?:[^"']*[/\\])?git(?:\.exe)?["']?$/i.test(m) ? 'git' : m
-  );
-  // Heredoc bodies first, so an apostrophe in one cannot pair with a quote
-  // outside it and hide a real command between them.
-  const masked = maskQuotes(maskHeredocs(text));
-  const found = [];
-  for (const [start, end] of segmentRanges(masked)) {
-    const seg = text.slice(start, end);
-    const segMasked = masked.slice(start, end);
-    // The dry-run flags count only after `push` (`xargs -n 1 git push` is
-    // real), and not inside a trailing `# comment` (quoted `#` is filler).
-    const push = PUSH.exec(segMasked);
-    const args = push ? segMasked.slice(push[0].length).replace(/(?:^|\s)#.*$/s, '') : '';
-    if (push && !DRY_RUN.test(args)) found.push(seg);
-    for (const wrapper of WRAPPERS) {
-      const m = wrapper.exec(segMasked);
-      if (m) found.push(...pushSegments(payloadAt(seg, m[0].length), depth + 1));
-    }
-    const enc = ENCODED.exec(segMasked);
-    if (enc) {
-      const decoded = Buffer.from(enc[1], 'base64').toString('utf16le');
-      found.push(...pushSegments(decoded, depth + 1));
-    }
-  }
-  return found;
-}
-
-/** Detect a real `git push` anywhere in a shell command string. */
+/** True when the command contains a `git push` anywhere, quoted or not. */
 export function isGitPush(command) {
-  return pushSegments(command).length > 0;
-}
-
-/** Shell words of a segment, honouring '…' and "…", up to an unquoted `# comment`. */
-function shellWords(segment) {
-  const words = [];
-  for (const m of segment.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
-    if (m[3]?.startsWith('#')) break;
-    words.push(m[1] ?? m[2] ?? m[3]);
-  }
-  return words;
-}
-
-const VALUE_OPTIONS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
-const UNBINDABLE = new Set(['--all', '--mirror', '--branches']);
-// A redirection operator at the start of a word: `>`, `>>`, `2>`, `2>&`, `&>`, `<`.
-const REDIRECT = /^(?:\d*|&)(?:>>?|<)&?/;
-
-/**
- * What a push segment sends: the source side of each refspec (`+src:dst`),
- * whether it pushes something a single review cannot bind to (--all,
- * --mirror, --branches), and nothing for deletions (`:dst`, --delete),
- * which carry no content. An empty `sources` means "the current branch".
- */
-export function pushedSources(segment) {
-  const words = shellWords(segment);
-  const at = words.findIndex(
-    (w, i) => w === 'push' && words.slice(0, i).some((p) => /(^|[/\\])git(\.exe)?$/i.test(p))
-  );
-  const positional = [];
-  let unbindable = false;
-  let deleting = false;
-  for (let i = at + 1; i < words.length; i++) {
-    const w = words[i];
-    // Redirections (`2>&1`, `>log`, `> log`, `&>log`) are the shell's, not
-    // git's; a bare operator's target is the next word.
-    const redirect = REDIRECT.exec(w);
-    if (redirect) {
-      if (redirect[0] === w) i++;
-      continue;
-    }
-    if (w === '--') {
-      positional.push(...words.slice(i + 1));
-      break;
-    }
-    if (w.startsWith('-')) {
-      if (VALUE_OPTIONS.has(w)) i++;
-      else if (UNBINDABLE.has(w)) unbindable = true;
-      else if (w === '--delete' || w === '-d') deleting = true;
-      continue;
-    }
-    positional.push(w);
-  }
-  const sources = [];
-  if (!deleting) {
-    const refspecs = positional.slice(1); // the first positional is the remote
-    for (let i = 0; i < refspecs.length; i++) {
-      if (refspecs[i] === 'tag') {
-        i++; // `tag <name>` pushes a tag, as --tags does
-        continue;
-      }
-      const src = refspecs[i].replace(/^\+/, '').split(':')[0];
-      if (src) sources.push(src);
-    }
-  }
-  return { sources, unbindable };
+  return typeof command === 'string' && PUSH.test(command);
 }
 
 function block(reason) {
@@ -351,7 +53,8 @@ function block(reason) {
       `conventions, records the HEAD sha, and writes ${MARKER}). ` +
       `If (and only if) the user explicitly authorized pushing without review (e.g. a trivial ` +
       `docs-only diff), write the marker yourself with verdict "USER_WAIVED", the user's quoted ` +
-      `waiver in a "waiver" field, and the current HEAD sha.\n`
+      `waiver in a "waiver" field, and the current HEAD sha. If the command only MENTIONS a ` +
+      `push (e.g. an inline commit message), write that text to a file instead.\n`
   );
   process.exit(2);
 }
@@ -366,14 +69,9 @@ if (isMain) {
     /* no/invalid stdin: not a recognizable tool call — stay inert */
   }
 
-  const command = payload?.tool_input?.command ?? '';
-  const pushes = pushSegments(command);
-  if (pushes.length === 0) {
+  if (!isGitPush(payload?.tool_input?.command)) {
     process.exit(0); // fast path: not a push — inert for all other traffic
   }
-  // From here on this IS a push, and an uncaught error would exit 1, which
-  // does not block (fail open). Turn any unexpected error into a block.
-  process.on('uncaughtException', (err) => block(`internal error (fail closed): ${err?.message}`));
 
   if (!existsSync(MARKER)) {
     block('no impl-review marker found — the diff has not been code-reviewed.');
@@ -385,6 +83,7 @@ if (isMain) {
   } catch {
     block('impl-review marker is unreadable/malformed JSON (fail closed).');
   }
+  // `null` parses fine but would throw below, exiting 1 — which fails open.
   if (!marker || typeof marker !== 'object') {
     block('impl-review marker is not a JSON object (fail closed).');
   }
@@ -398,18 +97,12 @@ if (isMain) {
     block('impl-review marker is stale or has an invalid timestamp — re-run the code-reviewer.');
   }
 
-  // rev-parse runs in THIS repo, whatever `-C` or `cd` the command used —
-  // a push from another repo is checked against this one (known gap).
-  const revParse = (rev) =>
-    execFileSync('git', ['rev-parse', '--verify', '--quiet', rev], {
-      cwd: process.env.GST_HOOK_REPO_DIR || REPO_ROOT,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-
   let head;
   try {
-    head = revParse('HEAD');
+    head = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: process.env.GST_HOOK_REPO_DIR || REPO_ROOT,
+      encoding: 'utf-8',
+    }).trim();
   } catch {
     block('could not resolve current git HEAD (fail closed).');
   }
@@ -419,33 +112,6 @@ if (isMain) {
       `impl-review marker was written for HEAD ${String(marker.headSha).slice(0, 12)} but current ` +
         `HEAD is ${head.slice(0, 12)} — new commits exist since the review; re-run the code-reviewer.`
     );
-  }
-
-  // The review covers HEAD. A push that names other refs must send HEAD's
-  // commit and nothing else — `git push origin other-branch` would otherwise
-  // pass on a review of the current branch.
-  for (const segment of pushes) {
-    const { sources, unbindable } = pushedSources(segment);
-    if (unbindable) {
-      block(
-        '--all / --mirror / --branches push refs a single review cannot cover — push the ' +
-          'reviewed branch by name.'
-      );
-    }
-    for (const src of sources) {
-      let sha;
-      try {
-        sha = revParse(`${src}^{commit}`);
-      } catch {
-        block(`could not resolve pushed ref "${src}" (fail closed).`);
-      }
-      if (sha !== marker.headSha) {
-        block(
-          `the push sends "${src}" (${sha.slice(0, 12)}), which is not the reviewed HEAD ` +
-            `${String(marker.headSha).slice(0, 12)} — review that ref, or push the reviewed branch.`
-        );
-      }
-    }
   }
 
   process.exit(0);

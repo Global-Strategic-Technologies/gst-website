@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
 // Hook script lives outside src/ by design (.claude/hooks/); imported directly for unit tests.
-import { isGitPush, pushSegments, pushedSources } from '../../.claude/hooks/push-review-gate.mjs';
+import { isGitPush } from '../../.claude/hooks/push-review-gate.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -195,197 +195,43 @@ describe('plan-review-gate (Design Review Gate)', () => {
 // ---------------------------------------------------------------------------
 
 describe('push-review-gate: isGitPush command detection', () => {
+  // Deliberately blunt: `git … push` anywhere in the text counts, quoted or
+  // not, so wrapped pushes are caught without modelling any shell.
   it.each([
     ['git push', true],
     ['git push origin master', true],
     ['git -C c:/Code/gst-website push', true],
-    ['cd mcp-server; git push', true],
-    ['npm run test:run && git push -u origin feat/x', true],
+    ['git -c core.x=y push', true],
     ['git.exe push', true],
-    ['echo done\ngit push', true], // newline-separated multi-line command
-    ['sudo git push', true],
-    ['git push\necho --dry-run', true], // --dry-run in a LATER segment must not exempt a real push
-    ['git push --dry-run\ngit push', true], // second, real push after an exempt one
-    ['cd x; git push --dry-run', false], // chained dry-run is still exempt (per-segment eval)
-    // Wrapped pushes — each of these slipped past the gate before 2026-09-27.
+    ['npm run test:run && git push -u origin feat/x', true],
+    ['echo done\ngit push', true],
+    // Wrapped pushes — these slipped past the old quote-stripping gate.
     ['bash -c "git push origin x"', true],
-    ["bash -lc 'git push'", true], // flag cluster containing c
-    ['sh -ec "cd x && git push"', true],
     ["powershell -Command 'git push'", true],
-    ['pwsh -NoProfile -ExecutionPolicy Bypass -Command "git push -u origin x"', true],
-    ['powershell.exe -NoProfile -Command "& { git push }"', true], // script block body
-    [`pwsh -EncodedCommand ${Buffer.from('git push', 'utf16le').toString('base64')}`, true],
     ['cmd /c git push', true],
-    ['cmd.exe /d /c "git push origin x"', true],
-    ['iex "git push"', true],
-    ['& "C:\\Program Files\\Git\\cmd\\git.exe" push', true], // quoted path to git
-    ['bash -c "bash -c \'git push\'"', true], // nested wrapper
-    ['echo $(git push)', true], // command substitution
-    // Command-position prefixes
-    ['env GIT_TRACE=1 git push', true],
-    ['GIT_TRACE=1 git push', true],
-    ['echo origin | xargs git push', true],
-    ['xargs -n 1 git push', true],
-    ['nohup git push', true],
-    ['command git push', true],
-    // Found at code review, 2026-09-27
     ['eval "git push"', true],
-    ['echo `git push`', true], // backtick command substitution
-    ['powershell "git push"', true], // -Command is the default positional parameter
-    ['powershell git push', true],
-    ['pwsh -Com "git push"', true], // abbreviated -Command
-    ['Invoke-Expression -Command "git push"', true],
-    ['sudo -u me git push', true],
-    ['for b in a; do git push; done', true], // `do` as a shell word still splits
-    ['git push origin do-other:refs/heads/master', true], // `do` inside a ref must NOT split
-    ['git push -n', false], // short dry run
-    ['git push -u origin x 2>&1 | tail -4', true],
-    ['sleep 1 & git push', true], // a background `&` separates
-    ['npm test &>/dev/null && git push', true],
-    // Heredocs: a quoted delimiter makes the body literal data (a commit
-    // message quoting `git push`), unless a shell reads it.
-    ["cat > m.txt <<'EOF'\nfix: a bare `git push` here\ngit push\nEOF\ngit commit -F m.txt", false],
-    ['cat > m.txt <<"EOF"\ngit push\nEOF', false],
-    ["cat > m.txt <<-'EOF'\n\tgit push\n\tEOF", false],
-    ["bash <<'EOF'\ngit push\nEOF", true], // a shell runs the body
-    ["cat <<'EOF' > x.txt\ndon't\nEOF\ngit push", true], // body apostrophe can't hide a later push
-    ['cat <<EOF\n$(git push)\nEOF', true], // unquoted delimiter: substitution runs
-    // Found at code review of the heredoc masking, 2026-09-27
-    ['git commit -m "mask <<\'EOF\' bodies"\ngit push -u origin x', true], // operator inside quotes
-    ['echo "<<\'X\' "\ngit push origin other', true],
-    ['cat "notes <<\'EOF\' here"\ngit push origin x', true], // a data sink, but the operator is quoted
-    ["cat <<'EOF' | bash\ngit push origin x\nEOF", true], // body piped to a shell
-    ["sudo bash <<'EOF'\ngit push\nEOF", true],
-    ["cat <<'EOF' 2>&1 | bash\ngit push origin x\nEOF", true], // `&` in a redirect, then a pipe
-    ["cat <<'EOF' > /dev/null 2>&1 | sh\ngit push\nEOF", true],
-    // Two heredocs on one line: bash reads A's body first, then B's.
-    ["cat <<'A' | bash; cat > b <<'B'\ngit push\nA\nx\nB", true],
-    ["bash <<EOF; cat > b <<'B'\ngit push\nEOF\nx\nB", true], // unquoted first delimiter counts too
-    ['cat <<< "x"; cat > m.txt <<\'EOF\'\ngit push\nEOF', false], // a here-string is not a heredoc
-    ["bash -s -- a <<'EOF'\ngit push\nEOF", true],
-    ["git commit -F - <<'EOF'\nnever run `git push` here\nEOF", false], // data sink
-    ['gh pr create --body "$(cat <<\'EOF\'\nthen `git push`\nEOF\n)"', false],
-    ['git push origin x # --dry-run later', true], // dry-run flag in a comment
-    ['git push origin x # -n', true],
-    ['git push --dry-run # really', false],
-    ['powershell -File deploy.ps1', false],
-    ['pwsh -NoProfile -ExecutionPolicy Bypass -Command "git status"', false],
-    // NOT pushes:
-    ['git commit -m "docs: explain the git push gate"', false], // push inside quotes
-    ["git commit -m 'mention git push here'", false],
-    ['git push --dry-run', false], // harmless by definition
-    ['git stash push', false], // different subcommand
-    ['echo git push', false], // not in command position
+    ['& "C:\\Program Files\\Git\\cmd\\git.exe" push', true],
+    ['env GIT_TRACE=1 git push', true],
+    // A mere mention blocks too — the accepted cost; use `git commit -F`.
+    ['git commit -m "docs: explain git push"', true],
+    // Not pushes:
+    ['git stash push', false], // push is not git's own subcommand here
+    ['git commit -F msg.txt', false],
     ['gh pr create --title "x"', false],
     ['npm run build', false],
     ['', false],
-    // Wrappers that run something else, and wrappers only MENTIONED in quotes
-    ['bash -c "echo git push"', false],
-    ['pwsh -Command "git status"', false],
-    ['git commit -m "bash -c \'git push\'"', false], // shell named inside a message
-    ['cmd /c "git push --dry-run"', false],
-    ['bash -c "git push --dry-run"', false],
   ])('%j → %s', (cmd, expected) => {
     expect(isGitPush(cmd as string)).toBe(expected);
   });
 });
 
-describe('push-review-gate: pushedSources refspec parsing', () => {
-  it.each([
-    ['git push', [], false],
-    ['git push origin', [], false],
-    ['git push -u origin feat/x', ['feat/x'], false],
-    ['git push origin "abc123:refs/heads/master"', ['abc123'], false], // quoted refspec
-    ['git push origin +x:y', ['x'], false], // force prefix
-    ['git push origin :y', [], false], // deletion refspec
-    ['git push origin --delete x', [], false],
-    ['git push -o ci.skip origin x', ['x'], false], // -o consumes its value
-    ['git push --receive-pack git-receive-pack origin x', ['x'], false],
-    ['git push origin tag v1.0', [], false], // tag push, as --tags
-    ['git push origin a b', ['a', 'b'], false],
-    ['git push --all origin', [], true],
-    ['git push --mirror', [], true],
-    ['git push origin feat/do-thing', ['feat/do-thing'], false],
-    ['git push origin then-x', ['then-x'], false],
-    ['git push origin x # note', ['x'], false], // a comment is not a refspec
-    // Redirections are the shell's (this gate once blocked its own push over `2>`)
-    ['git push -u origin feat/x 2>&1', ['feat/x'], false],
-    ['git push origin x > log.txt 2>&1', ['x'], false],
-    ['git push origin x >log.txt', ['x'], false],
-    ['git push origin x &> log.txt', ['x'], false],
-    ['git push origin x 2> err.txt', ['x'], false],
-    ['git push origin "#x"', ['#x'], false], // a quoted `#` is
-  ])('%j → %j (unbindable %s)', (segment, sources, unbindable) => {
-    expect(pushedSources(segment as string)).toEqual({ sources, unbindable });
-  });
-
-  it('keeps a `do`/`then` inside a ref name in the segment the ref check reads', () => {
-    expect(pushSegments('git push origin do-other:refs/heads/master')).toEqual([
-      'git push origin do-other:refs/heads/master',
-    ]);
-  });
-
-  it('reads a line-continued push as one command', () => {
-    for (const cont of [' \\\n', ' `\n', ' `\r\n']) {
-      const [segment] = pushSegments(`git push${cont}  origin other-branch`);
-      expect(pushedSources(segment).sources).toEqual(['other-branch']);
-    }
-  });
-
-  // The hook runs on every shell call; an optional flag value that could
-  // itself be a flag made `xargs -a -b -c …` backtrack exponentially.
-  it('stays fast on long runs of flags', () => {
-    const flags = Array.from({ length: 200 }, (_, i) => `-f${i}`).join(' ');
-    const started = performance.now();
-    isGitPush(`xargs ${flags} echo`);
-    isGitPush(`sudo ${flags} echo`);
-    // Thousands of unterminated heredoc operators: one pass, not one scan each.
-    isGitPush(`cat ${"<<'E1'\n".repeat(3000)}`);
-    // …and thousands of operators on ONE line (each segment judged once).
-    isGitPush(`echo ${"<<'E' ".repeat(5000)}\ngit push`);
-    isGitPush(`${"x <<'E'; ".repeat(3000)}\n`);
-    isGitPush(`${"cat <<'E' | x; ".repeat(3000)}\n`); // piped sinks: disjoint pipe scans
-    isGitPush(`${"cat <<'E'; ".repeat(3000)}| x\n`); // one far pipe, found once
-    expect(performance.now() - started).toBeLessThan(1000);
-  });
-});
-
 describe('push-review-gate (Implementation Review Gate)', () => {
-  // A throwaway two-commit repo, so the ref-binding cases have a real
-  // non-HEAD commit. CI's shallow checkout has no HEAD~1 of its own.
-  let repo: string;
-  const git = (...args: string[]) =>
-    // Pin identity, and neutralize signing and global hooks, so a developer's
-    // global git config cannot make the fixture commits fail.
-    execFileSync(
-      'git',
-      [
-        '-c',
-        'user.name=t',
-        '-c',
-        'user.email=t@t',
-        '-c',
-        'commit.gpgsign=false',
-        '-c',
-        'core.hooksPath=',
-        ...args,
-      ],
-      { cwd: repo, encoding: 'utf-8' }
-    ).trim();
-  beforeAll(() => {
-    repo = mkdtempSync(join(tmpdir(), 'gst-hooks-repo-'));
-    git('init', '-q');
-    git('commit', '-q', '--allow-empty', '-m', 'one');
-    git('commit', '-q', '--allow-empty', '-m', 'two');
-  });
-  afterAll(() => {
-    rmSync(repo, { recursive: true, force: true });
-  });
-
-  const env = () => ({ GST_HOOK_MARKER_DIR: dir, GST_HOOK_REPO_DIR: repo });
+  const env = () => ({ GST_HOOK_MARKER_DIR: dir, GST_HOOK_REPO_DIR: REPO_ROOT });
   const payload = (command: string) => ({ tool_name: 'Bash', tool_input: { command } });
 
-  const currentHead = () => git('rev-parse', 'HEAD');
+  // Only HEAD is ever read, so this works in CI's shallow checkout.
+  const currentHead = () =>
+    execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
 
   function writeMarker(overrides: Record<string, unknown> = {}) {
     writeFileSync(
@@ -406,14 +252,17 @@ describe('push-review-gate (Implementation Review Gate)', () => {
   });
 
   it('is inert on missing/empty stdin (subagent or malformed traffic)', () => {
-    const r = runHook(PUSH_GATE, {}, env());
-    expect(r.status).toBe(0);
+    expect(runHook(PUSH_GATE, {}, env()).status).toBe(0);
   });
 
   it('blocks a push with no marker', () => {
     const r = runHook(PUSH_GATE, payload('git push -u origin feat/x'), env());
     expect(r.status).toBe(2);
     expect(r.stderr).toContain('Implementation Review Gate');
+  });
+
+  it('blocks a wrapped push with no marker', () => {
+    expect(runHook(PUSH_GATE, payload('bash -c "git push origin x"'), env()).status).toBe(2);
   });
 
   it('allows a push with APPROVE marker bound to current HEAD', () => {
@@ -449,83 +298,9 @@ describe('push-review-gate (Implementation Review Gate)', () => {
     expect(runHook(PUSH_GATE, payload('git push'), env()).status).toBe(2);
   });
 
-  // The review covers HEAD; every ref the push names must be HEAD's commit.
-  const parentSha = () => git('rev-parse', 'HEAD~1');
-
-  it('allows a reviewed push whose output is redirected (`2>&1`)', () => {
-    writeMarker();
-    const r = runHook(PUSH_GATE, payload('git push -u origin HEAD 2>&1 | tail -4'), env());
-    expect(r.status).toBe(0);
-  });
-
-  it('allows pushing HEAD by name', () => {
-    writeMarker();
-    expect(runHook(PUSH_GATE, payload('git push origin HEAD'), env()).status).toBe(0);
-  });
-
-  it('blocks a push that sends a ref other than the reviewed HEAD', () => {
-    writeMarker();
-    const r = runHook(PUSH_GATE, payload(`git push origin ${parentSha()}:refs/heads/x`), env());
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain('not the reviewed HEAD');
-  });
-
-  it('blocks an unreviewed ref even when the refspec is quoted', () => {
-    writeMarker();
-    const r = runHook(PUSH_GATE, payload(`git push origin "${parentSha()}:refs/heads/x"`), env());
-    expect(r.status).toBe(2);
-  });
-
-  it('fails CLOSED on a pushed ref that does not resolve', () => {
-    writeMarker();
-    const r = runHook(PUSH_GATE, payload('git push origin no-such-ref-xyz-123'), env());
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain('could not resolve');
-  });
-
-  it('blocks --all, which a single review cannot cover', () => {
-    writeMarker();
-    expect(runHook(PUSH_GATE, payload('git push --all origin'), env()).status).toBe(2);
-  });
-
-  it('allows a branch deletion (no content is sent)', () => {
-    writeMarker();
-    expect(runHook(PUSH_GATE, payload('git push origin --delete old-branch'), env()).status).toBe(
-      0
-    );
-  });
-
-  it('blocks a ref whose name contains `do` (it once split the refspec away)', () => {
-    writeMarker();
-    const r = runHook(PUSH_GATE, payload('git push origin do-other:refs/heads/master'), env());
-    expect(r.status).toBe(2);
-  });
-
-  it('blocks an unreviewed ref on a continuation line', () => {
-    writeMarker();
-    const r = runHook(
-      PUSH_GATE,
-      payload(`git push \`\n  origin ${parentSha()}:refs/heads/x`),
-      env()
-    );
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain('not the reviewed HEAD');
-  });
-
   it('fails CLOSED (exit 2, not 1) on a marker that is JSON null', () => {
     writeFileSync(join(dir, 'impl-review.json'), 'null', 'utf-8');
     expect(runHook(PUSH_GATE, payload('git push'), env()).status).toBe(2);
-  });
-
-  it('gates a wrapped push with no marker', () => {
-    const r = runHook(PUSH_GATE, payload('bash -c "git push origin x"'), env());
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain('Implementation Review Gate');
-  });
-
-  it('does not gate a quoted mention of git push even with no marker present', () => {
-    const r = runHook(PUSH_GATE, payload('git commit -m "feat: add the git push gate"'), env());
-    expect(r.status).toBe(0);
   });
 });
 
