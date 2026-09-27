@@ -37,7 +37,6 @@ src/docs/development/_archive/
 # Files where Prettier's parser fails on embedded code blocks
 # (inline scripts in .astro, code fences in markdown)
 src/components/GoogleAnalytics.astro
-src/docs/analytics/ANALYTICS_TESTING.md
 src/docs/development/DEVELOPER_TOOLING.md
 src/docs/hub/DILIGENCE_MACHINE.md
 src/docs/hub/REGULATORY_MAP.md
@@ -46,5 +45,3 @@ src/docs/seo/JSON_LD_SCHEMA.md
 src/docs/seo/SEO_COMPONENT.md
 src/docs/seo/SEO_IMPLEMENTATION.md
 src/docs/styles/STYLES_GUIDE.md
-src/docs/testing/QUICK_REFERENCE.md
-src/docs/testing/TEST_STRATEGY.md

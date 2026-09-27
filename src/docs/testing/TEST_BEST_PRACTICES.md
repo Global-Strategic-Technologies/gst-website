@@ -596,35 +596,30 @@ test('should filter projects by stage', async ({ page }) => {
 
 ### Pattern 2: Theme Toggle
 
+The theme has **four** states (light → dim light → dim dark → dark, ADR-0038), carried as two classes on `<html>` — `dark-theme` and `theme-dim` — never on `body`. Reading `dark-theme` alone cannot tell light from dim light, or dark from dim dark. Use the helpers in `tests/e2e/helpers/theme.ts`, which read both classes:
+
 ```typescript
-test('should toggle between light and dark themes', async ({ page }) => {
-  const body = page.locator('body');
+import {
+  clickThemeToggle,
+  currentTheme,
+  nextTheme,
+  waitForTheme,
+  cycleThemeTo,
+} from './helpers/theme';
 
-  // Get initial state
-  const before = await body.evaluate((el) => ({
-    class: el.className,
-    bg: window.getComputedStyle(el).backgroundColor,
-  }));
+test('the toggle steps to the next of the four states', async ({ page }) => {
+  const before = await currentTheme(page); // 'light' | 'dim-light' | 'dim-dark' | 'dark'
 
-  // Toggle theme
-  await page.locator('[data-testid="theme-toggle"]').click();
+  await clickThemeToggle(page); // dispatchEvent — WebKit hit-testing misses the footer toggle
 
-  // Wait for actual CSS change (not class change)
-  await page.waitForFunction((initialBg) => {
-    return window.getComputedStyle(document.body).backgroundColor !== initialBg;
-  }, before.bg);
-
-  // Get new state
-  const after = await body.evaluate((el) => ({
-    class: el.className,
-    bg: window.getComputedStyle(el).backgroundColor,
-  }));
-
-  // Verify both changed
-  expect(before.class).not.toBe(after.class);
-  expect(before.bg).not.toBe(after.bg);
+  await waitForTheme(page, nextTheme(before)); // waits on the <html> classes, not a sleep
 });
+
+// Need a particular state? Cycle to it (at most three clicks, each awaited):
+await cycleThemeTo(page, 'dark');
 ```
+
+To measure a colour in a given theme, apply it as a real load rather than toggling the class under a running page — see #29.
 
 ### Pattern 3: Modal Interaction
 
@@ -793,7 +788,7 @@ describe('my feature', () => {
 
 Vitest 4.x was reported to require lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) was reported to cause a runner initialization error.
 
-> **Does not reproduce today (probed 2026-09-11):** a minimal file with a top-level `beforeEach` runs and passes on **both** Vitest 4.1.11 (`mcp-server`, at the time) and 5.0.0 (website). Both workspaces have been on Vitest 5 since BL-160. The same unverified install-drift hypothesis as #9 applies. Keep the good pattern below anyway, as a consistency convention.
+> **Does not reproduce today (probed 2026-09-11):** a minimal file with a top-level `beforeEach` runs and passes on **both** Vitest 4.1.11 (`mcp-server`, at the time) and 5.0.0 (website). Both workspaces have been on Vitest 5 since BL-160. The install-drift hypothesis this note used to share with #9 is retired: #9's cause was established on 2026-09-26 (a lowercase-drive launch loading a second vitest instance). Whether that also explains this report was not tested. Keep the good pattern below anyway, as a consistency convention.
 
 **Bad:**
 

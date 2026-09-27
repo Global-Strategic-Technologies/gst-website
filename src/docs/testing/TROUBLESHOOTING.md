@@ -8,9 +8,9 @@ Solutions to common problems when running tests locally and in CI/CD.
 
 **Possible causes:**
 
-1. **Node version mismatch** - CI runs Node 18 and 20, you might have a different version
+1. **Node version mismatch** - CI runs Node 22.x (`.nvmrc` pins 22); you might have a different version
 2. **Missing environment variables** - Check `.env` file is not committed
-3. **Flaky timing in E2E tests** - Your machine is faster than CI
+3. **Flaky timing in E2E tests** - Your machine is faster than CI, which runs 2 workers with 1 retry
 4. **Platform differences** - You're on Windows, CI runs on Linux
 
 **Solution:**
@@ -19,8 +19,9 @@ Solutions to common problems when running tests locally and in CI/CD.
 # Check your Node version
 node --version
 
-# Run tests with CI-like conditions
-npm run test:all  # Simulates CI test run
+# Run what CI's required jobs run (the full sequence: DEVELOPER_TOOLING.md § Quick reference)
+npx astro check && npm run lint && npm run lint:css && npm run test:run
+npm run build && npx playwright test --project=chromium   # the required E2E job is chromium-only
 
 # Check what CI actually runs
 cat .github/workflows/test.yml
@@ -238,8 +239,8 @@ npm run test:all
 
 **Possible causes:**
 
-1. **Workflow not triggered on your branch** - Only runs on master/dev
-2. **Branch protection requires different branch** - Check repository settings
+1. **Branch prefix not in the push list** - `test.yml` runs on pushes to `master`, `feat/**`, `fix/**`, `feature/**`, `dependabot/**`, `docs/**` and `chore/**`, and on a PR to `master` only when it is opened or reopened. A branch named outside those families gets no runs on its pushes. See [DEVELOPER_TOOLING.md § What runs automatically](../development/DEVELOPER_TOOLING.md#what-runs-automatically)
+2. **The run skipped its steps** - A docs-only or duplicate push still runs, but every job reports a skipped-steps success; check the Detect Code Changes job's "Log gate decision" step
 3. **Workflow file has syntax error** - YAML parsing failed
 
 **Solution:**
@@ -247,12 +248,9 @@ npm run test:all
 ```bash
 # Check workflow file
 cat .github/workflows/test.yml
-
-# Trigger manually in GitHub UI:
-# 1. Go to repository → Actions tab
-# 2. Select "Test" workflow
-# 3. Click "Run workflow" → select your branch
 ```
+
+`test.yml` has no `workflow_dispatch`, so there is no "Run workflow" button for it. Rename the branch into a covered family, or close and reopen the PR (which fires `reopened`).
 
 ### "A check is stuck — running for minutes with no logs, or queued with no job at all"
 
@@ -307,11 +305,13 @@ Three shapes, all observed on run `31117388132` during the 2026-08-06 outage. Br
 
 ### "Tests pass locally but fail in CI on specific browser (Firefox or Safari)"
 
+Only the manual `test-cross-browser.yml` run exercises firefox and webkit in CI; the required E2E job is chromium-only.
+
 **Possible causes:**
 
 1. **Browser-specific CSS behavior** - margin/padding calculations differ
 2. **JavaScript timing differences** - Animation frame ordering varies
-3. **CSS vendor prefixes missing** - Autoprefixer not running
+3. **CSS vendor prefixes missing** - LightningCSS adds prefixes from `browserslist`; a hand-written prefix can make it drop one (see DEVELOPER_TOOLING § Vendor prefix policy)
 
 **Solution:**
 
@@ -344,7 +344,7 @@ npm run build
 # Check Vercel environment variables:
 # 1. Go to Vercel project settings
 # 2. Check "Environment Variables" section
-# 3. Verify GA_MEASUREMENT_ID and other required vars are set
+# 3. Verify PUBLIC_GA_MEASUREMENT_ID and the other vars in astro.config.mjs env.schema are set
 
 # Check Node version
 cat .nvmrc  # Expected version
@@ -359,24 +359,20 @@ node --version  # Your version
 
 **Possible causes:**
 
-1. **Branch not up to date with master** - Need to rebase/merge
-2. **Code review required but not completed** - Waiting for approval
-3. **Branch protection rule not satisfied** - Outdated protection settings
+1. **Branch not up to date with master** - The ruleset's strict policy requires it
+2. **A required check is missing, not failing** - The checks passed on an older head, or never reported on this one
+3. **A required check is still expected** - e.g. `lighthouse`, once it is in the ruleset
 
 **Solution:**
 
 ```bash
-# Update your branch with latest master
+# Merge master into your branch (the repo merges, never squashes or force-pushes)
 git fetch origin
-git rebase origin/master
-git push -f origin your-branch
-
-# Or merge master into your branch
-git pull origin master
+git merge origin/master
 git push origin your-branch
 ```
 
-Then refresh GitHub PR page to re-run tests.
+The push triggers a fresh `test.yml` run on the new head. If you used GitHub's **"Update branch"** button instead and the PR stays BLOCKED with checks stuck "expected", close and reopen the PR — see [DEVELOPER_TOOLING.md § What runs automatically](../development/DEVELOPER_TOOLING.md#on-every-push-to-master-feat-fix-feature-dependabot-docs-chore-and-prs-to-master). The required checks are listed in [GITHUB_ACTIONS_SETUP.md § Branch Protection Rules](./GITHUB_ACTIONS_SETUP.md#branch-protection-rules).
 
 ---
 
@@ -450,7 +446,7 @@ npm run test:all --reporter=verbose
 npx playwright test --trace on --timeout=60000
 ```
 
-### "CI tests timing out (20 minute limit)"
+### "CI tests timing out (30 minute limit)"
 
 **Solution:**
 
@@ -466,7 +462,7 @@ npx playwright test --trace on --timeout=60000
 
 2. **Split test runs** - Consider splitting into multiple jobs in workflow
 
-3. **Reference:** [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) - E2E timeout configuration
+3. **Reference:** [GITHUB_ACTIONS_SETUP.md § What the E2E job does](./GITHUB_ACTIONS_SETUP.md#what-the-e2e-job-does) - the job's steps, workers, retries and timeout. Do not raise the timeout to make a slow run fit; find what got slower
 
 ---
 

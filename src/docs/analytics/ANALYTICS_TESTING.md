@@ -7,7 +7,7 @@ This document provides comprehensive guidance on testing the Google Analytics 4 
 The GA4 testing suite consists of three levels:
 
 1. **Unit Tests** - Test analytics utility functions in isolation
-2. **Integration Tests** - Test GA4 script initialization and DOM event tracking
+2. **Integration Tests** - Pin the wiring contract of the inline GA4 init script
 3. **E2E Tests** - Test real user journeys and event firing in live pages
 
 ## Unit Tests
@@ -17,19 +17,20 @@ The GA4 testing suite consists of three levels:
 ### Running Unit Tests
 
 ```bash
-# Run all unit tests
-npm run test
+# Run all unit and integration tests
+npm run test:run
 
-# Run analytics tests only
-npm run test -- analytics.test.ts
+# Run the analytics unit tests only
+npx vitest run tests/unit/analytics.test.ts tests/unit/tool-analytics.test.ts
 
 # Run with coverage
-npm run test -- --coverage
+npm run test:coverage
 ```
 
 ### Test Coverage
 
 Unit tests cover:
+
 - ✅ `trackEvent()` - Verifies gtag is called with correct event structure
 - ✅ `trackNavigation()` - Verifies navigation_click event with parameters
 - ✅ `trackCTA()` - Verifies cta_click event with type and location
@@ -37,6 +38,8 @@ Unit tests cover:
 - ✅ Error handling - Graceful handling when gtag unavailable
 - ✅ Event categories - Proper category assignment for each event type
 - ✅ Parameter mapping - Correct transformation of event data to gtag format
+
+`tests/unit/tool-analytics.test.ts` separately pins the Hub tool event names to the `<prefix>_<action>` convention.
 
 ### Unit Test Examples
 
@@ -80,35 +83,18 @@ it('should not throw if gtag is not available', () => {
 
 ## Integration Tests
 
-**Location:** `tests/integration/*.test.ts`
+**Location:** `tests/integration/google-analytics-wiring.test.ts`
 
-**Note:** Integration tests currently test business logic (filtering, searching, sorting) in isolation. Full component integration testing is handled by E2E tests.
-
-### Running Integration Tests
+The unit tests mock `window.gtag` and the E2E helper replaces it with a recorder, so neither ever runs the production `gtag` function. This test closes that gap: it asserts on the source of the inline init script in `src/components/GoogleAnalytics.astro`, which must push the `arguments` object to `dataLayer` (Google's canonical pattern). A rest-spread variant passed every other test and silently stopped all GA beacons for about a month in 2026 — the test header has the history.
 
 ```bash
-# Run all integration tests
-npm run test tests/integration/
-
-# Run specific integration tests
-npm run test -- portfolio-filtering.test.ts
-
-# With coverage
-npm run test -- --coverage
+npx vitest run tests/integration/google-analytics-wiring.test.ts
 ```
-
-### Integration Test Coverage
-
-- ✅ Portfolio filtering logic with multiple filter types
-- ✅ Search logic with debouncing and relevance
-- ✅ Project sorting (by date, name, impact)
-- ✅ Theme preference storage
-- ✅ Component state management
-- ✅ Edge cases and data validation
 
 ## End-to-End Tests
 
 **Location:**
+
 - `tests/e2e/analytics.test.ts` - GA4 event tracking
 - `tests/e2e/mobile-navigation.test.ts` - Mobile interactions
 - `tests/e2e/project-details.test.ts` - Project card interactions
@@ -133,6 +119,7 @@ npm run test:e2e:debug
 ### Test Coverage
 
 **Analytics Tests:**
+
 - ✅ Pages still render when GA requests are blocked
 - ✅ Portfolio card clicks fire `portfolio_view_details` event
 - ✅ Modal close fires `portfolio_close_modal` event
@@ -140,9 +127,11 @@ npm run test:e2e:debug
 - ✅ CTA clicks fire `cta_click` event with type and location
 - ✅ Header nav clicks fire `navigation_click` with destination and label
 - ✅ Theme chip clicks fire `filter_applied` with `filter_type: 'theme'` and the chip's value
-- ✅ Cross-browser functionality (chromium, firefox, webkit)
+- ✅ MCP guide pages fire `mcp_guide_view` and the endpoint-copy events (BL-152)
+- ✅ Runs in chromium in the required CI job; firefox and webkit only on a local `npm run test:e2e` or the manual `test-cross-browser.yml` run
 
 **User Interaction Tests:**
+
 - ✅ Mobile navigation (tap targets, modal scrolling, responsive layout)
 - ✅ Project details (modal opening, closing, keyboard navigation)
 - ✅ Theme toggle (button functionality, persistence)
@@ -151,16 +140,6 @@ npm run test:e2e:debug
 ### E2E Test Examples
 
 ```typescript
-// Test GA4 initialization
-test('should initialize gtag function', async ({ page }) => {
-  await page.goto('/');
-
-  const gtagExists = await page.evaluate(() => {
-    return typeof window.gtag === 'function';
-  });
-  expect(gtagExists).toBe(true);
-});
-
 // Test portfolio_view_details event tracking
 test('should track project card clicks', async ({ page }) => {
   await page.goto('/ma-portfolio');
@@ -176,9 +155,7 @@ test('should track project card clicks', async ({ page }) => {
 
   // Verify portfolio_view_details event was tracked
   const events = await page.evaluate(() => (window as any).gtagEvents || []);
-  const viewDetailsEvent = events.find(
-    (e: any) => e.eventName === 'portfolio_view_details'
-  );
+  const viewDetailsEvent = events.find((e: any) => e.eventName === 'portfolio_view_details');
   expect(viewDetailsEvent).toBeDefined();
   expect(viewDetailsEvent?.eventData).toBeDefined();
 });
@@ -275,8 +252,8 @@ test('should track full journey', async ({ page }) => {
 
   // 3. Verify events
   const events = await page.evaluate(() => (window as any).gtagEvents || []);
-  expect(events.find(e => e.eventName === 'navigation_click')).toBeDefined();
-  expect(events.find(e => e.eventName === 'portfolio_view_details')).toBeDefined();
+  expect(events.find((e) => e.eventName === 'navigation_click')).toBeDefined();
+  expect(events.find((e) => e.eventName === 'portfolio_view_details')).toBeDefined();
 });
 ```
 
@@ -308,38 +285,6 @@ await expect(modal).toBeVisible({ timeout: 5000 });
 await page.waitForURL('/ma-portfolio');
 ```
 
-## Testing Checklist
-
-- [ ] **Unit Tests**
-  - [ ] `trackEvent()` with various event types
-  - [ ] Navigation tracking for all links
-  - [ ] Portfolio interaction tracking (view, close, filter)
-  - [ ] CTA tracking with different types/locations
-  - [ ] Theme toggle tracking
-  - [ ] Error handling and edge cases
-
-- [ ] **Integration Tests**
-  - [ ] GA4 script initialization
-  - [ ] dataLayer creation
-  - [ ] gtag function availability
-  - [ ] DOM event listener integration
-  - [ ] Event batching
-  - [ ] localStorage integration
-  - [ ] Consent mode handling
-  - [ ] Error recovery
-
-- [ ] **E2E Tests**
-  - [ ] GA4 loads on all pages
-  - [ ] Navigation links fire events
-  - [ ] Portfolio cards fire events
-  - [ ] Modals fire open/close events
-  - [ ] Filters fire tracking events
-  - [ ] Theme toggle fires events
-  - [ ] CTA buttons fire events
-  - [ ] Complete journeys work
-  - [ ] Mobile/tablet/desktop viewports
-  - [ ] Graceful degradation
-
 ## Debugging GA Events
 
 ### DebugView checklist for the MCP pages (BL-152)
@@ -355,7 +300,7 @@ The analytics helper automatically records events to `window.gtagEvents`:
 const events = await page.evaluate(() => (window as any).gtagEvents || []);
 
 // Each event has: eventName, eventData, timestamp
-events.forEach(event => {
+events.forEach((event) => {
   console.log('Event:', event.eventName);
   console.log('Data:', event.eventData);
   console.log('Time:', event.timestamp);
@@ -365,9 +310,7 @@ events.forEach(event => {
 ### Find Specific Events
 
 ```typescript
-const portfolioViewEvent = events.find((e: any) =>
-  e.eventName === 'portfolio_view_details'
-);
+const portfolioViewEvent = events.find((e: any) => e.eventName === 'portfolio_view_details');
 
 if (portfolioViewEvent) {
   console.log('Project ID:', portfolioViewEvent.eventData.project_id);
@@ -395,67 +338,9 @@ await page.waitForFunction(() =>
 
 ## CI/CD Integration
 
-### GitHub Actions Configuration
-
-```yaml
-jobs:
-  test-analytics:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm run test:run -- analytics.test.ts
-
-      - name: Run integration tests
-        run: npm run test:run -- analytics-integration.test.ts
-
-      - name: Run E2E tests
-        run: npm run test:e2e -- analytics.test.ts
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-```
-
-## Coverage Reports
-
-### Generate Coverage Report
-
-```bash
-# Generate HTML coverage report
-npm run test:coverage -- analytics
-
-# View report
-open coverage/index.html
-```
-
-### Expected Coverage
-
-- **Unit Tests:** 95%+ coverage of `src/utils/analytics.ts`
-- **Integration Tests:** 90%+ coverage of GA4 initialization
-- **E2E Tests:** 100% coverage of critical user journeys
+There is no analytics-specific workflow: these tests run inside the ordinary suites — the unit and integration files in **Unit & Integration Tests**, and `tests/e2e/analytics.test.ts` in **E2E Tests (Playwright)** (chromium). See [GITHUB_ACTIONS_SETUP.md](../testing/GITHUB_ACTIONS_SETUP.md).
 
 ## Troubleshooting
-
-### gtag is undefined in E2E tests
-
-**Cause:** GA4 script may not have loaded yet
-**Solution:** Wait for script to load before testing
-
-```typescript
-await page.waitForFunction(() => {
-  return typeof window.gtag === 'function';
-});
-```
 
 ### Events not being tracked in E2E
 
@@ -470,7 +355,7 @@ await element.click();
 
 // Verify event was tracked
 const events = await page.evaluate(() => (window as any).gtagEvents || []);
-const event = events.find(e => e.eventName === 'expected_event');
+const event = events.find((e) => e.eventName === 'expected_event');
 expect(event).toBeDefined();
 ```
 

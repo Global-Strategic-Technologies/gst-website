@@ -12,7 +12,7 @@ Complete documentation for GA4 integration on the GST website.
 - **Measurement ID**: `G-WTGM9Y1YB0` (production)
 - **Component**: `src/components/GoogleAnalytics.astro` (auto-loaded via BaseLayout)
 - **Utils**: `src/utils/analytics.ts` - Type-safe tracking functions
-- **Tests**: 75+ tests across unit, integration, and E2E
+- **Tests**: unit, integration and E2E — see [ANALYTICS_TESTING.md](./ANALYTICS_TESTING.md)
 
 ## Key Events Tracked
 
@@ -32,17 +32,11 @@ For complete event documentation, see [GOOGLE_ANALYTICS.md](./GOOGLE_ANALYTICS.m
 
 ## Running Tests
 
-**All analytics tests (unit + integration + E2E):**
-
-```bash
-npm run test:all
-```
-
 **Just analytics tests:**
 
 ```bash
-npm run test:run -- analytics
-npx playwright test analytics.test.ts
+npx vitest run analytics                # unit + integration (every file whose path contains "analytics")
+npx playwright test analytics.test.ts   # E2E
 ```
 
 **With coverage:**
@@ -86,8 +80,8 @@ See [ANALYTICS_TESTING.md](./ANALYTICS_TESTING.md) for test examples and pattern
 - GA4 script loading
 - Type-safe event tracking
 - Event analytics
-- Test coverage (75+ tests)
-- Cross-browser E2E validation
+- Unit, integration and E2E coverage
+- E2E in chromium on every CI run; firefox and webkit locally or via the manual cross-browser workflow
 
 ---
 
