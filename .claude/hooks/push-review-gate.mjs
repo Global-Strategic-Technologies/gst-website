@@ -48,38 +48,83 @@ const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
 //
 // Known gaps (the gate stops accidental bypass, not a determined one): git
 // aliases (`git -c alias.p=push p`), pushes run from a script file,
-// `Start-Process git -ArgumentList …`.
+// `Start-Process git -ArgumentList …`, and escaped quotes inside a quoted
+// span (`"a \" git push"`), which the mask does not model. In the other
+// direction, an UNQUOTED-delimiter heredoc body (`<<EOF`) is read as
+// commands, so prose in one that puts `git push` in command position is
+// gated (use `<<'EOF'`, whose body is masked like a quoted string).
 // ---------------------------------------------------------------------------
 
 const QUOTED = /@'[\s\S]*?'@|'[^']*'|"[^"]*"/g;
 // Separators between commands. Braces and parens split too, so the body of a
-// PowerShell `& { git push }` script block is in command position.
-const SEPARATOR = /&&|\|\||[;&|\n{}()]|\bthen\b|\bdo\b/g;
-// Things that may precede a command without changing what runs.
-const PREFIX = String.raw`(?:(?:sudo|command|exec|nohup|time)\s+|env(?:\s+-\w+)*\s+|xargs(?:\s+-\w+(?:\s+\S+)?)*\s+|\w+=\S*\s+)*`;
+// PowerShell `& { git push }` script block or a `$(…)` substitution is in
+// command position; a backtick splits for `…` substitution. `then` and `do`
+// split only as whole shell words — `\bdo\b` would also split the branch name
+// `do-other`, hiding its refspec from the ref check.
+const SEPARATOR = /&&|\|\||[;&|\n{}()`]|(?<![^\s;&|])(?:then|do)(?![^\s;&|])/g;
+// A line continuation (bash `\`, PowerShell backtick) joins two lines into one
+// command; blank it (same length) so the split halves are read together.
+const CONTINUATION = /\\\r?\n|`\r?\n/g;
+// Things that may precede a command without changing what runs. A flag's
+// value may not start with `-`, so each token is read one way only (an
+// optional value that could itself be a flag backtracks exponentially).
+const FLAG_VALUE = String.raw`(?:\s+-\w+(?:\s+[^-\s]\S*)?)*`;
+const PREFIX = String.raw`(?:(?:command|exec|nohup|time)\s+|sudo${FLAG_VALUE}\s+|env(?:\s+-\w+)*\s+|xargs${FLAG_VALUE}\s+|\w+=\S*\s+)*`;
 const EXE_DIR = String.raw`(?:[\w./\\:-]*[/\\])?`;
 const PUSH = new RegExp(
   String.raw`^\s*${PREFIX}${EXE_DIR}git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b`
 );
+// PowerShell host flags. Only these take a value; every other flag is a
+// switch, so a quoted command after `-NoProfile` is never read as its value.
+const PWSH_FLAGS = String.raw`(?:-(?:ExecutionPolicy|ep|ex|WindowStyle|w|Version|v|OutputFormat|of|o|InputFormat|if|ConfigurationName|config|WorkingDirectory|wd|PSConsoleFile|Settings|settings|CustomPipeName)\s+[^-\s]\S*\s+|-(?!(?:Command|Com|Comm|Comma|Comman|c|EncodedCommand|enc|ec|e|File|f)\b)[\w-]+\s+)*`;
+const PWSH = String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+${PWSH_FLAGS}`;
 const WRAPPERS = [
   // bash -c / -lc / -ec …
   new RegExp(
     String.raw`^\s*${PREFIX}${EXE_DIR}(?:bash|sh|zsh|dash)(?:\.exe)?\s+(?:-[\w-]+\s+)*?-[a-zA-Z]*c[a-zA-Z]*\s+`
   ),
-  // pwsh -Command …
-  new RegExp(
-    String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+(?:-[\w-]+(?:\s+[^-\s]\S*)?\s+)*?-(?:Command|c)\s+`,
-    'i'
-  ),
+  // pwsh [-Command|-Com…|-c] … — -Command is the host's default positional
+  // parameter, so `powershell "git push"` runs it too.
+  new RegExp(String.raw`${PWSH}(?:-(?:Command|Com\w*|c)\s+)?(?=\S)`, 'i'),
   // cmd /c, /k
   new RegExp(String.raw`^\s*${EXE_DIR}cmd(?:\.exe)?\s+(?:\/\w+\s+)*?\/[ck]\s+`, 'i'),
-  // Invoke-Expression / iex
-  /^\s*(?:Invoke-Expression|iex)\s+/i,
+  // Invoke-Expression / iex [-Command], and bash eval
+  /^\s*(?:Invoke-Expression|iex)\s+(?:-Command\s+)?/i,
+  /^\s*eval\s+/,
 ];
 const ENCODED = new RegExp(
-  String.raw`^\s*${PREFIX}${EXE_DIR}(?:pwsh|powershell)(?:\.exe)?\s+(?:-[\w-]+(?:\s+[^-\s]\S*)?\s+)*?-(?:EncodedCommand|enc|ec|e)\s+([A-Za-z0-9+/=]+)`,
+  String.raw`${PWSH}-(?:EncodedCommand|enc|ec|e)\s+([A-Za-z0-9+/=]+)`,
   'i'
 );
+// Exempt: nothing is sent.
+const DRY_RUN = /(?:^|\s)(?:--dry-run|-n)(?=\s|$)/;
+
+// A heredoc with a QUOTED delimiter (`<<'EOF'`, `<<"EOF"`) has a literal body:
+// no expansion, no substitution — it is data, like a quoted string (a commit
+// message written with `cat > msg <<'EOF'` routinely quotes `git push`). Its
+// body is masked, unless the heredoc feeds a shell (`bash <<'EOF'`), whose
+// body runs as commands. An unquoted delimiter's body can execute `$(…)` and
+// backticks, so it stays visible.
+const HEREDOC = /<<(-?)\s*(['"])(\w+)\2[^\n]*\n/g;
+const SHELL_FED =
+  /(?:^|[;&|(])\s*(?:\S*[/\\])?(?:bash|sh|zsh|dash|pwsh|powershell)(?:\.exe)?(?:\s+-\S+)*\s*$/i;
+
+/** Same-length mask of quoted-delimiter heredoc bodies (newlines kept). */
+function maskHeredocs(text) {
+  let out = text;
+  for (const m of text.matchAll(HEREDOC)) {
+    const lineStart = text.lastIndexOf('\n', m.index) + 1;
+    if (SHELL_FED.test(text.slice(lineStart, m.index))) continue;
+    const bodyStart = m.index + m[0].length;
+    const end = new RegExp(`^${m[1] ? '\\t*' : ''}${m[3]}\\r?$`, 'm').exec(text.slice(bodyStart));
+    const bodyEnd = end ? bodyStart + end.index : text.length;
+    out =
+      out.slice(0, bodyStart) +
+      text.slice(bodyStart, bodyEnd).replace(/[^\n]/g, '_') +
+      out.slice(bodyEnd);
+  }
+  return out;
+}
 
 /** Same-length mask: quoted contents become filler; quote characters stay. */
 function maskQuotes(command) {
@@ -113,20 +158,25 @@ function payloadAt(text, from) {
 /**
  * The segments of `command` (and of every wrapped payload, recursively) that
  * are real `git push` calls, as ORIGINAL text with quotes intact.
- * `--dry-run` pushes are exempt (harmless by definition).
+ * Dry runs (`--dry-run`, `-n`) are exempt (harmless by definition).
  */
 export function pushSegments(command, depth = 0) {
   if (typeof command !== 'string' || command.length === 0 || depth > 3) return [];
+  const joined = command.replace(CONTINUATION, (m) => ' '.repeat(m.length));
   // A quoted path to the git executable is still git in command position.
-  const text = command.replace(QUOTED, (m) =>
+  const text = joined.replace(QUOTED, (m) =>
     /^["']?(?:[^"']*[/\\])?git(?:\.exe)?["']?$/i.test(m) ? 'git' : m
   );
-  const masked = maskQuotes(text);
+  // Heredoc bodies first, so an apostrophe in one cannot pair with a quote
+  // outside it and hide a real command between them.
+  const masked = maskQuotes(maskHeredocs(text));
   const found = [];
   for (const [start, end] of segmentRanges(masked)) {
     const seg = text.slice(start, end);
     const segMasked = masked.slice(start, end);
-    if (PUSH.test(segMasked) && !segMasked.includes('--dry-run')) found.push(seg);
+    // The dry-run flags count only after `push` (`xargs -n 1 git push` is real).
+    const push = PUSH.exec(segMasked);
+    if (push && !DRY_RUN.test(segMasked.slice(push[0].length))) found.push(seg);
     for (const wrapper of WRAPPERS) {
       const m = wrapper.exec(segMasked);
       if (m) found.push(...pushSegments(payloadAt(seg, m[0].length), depth + 1));
@@ -223,6 +273,9 @@ if (isMain) {
   if (pushes.length === 0) {
     process.exit(0); // fast path: not a push — inert for all other traffic
   }
+  // From here on this IS a push, and an uncaught error would exit 1, which
+  // does not block (fail open). Turn any unexpected error into a block.
+  process.on('uncaughtException', (err) => block(`internal error (fail closed): ${err?.message}`));
 
   if (!existsSync(MARKER)) {
     block('no impl-review marker found — the diff has not been code-reviewed.');
@@ -233,6 +286,9 @@ if (isMain) {
     marker = JSON.parse(readFileSync(MARKER, 'utf-8'));
   } catch {
     block('impl-review marker is unreadable/malformed JSON (fail closed).');
+  }
+  if (!marker || typeof marker !== 'object') {
+    block('impl-review marker is not a JSON object (fail closed).');
   }
 
   if (!ALLOWED_VERDICTS.has(marker.verdict)) {

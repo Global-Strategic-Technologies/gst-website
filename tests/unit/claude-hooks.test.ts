@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
 // Hook script lives outside src/ by design (.claude/hooks/); imported directly for unit tests.
-import { isGitPush, pushedSources } from '../../.claude/hooks/push-review-gate.mjs';
+import { isGitPush, pushSegments, pushedSources } from '../../.claude/hooks/push-review-gate.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -168,6 +168,11 @@ describe('plan-review-gate (Design Review Gate)', () => {
     expect(r.stderr).toContain('text mismatch');
   });
 
+  it('fails CLOSED (exit 2, not 1) on a marker that is JSON null', () => {
+    writeFileSync(join(dir, 'plan-review.json'), 'null', 'utf-8');
+    expect(runHook(PLAN_GATE, exiting(), env()).status).toBe(2);
+  });
+
   it('fails CLOSED when the payload names no plan at all', () => {
     writePlanAndMarker();
     const r = runHook(PLAN_GATE, {}, env());
@@ -223,6 +228,27 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['xargs -n 1 git push', true],
     ['nohup git push', true],
     ['command git push', true],
+    // Found at code review, 2026-09-27
+    ['eval "git push"', true],
+    ['echo `git push`', true], // backtick command substitution
+    ['powershell "git push"', true], // -Command is the default positional parameter
+    ['powershell git push', true],
+    ['pwsh -Com "git push"', true], // abbreviated -Command
+    ['Invoke-Expression -Command "git push"', true],
+    ['sudo -u me git push', true],
+    ['for b in a; do git push; done', true], // `do` as a shell word still splits
+    ['git push origin do-other:refs/heads/master', true], // `do` inside a ref must NOT split
+    ['git push -n', false], // short dry run
+    // Heredocs: a quoted delimiter makes the body literal data (a commit
+    // message quoting `git push`), unless a shell reads it.
+    ["cat > m.txt <<'EOF'\nfix: a bare `git push` here\ngit push\nEOF\ngit commit -F m.txt", false],
+    ['cat > m.txt <<"EOF"\ngit push\nEOF', false],
+    ["cat > m.txt <<-'EOF'\n\tgit push\n\tEOF", false],
+    ["bash <<'EOF'\ngit push\nEOF", true], // a shell runs the body
+    ["cat <<'EOF' > x.txt\ndon't\nEOF\ngit push", true], // body apostrophe can't hide a later push
+    ['cat <<EOF\n$(git push)\nEOF', true], // unquoted delimiter: substitution runs
+    ['powershell -File deploy.ps1', false],
+    ['pwsh -NoProfile -ExecutionPolicy Bypass -Command "git status"', false],
     // NOT pushes:
     ['git commit -m "docs: explain the git push gate"', false], // push inside quotes
     ["git commit -m 'mention git push here'", false],
@@ -258,8 +284,33 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
     ['git push origin a b', ['a', 'b'], false],
     ['git push --all origin', [], true],
     ['git push --mirror', [], true],
+    ['git push origin feat/do-thing', ['feat/do-thing'], false],
+    ['git push origin then-x', ['then-x'], false],
   ])('%j → %j (unbindable %s)', (segment, sources, unbindable) => {
     expect(pushedSources(segment as string)).toEqual({ sources, unbindable });
+  });
+
+  it('keeps a `do`/`then` inside a ref name in the segment the ref check reads', () => {
+    expect(pushSegments('git push origin do-other:refs/heads/master')).toEqual([
+      'git push origin do-other:refs/heads/master',
+    ]);
+  });
+
+  it('reads a line-continued push as one command', () => {
+    for (const cont of [' \\\n', ' `\n', ' `\r\n']) {
+      const [segment] = pushSegments(`git push${cont}  origin other-branch`);
+      expect(pushedSources(segment).sources).toEqual(['other-branch']);
+    }
+  });
+
+  // The hook runs on every shell call; an optional flag value that could
+  // itself be a flag made `xargs -a -b -c …` backtrack exponentially.
+  it('stays fast on long runs of flags', () => {
+    const flags = Array.from({ length: 200 }, (_, i) => `-f${i}`).join(' ');
+    const started = performance.now();
+    isGitPush(`xargs ${flags} echo`);
+    isGitPush(`sudo ${flags} echo`);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
 
@@ -371,6 +422,28 @@ describe('push-review-gate (Implementation Review Gate)', () => {
     expect(runHook(PUSH_GATE, payload('git push origin --delete old-branch'), env()).status).toBe(
       0
     );
+  });
+
+  it('blocks a ref whose name contains `do` (it once split the refspec away)', () => {
+    writeMarker();
+    const r = runHook(PUSH_GATE, payload('git push origin do-other:refs/heads/master'), env());
+    expect(r.status).toBe(2);
+  });
+
+  it('blocks an unreviewed ref on a continuation line', () => {
+    writeMarker();
+    const r = runHook(
+      PUSH_GATE,
+      payload(`git push \`\n  origin ${parentSha()}:refs/heads/x`),
+      env()
+    );
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('not the reviewed HEAD');
+  });
+
+  it('fails CLOSED (exit 2, not 1) on a marker that is JSON null', () => {
+    writeFileSync(join(dir, 'impl-review.json'), 'null', 'utf-8');
+    expect(runHook(PUSH_GATE, payload('git push'), env()).status).toBe(2);
   });
 
   it('gates a wrapped push with no marker', () => {

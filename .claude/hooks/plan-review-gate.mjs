@@ -47,6 +47,10 @@ function block(reason) {
   process.exit(2);
 }
 
+// An uncaught error would exit 1, which does not block (fail open). This gate
+// only ever runs on ExitPlanMode, so any unexpected error blocks instead.
+process.on('uncaughtException', (err) => block(`internal error (fail closed): ${err?.message}`));
+
 // The hook payload names the plan being exited: tool_input.planFilePath (and
 // tool_input.plan, its text). The marker is only valid for THAT plan — an
 // APPROVE for some other plan file must not let this one through (it did, on
@@ -78,6 +82,9 @@ try {
   marker = JSON.parse(readFileSync(MARKER, 'utf-8'));
 } catch {
   block('plan-review marker is unreadable/malformed JSON (fail closed).');
+}
+if (!marker || typeof marker !== 'object') {
+  block('plan-review marker is not a JSON object (fail closed).');
 }
 
 if (!ALLOWED_VERDICTS.has(marker.verdict)) {

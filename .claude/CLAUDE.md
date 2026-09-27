@@ -2,7 +2,7 @@
 
 This document provides Claude with essential context about the GST Website project, enabling it to provide more targeted and effective assistance.
 
-**This repo is two workspaces in one** (npm workspaces): the **Astro website** (root — static site on Vercel) and the **`@gst/mcp-server`** package (`mcp-server/` — an MCP server deployed as a Cloudflare Worker at `mcp.globalstrategic.tech`). Most non-trivial work touches conventions documented in one of the two doc trees — find them before building (see 📚 Critical Documentation).
+**This repo is two workspaces in one** (npm workspaces): the **Astro website** (root — static pages plus on-demand SSR, on Vercel) and the **`@gst/mcp-server`** package (`mcp-server/` — an MCP server deployed as a Cloudflare Worker at `mcp.globalstrategic.tech`). Most non-trivial work touches conventions documented in one of the two doc trees — find them before building (see 📚 Critical Documentation).
 
 ---
 
@@ -127,7 +127,7 @@ For allowlist setups: the permission matcher evaluates compound commands **per-s
 
 ## 📋 Project Overview
 
-**GST Website** — a modern, high-performance static site for Global Strategic Technologies, plus the GST MCP server exposing the Hub tools to LLM clients.
+**GST Website** — a modern, high-performance website (mostly static, with on-demand SSR where it needs fresh data) for Global Strategic Technologies, plus the GST MCP server exposing the Hub tools to LLM clients.
 
 - **Website**: Astro 7.x + Vite, static pages plus on-demand SSR via the Vercel adapter (`/hub/radar`, ISR-cached), deployed to Vercel
 - **MCP server** (`mcp-server/`, workspace `@gst/mcp-server`): TypeScript MCP server; runs over stdio locally and as a **Cloudflare Worker** remotely (staging + production); Upstash Redis for caching/rate-limiting; Sentry + custom observability
