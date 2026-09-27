@@ -9,7 +9,6 @@
  * Every fixture here is deliberately **larger than `MAX_WIRE`**. The existing radar
  * suites use 2-5 item fixtures, which is why the missing bound was invisible to them.
  */
-import { describe, it, expect } from 'vitest';
 import {
   boundWireItems,
   MAX_WIRE,

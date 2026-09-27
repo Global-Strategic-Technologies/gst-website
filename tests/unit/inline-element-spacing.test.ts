@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { globSync, readFileSync } from 'fs';
 import { join } from 'path';
 

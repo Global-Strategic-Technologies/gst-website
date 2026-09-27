@@ -11,7 +11,6 @@
  * as text would add an uncovered file while proving less. It also lets these
  * tests exercise the real absolute-URL contract rather than a paraphrase of it.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';

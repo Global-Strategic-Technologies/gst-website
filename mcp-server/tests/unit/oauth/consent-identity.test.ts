@@ -7,7 +7,6 @@
  * check runs AFTER secret verification (mutation guard for ordering).
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 import { createM2mClient } from '../../../src/oauth/m2m-clients';
 import * as m2m from '../../../src/oauth/m2m-clients';

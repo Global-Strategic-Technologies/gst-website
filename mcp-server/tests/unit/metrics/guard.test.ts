@@ -5,7 +5,6 @@
  * keyOwner, oversize blob payload) and the normalization paths (string
  * truncation with marker).
  */
-import { describe, expect, it } from 'vitest';
 import { guardEvent } from '../../../src/metrics/guard';
 import { OUTCOME_VALUES } from '../../../src/metrics/_schema';
 

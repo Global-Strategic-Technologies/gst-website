@@ -9,7 +9,6 @@
  *
  * See DEVELOPER_TOOLING.md § Claude Code review gates.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';

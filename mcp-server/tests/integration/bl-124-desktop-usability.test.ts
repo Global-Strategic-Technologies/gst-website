@@ -15,7 +15,6 @@
  * present. An earlier draft of this file did exactly that and proved nothing.
  */
 
-import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 import { irlCreatePrompt } from '../../src/prompts/irl-create';
 import { comparableEngagementsMemoPrompt } from '../../src/prompts/comparable-engagements-memo';

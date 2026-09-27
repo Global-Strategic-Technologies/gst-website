@@ -6,16 +6,27 @@
  *   - the corner box does not eat clicks on the nav underneath it
  *     (`pointer-events: none` on the box, `auto` on the band),
  *   - the reserve and the corner-box size stay paired at all three breakpoints,
- *   - a page WITHOUT a sash gets no reserve at all (the `:has()` guard), and
- *   - the announced page never carries a sash pointing at itself.
+ *   - a page WITHOUT a sash gets no reserve at all (the `:has()` guard),
+ *   - the announced page never carries a sash pointing at itself, and
+ *   - every sash form's copy and ribbon geometry fit the corner box, on the
+ *     live page sash and on the /brand specimens.
  *
  * Route selection and the `until` window are unit-tested against the registry in
  * `tests/unit/announcements.test.ts`; nothing here re-asserts them, and nothing
  * here pins the announcement's copy. Retirement is the designed outcome, not a
- * failure, so the suite reads the registry itself and skips when no
- * announcement is live on SASH_ROUTE — otherwise every assertion below would
- * turn a required check red on a calendar date, with no code change and nothing
- * to fix. The unit suite skips the same way (`describe.skipIf`).
+ * failure, so the page-context suite ('Announcement sash') reads the registry
+ * itself and skips when no announcement is live on SASH_ROUTE — otherwise every
+ * assertion in it would turn a required check red on a calendar date, with no
+ * code change and nothing to fix. The unit suite skips the same way
+ * (`describe.skipIf`).
+ *
+ * The second suite, 'Sash specimens (/brand)', has NO registry skip. The /brand
+ * gallery renders every sash form from fixed props, so its ink fit and ribbon
+ * geometry, and the `:has()` guard on sash-less pages, hold on any date. That
+ * keeps the sash CSS under test between announcements. What stands down with
+ * the page-context suite (accepted): the nav reserve pairing and click-through,
+ * the <512px strip, horizontal overflow, tab order, the hub card band and
+ * "above the sticky header".
  *
  * Geometry pairs — corner box / band top / band width / nav reserve — per
  * `src/styles/components/sash.css`.
@@ -97,6 +108,122 @@ const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? DESKTOP_TIER.reserve : '220
 /** The box grows with the reserve — a sash carrying an under-band needs the
  *  extra chord for its subtext (sash.css). Same conditional, same pair. */
 const DESKTOP_BOX = LIVE_SUBTEXT === undefined ? `${DESKTOP_TIER.box}px` : '220px';
+
+/**
+ * The RIBBON-FORM invariant (sash.css's header comment), asserted on every
+ * rendered corner form rather than on the numbers themselves — those live in
+ * one place and are free to move.
+ *
+ * Work in chord space c = x − y (corner-box local): a 45° band is the strip
+ * c ∈ [c_min, c_max], and the box's main diagonal is c = 0. A band whose
+ * c_min drops to 0 or below stops being a ribbon — its lower edge crosses
+ * the box's LEFT and BOTTOM edges instead of the top and right, so the band
+ * covers the box's top-left corner and gets cut off square in mid-page.
+ * That shipped twice while every geometry probe passed (the probes checked
+ * that band pixels were where chord math predicted; none checked WHICH box
+ * edges cut them), so it is a test now.
+ */
+/** Chord-space measurement of every band inside one corner, from its
+ *  unrotated layout box (the corner is each band's offsetParent). */
+const measureBands = (corner: Locator) =>
+  corner.evaluate((el) => {
+    const box = (el as HTMLElement).offsetWidth;
+    return ['.brutal-sash', '.brutal-sash-under']
+      .map((sel) => {
+        const band = el.querySelector<HTMLElement>(sel);
+        if (!band || getComputedStyle(band).display === 'none') return null;
+        const cx = band.offsetLeft + band.offsetWidth / 2;
+        const cy = band.offsetTop + band.offsetHeight / 2;
+        const c = cx - cy;
+        const halfC = (band.offsetHeight * Math.SQRT2) / 2;
+        const r2 = Math.SQRT1_2;
+        const capCornersInside = [-1, 1]
+          .flatMap((along) =>
+            [-1, 1].map((across) => [
+              cx + ((along * band.offsetWidth) / 2) * r2 + ((across * band.offsetHeight) / 2) * r2,
+              cy + ((along * band.offsetWidth) / 2) * r2 - ((across * band.offsetHeight) / 2) * r2,
+            ])
+          )
+          .filter(([x, y]) => x > 0 && x < box && y > 0 && y < box).length;
+        return { sel, box, cMin: c - halfC, cMax: c + halfC, capCornersInside };
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
+  });
+
+const expectRibbons = (bands: Awaited<ReturnType<typeof measureBands>>, where: string) => {
+  for (const b of bands) {
+    expect(b.cMin, `${where} ${b.sel}: lower edge stays off the box diagonal`).toBeGreaterThan(2);
+    expect(b.cMax, `${where} ${b.sel}: upper edge leaves the corner apex white`).toBeLessThan(
+      b.box
+    );
+    expect(b.capCornersInside, `${where} ${b.sel}: end caps are clipped away, never visible`).toBe(
+      0
+    );
+  }
+};
+
+/**
+ * Ink containment — the property the ribbon test does NOT cover: a band can
+ * be a perfect ribbon while the box cuts its COPY. Both of this file's
+ * geometry defects were of that kind, and both hid behind a measurement in
+ * the wrong space, so this measures the way the box actually sees it: the
+ * band is un-rotated to read its ink flat, and the ink's four corners are
+ * mapped back through the 45° rotation and tested against the box.
+ *
+ * Still per ENGINE, though the reason has changed. It was written because
+ * `--font-family-mono` was the bare `monospace` generic and each engine
+ * resolved a different advance width — the live subtext measured 222px on
+ * Chromium and Firefox and 240px on WebKit, and a chromium-only check once
+ * passed a band WebKit was clipping by 5px. BL-144 pinned the face and that
+ * spread is gone (253.2 / 252.7 / 253.2 for the 35-character single-node
+ * subtext this was measured against; the band is a two-field list now and the
+ * live pair lives in Sash.astro's header), but per-engine is still right:
+ * engines round and shape text differently even from identical metrics, and
+ * this file's whole history is sub-pixel passes hiding real clips.
+ */
+/**
+ * NOT `> 0`. At the geometry this guard was written for, Chromium cleared the
+ * box by 0.8px and WebKit overflowed it by 5.3px — a sub-pixel pass on one
+ * engine is what hid a real clip on another, so the floor is a real number.
+ */
+const MIN_INK_MARGIN = 4;
+
+const measureInkFit = (corner: Locator) =>
+  corner.evaluate((el) => {
+    const box = (el as HTMLElement).offsetWidth;
+    return ['.brutal-sash', '.brutal-sash-under']
+      .map((sel) => {
+        const band = el.querySelector<HTMLElement>(sel);
+        if (!band || getComputedStyle(band).display === 'none') return null;
+
+        const priorTransform = band.style.transform;
+        band.style.transform = 'none';
+        const range = document.createRange();
+        range.selectNodeContents(band);
+        const ink = range.getBoundingClientRect();
+        const flat = band.getBoundingClientRect();
+        const dx = ink.left + ink.width / 2 - (flat.left + flat.width / 2);
+        const dy = ink.top + ink.height / 2 - (flat.top + flat.height / 2);
+        const inkW = ink.width;
+        const inkH = ink.height;
+        band.style.transform = priorTransform;
+
+        const bcx = band.offsetLeft + band.offsetWidth / 2;
+        const bcy = band.offsetTop + band.offsetHeight / 2;
+        const r2 = Math.SQRT1_2;
+        const margins: number[] = [];
+        for (const sx of [-1, 1])
+          for (const sy of [-1, 1]) {
+            const px = dx + (sx * inkW) / 2;
+            const py = dy + (sy * inkH) / 2;
+            const x = bcx + (px - py) * r2;
+            const y = bcy + (px + py) * r2;
+            margins.push(x, y, box - x, box - y);
+          }
+        return { sel, margin: Math.min(...margins) };
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
+  });
 
 test.describe('Announcement sash', () => {
   test.skip(() => NO_LIVE_ANNOUNCEMENT, 'no announcement is live on this route — nothing renders');
@@ -306,64 +433,6 @@ test.describe('Announcement sash', () => {
     }
   });
 
-  /**
-   * The RIBBON-FORM invariant (sash.css's header comment), asserted on every
-   * rendered corner form rather than on the numbers themselves — those live in
-   * one place and are free to move.
-   *
-   * Work in chord space c = x − y (corner-box local): a 45° band is the strip
-   * c ∈ [c_min, c_max], and the box's main diagonal is c = 0. A band whose
-   * c_min drops to 0 or below stops being a ribbon — its lower edge crosses
-   * the box's LEFT and BOTTOM edges instead of the top and right, so the band
-   * covers the box's top-left corner and gets cut off square in mid-page.
-   * That shipped twice while every geometry probe passed (the probes checked
-   * that band pixels were where chord math predicted; none checked WHICH box
-   * edges cut them), so it is a test now.
-   */
-  /** Chord-space measurement of every band inside one corner, from its
-   *  unrotated layout box (the corner is each band's offsetParent). */
-  const measureBands = (corner: Locator) =>
-    corner.evaluate((el) => {
-      const box = (el as HTMLElement).offsetWidth;
-      return ['.brutal-sash', '.brutal-sash-under']
-        .map((sel) => {
-          const band = el.querySelector<HTMLElement>(sel);
-          if (!band || getComputedStyle(band).display === 'none') return null;
-          const cx = band.offsetLeft + band.offsetWidth / 2;
-          const cy = band.offsetTop + band.offsetHeight / 2;
-          const c = cx - cy;
-          const halfC = (band.offsetHeight * Math.SQRT2) / 2;
-          const r2 = Math.SQRT1_2;
-          const capCornersInside = [-1, 1]
-            .flatMap((along) =>
-              [-1, 1].map((across) => [
-                cx +
-                  ((along * band.offsetWidth) / 2) * r2 +
-                  ((across * band.offsetHeight) / 2) * r2,
-                cy +
-                  ((along * band.offsetWidth) / 2) * r2 -
-                  ((across * band.offsetHeight) / 2) * r2,
-              ])
-            )
-            .filter(([x, y]) => x > 0 && x < box && y > 0 && y < box).length;
-          return { sel, box, cMin: c - halfC, cMax: c + halfC, capCornersInside };
-        })
-        .filter((b): b is NonNullable<typeof b> => b !== null);
-    });
-
-  const expectRibbons = (bands: Awaited<ReturnType<typeof measureBands>>, where: string) => {
-    for (const b of bands) {
-      expect(b.cMin, `${where} ${b.sel}: lower edge stays off the box diagonal`).toBeGreaterThan(2);
-      expect(b.cMax, `${where} ${b.sel}: upper edge leaves the corner apex white`).toBeLessThan(
-        b.box
-      );
-      expect(
-        b.capCornersInside,
-        `${where} ${b.sel}: end caps are clipped away, never visible`
-      ).toBe(0);
-    }
-  };
-
   for (const bp of BREAKPOINTS) {
     test(`at ${bp.name} every band is a ribbon: cut by the box top and right edges only`, async ({
       page,
@@ -381,70 +450,7 @@ test.describe('Announcement sash', () => {
     });
   }
 
-  /**
-   * Ink containment — the property the ribbon test does NOT cover: a band can
-   * be a perfect ribbon while the box cuts its COPY. Both of this file's
-   * geometry defects were of that kind, and both hid behind a measurement in
-   * the wrong space, so this measures the way the box actually sees it: the
-   * band is un-rotated to read its ink flat, and the ink's four corners are
-   * mapped back through the 45° rotation and tested against the box.
-   *
-   * Still per ENGINE, though the reason has changed. It was written because
-   * `--font-family-mono` was the bare `monospace` generic and each engine
-   * resolved a different advance width — the live subtext measured 222px on
-   * Chromium and Firefox and 240px on WebKit, and a chromium-only check once
-   * passed a band WebKit was clipping by 5px. BL-144 pinned the face and that
-   * spread is gone (253.2 / 252.7 / 253.2 for the 35-character single-node
-   * subtext this was measured against; the band is a two-field list now and the
-   * live pair lives in Sash.astro's header), but per-engine is still right:
-   * engines round and shape text differently even from identical metrics, and
-   * this file's whole history is sub-pixel passes hiding real clips.
-   */
-  /**
-   * NOT `> 0`. At the geometry this guard was written for, Chromium cleared the
-   * box by 0.8px and WebKit overflowed it by 5.3px — a sub-pixel pass on one
-   * engine is what hid a real clip on another, so the floor is a real number.
-   */
-  const MIN_INK_MARGIN = 4;
-
-  const measureInkFit = (corner: Locator) =>
-    corner.evaluate((el) => {
-      const box = (el as HTMLElement).offsetWidth;
-      return ['.brutal-sash', '.brutal-sash-under']
-        .map((sel) => {
-          const band = el.querySelector<HTMLElement>(sel);
-          if (!band || getComputedStyle(band).display === 'none') return null;
-
-          const priorTransform = band.style.transform;
-          band.style.transform = 'none';
-          const range = document.createRange();
-          range.selectNodeContents(band);
-          const ink = range.getBoundingClientRect();
-          const flat = band.getBoundingClientRect();
-          const dx = ink.left + ink.width / 2 - (flat.left + flat.width / 2);
-          const dy = ink.top + ink.height / 2 - (flat.top + flat.height / 2);
-          const inkW = ink.width;
-          const inkH = ink.height;
-          band.style.transform = priorTransform;
-
-          const bcx = band.offsetLeft + band.offsetWidth / 2;
-          const bcy = band.offsetTop + band.offsetHeight / 2;
-          const r2 = Math.SQRT1_2;
-          const margins: number[] = [];
-          for (const sx of [-1, 1])
-            for (const sy of [-1, 1]) {
-              const px = dx + (sx * inkW) / 2;
-              const py = dy + (sy * inkH) / 2;
-              const x = bcx + (px - py) * r2;
-              const y = bcy + (px + py) * r2;
-              margins.push(x, y, box - x, box - y);
-            }
-          return { sel, margin: Math.min(...margins) };
-        })
-        .filter((b): b is NonNullable<typeof b> => b !== null);
-    });
-
-  test('the copy fits inside the corner, not just the band', async ({ page }) => {
+  test('the page sash copy fits inside the corner, not just the band', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(SASH_ROUTE);
     const live = await measureInkFit(pageSash(page));
@@ -455,31 +461,6 @@ test.describe('Announcement sash', () => {
         `page sash ${b.sel}: copy needs ${MIN_INK_MARGIN}px of clearance from the corner box`
       ).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
     }
-
-    // The specimens carry copy the live registry does not, and are where a new
-    // combination is supposed to be proven before it ships.
-    await page.goto('/brand/');
-    const frames = page.locator('.brand-sash-frame');
-    const count = await frames.count();
-    expect(count, '/brand exhibits sash specimens to check').toBeGreaterThan(0);
-    let underSpecimens = 0;
-    for (let i = 0; i < count; i++) {
-      const bands = await measureInkFit(frames.nth(i).locator('.brutal-sash-corner'));
-      expect(
-        bands.length,
-        `/brand specimen ${i} renders at least one band to check`
-      ).toBeGreaterThan(0);
-      underSpecimens += bands.filter((b) => b.sel === '.brutal-sash-under').length;
-      for (const b of bands) {
-        expect(
-          b.margin,
-          `/brand specimen ${i} ${b.sel}: copy needs ${MIN_INK_MARGIN}px of clearance`
-        ).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
-      }
-    }
-    // Deleting the under-band specimens would otherwise shrink this test's
-    // coverage silently — and the under-band is the band with the tight fit.
-    expect(underSpecimens, '/brand exhibits the under-band form').toBeGreaterThan(0);
   });
 
   test('the card-scale band is a ribbon too', async ({ page }) => {
@@ -535,23 +516,6 @@ test.describe('Announcement sash', () => {
         }, label);
         expect(hit, `${label} is on top at its own centre`).toBe(true);
       }
-    });
-  }
-
-  for (const route of SASH_LESS_ROUTES) {
-    test(`${route} carries no page sash and no nav reserve (the :has() guard)`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await page.goto(route);
-
-      // A PAGE sash is a direct child of <body>; /brand's specimens and any
-      // card-scale band are nested, and neither may move the nav.
-      await expect(page.locator('body > .brutal-sash-corner')).toHaveCount(0);
-      const reserve = await page
-        .locator('.site-header nav ul')
-        .evaluate((el) => getComputedStyle(el).paddingRight);
-      expect(reserve, 'a page without a page sash must render as it did before').toBe('0px');
     });
   }
 
@@ -805,4 +769,75 @@ test.describe('Announcement sash', () => {
       await expect(pageSash(page).locator('.brutal-sash-under__field').nth(index)).toBeFocused();
     }
   });
+});
+
+/**
+ * The /brand specimens are date-independent: the gallery renders every sash
+ * form from fixed props, whatever the registry holds. So this block runs with
+ * or without a live announcement, and is what keeps the sash CSS tested
+ * between announcements, while the page-context suite above stands down.
+ */
+test.describe('Sash specimens (/brand)', () => {
+  test('the specimen copy fits inside the corner, not just the band', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // The specimens carry copy the live registry does not, and are where a new
+    // combination is supposed to be proven before it ships.
+    await page.goto('/brand/');
+    const frames = page.locator('.brand-sash-frame');
+    const count = await frames.count();
+    expect(count, '/brand exhibits sash specimens to check').toBeGreaterThan(0);
+    let underSpecimens = 0;
+    for (let i = 0; i < count; i++) {
+      const bands = await measureInkFit(frames.nth(i).locator('.brutal-sash-corner'));
+      expect(
+        bands.length,
+        `/brand specimen ${i} renders at least one band to check`
+      ).toBeGreaterThan(0);
+      underSpecimens += bands.filter((b) => b.sel === '.brutal-sash-under').length;
+      for (const b of bands) {
+        expect(
+          b.margin,
+          `/brand specimen ${i} ${b.sel}: copy needs ${MIN_INK_MARGIN}px of clearance`
+        ).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
+      }
+    }
+    // Deleting the under-band specimens would otherwise shrink this test's
+    // coverage silently — and the under-band is the band with the tight fit.
+    expect(underSpecimens, '/brand exhibits the under-band form').toBeGreaterThan(0);
+  });
+
+  test('every specimen band is a ribbon at desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/brand/');
+    const corners = page.locator('.brand-sash-frame .brutal-sash-corner');
+    const count = await corners.count();
+    expect(count, '/brand exhibits sash specimens to check').toBeGreaterThan(0);
+    let underSpecimens = 0;
+    for (let i = 0; i < count; i++) {
+      const bands = await measureBands(corners.nth(i));
+      expect(bands.length, `/brand specimen ${i} renders at least one band`).toBeGreaterThan(0);
+      underSpecimens += bands.filter((b) => b.sel === '.brutal-sash-under').length;
+      expectRibbons(bands, `/brand specimen ${i}`);
+    }
+    // The under-band is the form with the tightest geometry; losing its
+    // specimens would shrink this test silently.
+    expect(underSpecimens, '/brand exhibits the under-band form').toBeGreaterThan(0);
+  });
+
+  for (const route of SASH_LESS_ROUTES) {
+    test(`${route} carries no page sash and no nav reserve (the :has() guard)`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(route);
+
+      // A PAGE sash is a direct child of <body>; /brand's specimens and any
+      // card-scale band are nested, and neither may move the nav.
+      await expect(page.locator('body > .brutal-sash-corner')).toHaveCount(0);
+      const reserve = await page
+        .locator('.site-header nav ul')
+        .evaluate((el) => getComputedStyle(el).paddingRight);
+      expect(reserve, 'a page without a page sash must render as it did before').toBe('0px');
+    });
+  }
 });

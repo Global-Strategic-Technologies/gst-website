@@ -31,8 +31,7 @@ on:
     # halves — master here, and `event=push` there. It reads this list TRIGGER-SCOPED,
     # because the `pull_request` block below also carries `branches: [master]` and a
     # union would stay green after master was dropped from exactly this list.
-    branches:
-      [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
+    branches: [master, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
@@ -56,6 +55,15 @@ on:
       - 'src/data/irl/**'
       - 'src/data/ma-portfolio/projects.json'
       - 'src/lib/inoreader/types.ts'
+      # Reached TRANSITIVELY, through website modules above: techpar-engine.ts
+      # imports src/data/techpar/stages, filterLogic.ts imports src/types/portfolio.
+      # `tests/integration/workflow-paths-parity.test.ts` walks the Worker's import
+      # graph and fails if any file it reaches is outside this list. Codegen inputs
+      # (src/data/regulatory-map/**, src/data/library/**) are deliberately absent:
+      # they feed tracked generated files under mcp-server/, and the `test:docs`
+      # bundle-freshness guard forces a regenerate that touches mcp-server/**.
+      - 'src/data/techpar/**'
+      - 'src/types/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/test-mcp-server.yml'
@@ -83,6 +91,15 @@ on:
       - 'src/data/irl/**'
       - 'src/data/ma-portfolio/projects.json'
       - 'src/lib/inoreader/types.ts'
+      # Reached TRANSITIVELY, through website modules above: techpar-engine.ts
+      # imports src/data/techpar/stages, filterLogic.ts imports src/types/portfolio.
+      # `tests/integration/workflow-paths-parity.test.ts` walks the Worker's import
+      # graph and fails if any file it reaches is outside this list. Codegen inputs
+      # (src/data/regulatory-map/**, src/data/library/**) are deliberately absent:
+      # they feed tracked generated files under mcp-server/, and the `test:docs`
+      # bundle-freshness guard forces a regenerate that touches mcp-server/**.
+      - 'src/data/techpar/**'
+      - 'src/types/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/test-mcp-server.yml'

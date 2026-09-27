@@ -12,7 +12,6 @@
  * rule. If you change one, change the other.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { paintCostChips } from '../../src/utils/techpar/dom';
 
 function buildControlMarkup(inputName: string, presetValues: number[], inputValue: string): void {

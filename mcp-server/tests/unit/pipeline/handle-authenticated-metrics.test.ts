@@ -18,7 +18,6 @@
  * harness in this suite, and nothing asserted here needs a real Worker — both
  * refusal paths return BEFORE any MCP handler is constructed.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { ExecutionContext } from '@cloudflare/workers-types';
 
 // `createMcpHandler` returns the fetch handler itself, not an object wrapping

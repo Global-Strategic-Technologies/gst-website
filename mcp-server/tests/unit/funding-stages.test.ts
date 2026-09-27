@@ -21,8 +21,6 @@
  *    see exactly which values get conflated and why.
  */
 
-import { describe, expect, it } from 'vitest';
-
 import { CANONICAL_STAGES } from '../../../src/data/common/funding-stages';
 import {
   ICG_STAGE_ADAPTER,

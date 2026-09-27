@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
 
 /**
  * Lazily loaded CSS must be imported with `?inline` (BL-035, ADR-0039;

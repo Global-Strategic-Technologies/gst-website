@@ -8,7 +8,6 @@
  *   (d) the message body literally mentions every orchestrates entry.
  */
 
-import { describe, it, expect } from 'vitest';
 import { diligenceKickoffPrompt } from '../../../src/prompts/diligence-kickoff';
 
 const VALID_ARGS = {

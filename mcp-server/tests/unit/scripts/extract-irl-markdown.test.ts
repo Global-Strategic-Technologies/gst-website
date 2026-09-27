@@ -31,7 +31,6 @@
  *     assumptions silently.
  */
 
-import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx-js-style';
 import { generateIrlXlsxBuffer } from '../../../../src/utils/irl/generate-xlsx';
 import type { IRLArticle } from '../../../../src/utils/irl/types';

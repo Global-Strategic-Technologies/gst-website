@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
 import { EFFECT_IDS, SCOPES } from '../../src/scripts/ambient-motion';
 import { mountAmbientControls } from '../../src/scripts/ambient/controls';
 

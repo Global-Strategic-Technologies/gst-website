@@ -120,10 +120,10 @@ TypeScript utility module providing type-safe event tracking functions:
 **Category:** `portfolio`
 **Parameters:**
 
-- `filter_type` - Type of filter applied (e.g., "stage", "theme", "year")
-- `filter_value` - The specific value selected (e.g., "Series A", "AI", "2024")
+- `filter_type` - Which chip group was clicked: `"theme"` or `"engagement"`
+- `filter_value` - The chip's value (e.g., `"Healthcare"`, `"Buy-Side"`, or `"all"` when the visitor clears the group)
 
-**Triggered By:** Applying any filter on the M&A portfolio page (Growth Stage, Theme, Year filters)
+**Triggered By:** Clicking a Theme or Engagement chip in the M&A portfolio filter drawer. Search does not fire this event: search text is free-form visitor input and is never sent to GA. Page load and the reset button don't fire it either.
 
 **Use Cases:**
 
@@ -323,7 +323,7 @@ Tracks:
 Tracks:
 
 - Filter applications (listens to `portfolioFiltered` custom events)
-- Passes filter_type and filter_value to analytics
+- Sends `filter_applied` only when the event's `detail` carries `filterType` and `filterValue`. The chip handlers in `PortfolioHeader.astro` and `StickyControls.astro` add those two fields; init, reset and search dispatch `{ count }` alone, so they send nothing
 
 ### Services Page
 

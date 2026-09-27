@@ -10,7 +10,6 @@
  * same bare `put` every pre-BL-155 caller made.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 import {
   createM2mClient,

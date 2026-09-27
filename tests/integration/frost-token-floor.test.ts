@@ -41,7 +41,6 @@
  * Every rule asserts it actually probed something. A guard that walks an empty
  * file set passes forever and proves nothing.
  */
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 

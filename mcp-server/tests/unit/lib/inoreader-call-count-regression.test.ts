@@ -14,8 +14,6 @@
  * so a drift fails CI loudly.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 const { mockGet, mockSet, MockRedis } = vi.hoisted(() => {
   const mockGet = vi.fn();
   const mockSet = vi.fn();

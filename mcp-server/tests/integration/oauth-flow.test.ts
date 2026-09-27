@@ -13,7 +13,6 @@
  * browser does this for real users).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { createHash, randomBytes } from 'node:crypto';

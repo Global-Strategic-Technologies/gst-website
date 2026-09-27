@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { targetQuickLookPrompt } from '../../../src/prompts/target-quick-look';
 import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 

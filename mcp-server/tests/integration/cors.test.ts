@@ -18,7 +18,6 @@
  * Architecture: mcp-server/src/docs/ARCHITECTURE.md § CORS (Q5)
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { warmWorker } from '../helpers/warm-worker';
 

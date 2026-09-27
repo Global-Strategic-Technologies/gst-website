@@ -7,10 +7,11 @@
  * fetches from the MCP Worker's `/radar/snapshot` endpoint at SSR time.
  *
  * For E2E to render `/hub/radar` with real items, `MCP_KEY_WEBSITE_RADAR`
- * must be bound on the dev server's env (.env locally; secrets injected
- * in CI). Without it the page renders the "Intelligence feed is currently
- * being refreshed" empty-state and feed-asserting tests will fail — that
- * failure is the correct signal that the bearer isn't bound.
+ * must be bound on the dev server's env. CI's E2E jobs start
+ * `scripts/radar-stub.mjs` and point MCP_RADAR_SNAPSHOT_URL at it with a
+ * stub bearer. Locally, use `npm run radar:stub` plus the RADAR.md § Working
+ * Offline values. Without it the page renders the empty state: under CI the
+ * content tests then FAIL (requireRadarContent), and locally they skip.
  *
  * Kept as a no-op placeholder so Playwright config (which references this
  * file) doesn't need to be updated. Future global-setup needs can land here.

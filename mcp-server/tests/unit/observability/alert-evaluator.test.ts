@@ -5,8 +5,6 @@
  * the free-tier invariant that the evaluator NEVER posts Crons check-ins.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 const { mockRules, mockPostEvent, mockPostCheckIn, mockCreateMcpClient, mockEmit } = vi.hoisted(
   () => ({
     mockRules: [] as unknown[],

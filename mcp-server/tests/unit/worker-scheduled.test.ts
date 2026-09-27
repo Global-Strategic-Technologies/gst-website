@@ -24,8 +24,6 @@
  *   - `ctx.waitUntil` always resolves cleanly (no unhandled rejection)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 // `@sentry/cloudflare` + `agents/mcp` use the `cloudflare:workers` URL
 // scheme internally — Node's default ESM loader rejects it. Mock both
 // at the package boundary so importing worker.ts doesn't crash.

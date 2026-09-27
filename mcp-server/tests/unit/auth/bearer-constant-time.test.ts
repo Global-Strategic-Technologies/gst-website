@@ -16,7 +16,6 @@
  * substitution for the AC's literal "timing assertion" wording.
  */
 
-import { describe, it, expect } from 'vitest';
 import { authenticate } from '../../../src/auth/bearer';
 import { DEFAULT_SCOPES } from '../../../src/auth/scopes';
 

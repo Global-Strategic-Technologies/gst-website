@@ -20,7 +20,6 @@
  * the pairing if a border ever takes a scheme-specific colour.
  */
 
-import { describe, it, expect } from 'vitest';
 import { htmlShell } from '../../../src/lib/html-shell.js';
 
 const html = htmlShell('Test', '<p>body</p>');

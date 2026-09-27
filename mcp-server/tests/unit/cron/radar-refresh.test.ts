@@ -7,8 +7,6 @@
  * error).
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { mockReadWireLive, mockReadFyiLive } = vi.hoisted(() => ({
   mockReadWireLive: vi.fn(),
   mockReadFyiLive: vi.fn(),

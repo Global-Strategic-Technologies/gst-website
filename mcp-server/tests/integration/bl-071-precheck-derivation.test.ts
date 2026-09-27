@@ -15,7 +15,6 @@
  * without tripping this test.
  */
 
-import { describe, expect, it } from 'vitest';
 import {
   InMemoryToolCallCounters,
   withToolMetrics,

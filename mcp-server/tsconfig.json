@@ -12,6 +12,7 @@
     "declaration": false,
     "sourceMap": false,
     "types": ["node", "vitest/globals"],
+    "moduleDetection": "force",
     "verbatimModuleSyntax": false
   },
   "include": ["src/**/*", "tests/**/*"],

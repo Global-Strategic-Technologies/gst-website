@@ -1,5 +1,11 @@
 ---
 tool: compose_dossier_envelope
+tools:
+  - compose_dossier_envelope
+  - generate_information_request_list_xlsx
+  - list_irl_requests
+  - prepare_irl_body
+  - validate_irl_provenance
 version: v1
 lastAuthored: 2026-08-20
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts

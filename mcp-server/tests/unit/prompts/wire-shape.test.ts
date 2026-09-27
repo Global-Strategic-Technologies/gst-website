@@ -11,7 +11,6 @@
  * prove the no-op direction still works.
  */
 
-import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import {
   arrayFromWire,

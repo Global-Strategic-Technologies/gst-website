@@ -15,7 +15,6 @@
  *   - exported constants are the agreed values (30 / 15)
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   filterFreshFyi,
   FYI_MAX_AGE_DAYS,

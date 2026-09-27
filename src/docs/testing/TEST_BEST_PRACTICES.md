@@ -671,7 +671,7 @@ If your test has any of these, it's likely a false positive:
 13. ✗ Hardcoded data assumptions like "country X has no category Y regulations" without a comment explaining why
 14. ✗ Uses `click({ force: true })` on an element that's obscured by a higher z-index layer
 15. ✗ Uses `toBeHidden()` on an element whose CSS overrides `[hidden]` with `display: block`
-16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — historically, tests silently didn't register (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 9)
+16. ✗ Value-imports anything from `'vitest'` (including `vi`) — test functions come from `globals: true`; a value import can bind to a second vitest instance and the file collects 0 tests (Windows lowercase-drive launch — see Unit / Integration pitfall 9). Types via `import type` only
 17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — historically, a runner initialization failure (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 10)
 18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
 19. ✗ Uses `waitUntil: 'networkidle'` in `page.goto()` or `waitForLoadState()` — times out under parallel worker load
@@ -761,43 +761,33 @@ test('should show copied feedback on click', async ({ page }) => {
 
 ### 9. ❌ Explicit Vitest Imports When `globals: true` Is Enabled
 
-When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file was reported to make Vitest 4.x silently fail — tests appeared to load but never registered, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
-
-> **Does not reproduce today (probed 2026-09-11):** a minimal file importing `describe`/`it`/`expect` from `'vitest'` under `globals: true` registers and passes on **both** Vitest 4.1.11 (`mcp-server`, at the time) and 5.0.0 (website). Both workspaces have been on Vitest 5 since BL-160. So the failure described above is not a property of either current version. _Hypothesis, unverified:_ "failed to find the runner" is the classic sign of two Vitest copies loaded at once, so the original sightings may have been install drift (see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected)) rather than an import-style bug. Keep the good pattern below anyway, as a consistency convention.
+When `globals: true` is set (both workspaces do this), `describe`, `it`, `test`, `expect`, the hooks **and `vi`** are injected globally. Importing any of them from `'vitest'` is what makes a file fail at collection with `reading 'config'` or `failed to find the current suite`. It happens whenever vitest is launched through a lowercase-drive path on Windows (`npm run` from a `c:\` cwd). The runner loads as `c:/…/vitest` and the test's import resolves `C:/…/vitest`: two module instances, and the imported one has no suite. Established and measured on 2026-09-26; see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected). ESLint enforces the rule (`@typescript-eslint/no-restricted-imports` on `tests/**` and `mcp-server/tests/**`).
 
 **Bad:**
 
 ```typescript
-// ❌ With globals: true, these imports shadow the global injections
-// Tests silently fail to register — 0 tests run, suite marked as failed
-import { describe, it, expect, beforeEach } from 'vitest';
-
-describe('my feature', () => {
-  it('should work', () => {
-    expect(true).toBe(true);
-  });
-});
+// ❌ A value import can bind to a second vitest instance, and 0 tests register
+import { describe, it, expect, vi } from 'vitest';
 ```
 
 **Good:**
 
 ```typescript
-// ✅ Only import vi (for mocks/spies) — everything else comes from globals
-import { vi } from 'vitest';
+// ✅ No value imports. Types only, if you need them.
+import type { Mock } from 'vitest';
 
 describe('my feature', () => {
   it('should work', () => {
-    expect(true).toBe(true);
+    const fn: Mock = vi.fn();
+    fn();
+    expect(fn).toHaveBeenCalled();
   });
 });
 ```
 
-**What to import from `'vitest'`:**
+**What to import from `'vitest'`:** types only (`import type { Mock, MockInstance } from 'vitest'`). Never import `describe`, `it`, `test`, `expect`, `vi`, `beforeEach`, `afterEach`, `beforeAll` or `afterAll`.
 
-- `vi` — always import (mocks, spies, timers, stubs)
-- `describe`, `it`, `test`, `expect`, `beforeEach`, `afterEach`, `beforeAll`, `afterAll` — **never import** when `globals: true`
-
-**How to detect:** If `npm run test:run` reports failing suites but all counted tests pass, check the failing files for explicit vitest imports. The symptom is 0 tests registered from those files.
+**How to detect:** `npm run lint` flags it. In a failing run, the files that fail at collection are exactly the ones with value imports.
 
 ### 10. ❌ Top-Level `beforeEach` / `afterEach` Outside a `describe` Block
 
@@ -1079,8 +1069,8 @@ test('should track events across pages', async ({ page }) => {
   await page.goto('/page-b'); // ❌ Mocks are gone — new page context
 
   await page.locator('#cta').click();
-  const events = await getRecordedEvents(page); // Returns [] — mock was lost
-  expect(events).toContainEqual({ eventName: 'cta_click' }); // Fails
+  const events = await page.evaluate(() => (window as any).gtagEvents); // undefined — mock was lost
+  expect(events).toContainEqual(expect.objectContaining({ eventName: 'cta_click' })); // Fails
 });
 ```
 
@@ -1096,8 +1086,9 @@ test('should track events across pages', async ({ page }) => {
   await setupAnalyticsMocking(page); // ✅ Re-initialize mocks for new page
 
   await page.locator('#cta').click();
-  const events = await getRecordedEvents(page);
-  expect(events).toContainEqual({ eventName: 'cta_click' });
+  await page.waitForFunction(() =>
+    (window as any).gtagEvents.some((e: any) => e.eventName === 'cta_click')
+  );
 });
 ```
 

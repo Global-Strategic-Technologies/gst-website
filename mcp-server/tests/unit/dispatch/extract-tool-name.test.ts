@@ -4,7 +4,6 @@
  * Covers the JSON-RPC parse + the `toolClassFor` resolution. Pure-function;
  * no Worker boot, no fetch, no env.
  */
-import { describe, expect, it } from 'vitest';
 
 import {
   RADAR_TOOLS,

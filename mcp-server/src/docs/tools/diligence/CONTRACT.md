@@ -1,5 +1,7 @@
 ---
 tool: generate_diligence_agenda
+tools:
+  - generate_diligence_agenda
 version: v1
 lastAuthored: 2026-04-27
 schema: src/schemas/diligence.ts

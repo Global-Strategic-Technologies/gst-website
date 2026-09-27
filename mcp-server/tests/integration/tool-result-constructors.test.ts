@@ -20,7 +20,6 @@
  * pass a `summary` identifier); those two are covered by assertions in their own
  * test files. Don't over-trust the scan.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 

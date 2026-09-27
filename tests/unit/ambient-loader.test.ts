@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The ambient loader decides whether a browser loads ambient motion at all

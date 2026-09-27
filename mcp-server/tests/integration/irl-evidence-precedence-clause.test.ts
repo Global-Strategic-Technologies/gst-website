@@ -19,7 +19,6 @@
  * vacuously on both sides.
  */
 
-import { describe, it, expect } from 'vitest';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 import { irlEvidencePrecedence } from '../../src/prompts/embed';
 import { IRL_BODY_CACHE_LIFETIME_TEXT } from '../../src/cache/irl-body-cache';

@@ -8,7 +8,6 @@
  * cached module-load-time value.
  */
 
-import { describe, it, expect, afterEach, vi } from 'vitest';
 import process from 'node:process';
 
 const ORIGINAL_ENV = process.env.GST_HUB_BASE;

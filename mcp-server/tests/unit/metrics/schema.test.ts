@@ -11,7 +11,6 @@
  *   3. Run `npx vitest -u` to refresh the snapshot
  *   4. Add a changelog entry to the BL-032.75 doc
  */
-import { describe, expect, it } from 'vitest';
 import {
   AE_LIMITS,
   BLOB_SLOTS,

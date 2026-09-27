@@ -7,7 +7,6 @@
  * assert the invariant that an entry's seq is fixed at first sequencing and
  * never shifts / forks / duplicates on redelivery.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AUDIT_SCHEMA_VERSION, type AuditEntry } from '../../../src/audit/entry';
 
 // Controllable mock state (hoisted so the vi.mock factories can read it).

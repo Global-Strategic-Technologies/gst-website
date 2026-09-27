@@ -1,5 +1,7 @@
 ---
 tool: compute_techpar
+tools:
+  - compute_techpar
 version: v1
 lastAuthored: 2026-09-17
 schema: src/schemas/techpar.ts

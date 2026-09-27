@@ -6,7 +6,6 @@
  * refresh token, jti replay rejected, deleted client can't re-issue).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 

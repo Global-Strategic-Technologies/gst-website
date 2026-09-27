@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { tp, MAX_HISTORICAL, MAX_SCENARIOS, LS_KEY, VISITED_KEY } from '@/utils/techpar/state';
 
 describe('techpar/state', () => {

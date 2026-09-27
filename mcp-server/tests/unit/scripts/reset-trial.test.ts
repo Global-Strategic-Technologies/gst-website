@@ -7,7 +7,6 @@
  * so that is what these assert.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   parseArgs,
   renderPreview,

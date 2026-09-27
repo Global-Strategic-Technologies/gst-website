@@ -2,7 +2,6 @@
  * BL-068 — `prepare_irl_body` preflight tool tests.
  */
 
-import { describe, it, expect } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 

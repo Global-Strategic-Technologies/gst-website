@@ -8,7 +8,6 @@
  * available in Node 22, same surface the Worker uses.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
 import { Buffer } from 'node:buffer';
 import {
   canonicalAudience,

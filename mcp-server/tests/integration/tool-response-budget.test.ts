@@ -49,7 +49,6 @@
  * are directly comparable. Characters are recorded alongside because the 143,027
  * datum is in characters. The two are **never** compared to each other.
  */
-import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
 import type {
   JSONRPCMessage,
@@ -764,7 +763,7 @@ describe('tool response budgets (BL-112)', () => {
     // `compose_dossier_envelope` re-hydrates the IRL body from this cache by hash
     // (ADR-0002); without it the handler cannot resolve the body and errors.
     const server = createServer(baseEnv, { irlBodyCache: new InMemoryIrlBodyCache() });
-    registerLocalOnlyTools(server); // mirror src/index.ts — the stdio surface is the only one with all 17
+    registerLocalOnlyTools(server); // mirror src/index.ts — the stdio surface is the only one with all 18
     const pair = createPairedTransports();
     client = pair.client;
     await server.connect(pair.server);

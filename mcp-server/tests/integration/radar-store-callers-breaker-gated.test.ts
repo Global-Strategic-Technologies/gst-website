@@ -33,7 +33,6 @@
  * (`import * as store`) and dynamic `import()` would evade it — neither is used
  * in this codebase, and both would be visible in review.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 

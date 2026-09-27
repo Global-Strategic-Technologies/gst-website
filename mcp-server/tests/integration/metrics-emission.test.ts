@@ -24,7 +24,6 @@
  */
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
-import { beforeAll, describe, expect, it } from 'vitest';
 import { InMemorySink } from '../../src/metrics/sinks/in-memory';
 import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';
 import { createServer } from '../../src/server';

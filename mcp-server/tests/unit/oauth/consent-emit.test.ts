@@ -5,7 +5,6 @@
  * datapoint (the local AE binding is a no-op), so the handler is driven here
  * with a stubbed provider, a Map-backed KV, and a spy binding.
  */
-import { describe, expect, it, vi } from 'vitest';
 import { handleAuthorizePost } from '../../../src/oauth/consent';
 
 const NONCE = 'abcdef0123456789';

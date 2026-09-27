@@ -10,7 +10,6 @@
  *      the date in the same PR as the review.
  */
 
-import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

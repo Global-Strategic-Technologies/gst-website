@@ -21,7 +21,6 @@
  * page's "same bytes in, same text out" claim rests on.
  */
 
-import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx-js-style';
 
 import { generateIrlXlsxBuffer } from '../../../src/utils/irl/generate-xlsx';

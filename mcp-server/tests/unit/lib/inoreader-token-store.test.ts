@@ -12,8 +12,6 @@
  * dead code post-Phase-A; this test file mirrors that simplification.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { mcpRedisGet, mcpRedisSet, MockRedis } = vi.hoisted(() => {
   const mcpRedisGet = vi.fn();
   const mcpRedisSet = vi.fn();

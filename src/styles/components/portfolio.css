@@ -135,3 +135,21 @@ Brutalist Project Card
   background: transparent;
   color: var(--color-primary);
 }
+
+/* ==============================
+
+Portfolio grid: no-results message
+
+Created by the search/filter scripts in PortfolioHeader.astro and
+StickyControls.astro (`message.className = 'no-results-message'`), so it
+carries no scoped cid — a scoped rule in PortfolioGrid.astro never applied.
+
+============================== */
+
+.no-results-message {
+  grid-column: 1 / -1;
+  padding: var(--spacing-3xl) var(--spacing-xl);
+  text-align: center;
+  color: light-dark(var(--text-secondary), var(--text-dark-muted));
+  font-size: var(--text-base);
+}

@@ -15,7 +15,6 @@
  * its own suite.
  */
 
-import { describe, it, expect } from 'vitest';
 import { irlSweepPrompt, SWEEP_ORCHESTRATED_TOOLS } from '../../../src/prompts/irl-sweep';
 import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 

@@ -6,7 +6,6 @@
  * (e.g. adding a buffered variant) can't quietly break the test-side
  * assertion ergonomics.
  */
-import { describe, expect, it } from 'vitest';
 import type { MetricEvent } from '../../../../src/metrics/_schema';
 import { InMemorySink } from '../../../../src/metrics/sinks/in-memory';
 import { NoopSink } from '../../../../src/metrics/sinks/_interface';

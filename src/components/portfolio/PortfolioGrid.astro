@@ -79,14 +79,6 @@ const { projects } = Astro.props;
     gap: var(--spacing-xl);
   }
 
-  .no-results-message {
-    grid-column: 1 / -1;
-    padding: var(--spacing-3xl) var(--spacing-xl);
-    text-align: center;
-    color: light-dark(var(--text-secondary), var(--text-dark-muted));
-    font-size: var(--text-base);
-  }
-
   /* .project-card is styled GLOBALLY in src/styles/components/cards.css —
      the single definition both this grid and the /brand specimen consume
      (BL-095 closeout; a scoped duplicate here used to shadow it and the two

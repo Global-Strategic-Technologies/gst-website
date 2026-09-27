@@ -5,7 +5,6 @@
  * to `waitUntil`. We capture that promise and await it to observe the retry /
  * swallow behavior (a real Worker resolves it via `ctx.waitUntil`).
  */
-import { describe, expect, it, vi } from 'vitest';
 import { NoopAuditSink, QueueAuditSink, type AuditSink } from '../../../src/audit/audit-sink';
 import { AUDIT_SCHEMA_VERSION, type AuditEntry } from '../../../src/audit/entry';
 

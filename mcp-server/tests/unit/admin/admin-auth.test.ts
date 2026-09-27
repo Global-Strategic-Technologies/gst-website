@@ -4,7 +4,6 @@
  * Pins: timing-safe equality contract, env-bound key validation,
  * cookie minting + parsing, nonce shape.
  */
-import { describe, expect, it } from 'vitest';
 
 import {
   buildSessionClearCookie,

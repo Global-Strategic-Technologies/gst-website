@@ -6,7 +6,6 @@
  * our code.
  */
 
-import { describe, it, expect } from 'vitest';
 import { inflateRawSync } from 'node:zlib';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';

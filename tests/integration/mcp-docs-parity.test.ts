@@ -16,7 +16,6 @@
  * markup assertion here would be vacuous. That the page actually renders every
  * entry is proved in `tests/e2e/hub-mcp-docs.test.ts`, in the no-JS context.
  */
-import { describe, expect, it } from 'vitest';
 import {
   CAPABILITIES,
   DEFAULT_CAPABILITY_ID,

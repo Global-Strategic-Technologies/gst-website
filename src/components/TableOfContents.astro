@@ -68,8 +68,16 @@ const clientConfig = JSON.stringify({
 });
 ---
 
+{/*
+  Collapsible TOCs are server-rendered collapsed, so on mobile the first paint
+  already matches the settled state. Previously the script collapsed an
+  expanded list after paint, and on /brand, where the TOC sits above the
+  content at ≤768px, that shifted the whole column (CLS 0.34). Every rule keyed
+  on these classes lives inside the mobile media query, so they do nothing on
+  desktop.
+*/}
 <nav
-  class:list={['toc', extraClass]}
+  class:list={['toc', extraClass, collapsible && 'toc--collapsible is-collapsed']}
   aria-label={ariaLabel}
   data-toc-config={clientConfig}
   {...(testId ? { 'data-testid': testId } : {})}
@@ -129,91 +137,100 @@ const clientConfig = JSON.stringify({
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll<HTMLElement>('[data-toc-config]').forEach((nav) => {
-      const config: TocConfig = JSON.parse(nav.dataset.tocConfig!);
-
-      // ── Sublist generation ──────────────────────────────
-      config.items.forEach((item) => {
-        const anchor = nav.querySelector<HTMLAnchorElement>(`a[href="${item.href}"]`);
-        const layerLi = anchor?.parentElement;
-        if (!layerLi) return;
-
-        let headingEls: Element[] = [];
-
-        if (item.source.mode === 'query') {
-          if (!item.source.scopeId) return;
-          const scope = document.getElementById(item.source.scopeId);
-          if (!scope) return;
-          const sel = item.source.selector || 'h3[id]';
-          headingEls = Array.from(scope.querySelectorAll(sel));
-        } else if (item.source.mode === 'ids') {
-          const hSel = item.source.headingSelector || 'h2';
-          headingEls = (item.source.ids as string[])
-            .map((id: string) => {
-              const section = document.getElementById(id);
-              return section?.querySelector(hSel);
-            })
-            .filter(Boolean) as Element[];
-        }
-
-        if (headingEls.length === 0) return;
-
-        const sublist = document.createElement('ul');
-        sublist.className = 'toc__sublist';
-
-        headingEls.forEach((heading) => {
-          const li = document.createElement('li');
-
-          const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          icon.setAttribute('viewBox', '0 0 64 64');
-          icon.setAttribute('fill', 'none');
-          icon.setAttribute('aria-hidden', 'true');
-          icon.setAttribute('width', String(config.sublistIconSize));
-          icon.setAttribute('height', String(config.sublistIconSize));
-          icon.setAttribute('class', 'bullet-icon');
-          icon.style.flexShrink = '0';
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', 'M32 12 L52 52 L12 52 Z');
-          path.setAttribute('fill', 'none');
-          path.setAttribute('stroke', 'currentColor');
-          path.setAttribute('stroke-width', '6');
-          path.setAttribute('stroke-linejoin', 'miter');
-          icon.appendChild(path);
-
-          const link = document.createElement('a');
-          const targetId = heading.id || heading.closest('[id]')?.id;
-          link.href = `#${targetId}`;
-          link.textContent = heading.textContent?.trim() || '';
-
-          li.appendChild(icon);
-          li.appendChild(link);
-          sublist.appendChild(li);
-        });
-
-        layerLi.appendChild(sublist);
-      });
-
-      // ── Collapsible (mobile) ────────────────────────────
-      if (config.collapsible) {
-        nav.classList.add('toc--collapsible');
-        const heading = nav.querySelector<HTMLElement>('.toc__heading');
-        const mobileQuery = window.matchMedia('(max-width: 768px)');
-
-        const applyMobileState = (isMobile: boolean) => {
-          nav.classList.toggle('is-collapsed', isMobile);
-        };
-        applyMobileState(mobileQuery.matches);
-        mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
-
-        heading?.addEventListener('click', () => {
-          if (mobileQuery.matches) nav.classList.toggle('is-collapsed');
-        });
-      }
-
-      // ── Scroll-spy ──────────────────────────────────────
-      // Shared with OnboardingToc.astro — see src/utils/scroll-spy.ts.
-      if (config.scrollSpy) {
-        initScrollSpy(nav.querySelectorAll<HTMLAnchorElement>('.toc__list a'));
+      // toc.css hides the list until data-toc-ready. Set it in `finally` so a
+      // failure anywhere below leaves the list visible, not stranded hidden.
+      try {
+        initToc(nav);
+      } finally {
+        nav.dataset.tocReady = '';
       }
     });
   });
+
+  function initToc(nav: HTMLElement) {
+    const config: TocConfig = JSON.parse(nav.dataset.tocConfig!);
+
+    // ── Sublist generation ──────────────────────────────
+    config.items.forEach((item) => {
+      const anchor = nav.querySelector<HTMLAnchorElement>(`a[href="${item.href}"]`);
+      const layerLi = anchor?.parentElement;
+      if (!layerLi) return;
+
+      let headingEls: Element[] = [];
+
+      if (item.source.mode === 'query') {
+        if (!item.source.scopeId) return;
+        const scope = document.getElementById(item.source.scopeId);
+        if (!scope) return;
+        const sel = item.source.selector || 'h3[id]';
+        headingEls = Array.from(scope.querySelectorAll(sel));
+      } else if (item.source.mode === 'ids') {
+        const hSel = item.source.headingSelector || 'h2';
+        headingEls = (item.source.ids as string[])
+          .map((id: string) => {
+            const section = document.getElementById(id);
+            return section?.querySelector(hSel);
+          })
+          .filter(Boolean) as Element[];
+      }
+
+      if (headingEls.length === 0) return;
+
+      const sublist = document.createElement('ul');
+      sublist.className = 'toc__sublist';
+
+      headingEls.forEach((heading) => {
+        const li = document.createElement('li');
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 64 64');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.setAttribute('width', String(config.sublistIconSize));
+        icon.setAttribute('height', String(config.sublistIconSize));
+        icon.setAttribute('class', 'bullet-icon');
+        icon.style.flexShrink = '0';
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M32 12 L52 52 L12 52 Z');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '6');
+        path.setAttribute('stroke-linejoin', 'miter');
+        icon.appendChild(path);
+
+        const link = document.createElement('a');
+        const targetId = heading.id || heading.closest('[id]')?.id;
+        link.href = `#${targetId}`;
+        link.textContent = heading.textContent?.trim() || '';
+
+        li.appendChild(icon);
+        li.appendChild(link);
+        sublist.appendChild(li);
+      });
+
+      layerLi.appendChild(sublist);
+    });
+
+    // ── Collapsible (mobile) ────────────────────────────
+    if (config.collapsible) {
+      const heading = nav.querySelector<HTMLElement>('.toc__heading');
+      const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+      const applyMobileState = (isMobile: boolean) => {
+        nav.classList.toggle('is-collapsed', isMobile);
+      };
+      applyMobileState(mobileQuery.matches);
+      mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
+
+      heading?.addEventListener('click', () => {
+        if (mobileQuery.matches) nav.classList.toggle('is-collapsed');
+      });
+    }
+
+    // ── Scroll-spy ──────────────────────────────────────
+    // Shared with OnboardingToc.astro — see src/utils/scroll-spy.ts.
+    if (config.scrollSpy) {
+      initScrollSpy(nav.querySelectorAll<HTMLAnchorElement>('.toc__list a'));
+    }
+  }
 </script>

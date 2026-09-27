@@ -10,7 +10,6 @@
  *     instance on the first throw (M5 — prevents silent loss of visibility
  *     across an entire deploy from a misconfigured binding)
  */
-import { describe, expect, it, vi } from 'vitest';
 import type { AnalyticsEngineDataset } from '@cloudflare/workers-types';
 import { AnalyticsEngineSink } from '../../../../src/metrics/sinks/analytics-engine';
 

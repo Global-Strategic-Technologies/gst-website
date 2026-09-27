@@ -7,7 +7,6 @@
  * sitemap should not be advertised to agents either), and the one published
  * address rule for MCP documentation (ADR-0023).
  */
-import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';

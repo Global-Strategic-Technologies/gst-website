@@ -8,7 +8,6 @@
  * tsconfig's typecheck, so nothing but this test catches a `!== 0` typo —
  * which would be an infinite loop).
  */
-import { describe, expect, it } from 'vitest';
 import {
   SEQOF_PREFIX,
   UNLINK_BATCH_SIZE,

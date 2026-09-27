@@ -5,7 +5,6 @@
  * catalog discovery the parity guard relies on. `import.meta.glob` is Vite's,
  * and vitest runs under Vite, so the real catalogs load here.
  */
-import { describe, it, expect } from 'vitest';
 
 import { DEFAULT_LOCALE, LOCALES, findLocale, type Locale } from '../../src/i18n/locales';
 import { EN, catalogFor, catalogLocaleCodes, interpolate, useTranslations } from '../../src/i18n/t';

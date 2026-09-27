@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { radarBriefTodayPrompt } from '../../../src/prompts/radar-brief-today';
 import { embedFyiRadarSnapshot } from '../../../src/prompts/embed';
 import type { SnapshotTier } from '../../../src/content/radar-transform';

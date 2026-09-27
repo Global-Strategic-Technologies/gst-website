@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { irlCreatePrompt } from '../../../src/prompts/irl-create';
 
 // v0.0.6: the prompt embeds the decoupled IRL generator source (inline label

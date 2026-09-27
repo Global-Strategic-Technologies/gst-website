@@ -1,5 +1,8 @@
 ---
 tool: search_regulations
+tools:
+  - search_regulations
+  - list_regulation_facets
 version: v2
 lastAuthored: 2026-08-12
 schema: src/schemas/regulatory-map.ts

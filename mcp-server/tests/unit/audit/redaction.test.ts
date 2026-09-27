@@ -1,7 +1,6 @@
 /**
  * BL-033 Slice 3a — GDPR IP-truncation unit tests.
  */
-import { describe, expect, it } from 'vitest';
 import { newEntryId, newRequestId, truncateIp } from '../../../src/audit/redaction';
 
 describe('truncateIp', () => {

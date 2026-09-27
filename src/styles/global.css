@@ -423,10 +423,5 @@ Legal Page Layout (Privacy, Terms)
   }
 }
 
-/* .print-report-header styles moved to src/components/PrintReportHeader.astro
-
-as scoped :global() declarations during Phase 3 commit 3 (component extraction).
-
-Two hub tool pages still override individual elements (see
-
-tech-debt-calculator/index.astro and regulatory-map/index.astro). */
+/* .print-report-header styles live in src/components/PrintReportHeader.astro
+   as :global() declarations; no page overrides them. */

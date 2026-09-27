@@ -14,7 +14,6 @@
  *     midnight buckets — documented behavior)
  */
 
-import { describe, it, expect } from 'vitest';
 import { oldestItemDaysAgo } from '../../../src/content/radar-transform';
 
 const NOW = new Date('2026-05-26T15:00:00.000Z').getTime();

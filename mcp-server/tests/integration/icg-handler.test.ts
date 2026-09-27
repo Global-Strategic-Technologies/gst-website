@@ -13,8 +13,6 @@
  * handler code path with parsed inputs.
  */
 
-import { describe, it, expect } from 'vitest';
-
 import { handleIcgTool } from '../../src/tools/icg';
 import { ICGMcpInputsSchema } from '../../src/schemas';
 

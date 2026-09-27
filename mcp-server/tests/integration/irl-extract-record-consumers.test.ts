@@ -26,7 +26,6 @@
  * describe block asserts they still refuse both.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   LATEST_PROTOCOL_VERSION,

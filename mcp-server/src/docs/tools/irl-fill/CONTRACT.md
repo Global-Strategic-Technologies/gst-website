@@ -1,5 +1,7 @@
 ---
 tool: fill_information_request_list_xlsx
+tools:
+  - fill_information_request_list_xlsx
 version: v1
 lastAuthored: 2026-08-23
 schema: mcp-server/src/tools/fill-information-request-list-xlsx.ts

@@ -5,7 +5,6 @@
  * `tests/integration/oauth-trial-consent.test.ts`.
  */
 
-import { describe, it, expect } from 'vitest';
 import { trialRadarDenial } from '../../../src/pipeline/tier-gate';
 import type { AuthSuccess } from '../../../src/auth/bearer';
 

@@ -5,7 +5,6 @@
  * via the same mock factories used by the E2E suite.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import {
   mkdirSync,

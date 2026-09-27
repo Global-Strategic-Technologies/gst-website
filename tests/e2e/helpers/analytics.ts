@@ -1,16 +1,15 @@
-import { expect, type Page } from '@playwright/test';
-
-export interface RecordedEvent {
-  eventName: string;
-  eventData: Record<string, any>;
-  timestamp: string;
-}
+import type { Page } from '@playwright/test';
 
 /**
  * Setup analytics mocking for a Playwright page
  * - Blocks real GA network requests to Google
  * - Records all gtag calls for verification
  * - Prevents external calls during test execution
+ *
+ * Events land in `window.gtagEvents` as `{ eventName, eventData, timestamp }`.
+ * Read them with `page.waitForFunction` on that array, then `page.evaluate`.
+ * The recorder lives in the page context, so call this again after every
+ * `page.goto()` (TEST_BEST_PRACTICES anti-pattern 19).
  */
 export async function setupAnalyticsMocking(page: Page): Promise<void> {
   // Block real GA requests to Google
@@ -50,79 +49,4 @@ export async function setupAnalyticsMocking(page: Page): Promise<void> {
       }
     };
   });
-}
-
-/**
- * Get all recorded analytics events from the current page
- */
-export async function getRecordedEvents(page: Page): Promise<RecordedEvent[]> {
-  return page.evaluate(() => (window as any).gtagEvents || []);
-}
-
-/**
- * Get all recorded gtag calls (including config calls)
- */
-export async function getAllGtagCalls(page: Page): Promise<any[]> {
-  return page.evaluate(() => (window as any).gtagCalls || []);
-}
-
-/**
- * Verify that an event was tracked with optional parameter matching
- * @param page Playwright page object
- * @param eventName The event name to search for
- * @param expectedParams Optional parameters to match
- */
-export async function expectEventTracked(
-  page: Page,
-  eventName: string,
-  expectedParams?: Record<string, any>
-): Promise<void> {
-  const events = await getRecordedEvents(page);
-  const matchingEvent = events.find((e) => e.eventName === eventName);
-
-  expect(matchingEvent).toBeDefined();
-
-  if (expectedParams && matchingEvent) {
-    Object.entries(expectedParams).forEach(([key, value]) => {
-      expect(matchingEvent.eventData[key]).toBe(value);
-    });
-  }
-}
-
-/**
- * Clear all recorded events
- */
-export async function clearRecordedEvents(page: Page): Promise<void> {
-  await page.evaluateHandle(() => {
-    (window as any).gtagEvents = [];
-    (window as any).gtagCalls = [];
-  });
-}
-
-/**
- * Wait for a specific event to be tracked
- */
-export async function waitForEvent(
-  page: Page,
-  eventName: string,
-  timeout = 5000
-): Promise<RecordedEvent> {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    const events = await getRecordedEvents(page);
-    const event = events.find((e) => e.eventName === eventName);
-
-    if (event) {
-      return event;
-    }
-
-    await page.waitForTimeout(100);
-  }
-
-  const recordedEvents = await getRecordedEvents(page);
-  throw new Error(
-    `Event "${eventName}" was not tracked within ${timeout}ms. ` +
-      `Recorded events: ${recordedEvents.map((e) => e.eventName).join(', ')}`
-  );
 }

@@ -16,10 +16,15 @@
  * in this repo is a security floor: the patched release, held so no consumer
  * can resolve below it. So the property is that every governed copy is AT OR
  * ABOVE the pinned version. Exact equality was the first draft, and it failed
- * on the day it was written for the wrong reason: `path-to-regexp` is pinned at
- * 6.3.0 for the `@vercel/routing-utils` subtree, while `router` (under
- * `express@5`) carries its own 8.4.2, which npm leaves alone. That copy is not
- * a failure; it is above the floor. The same first draft also flagged three
+ * on the day it was written for the wrong reason: `path-to-regexp` was then a
+ * FLAT override at 6.3.0, while `router` (under `express@5`) carried its own
+ * 8.4.2, which npm left alone. That copy was not a failure; it was above the
+ * floor. (The flat override was scoped to `@vercel/routing-utils` on
+ * 2026-09-26: tree-wide it had also forced 6.3.0 onto `express@4`, which
+ * declares `~0.1.12` — a floor the guard read as "honoured" while it made
+ * Express 4 route registration throw. A floor check cannot see a version that
+ * is too HIGH for its consumer; scoping is the answer to that, not this
+ * test.) The same first draft also flagged three
  * overrides (`hono`, `@hono/node-server`, the SDK-scoped `express-rate-limit`)
  * whose natural resolution had climbed past their pins, so they governed
  * nothing — those were deleted rather than accommodated, per their own exit
@@ -28,13 +33,12 @@
  *
  * Scope: flat string overrides (`"qs": "6.16.0"`) govern every copy of that
  * name anywhere in the tree. Scoped overrides (`"@lhci/cli": { "tmp": … }`)
- * govern copies nested under any copy of the parent, falling back to the
- * hoisted copy the parent resolves when none is nested; the `"."` key names
+ * govern the copy each copy of the parent actually resolves (Node's
+ * node_modules walk-up), not every copy of that name; the `"."` key names
  * the parent itself. Pins must be exact versions, which is what every override
  * here uses; a range would need `semver`, and the assertion says so rather
  * than passing vacuously.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -66,6 +70,24 @@ function copiesOf(name: string, under?: string) {
     .filter(([path]) => path.includes('node_modules/') && nameOf(path) === name)
     .filter(([path]) => under === undefined || path.includes(`node_modules/${under}/`))
     .map(([path, entry]) => ({ path, version: entry.version ?? '' }));
+}
+
+/**
+ * The lockfile copy of `child` that the package at lockfile path `from`
+ * resolves, walking up `node_modules` directories the way Node does. Returns
+ * null if nothing on the path provides it.
+ */
+function resolveFrom(from: string, child: string) {
+  let dir = from;
+  for (;;) {
+    const candidate = dir === '' ? `node_modules/${child}` : `${dir}/node_modules/${child}`;
+    if (packages[candidate]) return { path: candidate, version: packages[candidate].version ?? '' };
+    if (dir === '') return null;
+    // Drop the last `node_modules/<pkg>` segment. A workspace root such as
+    // `mcp-server` has none, so its parent is the repo root ('').
+    const cut = dir.lastIndexOf('node_modules/');
+    dir = cut === -1 ? '' : dir.slice(0, cut).replace(/\/$/, '');
+  }
 }
 
 function expectAtOrAboveFloor(copies: { path: string; version: string }[], floor: string) {
@@ -112,8 +134,13 @@ describe('package.json overrides are honoured by package-lock.json', () => {
         expectAtOrAboveFloor(parents, floor);
         continue;
       }
-      const nested = copiesOf(child, parent);
-      const governed = nested.length > 0 ? nested : copiesOf(child);
+      // The governed copies are the ones each parent copy actually resolves,
+      // found by Node's lookup, not every copy of the name. Once the override
+      // is scoped, other consumers legitimately keep their own majors (express
+      // 4's 0.1.x), and those are not this override's business.
+      const governed = parents
+        .map(({ path }) => resolveFrom(path, child))
+        .filter((c): c is { path: string; version: string } => c !== null);
       expect(governed.length, `${child} under ${parent}: not in the lockfile`).toBeGreaterThan(0);
       expectAtOrAboveFloor(governed, floor);
     }

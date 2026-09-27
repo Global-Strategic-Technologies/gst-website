@@ -7,7 +7,6 @@
  * partial state must contain every field we encoded.
  */
 
-import { describe, it, expect } from 'vitest';
 import { buildIcgDeeplink, buildResultsState } from '../../../src/tools/icg';
 import { decodeState, type ICGState } from '../../../../src/utils/icg-engine';
 

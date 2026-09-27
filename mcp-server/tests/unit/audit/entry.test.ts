@@ -5,7 +5,6 @@
  * deterministic (key-order independent) and `computeEntryHash` linking each
  * entry to the previous one's hash. These tests pin both.
  */
-import { describe, expect, it } from 'vitest';
 import {
   AUDIT_SCHEMA_VERSION,
   GENESIS_PREV_HASH,

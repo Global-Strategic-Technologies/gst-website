@@ -41,7 +41,6 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { handleTechparTool } from '../../mcp-server/src/tools/techpar';
 import { buildPartnerSuppliedTechParAudit } from '../../mcp-server/src/schemas/techpar-audit';
 import { hydrateFromUrl } from '../../src/utils/techpar/dom';

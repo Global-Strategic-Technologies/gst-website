@@ -7,7 +7,6 @@
  * hardcoded limiter constants (60/1000/5/50). Any drift there silently
  * changes the budgets internal team keys have run on since BL-032/BL-038.
  */
-import { describe, it, expect } from 'vitest';
 import {
   INTERNAL_TIER,
   TIER_LIMITS,

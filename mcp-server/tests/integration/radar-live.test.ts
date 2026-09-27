@@ -20,8 +20,6 @@
  * code path, much faster, no need to spin up a Worker per test.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 // Mock `@upstash/redis` — the inoreader-token-store, cache-store, AND
 // circuit-breaker modules all instantiate Redis. A single MockRedis
 // satisfies all three.

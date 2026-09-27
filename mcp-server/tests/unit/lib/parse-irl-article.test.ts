@@ -12,7 +12,6 @@
  * below and re-capture the BL-044 XLSX golden snapshot.
  */
 
-import { describe, it, expect } from 'vitest';
 import { parseIrlArticle } from '../../../../src/utils/irl/parse-article';
 import { loadIrlSourceBody } from '../../../src/content/irl-source-loader';
 

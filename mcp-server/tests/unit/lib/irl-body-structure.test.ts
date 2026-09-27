@@ -12,7 +12,6 @@
  * started all of this, and it is what the diagnostic exists to explain.
  */
 
-import { describe, it, expect } from 'vitest';
 import { assessIrlBodyStructure } from '../../../src/lib/irl-body-structure';
 
 /** The exact transformation Claude Desktop's single-line input performs. */

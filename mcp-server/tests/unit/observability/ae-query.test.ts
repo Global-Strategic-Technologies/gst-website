@@ -4,7 +4,6 @@
  * unbound-credentials short-circuit — the behavior extracted verbatim from
  * the alert evaluator's former private `queryAeFactory`.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createAeQuery } from '../../../src/observability/ae-query';
 import type { Env } from '../../../src/worker';
 

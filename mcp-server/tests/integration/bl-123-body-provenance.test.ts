@@ -12,7 +12,6 @@
  * was a copyable string.
  */
 
-import { describe, it, expect } from 'vitest';
 import { Buffer } from 'node:buffer';
 import type { MetricsContext } from '../../src/metrics/_index';
 import { InMemoryIrlBodyCache } from '../../src/metrics/_index';

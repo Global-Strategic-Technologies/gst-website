@@ -20,7 +20,6 @@
  *     Upstash is unreachable (regime telemetry must survive Upstash
  *     outages — the Sentry timeline is the secondary source of truth)
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const {
   MockRedis,

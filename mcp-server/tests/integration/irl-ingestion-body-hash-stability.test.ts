@@ -44,7 +44,6 @@
  * way to land a prompt-body change is to explicitly acknowledge it.
  */
 
-import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 

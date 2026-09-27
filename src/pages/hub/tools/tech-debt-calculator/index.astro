@@ -1216,8 +1216,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
        PRINT — professional PDF export
     ════════════════════════════════════════════════════════════════════════ */
 
-  /* Print-only elements (hidden on screen) */
-  .print-report-header,
+  /* Print-only footer (hidden on screen). The print header is the
+     PrintReportHeader component, which hides and styles itself. */
   .print-report-footer {
     display: none;
   }
@@ -1228,56 +1228,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
        to screen root font size, which produces unpredictable results in print. */
 
     /* ── Hide interactive chrome ─────────────────────────────────── */
-    .site-header,
-    .breadcrumb,
-    .hub-header,
+    /* Breadcrumb and HubHeader are rendered by BaseLayout/HubHeader, so they
+       need :global(). Header and Footer hide themselves in print. */
+    :global(.breadcrumb),
+    :global(.hub-header),
     .calc-footer,
     .brutal-slider__input,
     .brutal-slider__hints,
     .slider-benchmark,
     .advanced-toggle,
     .advanced-section,
-    .back-link,
-    footer {
+    .back-link {
       display: none !important;
     }
 
-    /* ── Show print header/footer ────────────────────────────────── */
-    .print-report-header {
-      display: flex !important;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding: 0 0 var(--spacing-lg);
-      margin-bottom: var(--spacing-lg);
-      border-bottom: 3px solid var(--color-primary);
-    }
-
-    .print-report-header__brand {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-      font-family: var(--font-family-mono);
-      font-size: 14pt;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--text-primary);
-    }
-
-    .print-report-header__title {
-      font-family: var(--font-family-mono);
-      font-size: 11pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-
-    .print-report-header__date {
-      font-family: var(--font-family-mono);
-      font-size: 9pt;
-      color: var(--text-muted);
-    }
-
+    /* ── Show print footer ───────────────────────────────────────── */
     .print-report-footer {
       display: block !important;
       margin-top: var(--spacing-2xl);

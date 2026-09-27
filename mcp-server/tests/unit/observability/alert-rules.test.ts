@@ -6,8 +6,6 @@
  * Every rule must fail OPEN when its data source is unavailable.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 const { mockReadSpend, mockBuildHealth, mockProbeAge, mockCreateMcpClient } = vi.hoisted(() => ({
   mockReadSpend: vi.fn(),
   mockBuildHealth: vi.fn(),

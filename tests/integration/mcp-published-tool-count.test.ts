@@ -32,7 +32,6 @@
  * To intentionally stop publishing one of these figures, delete its row and say
  * in the commit which surface stopped being described.
  */
-import { describe, expect, it } from 'vitest';
 import {
   read,
   registeredToolNames,

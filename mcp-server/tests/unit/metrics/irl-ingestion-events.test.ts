@@ -6,7 +6,6 @@
  * shape that downstream Grafana SQL will read (event_type, name, outcome).
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import {
   emitGateElided,
   emitIrlRunVerdicts,

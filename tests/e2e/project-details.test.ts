@@ -39,10 +39,8 @@ test.describe('Project Details Viewing Journey', () => {
     const modalContent = await modal.textContent();
     expect(modalContent?.trim().length || 0).toBeGreaterThan(20);
 
-    // Verify modal contains heading or title
-    const heading = modal.locator('h2, h3, [data-testid*="name"], [data-testid*="title"]').first();
-    const headingVisible = await heading.isVisible({ timeout: 2000 }).catch(() => false);
-    expect(headingVisible || (modalContent?.trim().length ?? 0) > 20).toBeTruthy();
+    // The title is populated from the clicked card's project
+    await expect(modal.locator('[data-testid="project-modal-title"]')).toHaveText(/\S/);
   });
 
   test('should have technology information displayed', async ({ page }) => {
@@ -56,21 +54,10 @@ test.describe('Project Details Viewing Journey', () => {
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
-    // Verify technology information is displayed in modal
-    const techSection = modal.locator(
-      '[data-testid*="technolog"], [data-testid*="tech"], .technologies'
-    );
-    const techVisible = await techSection.isVisible({ timeout: 2000 }).catch(() => false);
-
-    // If tech section exists, verify it has content
-    if (techVisible) {
-      const techText = await techSection.textContent();
-      expect(techText?.trim().length || 0).toBeGreaterThan(0);
-    } else {
-      // Fall back to checking modal has some content
-      const modalText = await modal.textContent();
-      expect(modalText?.trim().length || 0).toBeGreaterThan(30);
-    }
+    // The modal script renders one tag per technology into this container
+    const tags = modal.locator('[data-testid="project-modal-tech-tags"] > *');
+    await expect(tags.first()).toBeVisible();
+    await expect(tags.first()).toHaveText(/\S/);
   });
 
   test('should support keyboard interaction for details', async ({ page }) => {
@@ -127,15 +114,13 @@ test.describe('Project Details Viewing Journey', () => {
       previousProjectName = projectName || '';
 
       // Close modal for next iteration
-      const closeBtn = page.locator('[data-testid="project-modal-close"]');
-      if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Use evaluate-based click for WebKit hit-testing compatibility
-        await page.evaluate(() => {
-          (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
-        });
-        // Wait for modal to close before next iteration
-        await expect(modal).not.toBeVisible({ timeout: 2000 });
-      }
+      await expect(page.locator('[data-testid="project-modal-close"]')).toBeVisible();
+      // Use evaluate-based click for WebKit hit-testing compatibility
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+      });
+      // Wait for modal to close before next iteration
+      await expect(modal).not.toBeVisible({ timeout: 2000 });
     }
   });
 

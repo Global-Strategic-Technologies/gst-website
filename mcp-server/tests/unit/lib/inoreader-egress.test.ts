@@ -19,8 +19,6 @@
  *   - TTL is set on first-write so the key auto-rolls at UTC midnight.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const {
   redisIncr,
   redisGet,

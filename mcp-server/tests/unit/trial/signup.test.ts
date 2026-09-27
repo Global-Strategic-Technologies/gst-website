@@ -8,7 +8,6 @@
  * proves the wiring and the fail-closed 503.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 
 const {
@@ -738,6 +737,11 @@ describe('releaseTrialIdentity', () => {
     // this test's error — which is exactly what it did before the finally.
     const paged = redisScan.getMockImplementation()!;
     redisScan.mockImplementation(async () => ['1', [`${TRIAL_IDENTITY_KEY_PREFIX}zzz`]]);
+    // Counted below, so clear explicitly rather than rely on config-level
+    // clearing. A vitest launched through a lowercase-drive path did not apply
+    // it here, and a call left over from the previous test made this 201.
+    // See TROUBLESHOOTING.md § Every vitest suite fails at once.
+    redisScan.mockClear();
     try {
       await expect(releaseTrialIdentity(env(), 'never-there')).rejects.toThrow(
         'identity-scan-unbounded'

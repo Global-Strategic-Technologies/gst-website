@@ -7,7 +7,6 @@
  * only the codes/segments/og tags that a future `es-MX` or `pt-PT` would need
  * to appear in a second place.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';

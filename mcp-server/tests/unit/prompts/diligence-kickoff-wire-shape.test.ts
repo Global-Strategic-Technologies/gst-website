@@ -11,7 +11,6 @@
  * regression test that the wire-shape fix is applied.
  */
 
-import { describe, it, expect } from 'vitest';
 import { diligenceKickoffPrompt } from '../../../src/prompts/diligence-kickoff';
 
 const BASE_TYPED_ARGS = {

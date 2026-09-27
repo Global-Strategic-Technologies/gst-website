@@ -87,7 +87,7 @@ Both directories are declared in [`vitest.config.ts`](../../../vitest.config.ts)
 
 ## How to add a new test
 
-1. Create `tests/unit/<feature>.test.ts`. Vitest globals (`describe`, `it`, `expect`) are enabled in [`vitest.config.ts`](../../../vitest.config.ts) — no imports needed for the test runner itself.
+1. Create `tests/unit/<feature>.test.ts`. Vitest globals (`describe`, `it`, `expect`, `vi`, hooks) are enabled in [`vitest.config.ts`](../../../vitest.config.ts). **Never value-import them from `vitest`, including `vi`.** On Windows a value import can bind to a second vitest instance, and the file then collects 0 tests. ESLint enforces this. Use `import type` for types. See [TROUBLESHOOTING](../../../../src/docs/testing/TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected).
 2. Follow the AAA pattern: arrange → act → assert. One observable behavior per `it` block.
 3. Test the **public surface** — input schema parsing, output shape, JSON-serializability, error paths. Avoid asserting on internals; the wrappers must stay swappable.
 4. Avoid mocking the engines being wrapped. Direct calls keep the suite honest about parity — if the engine drifts, the test fails immediately.

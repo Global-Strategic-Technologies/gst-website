@@ -11,7 +11,6 @@
  * scopes field is on the success envelope.
  */
 
-import { describe, it, expect } from 'vitest';
 import { authenticate } from '../../../src/auth/bearer';
 import { DEFAULT_SCOPES } from '../../../src/auth/scopes';
 

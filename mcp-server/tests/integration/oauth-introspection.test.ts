@@ -5,7 +5,6 @@
  * no-oracle contract (every token-shaped failure is active:false, 200).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { warmWorker } from '../helpers/warm-worker';
 

@@ -13,7 +13,6 @@
  * exit multiple regardless of the (hidden) DOM value.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { buildInputs } from '../../src/utils/techpar/dom';
 import { tp } from '../../src/utils/techpar/state';
 

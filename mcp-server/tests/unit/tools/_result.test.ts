@@ -7,7 +7,6 @@
  * retry on ("emit the error VERBATIM"), so any truncation or reformatting here
  * would silently degrade an LLM-facing retry surface.
  */
-import { describe, it, expect } from 'vitest';
 
 import {
   toolOk,

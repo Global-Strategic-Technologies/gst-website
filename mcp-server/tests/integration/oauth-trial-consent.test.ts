@@ -14,7 +14,6 @@
  * staying green is the byte-for-byte regression guard for this slice.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { createHash, randomBytes } from 'node:crypto';

@@ -33,7 +33,6 @@
  * see `docs-link-integrity.test.ts`), so both parsers are hand-rolled below
  * and proven against red/green fixtures first.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

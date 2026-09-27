@@ -8,7 +8,6 @@
  * into `src/utils/**`, which is inside it under a 70% line threshold — so they need
  * coverage in their own right now, not by side effect.
  */
-import { describe, it, expect } from 'vitest';
 import { stripHtml, truncate } from '../../src/utils/html-text';
 
 describe('stripHtml', () => {

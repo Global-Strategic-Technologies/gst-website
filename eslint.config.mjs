@@ -167,6 +167,31 @@ export default [
     },
   },
   {
+    // Vitest's runtime names come from `globals: true`. Never import them, and
+    // that includes `vi`. When npm launches vitest, it resolves `.bin` through
+    // the cwd, so on Windows a lowercase `c:` cwd loads the runner as
+    // `c:/…/vitest` while test imports resolve `C:/…/vitest`. That creates two
+    // module instances, and a value import binds to the one with no suite.
+    // Type-only imports are erased at compile time and stay allowed.
+    // See TROUBLESHOOTING.md.
+    files: ['tests/**/*.{ts,tsx,mts}', 'mcp-server/tests/**/*.{ts,tsx,mts}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vitest',
+              allowTypeImports: true,
+              message:
+                "Use Vitest's globals (globals: true) instead of importing them; use `import type` for types. See TROUBLESHOOTING.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Browser globals for client-side scripts and .astro files
     files: ['src/**/*.{ts,tsx,astro}', 'src/**/*.js', 'tests/e2e/**/*.ts'],
     languageOptions: {

@@ -7,7 +7,6 @@
  * upstream budget no matter which surface is reading. These tests pin that
  * property plus the `cache-empty` contract.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const { redisGet, redisSet, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();

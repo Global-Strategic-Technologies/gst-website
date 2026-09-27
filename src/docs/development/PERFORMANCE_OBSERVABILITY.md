@@ -60,19 +60,22 @@ Two are performance-specific; two are listed for context (you'll see them on eve
 
 | Workflow                  | File                                                                          | Trigger                               | Purpose                                                                                                                                                                          |
 | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Lighthouse CI**         | [`lighthouse.yml`](../../../.github/workflows/lighthouse.yml)                 | PR to `master`, manual                | Audits every PR with desktop + mobile Lighthouse; posts a step summary; **does not block merge except on CLS regression**                                                        |
+| **Lighthouse CI**         | [`lighthouse.yml`](../../../.github/workflows/lighthouse.yml)                 | PR to `master`, manual                | Audits every PR with desktop + mobile Lighthouse; posts a step summary; **fails the `lighthouse` check on a CLS regression** (skips, still green, on docs/workflow/MCP-only PRs) |
 | **Performance Dashboard** | [`perf-dashboard.yml`](../../../.github/workflows/perf-dashboard.yml)         | Weekly cron (Sundays 2am UTC), manual | Runs the same audits, extracts metrics, merges them into the historical JSON on the `gh-pages` branch, and pushes — which republishes <https://performance.globalstrategic.tech> |
 | Test Suite                | [`test.yml`](../../../.github/workflows/test.yml)                             | Push, PR to `master`                  | Lint + typecheck + unit/integration + E2E. Not performance-specific but on every PR.                                                                                             |
 | Cross-Browser E2E         | [`test-cross-browser.yml`](../../../.github/workflows/test-cross-browser.yml) | Manual only                           | Playwright across chromium / firefox / webkit. Not performance-specific.                                                                                                         |
 
 ### `lighthouse.yml` — PR-time CI
 
-- **Triggers**: pull request to `master`, or manual via Actions tab
+- **Triggers**: pull request to `master`, or manual via Actions tab. A `changes` gate job (`dorny/paths-filter`) skips the audit steps when every changed path is `**/*.md`, `.github/**` or `mcp-server/**`; the `lighthouse` job still reports success then, so the check never hangs a docs-only PR (a workflow-level `paths-ignore` used to do this skip, but a workflow that never runs never reports, which is incompatible with a required check)
 - **What it does**: runs `npx lhci autorun` twice — once with `lighthouserc.cjs` (desktop), once with `lighthouserc.mobile.cjs` (mobile)
 - **Output**: a `## Lighthouse CI Scores` block in the workflow's step summary, side-by-side desktop and mobile tables with Performance score / FCP / LCP / TBT / CLS / report link per page
 - **Report links**: each row has a `[View](...)` link that opens the full Lighthouse HTML report on `temporary-public-storage` — these expire after roughly 7 days
-- **Status**: the job uses `continue-on-error: true` on the audits so the workflow always reports a pass even if assertions fire. Whether a PR is blocked depends on the **assertion summary** (CLS errors visibly fail in the rendered table even though the workflow exits zero) and on whatever branch protection is configured to require this check
-- **Why CLS regressions are visible without blocking**: the workflow always exits zero, but the step summary surfaces every assertion failure in a readable block. Reviewers are expected to read the summary as part of PR review
+- **Status** (since 2026-09-26): **CLS blocks.** Both audit steps keep `continue-on-error: true` so the mobile audit and the summary still run after a desktop failure, and run under `shell: bash` (pipefail — without it `lhci … | tee` reports tee's exit code and a failed audit looks green). A final **Enforce Lighthouse assertions** step fails the job when either audit's outcome is `failure`. Only `error`-level assertions fail an audit, and CLS (max 0.1) is the only one; FCP/LCP/TBT/TTI stay `warn` and show in the summary
+- **Required check**: the check context is `lighthouse` (the job's `name:`). It becomes merge-blocking once it is added to ruleset 12237842's required checks in the GitHub UI — see [DEVELOPER_TOOLING.md § required checks](DEVELOPER_TOOLING.md#on-every-push-to-master-feat-fix-feature-dependabot-docs-chore-and-prs-to-master)
+- **No `LHCI_GITHUB_APP_TOKEN`**: it used to be set to `GITHUB_TOKEN`, which the LHCI GitHub App endpoint rejects (422), so it never posted anything. Per-URL statuses would also collide between the desktop and mobile runs (same `lhci/url<path>` context) and can land on a non-head SHA. The enforce step is the gate; `temporary-public-storage` upload needs no token
+- **Runs**: `numberOfRuns: 1`. Two measured runs (2026-09, all 24 reports each) scored every URL and preset's CLS identically, so the metric the gate reads is deterministic here and extra runs would buy only time
+- **`/hub/radar` is measured empty.** The job binds no radar bearer, so the feed renders its empty state; the skeleton→content shift that ADR-0012 accepts is never measured here
 
 ### `perf-dashboard.yml` — weekly historical capture + dashboard deploy
 
@@ -146,7 +149,7 @@ Local runs do **not** publish to the dashboard. They only upload to the LHCI tem
 
 1. Open the PR's "Lighthouse CI" check → "Details"
 2. Scroll to the "Lighthouse CI Scores" section in the run summary
-3. **Look at CLS first** — that's the only column that fails the check. A red CLS row means a real regression
+3. **Look at CLS first** — that's the only column that fails the check (the `lighthouse` job goes red). A red CLS row means a real regression
 4. **Check report links** for any row with a meaningfully worse score than baseline. The full Lighthouse HTML report shows which audits triggered the regression
 5. If a regression is real but expected (e.g. you're shipping a heavier component intentionally), call it out in the PR description with the trade-off
 
@@ -167,7 +170,7 @@ The dashboard auto-discovers new pages from the merged JSON history.
 
 ### Adjusting performance budgets
 
-Edit `ci.assert.assertions` in the relevant `lighthouserc.*.cjs`. Use `'error'` to block PRs (currently only CLS), `'warn'` for informational. Document the why in the commit message — performance budgets are easy to ratchet down accidentally.
+Edit `ci.assert.assertions` in the relevant `lighthouserc.*.cjs`. Use `'error'` to block PRs (currently only CLS — an `error` failure fails `lhci autorun`, which the workflow's enforce step turns into a red `lighthouse` check), `'warn'` for informational. Document the why in the commit message — performance budgets are easy to ratchet down accidentally.
 
 ### Triggering an out-of-cycle audit
 

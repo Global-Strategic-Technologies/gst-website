@@ -6,7 +6,6 @@
  * return, same throw), and that one correctly-shaped event lands in the
  * sink per invocation.
  */
-import { describe, expect, it, vi } from 'vitest';
 import { InMemorySink } from '../../../src/metrics/sinks/in-memory';
 import {
   InMemoryToolCallCounters,

@@ -58,9 +58,9 @@ The island bypasses ISR, so **each pageview makes one Worker call**. That is the
 
 ### Known trade-off: layout shift
 
-Restoring the island reintroduces a skeleton→content swap, and therefore CLS that the inlined version did not have. `lighthouserc.cjs` **and** `lighthouserc.mobile.cjs` both assert `cumulative-layout-shift ≤ 0.1` on this URL, and the same workflow runs both — but `.github/workflows/lighthouse.yml` runs them with `continue-on-error: true` and Lighthouse is not a required check, so they report without gating.
+Restoring the island reintroduces a skeleton→content swap, and therefore CLS that the inlined version did not have. `lighthouserc.cjs` **and** `lighthouserc.mobile.cjs` both assert `cumulative-layout-shift ≤ 0.1` on this URL, and the same workflow runs both. Lighthouse CLS is now a blocking check (job `lighthouse`, 2026-09-26), **but the Lighthouse job binds no `MCP_KEY_WEBSITE_RADAR`, so `/hub/radar` is measured only in its empty state** — the island resolves to `.radar-empty`, and the skeleton→content swap a real visitor sees is not what the gate measures.
 
-**No mitigation is attempted, deliberately.** A `server:defer` island renders no persistent slot element to reserve space on, so a `min-height` would have to hang on `.radar-container` (which also holds the header, filter and CTA) and would stabilize nothing. Sizing `.radar-empty` instead would only help the keyless dev/LHCI case no visitor sees, and would turn a misconfiguration state into a tall blank box. This is a restoration of pre-`bbd96fbf` behaviour on an un-gated audit, accepted and recorded. If CLS here ever matters, it is its own piece of work with its own measurement.
+**No mitigation is attempted, deliberately.** A `server:defer` island renders no persistent slot element to reserve space on, so a `min-height` would have to hang on `.radar-container` (which also holds the header, filter and CTA) and would stabilize nothing. Sizing `.radar-empty` instead would only help the keyless dev/LHCI case no visitor sees, and would turn a misconfiguration state into a tall blank box. This is a restoration of pre-`bbd96fbf` behaviour, accepted and recorded; the Lighthouse gate does not cover it, for the reason above. If CLS here ever matters, it is its own piece of work with its own measurement.
 
 ### Data Flow
 
@@ -230,7 +230,7 @@ MCP_RADAR_SNAPSHOT_URL=http://127.0.0.1:8787/radar/snapshot
 MCP_KEY_WEBSITE_RADAR=stub-bearer-not-a-real-secret   # any non-empty value
 ```
 
-The bearer must be non-empty or `RadarFeed.astro` short-circuits before the fetch and renders the empty state regardless of the URL. **This is what makes the content-dependent E2E assertions runnable** — without it they `test.skip()` everywhere, including the one proving `?category=` actually filters the feed rather than merely activating a pill. Two categories is deliberate: with one, a totally broken filter produces the same DOM as a working one. Note 8787 is also `wrangler dev`'s default port — with the Worker running locally you would hit the real Worker instead of the fixture, so set `STUB_PORT` if both are up.
+The bearer must be non-empty or `RadarFeed.astro` short-circuits before the fetch and renders the empty state regardless of the URL. **This is what makes the content-dependent E2E assertions runnable locally** — without it they `test.skip()` on your machine, including the one proving `?category=` actually filters the feed rather than merely activating a pill. CI always runs them against this stub (see § E2E Test Mocking). Two categories is deliberate: with one, a totally broken filter produces the same DOM as a working one. Note 8787 is also `wrangler dev`'s default port — with the Worker running locally you would hit the real Worker instead of the fixture, so set `STUB_PORT` if both are up.
 
 **Local stdio MCP server path** (the `search_radar_offline` tool, `gst://radar/*` Resources over stdio, and the `gst_radar_brief_today` prompt's embed): these read a local snapshot at `<repo>/.cache/inoreader/` — populated and cleared from the repo root with:
 
@@ -250,7 +250,9 @@ Playwright's global-setup and global-teardown are intentionally no-ops post-Phas
 - **`npm run radar:stub`** (preferred, no secret): a fixed offline snapshot. Point `MCP_RADAR_SNAPSHOT_URL` at it and set any non-empty `MCP_KEY_WEBSITE_RADAR` — see § Working Offline for the exact values.
 - **The real staging Worker**: set a real `MCP_KEY_WEBSITE_RADAR` so the SSR fetch authenticates.
 
-**Without either, the content-dependent tests `test.skip()` — including the one asserting `?category=` actually filters the feed rather than just activating a pill.** CI has no bearer, so that test never runs there. That is not a theoretical gap: the deep-link was broken in exactly that way for months and nothing caught it, while the MCP tools hand clients those links.
+**CI runs the stub.** The Playwright jobs in `test.yml` and `test-cross-browser.yml` start `node scripts/radar-stub.mjs` in the background, wait for it to answer, and set `MCP_RADAR_SNAPSHOT_URL=http://127.0.0.1:8787/radar/snapshot` and `MCP_KEY_WEBSITE_RADAR=stub-bearer-not-a-real-secret` as job env. The Playwright `webServer` inherits that env, and the radar page is SSR, so it reads the values on every request. Under `CI`, `requireRadarContent()` (`tests/e2e/helpers/radar.ts`) makes every content-dependent test mandatory: an empty feed there fails the test instead of skipping it. That covers `?category=` filtering, the category-switch tests, the external-link attributes, and the axe scan of the real `FyiItem`/`WireItem` markup in `accessibility.test.ts`.
+
+**Locally, without the stub or a bearer, those tests `test.skip()` with a reason.** That is the only place the empty-state branch of "should show either live feed items or fallback message" still runs; CI takes the content branch. The gap this closed was not theoretical: the deep-link was broken for months while CI skipped the test that would have caught it, and the MCP tools hand clients those links.
 
 ## Vercel Caching & ISR Details
 

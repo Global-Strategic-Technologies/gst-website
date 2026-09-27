@@ -5,10 +5,10 @@
  *
  * `/hub/radar` renders its feed from the Worker over HTTP. With no
  * `MCP_KEY_WEBSITE_RADAR` bound, `RadarFeed.astro` short-circuits before the
- * fetch and renders the empty state — which is the situation both in CI and in
- * a fresh local checkout. Every E2E assertion that needs actual feed items
- * therefore calls `test.skip()`, including the one that proves `?category=`
- * genuinely FILTERS the feed rather than just activating a pill.
+ * fetch and renders the empty state — the situation in a fresh local checkout.
+ * Every E2E assertion that needs actual feed items would then have nothing to
+ * check, including the one that proves `?category=` genuinely FILTERS the feed
+ * rather than just activating a pill.
  *
  * That is not a hypothetical gap. The deep-link was broken exactly that way
  * from whenever the island first shipped until 2026-07-31, and nothing caught
@@ -16,6 +16,10 @@
  * `…/hub/radar?category=<x>` links, so a silent break there is client-facing.
  *
  * This serves fixed, offline, deterministic data so those tests can run.
+ * CI's Playwright jobs start it in the background and set the two variables
+ * below as job env, so there the content tests are mandatory (a missing feed
+ * fails them). Locally, without it, they skip — see `requireRadarContent()`
+ * in tests/e2e/helpers/radar.ts.
  *
  * NOT a substitute for `npm run radar:seed` — that populates the local *stdio*
  * MCP snapshot at `.cache/inoreader/`, which the website never reads. Different

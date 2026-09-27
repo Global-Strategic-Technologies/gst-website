@@ -13,8 +13,6 @@
  * ≥2 Rule-0 offenders fire, the BL-066 consolidated batch summary.
  */
 
-import { describe, it, expect } from 'vitest';
-
 import { handleDiligenceTool } from '../../../src/tools/diligence';
 import {
   type AuditCarryingUserInputs,

@@ -41,15 +41,6 @@ export async function getLocalStorageState(page: Page): Promise<any> {
 }
 
 /**
- * Clear localStorage state
- */
-export async function clearLocalStorageState(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    localStorage.removeItem('diligence-machine-state');
-  });
-}
-
-/**
  * Verify that a specific option is selected with proper DOM state
  */
 export async function verifyStepSelection(
@@ -73,15 +64,6 @@ export async function verifyCompoundSelection(
   const card = page.locator(`[data-testid="compound-${fieldId}-${optionId}"]`);
   await expect(card).toHaveClass(/selected/);
   await expect(card).toHaveAttribute('aria-pressed', 'true');
-}
-
-/**
- * Verify that output contains at least minCount questions
- */
-export async function verifyOutputHasQuestions(page: Page, minCount: number): Promise<void> {
-  const questions = page.locator('.doc-question');
-  const count = await questions.count();
-  expect(count).toBeGreaterThanOrEqual(minCount);
 }
 
 /**

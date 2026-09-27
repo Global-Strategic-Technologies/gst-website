@@ -17,7 +17,6 @@
  * alias work, not BL-068.
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   Bl068MapAbsentFalsePositiveError,
   Bl070VerbatimBodyRequiredError,

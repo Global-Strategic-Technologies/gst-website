@@ -6,7 +6,6 @@
  * exactly one body (one optional arg, no branches).
  */
 
-import { describe, it, expect } from 'vitest';
 import { irlExtractPrompt, EXTRACT_PROJECTED_TOOLS } from '../../../src/prompts/irl-extract';
 import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 

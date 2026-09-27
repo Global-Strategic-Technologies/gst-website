@@ -6,8 +6,6 @@
  * no DSN required.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { sentryCaptureException, sentryCaptureMessage, sentrySetTag, sentryFlush } = vi.hoisted(
   () => ({
     sentryCaptureException: vi.fn(),

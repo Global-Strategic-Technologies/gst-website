@@ -16,8 +16,6 @@
  * lock state is real, just held in test memory instead of Redis.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
 // A stateful in-memory Redis mock that implements SET NX EX correctly.
 // vi.hoisted lifts the mock to the top of the file before module imports.
 const { redisStore, MockRedis, fetchSpy } = vi.hoisted(() => {

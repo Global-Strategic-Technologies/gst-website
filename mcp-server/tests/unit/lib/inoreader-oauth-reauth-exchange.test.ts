@@ -8,7 +8,6 @@
  *   - Egress accounting still fires for `'oauth-refresh'` category
  *   - Build-authorization-url honors `INOREADER_REDIRECT_URI` env
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockRecordEgress } = vi.hoisted(() => ({
   mockRecordEgress: vi.fn().mockResolvedValue(undefined),

@@ -15,7 +15,6 @@
  *     placeholders must match English's.
  *  4. No empty strings, anywhere.
  */
-import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

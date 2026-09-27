@@ -8,8 +8,6 @@
  * exclusion (e.g. switches `acquire` to idempotent SET) fails CI.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { redisSet, redisGet, redisDel, MockRedis } = vi.hoisted(() => {
   const redisSet = vi.fn();
   const redisGet = vi.fn();

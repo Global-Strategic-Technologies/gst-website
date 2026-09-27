@@ -164,9 +164,25 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* ── Ready gate (layout-shift fix) ─────────────────────── */
+
+/* Runtime sublists are injected after the list first paints, which pushed the
+   later layer items down (CLS 0.11 on /brand, desktop). The list stays
+   invisible until the script marks it ready. Invisible items don't count as
+   shifted, and the sidebar column doesn't move the content. Without scripting
+   there are no sublists and nothing to wait for. */
+@media (scripting: enabled) {
+  .toc:not([data-toc-ready]) .toc__list {
+    visibility: hidden;
+  }
+}
+
 /* ── Collapsible modifier (mobile) ─────────────────────── */
 
-@media (max-width: 768px) {
+/* The component server-renders `toc--collapsible is-collapsed`. The collapse
+   applies only when scripting is on, because without JS a reader has no way to
+   expand the list again. */
+@media (scripting: enabled) and (max-width: 768px) {
   .toc--collapsible .toc__heading {
     cursor: pointer;
     user-select: none;

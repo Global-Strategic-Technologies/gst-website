@@ -26,7 +26,6 @@
  * WITHOUT type-checking — so it exits 0 whether or not the program has type
  * errors. We therefore assert on the printed list, never on the exit status.
  */
-import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';

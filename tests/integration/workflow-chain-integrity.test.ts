@@ -15,6 +15,8 @@
  *   B. the producer's push trigger still reaches `master`.
  *   C. the consumer's own branch list still reaches `master`.
  *   D. `.github/workflows/*.yml` literals inside `paths:` lists still name files that exist.
+ *   E. the three CI-validation push-branch lists (test.yml, test-mcp-server.yml,
+ *      npm-audit.yml) are identical — the "lockstep" their comments promise.
  *
  * C is not hypothetical: `deploy-mcp-staging.yml`'s own header records that this exact list
  * once shipped **without** `master`, "so the merge commit never got staging validation"
@@ -31,7 +33,6 @@
  * BL-125's enum walk threw on all 60 fields into a catch that swallowed it). The probes are the
  * difference between "the chain agrees" and "I found nothing to disagree about".
  */
-import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -169,6 +170,26 @@ describe('MCP deploy chain integrity', () => {
       `${STAGING} lists branch pattern(s) the MCP suite does not test: ${extra.join(', ')}. ` +
         'Staging would deploy from a branch that never ran the suite.'
     ).toEqual([]);
+  });
+
+  it('E: the three CI-validation push lists are identical', () => {
+    // test.yml, test-mcp-server.yml and npm-audit.yml each say "kept in lockstep" in a comment,
+    // and `dev` outlived its 2026-05-31 retirement in all three for months because nothing
+    // held them together. A branch family missing from one list means "Update branch" on that
+    // family's PR yields a head with that workflow's checks absent (the PR #316 stall).
+    // Trigger-scoped reads, same as B: each file's pull_request list is `[master]` too.
+    const lists = ['test.yml', SUITE, 'npm-audit.yml'].map(
+      (f) => [f, triggerBranches(f, 'push')] as const
+    );
+    for (const [f, branches] of lists) {
+      expect(branches.length, `parsed an empty push list from ${f}`).toBeGreaterThan(3);
+      expect(branches, `${f} still lists the retired \`dev\` branch`).not.toContain('dev');
+    }
+    for (const [f, branches] of lists.slice(1)) {
+      expect(branches, `${f}'s push branches must equal ${lists[0][0]}'s, same order`).toEqual(
+        lists[0][1]
+      );
+    }
   });
 
   it('D: every workflow file named inside a `paths:` list exists on disk', () => {

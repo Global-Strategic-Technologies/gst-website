@@ -1,5 +1,10 @@
 ---
 tool: search_radar_offline
+tools:
+  - search_radar_offline
+  - search_radar
+  - search_radar_cache
+  - get_latest_insights
 version: v1
 lastAuthored: 2026-08-05
 schema: mcp-server/src/tools/radar-offline.ts

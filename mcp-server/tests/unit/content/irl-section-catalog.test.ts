@@ -8,7 +8,6 @@
  * the real sections.
  */
 
-import { describe, it, expect } from 'vitest';
 import { irlSectionCatalog } from '../../../src/content/irl-section-catalog';
 
 describe('irlSectionCatalog', () => {

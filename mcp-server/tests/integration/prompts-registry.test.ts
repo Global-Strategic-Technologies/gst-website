@@ -13,7 +13,6 @@
  * uniform; a new prompt either passes all checks or fails the suite.
  */
 
-import { describe, it, expect } from 'vitest';
 import { ALL_PROMPTS, assertPromptInvariants } from '../../src/prompts/_registry';
 
 const KNOWN_TOOL_NAMES = new Set([

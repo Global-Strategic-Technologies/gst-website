@@ -3,7 +3,6 @@
  * extraction did not change `sha256Hex`.
  */
 
-import { describe, it, expect } from 'vitest';
 import { hmacHex } from '../../../src/lib/hmac';
 import { bytesToHex, sha256Hex } from '../../../src/lib/sha256';
 

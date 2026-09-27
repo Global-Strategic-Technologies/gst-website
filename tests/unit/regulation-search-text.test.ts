@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { buildRegulationSearchText } from '../../src/utils/regulation-search-text';
 
 /**

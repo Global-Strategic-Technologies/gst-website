@@ -133,17 +133,17 @@ npm run test:e2e:debug
 ### Test Coverage
 
 **Analytics Tests:**
-- ✅ gtag function initialized globally
+- ✅ Pages still render when GA requests are blocked
 - ✅ Portfolio card clicks fire `portfolio_view_details` event
 - ✅ Modal close fires `portfolio_close_modal` event
 - ✅ Theme toggle fires `theme_toggle` event with correct value
 - ✅ CTA clicks fire `cta_click` event with type and location
-- ✅ Filter applications fire `filter_applied` event
-- ✅ Complete user journeys tracked correctly
+- ✅ Header nav clicks fire `navigation_click` with destination and label
+- ✅ Theme chip clicks fire `filter_applied` with `filter_type: 'theme'` and the chip's value
 - ✅ Cross-browser functionality (chromium, firefox, webkit)
 
 **User Interaction Tests:**
-- ✅ Mobile navigation (touch gestures, responsive layout)
+- ✅ Mobile navigation (tap targets, modal scrolling, responsive layout)
 - ✅ Project details (modal opening, closing, keyboard navigation)
 - ✅ Theme toggle (button functionality, persistence)
 - ✅ All interactive elements properly visible and enabled
@@ -375,31 +375,22 @@ if (portfolioViewEvent) {
 }
 ```
 
-### Use Helper Functions
+### Wait for an Event
 
-The analytics testing helpers provide convenient methods:
+`tests/e2e/helpers/analytics.ts` exports one helper, `setupAnalyticsMocking`. It blocks GA network requests and wraps `window.gtag` so every event lands in `window.gtagEvents`. The wrapper lives in the page context, so call it after every `page.goto()`. Then wait on the array rather than reading it once, because events can land a frame after the click:
 
 ```typescript
-import {
-  setupAnalyticsMocking,
-  getRecordedEvents,
-  expectEventTracked,
-  waitForEvent
-} from './helpers/analytics';
+import { setupAnalyticsMocking } from './helpers/analytics';
 
-// Setup mocking in beforeEach
+await page.goto('/ma-portfolio/');
 await setupAnalyticsMocking(page);
 
-// Get all recorded events
-const events = await getRecordedEvents(page);
-
-// Verify specific event was tracked
-await expectEventTracked(page, 'theme_toggle', {
-  theme: 'dark'
-});
-
-// Wait for specific event
-const event = await waitForEvent(page, 'cta_click', 5000);
+await chip.click();
+await page.waitForFunction(() =>
+  ((window as any).gtagEvents || []).some(
+    (e: any) => e.eventName === 'filter_applied' && e.eventData.filter_type === 'theme'
+  )
+);
 ```
 
 ## CI/CD Integration

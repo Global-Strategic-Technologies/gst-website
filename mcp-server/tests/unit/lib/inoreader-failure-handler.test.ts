@@ -9,8 +9,6 @@
  *   - Is a no-op for non-429 failures (token-stale, network-timeout, etc.)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 const { mockOpenCircuit, mockCaptureMessage } = vi.hoisted(() => ({
   mockOpenCircuit: vi.fn(),
   mockCaptureMessage: vi.fn(),

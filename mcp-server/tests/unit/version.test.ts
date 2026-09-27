@@ -5,7 +5,6 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
 import { FALLBACK_VERSION, resolveVersion } from '../../src/version';
 
 describe('version', () => {
