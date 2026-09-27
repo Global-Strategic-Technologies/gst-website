@@ -809,9 +809,7 @@ it('should fetch data', async () => {
 **Good:**
 
 ```typescript
-// ✅ Wrap in a describe block
-import { vi } from 'vitest';
-
+// ✅ Wrap in a describe block (vi/describe come from globals — see #9)
 describe('API Client', () => {
   let mockFetch: ReturnType<typeof vi.fn>;
 

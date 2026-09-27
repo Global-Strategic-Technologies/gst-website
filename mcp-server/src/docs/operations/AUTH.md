@@ -50,16 +50,15 @@ Paste the output value when `wrangler secret put MCP_KEY_<INITIALS>` prompts. Co
 ```bash
 cd mcp-server
 
-# Stage + production are separate env namespaces. Set both if the team
-# member should hit production directly; staging-only for soak-week
-# onboarding.
+# Staging and production are separate env namespaces; set the key in
+# each environment the team member should reach.
 wrangler secret put MCP_KEY_<INITIALS> --env staging
 # Paste the generated token value at the prompt.
 
-wrangler secret put MCP_KEY_<INITIALS> --env production   # only after soak
+wrangler secret put MCP_KEY_<INITIALS> --env production
 ```
 
-No redeploy is needed: `wrangler secret put` creates a new Worker version with the secret and deploys it immediately (so does `wrangler secret delete`). Verify with `/health` and one authenticated call using the new key.
+No redeploy is needed: `wrangler secret put` creates a new Worker version with the secret and deploys it immediately (so does `wrangler secret delete`). Verify with `/health` and one authenticated call using the new key. While a rollback is live, secret edits are refused; see [DEPLOY.md § While rolled back](DEPLOY.md#while-rolled-back--secrets-are-locked). That applies to an emergency revocation or an `OAUTH_M2M_SIGNING_KEY` change too.
 
 ### List active keys (names only)
 

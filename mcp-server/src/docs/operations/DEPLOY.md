@@ -53,7 +53,7 @@ Every code deploy goes through CI. Never deploy Worker code by hand.
 
 Each deploy workflow runs `scripts/deploy.mjs` (injects `GIT_SHA`, so `/health` reports the deployed commit) and then a smoke probe. The `npm run deploy:staging` / `deploy:production` scripts are **break-glass only** — for when CI itself is down — and a production break-glass deploy skips the approval gate and the test verification the workflow enforces.
 
-**Secrets are the one thing an operator binds by hand**, and they need no deploy: `wrangler secret put` and `wrangler secret delete` each create a new Worker version and deploy it immediately ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/secrets/)). After a `secret put` / `delete`, verify `/health`; there is no "redeploy to refresh the binding" step. The authoritative secret list is [`SECRETS_INVENTORY.md`](../../../../src/docs/operations/SECRETS_INVENTORY.md).
+**Secrets are the one thing an operator binds by hand**, and they need no deploy: `wrangler secret put` and `wrangler secret delete` each create a new Worker version and deploy it immediately ([Cloudflare docs](https://developers.cloudflare.com/workers/configuration/secrets/)). After a `secret put` / `delete`, verify `/health`; there is no "redeploy to refresh the binding" step. The exception is while a rollback is live: see [§ C.3 While rolled back](#while-rolled-back--secrets-are-locked). The authoritative secret list is [`SECRETS_INVENTORY.md`](../../../../src/docs/operations/SECRETS_INVENTORY.md).
 
 ---
 
@@ -196,7 +196,7 @@ The Worker's Inoreader secrets, listed with their per-environment presence in [`
    node scripts/inoreader-auth.mjs setup          # prints the consent URL — open it and authorize
    node scripts/inoreader-auth.mjs exchange CODE  # trades the code for an access + refresh token pair
    ```
-   The script's redirect is `http://localhost:3000/callback`; the exchange only succeeds while that is the app's registered redirect URI (see § C.5 fallback path). With the production URI registered, mint through the production Worker's in-browser re-auth instead.
+   The script's redirect is `http://localhost:3000/callback`, and the exchange only succeeds while that is the app's registered redirect URI. The app normally has production's URI registered, so for the mint, temporarily register the localhost redirect in the Inoreader developer console, then **restore the production URI immediately afterwards**; production's in-browser re-auth fails until you do. This is the same swap as the § C.5 fallback path. Don't mint through production's in-browser re-auth instead: it writes the tokens to production's Upstash, not to the new environment's.
 3. **Bind the secrets on the new environment** (`wrangler secret put` is interactive — paste each value at the prompt). Each `secret put` deploys a new Worker version immediately:
    ```bash
    cd mcp-server
@@ -288,7 +288,8 @@ See [bearer.ts](../../auth/bearer.ts) line 100–160 for the resolution code and
 Smoke-test the endpoint with the new bearer (staging shown; substitute prod when deployed):
 
 ```bash
-curl -s -H "Authorization: Bearer <token>" \
+# Token read from the environment, never pasted inline (CLAUDE.md Directive 15)
+curl -s -H "Authorization: Bearer $MCP_KEY_WEBSITE_RADAR" \
   https://mcp-staging.globalstrategic.tech/radar/snapshot \
   | head -c 500
 ```
@@ -602,6 +603,13 @@ curl https://mcp.globalstrategic.tech/health | jq
 
 `gitSha` should show the rollback target's SHA. Run § B.3 smoke again to confirm subsystems are healthy.
 
+### While rolled back — secrets are locked
+
+After a rollback the deployed version is no longer the **latest** version, and `wrangler secret put` / `secret delete` refuse to run ("Secret edit failed … the latest version of your Worker isn't currently deployed"). This guard exists so that a secret edit can't silently redeploy the broken latest version. Wrangler's error suggests `wrangler versions secret put`, which only _uploads_ a new version built on the latest (broken) one. Never deploy a version it creates. In order of preference:
+
+1. **Land the fix through CI first** (below). Once the fixed version is deployed it is the latest again, and secret edits work normally.
+2. **If a secret must change before the fix lands** (for example, revoking a leaked key), edit it on the deployed version in the Cloudflare dashboard (Workers & Pages → `gst-mcp` → Settings → Variables and Secrets), then verify `/health` still reports the rollback target's `gitSha`.
+
 ### After rollback — investigate
 
 1. **Capture the broken state in a Sentry issue** if you haven't already (any unhandled exceptions captured by withSentry are already there)
@@ -827,8 +835,9 @@ npx wrangler secret put CF_ACCOUNT_ID --env production    # account id (treated 
 - Both secrets are OPTIONAL by design: when unbound, the AE-backed alert rules
   (traffic-spike, scope-403, oauth-failure-rate) fail open with the gap recorded in
   the evaluation summary; the Upstash/health-backed rules still run.
-- Set BEFORE merging a PR that registers the evaluator cron — production
-  auto-deploys on merge.
+- Set BEFORE approving the production deploy of a PR that registers the
+  evaluator cron — the new cron runs as soon as the `mcp-production`
+  approval releases the deploy.
 
 ### Per-env dataset names (from `wrangler.toml`)
 

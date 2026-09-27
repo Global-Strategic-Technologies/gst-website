@@ -288,7 +288,7 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 
 1. Generate new value at the canonical store (Cloudflare for `MCP_KEY_*`; Upstash console for `UPSTASH_*`; Inoreader dev console for `INOREADER_APP_*`).
 2. Push to every dependent store **in this order**: validators before senders. For `MCP_KEY_WEBSITE_RADAR`: update the Worker first (validator), then update Vercel (sender). Reverse order causes a window where the website sends the old key while the Worker only accepts the new one → website outage.
-3. Confirm propagation by running the [active verification block in the soak gate doc (archived)](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md#active-verification-one-time-recommend-day-3-or-4).
+3. Confirm propagation with the [§ B.3 smoke validation](../../../mcp-server/src/docs/operations/DEPLOY.md#b3--smoke-validation). For `MCP_KEY_WEBSITE_RADAR`, also run the [§ A.6.1 verification](../../../mcp-server/src/docs/operations/DEPLOY.md#verification), which calls `/radar/snapshot` with the new bearer, then load `/hub/radar` to confirm the website (the sender) picked up the new value.
 4. Update this document if the secret set, location, or canonical store changed.
 
 ---

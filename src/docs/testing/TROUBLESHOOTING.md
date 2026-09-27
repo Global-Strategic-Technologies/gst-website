@@ -155,10 +155,9 @@ The drive-letter lead was noticed on 2026-08-09 and set aside, because three run
    // ❌ Bad - arbitrary wait
    await page.waitForTimeout(1000);
 
-   // ✅ Good - wait for state change
-   await page.waitForFunction(() => {
-     return document.body.classList.contains('dark-theme');
-   });
+   // ✅ Good - wait for the state change (theme classes live on <html>;
+   // four states — use the helper in tests/e2e/helpers/theme.ts)
+   await waitForTheme(page, 'dark');
    ```
 
 2. **Reference:** [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md) - Red flags section
