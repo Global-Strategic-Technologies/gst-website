@@ -142,7 +142,3 @@ The breaker auto-closes via TTL expiry. Note that **nothing refreshes the radar 
 | `error: "upstream-error"` / `"network-timeout"` | Other Inoreader failure (5xx, timeout)                | Transient — retry. If sustained, escalate to operator                                |
 
 Each envelope includes a `message` field with a human-readable explanation; agents parse the `error` field for branching.
-
----
-
-_Last updated: 2026-05-04 (Phase 4c)_

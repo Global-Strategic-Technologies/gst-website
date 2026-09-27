@@ -1,6 +1,6 @@
 # Runbook — `radar-snapshot-stale`
 
-lastReviewedAt: 2026-07-14
+lastReviewedAt: 2026-09-27
 
 **Trigger**: FYI radar snapshot age > 43,200 s (12h = 2 × the 6h refresh cron). Threshold provenance: `observability/slo-baselines.md` freshness rule (signed off 2026-07-14). Severity: page — this is the customer-visible staleness signal. **This became more load-bearing under BL-091**: a breaker-open window no longer fails radar loudly (reads serve cached data), so this alert — together with `circuitOpen` on `/health` / `/status` — is the primary signal that clients are on stale data.
 
@@ -16,7 +16,7 @@ lastReviewedAt: 2026-07-14
 ## Recovery
 
 - Cron firing but erroring: the error event's stack points at the failing leg (Inoreader fetch, Upstash write). Inoreader-side auth failures → see `oauth-refresh-failure-rate` runbook + `src/docs/operations/AUTH.md` re-link flow.
-- Cron not firing at all: check wrangler.toml triggers survived the last deploy (`git log -p mcp-server/wrangler.toml`); redeploy or rollback (`rollback-mcp.yml`).
+- Cron not firing at all: check wrangler.toml triggers survived the last deploy (`git log -p mcp-server/wrangler.toml`); fix the triggers and merge (CI deploys — never a manual `wrangler deploy`), or roll back via `rollback-mcp.yml` (`src/docs/operations/DEPLOY.md` § C.3).
 - Circuit breaker open / budget skip (`cron_outcome` = `skipped-circuit` / `skipped-budget` in AE): resolves itself when the window resets; verify spend via the budget runbook.
 - Manual refresh stopgap: hit the radar surface via an authenticated MCP call (`search_radar`) — live-tool calls also repopulate the snapshot.
 

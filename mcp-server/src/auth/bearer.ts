@@ -16,9 +16,10 @@
  * and uses it as the per-key bucket identifier. Phase 5 (observability)
  * adds the keyOwner to the structured log line.
  *
- * Why API key not OAuth (Q-deferred-to-BL-033): for an internal team of
- * <10, `wrangler secret put` is the simplest safe revocation surface.
- * OAuth 2.1 is BL-033's external-pilot concern.
+ * Static API keys remain the internal-team path: for a team of <10,
+ * `wrangler secret put` is the simplest safe revocation surface. OAuth 2.1
+ * shipped alongside them for external clients (BL-033 Slice 2, ADR-0008) —
+ * this module handles only the static-key half of that dual-auth model.
  */
 
 import { DEFAULT_SCOPES } from './scopes';

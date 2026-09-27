@@ -346,7 +346,3 @@ _No runs yet — authored 2026-08-25 with the prompt (PR1 of the trust-the-opera
 | ---- | ------ | --- | ------- | ---- | ------- | ----- |
 
 _No runs yet — authored 2026-08-25 with the split. Engineering correctness is covered in-session by `tests/unit/prompts/irl-extract.test.ts`; this case is the client-side exercise._
-
----
-
-_Last updated: 2026-08-25 (UAT-09.12 added — `gst_irl_extract` after the extract-only split; 09.11 trial 3 repointed at it. Earlier same day: UAT-09.11 added — `gst_irl_sweep` live-verification protocol for the trust-the-operator rebuild). Prior: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._

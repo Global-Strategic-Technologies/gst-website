@@ -37,7 +37,3 @@ The docs are organized by **what** they describe — the system architecture, th
 ## Planning artifacts (not here)
 
 Per-initiative plans are **point-in-time records** — frozen at authoring time, not maintained against later code. Closed initiatives' docs are distilled into the maintained surface (this tree, headed by [`ARCHITECTURE.md`](ARCHITECTURE.md)) and then archived at [`src/docs/development/_archive/`](../../../src/docs/development/_archive/README.md) per the [initiative-doc lifecycle](../../../src/docs/development/README.md); any still-open initiative docs remain under [`src/docs/development/`](../../../src/docs/development/). The docs in _this_ tree (the architecture reference, per-tool contracts, the resource taxonomy, the prompt reference, operations runbooks) **are** maintained.
-
----
-
-_Last updated: 2026-08-10 (BL-119 — Testing row now names both bands; the human-acceptance suite lives at `testing/uat/`). Prior: 2026-07-18 (docs-wiring pass — added backlink to the repo documentation master index); 2026-07-17 (BL-088 PR 2 — added `ARCHITECTURE.md` + lifecycle pointer); 2026-07-02 (BL-034 doc-structure pass)._

@@ -142,7 +142,3 @@ Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–
 | ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 47 "Aware", 2 skipped, 12 recs all `triggerQuestionAnswered:true`, stage collapsed                                                                                                                                                      |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. **Gap A closed** — the published answer map reproduces `overallScore` 47 / "Aware" on the first attempt; weighted mean re-derived by hand (flat average gives 43.5). 12 recs, all `triggerQuestionAnswered: true` |
-
----
-
-_Last updated: 2026-08-11 (BL-119 — initial authoring; both cases executed against local stdio 0.48.1)_

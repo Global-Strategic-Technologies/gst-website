@@ -26,7 +26,8 @@ const KNOWN_TOOL_NAMES = new Set([
   'list_regulation_facets',
   // BL-032 Phase 4b — renamed from search_radar_cache. The deprecated
   // alias still resolves but new prompts should orchestrate the canonical
-  // name; existing prompts may still reference the alias for one release.
+  // name. The alias is a deprecated stdio-only alias, retained by operator
+  // ruling (2026-09) with no removal planned.
   'search_radar_cache',
   'search_radar_offline',
   // BL-032 Phase 4c — live Inoreader-backed tool (canonical for new prompts).

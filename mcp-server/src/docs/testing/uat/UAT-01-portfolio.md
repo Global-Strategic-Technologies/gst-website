@@ -163,7 +163,3 @@ Both fields accept a single string **or** an array; both default to `"all"` when
 | ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches, all Healthcare + Buy-Side; deeplink carried both params                                                                                                      |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 7 matches, every one strictly Healthcare + Buy-Side; 3 overlap with 01.2, so the facet genuinely narrows. Deeplink uses `eng=`, not `engagement=` |
-
----
-
-_Last updated: 2026-08-10 (BL-119 — initial authoring; all three cases executed against 0.48.1)_

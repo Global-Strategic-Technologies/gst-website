@@ -159,7 +159,7 @@ The combination is what makes this approach durable: **the only thing that grows
 
 The system from your keystroke to the model's first response:
 
-1. **You type `/`** in Claude Desktop. Desktop has already called `prompts/list` on every connected MCP server at session start, so it has the GST server's ten prompt names + descriptions + argsSchemas cached. It renders the picker.
+1. **You type `/`** in Claude Desktop. Desktop has already called `prompts/list` on every connected MCP server at session start, so it has the GST server's prompt names + descriptions + argsSchemas cached. It renders the picker.
 
 2. **You select `gst_diligence_kickoff`.** Desktop renders a form: `targetName` (required text), `transactionType` (dropdown of valid enum values from the argsSchema), all 13 other fields. You fill it in.
 
@@ -189,8 +189,11 @@ The prompt itself is **passive infrastructure** — a templated message body. Al
 8. **Write the unit test** — copy [`tests/unit/prompts/diligence-kickoff.test.ts`](../../../tests/unit/prompts/diligence-kickoff.test.ts) and adapt.
 9. **Write the golden file** — `tests/examples/<slug>.golden.md` with frontmatter (`promptName`, `version`, `recordedAt`, `model`).
 10. **Run `npm test`** — registry-invariant + per-prompt + golden-existence checks all pass.
-11. **Live-exercise it** — restart Claude Desktop, invoke from the slash menu, capture the recorded output for the README's "Last verified" stanza.
+11. **Live-exercise it** — restart Claude Desktop, invoke from the slash menu, and record the run in the UAT suite ([`testing/uat/UAT-09-prompts.md`](../testing/uat/UAT-09-prompts.md)), whose run logs carry the version exercised.
 
 ---
 
-_Last updated: 2026-08-28 (`gst_information_request_list` renamed to `gst_irl_create` — prompt 0.1.0, server 0.63.0; same arguments, bodies, and `consumesTargetEvidence` exclusion. **It takes the name a different prompt held between 0.62.0 and 0.63.0**: in the same release `gst_irl_create` the evidence-population workflow became `gst_irl_populate`, so `/gst_irl_create` now resolves to the blank-IRL issuer rather than the populator — see BREAKING_CHANGES 0.63.0). Prior, same release: `gst_irl_create` renamed to `gst_irl_populate` and its handoff repointed at `gst_irl_sweep` — prompt 0.3.0; same arguments, workflow, and `consumesTargetEvidence` exclusion. Prior: 2026-08-26 (`gst_irl_fill` renamed to `gst_irl_create` — prompt 0.2.0, server 0.62.0; same body, workflow, and `consumesTargetEvidence` exclusion). Prior: 2026-08-23 (BL-140 — registry now holds ten prompts; `gst_irl_fill` added, deliberately excluded from `consumesTargetEvidence` for its stop-at-artifact ruling); 2026-08-20 (`consumesTargetEvidence` added as the second optional field, with the authoring-checklist step that forces a decision on it — see ADR-0019); 2026-07-18 (count truth-pass — registry now holds nine prompts; `gst_irl_ingestion` added under BL-045); 2026-05-22 (BL-043 — added `gst_information_request_list`)._
+## Renamed names and deliberate exclusions
+
+- **`gst_irl_create` changed hands in 0.63.0.** The IRL population prompt was added as `gst_irl_fill` (0.59.0, BL-140), renamed `gst_irl_create` in 0.62.0, and renamed again to `gst_irl_populate` in 0.63.0. In that same release `gst_information_request_list`, the blank-IRL issuer, took the vacated name `gst_irl_create`. So `/gst_irl_create` names a different prompt before and after 0.63.0, and a client that adopted it in the 0.62.0 window gets a working prompt that does the opposite end of the workflow. [`BREAKING_CHANGES.md`](../../../BREAKING_CHANGES.md) § 0.63.0 has the details.
+- **`gst_irl_populate` is deliberately not `consumesTargetEvidence`.** It stops at the artifact: a human review checkpoint sits between fill and ingest by operator ruling. The flag's clause carries a mandatory `prepare_irl_body` → `validate_irl_provenance` upgrade path that would contradict that, so the prompt is on the guard's `EXPECTED_EXCLUDED` list in `tests/integration/irl-evidence-precedence-clause.test.ts`.

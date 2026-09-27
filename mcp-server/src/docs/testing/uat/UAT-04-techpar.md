@@ -106,7 +106,3 @@ Repeat UAT-04.1 with `mode: "deepdive"`, supplying real `engCost`, `prodCost` an
 | Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                       |
 | ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-12 | Cowork | prod | 0.48.2  | B    | Pass    | **First execution in any environment.** R&D re-based to 5,300,000 — `rdOpEx` ignored, not averaged; zone moved `ahead` → `healthy`; `engPctOfRD` 71.698 and `prodPctOfRD` 20.755, both null in quick mode. Omitting `_audit.engCost` rejected with `BL-045-TECHPAR-DEEPDIVE-AUDIT-REQUIRED` |
-
----
-
-_Last updated: 2026-08-11 (BL-119 — initial authoring; 04.1 executed against local stdio 0.48.1)_

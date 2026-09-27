@@ -506,7 +506,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       maxBytesPerItem: 2900,
       maxEnvelopeBytes: 150_000,
     },
-    note: 'Deprecated alias that tail-calls the offline handler. Budgeted because it is REGISTERED — the coverage rule keys on what tools/list returns, not on what ought to exist. Its removal (once documented as "removed in 0.2.0"; its description now says only "scheduled for removal") is tracked in BL-113, not absorbed.',
+    note: 'Deprecated alias that tail-calls the offline handler. Budgeted because it is REGISTERED — the coverage rule keys on what tools/list returns, not on what ought to exist. It is a deprecated stdio-only alias, retained by operator ruling (2026-09); no removal is planned.',
   },
   get_latest_insights: {
     args: { limit: 30 },

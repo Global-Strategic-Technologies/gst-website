@@ -13,8 +13,8 @@
  * (offline-from-Inoreader; reads a frozen local snapshot). The
  * deprecated alias `search_radar_cache` tail-calls this implementation;
  * it logs a deprecation warning to stderr (acceptable on stdio — stdout is
- * reserved for protocol traffic). It was documented as "removed in
- * `mcp-server@0.2.0`" and outlived that; its removal is tracked as BL-113. See
+ * reserved for protocol traffic). It is a deprecated stdio-only alias,
+ * retained by operator ruling (2026-09); no removal is planned. See
  * [`mcp-server/BREAKING_CHANGES.md`](../../BREAKING_CHANGES.md) for the
  * full rename record.
  *
@@ -159,7 +159,8 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
 /**
  * Register the canonical `search_radar_offline` tool. The deprecated
  * `search_radar_cache` alias is registered separately by
- * `registerSearchRadarCacheAlias` (deprecated; removal tracked as BL-113).
+ * `registerSearchRadarCacheAlias` (deprecated stdio-only alias, retained by
+ * operator ruling 2026-09; no removal planned).
  */
 export function registerRadarOfflineTool(server: McpServer): void {
   server.registerTool(
@@ -179,13 +180,14 @@ export function registerRadarOfflineTool(server: McpServer): void {
   );
 }
 
-const ALIAS_DESCRIPTION = `**Deprecated** alias of \`search_radar_offline\` — call \`search_radar_offline\` instead. Identical input and output; this name is scheduled for removal.`;
+const ALIAS_DESCRIPTION = `**Deprecated** alias of \`search_radar_offline\` — call \`search_radar_offline\` instead. Identical input and output; this name is deprecated but retained, with no removal planned.`;
 
 /**
  * Register the deprecated `search_radar_cache` alias. Same input/output
  * as `search_radar_offline`; logs a deprecation warning to stderr on
- * each invocation. Removal is tracked as BL-113; it is a breaking change
- * and ships with a `mcp-server/BREAKING_CHANGES.md` entry.
+ * each invocation. Retained by operator ruling (2026-09) with no removal
+ * planned; removing it would be a breaking change and would ship with a
+ * `mcp-server/BREAKING_CHANGES.md` entry.
  *
  * Stderr is the appropriate channel here — stdout is reserved for MCP
  * protocol traffic on the stdio transport, and the alias is stdio-only
@@ -210,7 +212,7 @@ export function registerSearchRadarCacheAlias(server: McpServer): void {
     },
     async (input: SearchRadarOfflineInput) => {
       console.error(
-        '[gst-mcp] DEPRECATION: search_radar_cache renamed to search_radar_offline. Update your client config; this alias is scheduled for removal.'
+        '[gst-mcp] DEPRECATION: search_radar_cache renamed to search_radar_offline. Update your client config; this alias is deprecated (retained, no removal planned).'
       );
       return handleRadarOfflineTool(input);
     }

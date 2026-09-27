@@ -51,7 +51,8 @@ import type { AuditEntry } from './audit/entry';
 export interface Env {
   // Bearer keys — one per team member; enumerated at runtime via Object.entries
   // so this list doesn't need updating when a new MCP_KEY_<INITIALS> ships.
-  // Listed explicitly only for the soak-week initial roster (Q11/Q13 — just RP).
+  // MCP_KEY_RP is listed explicitly as the operator's own key; every other
+  // MCP_KEY_<OWNER> is discovered at runtime.
   MCP_KEY_RP?: string;
 
   // BL-032.8 Phase 3 — narrow-scope bearer for the website's `/hub/radar`

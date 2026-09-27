@@ -3,7 +3,7 @@ tool: estimate_tech_debt_cost
 tools:
   - estimate_tech_debt_cost
 version: v1
-lastAuthored: 2026-04-28
+lastAuthored: 2026-09-27
 schema: src/schemas/tech-debt.ts
 enumParity:
   - tableHeading: '`deployFrequency`'
@@ -34,18 +34,18 @@ enumParity:
 
 10 raw business-meaningful inputs. The MCP tool deliberately **does not** accept the website wizard's slider positions (`teamSizePos`, `salaryPos`, etc.) — those are a UI concern that has no business in an agent-facing schema. Both surfaces produce identical output for equivalent inputs (verified by parity test).
 
-| Field                  | Type     | Range     | Notes                                                             |
-| ---------------------- | -------- | --------- | ----------------------------------------------------------------- |
-| `teamSize`             | int      | > 0       | Engineering headcount                                             |
-| `salary`               | number   | > 0       | Average annual fully-loaded engineering salary (dollars)          |
-| `maintenanceBurdenPct` | number   | 0–100     | % of engineering capacity consumed by maintenance / debt          |
-| `deployFrequency`      | enum (9) | see below | Deployment cadence — drives DORA-aligned velocity multiplier      |
-| `incidents`            | int      | ≥ 0       | Production incidents per month                                    |
-| `mttrHours`            | number   | ≥ 0       | Mean time to recovery, hours per incident                         |
-| `remediationBudget`    | number   | ≥ 0       | Capital available for debt-paydown (dollars)                      |
-| `arr`                  | number   | ≥ 0       | Annual recurring revenue (dollars) — used to compute `debtPctArr` |
-| `remediationPct`       | number   | 0–100     | Expected reduction in debt cost from a remediation effort         |
-| `contextSwitchOn`      | boolean  | —         | Whether to model the 23% context-switch overhead surcharge        |
+| Field                  | Type           | Range     | Notes                                                                                                           |
+| ---------------------- | -------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| `teamSize`             | int            | > 0       | Engineering headcount                                                                                           |
+| `salary`               | number         | > 0       | Average annual fully-loaded engineering salary (dollars)                                                        |
+| `maintenanceBurdenPct` | number         | 0–100     | % of engineering capacity consumed by maintenance / debt                                                        |
+| `deployFrequency`      | enum (9)       | see below | Deployment cadence — drives DORA-aligned velocity multiplier                                                    |
+| `incidents`            | int \| null    | ≥ 0       | Production incidents per month; `null` when the source does not state it (elided, reported in `extractionOnly`) |
+| `mttrHours`            | number \| null | ≥ 0       | Mean time to recovery, hours per incident; `null` when not stated (elided, reported in `extractionOnly`)        |
+| `remediationBudget`    | number         | ≥ 0       | Capital available for debt-paydown (dollars)                                                                    |
+| `arr`                  | number         | ≥ 0       | Annual recurring revenue (dollars) — used to compute `debtPctArr`                                               |
+| `remediationPct`       | number         | 0–100     | Expected reduction in debt cost from a remediation effort                                                       |
+| `contextSwitchOn`      | boolean        | —         | Whether to model the 23% context-switch overhead surcharge                                                      |
 
 ---
 

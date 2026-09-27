@@ -8,13 +8,13 @@ The MCP Worker (when the pipeline is bound) writes a **compliance-grade, hash-ch
 
 **Pipeline**: fetch handler enqueues one `AuditEntry` per tool call to `AUDIT_QUEUE` (off the latency path) → the Worker's `queue` consumer (`src/audit/consumer.ts`) sequences it into a SHA-256 hash chain and writes one immutable object to `AUDIT_R2` at `audit/<env>/<yyyy>/<mm>/<dd>/<paddedSeq>.json`. Sequencing state lives in Upstash (`mcp:audit:chain-tip:<env>`, `mcp:audit:seqof:<env>:<entryId>` — the latter with a 30-day TTL since ADR-0014).
 
-> **Not in this slice** (deferred): per-client signed-URL export, the quarterly integrity-check automation, and the `?audit_full_payload=true` full-output retention flag. Audit is captured for `tool_invocation` only.
+> **Not built**: per-client signed-URL export, the quarterly integrity-check automation, and the `?audit_full_payload=true` full-output retention flag. They are ADR-0009 revisit triggers, reconsidered only on re-enable (ADR-0014). Audit is captured for `tool_invocation` only.
 
 ---
 
 ## Deactivation (2026-08-08) — ADR-0014
 
-One-time cleanup after the deactivation deploy, in the decommission-runbook shape of DEPLOY.md § BL-032.8 Phase B. Completion: ✅ **2026-08-08** — production deploy approved, consumers detached (staging + production), 1,798 production `seqof` keys purged (~406 KB reclaimed), production chain-tip verified surviving at `lastSeq: 1797`.
+One-time cleanup after the deactivation deploy, in the decommission-runbook shape of the BL-032.8 Phase B legacy-DB decommission ([archived DEPLOY § C.13](_archive/DEPLOY_INITIAL_ROLLOUT_BL-032.md#c13--decommission-legacy-inoreader-db-bl-0328-phase-b-one-time)). Completion: ✅ **2026-08-08** — production deploy approved, consumers detached (staging + production), 1,798 production `seqof` keys purged (~406 KB reclaimed), production chain-tip verified surviving at `lastSeq: 1797`.
 
 **Prerequisites**
 

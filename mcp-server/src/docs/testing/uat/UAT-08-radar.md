@@ -5,6 +5,8 @@
 
 Live market-intelligence feed, drawn from Inoreader through a 6-hour cache. This is the **only tool family with a live external dependency**, which makes it the only one where a non-Pass is often correct rather than a defect. A full pass proves the feed returns, that the tier structure holds, and that degradation is reported rather than hidden.
 
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). All three cases passed against the Worker with radar-scoped credentials. The earlier `local stdio` rows are **Blocked** by design, because a local build has no Inoreader credentials bound, and they are kept for provenance.
+
 > **Read this before recording a verdict.** Three legitimate non-Pass outcomes exist here and none is a bug: a credential without radar scope (**Blocked**), an exhausted upstream budget with the circuit breaker open (**Blocked**), and a local stdio server with no Inoreader credentials bound (**Blocked**). Recording any of them as Fail misattributes a scope decision or an upstream condition to the server.
 
 > **Not covered here**: `search_radar_offline` and `search_radar_cache` are registered on the local stdio transport only and cannot be reached over `https://mcp.globalstrategic.tech/mcp`. They are deliberately outside this suite's scope.
@@ -149,7 +151,3 @@ The distinct `error` codes are the point: they let a tester separate "upstream i
 | ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — not reachable from a local stdio build                                                                                             |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 3 `pe-ma` items, verified a strict subset of 08.1; deeplink carries the category. Whole family cost exactly 3 calls, no retries |
-
----
-
-_Last updated: 2026-08-11 (BL-119 — initial authoring. All three cases are **Blocked** pending a run with radar-scoped credentials against production; the local stdio path cannot exercise them by design.)_

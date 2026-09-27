@@ -331,7 +331,3 @@ Contact the operator (see your team's escalation channel) when:
 - You're hitting rate limits doing legitimate work that the budgets don't accommodate → operator weighs adjusting the limits or escalating Inoreader's plan
 - A persistent 5xx error suggests the Worker is down → operator checks `wrangler tail` + Sentry
 - You suspect the production endpoint is degraded (slow, intermittent failures) → operator pulls metrics + runs incident triage (see [`DEPLOY.md`](./DEPLOY.md) § Incident triage)
-
----
-
-_Last updated: 2026-07-24 (BL-033 Slice 2 — Claude Desktop native Connectors via the Worker's own OAuth; `mcp-remote` bridge demoted to legacy appendix, still supported)_

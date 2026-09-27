@@ -5,13 +5,14 @@
  *   - emitters in this module (`with-metrics.ts`, `pipeline-events.ts`, `irl-ingestion-events.ts`)
  *   - runtime cardinality guard (`guard.ts`)
  *   - vitest fixtures + snapshot test (`schema.test.ts`)
- *   - Phase 3 Grafana dashboard SQL (queries `blob1..blob6` / `double1..double2`)
+ *   - Phase 3 Grafana dashboard SQL (queries the `blobN` / `doubleN` columns `BLOB_SLOTS` / `DOUBLE_SLOTS` below pin — `blob1..blob8` / `double1..double2` today)
  *   - Phase 3 `/status` page server-side query
  *
  * Cloudflare Analytics Engine is **positional-columnar**, not Prometheus-style
  * named-series. Substrate provides `blob1..blob20` / `double1..double20` /
- * `index1`; we use 6 + 2 + 1, reserving the remaining 14 + 18 slots for future
- * event-type additions without forcing a schema migration.
+ * `index1`; we use `BLOB_SLOTS.length` + `DOUBLE_SLOTS.length` + 1 (8 + 2 + 1
+ * today), reserving the remaining slots for future event-type additions
+ * without forcing a schema migration.
  *
  * Substrate caps (verified against Cloudflare docs 2026-05-27):
  *   - 20 blobs + 20 doubles + 1 index per `writeDataPoint`

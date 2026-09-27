@@ -107,7 +107,7 @@ Once the memo is in hand, follow-ups become single sentences. Each is a single t
 
 ## Anchoring in current radar coverage
 
-Items in the matched portfolio set are historical engagements. To check whether the same patterns are showing up in this week's deal-flow signals, Claude composes with `search_radar_offline`:
+Items in the matched portfolio set are historical engagements. To check whether the same patterns are showing up in this week's deal-flow signals, Claude composes with `search_radar`:
 
 > _"Cross-reference the healthcare buy-side pattern with this week's enterprise-tech radar items."_
 
@@ -121,7 +121,7 @@ Returns matched annotated radar items in the same conversation, letting the anal
 | --------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Time to a comparable-engagements memo         | 20–30 min (browse, click each card, copy text, synthesize) | < 60 seconds (single prose prompt)                                                                                   |
 | Time to re-shape the memo for a new audience  | Same as initial draft                                      | Sub-second (already in context)                                                                                      |
-| Cross-referencing with current radar coverage | Manual recall + open second tab                            | Inline tool call in the same thread (`search_radar_offline` composes with `search_portfolio` results)                |
+| Cross-referencing with current radar coverage | Manual recall + open second tab                            | Inline tool call in the same thread (`search_radar` composes with `search_portfolio` results)                        |
 | Sharing the filtered view                     | Copy URL; recipient sees the unfiltered grid               | `deeplink` URL opens the same filter-active view for single-value filters (multi-value filters are omitted — BL-132) |
 | Engine drift risk                             | Two surfaces (web + MCP) → divergence possible             | Both surfaces share the same encoder + filter logic — by construction, capability-mirror invariant                   |
 
@@ -149,7 +149,3 @@ For other use cases (live agenda drafting, capex pattern review, regulatory expo
 - [`CONTRACT.md`](./CONTRACT.md) — per-field input reference + capability-mirror invariant rationale
 - [`../contracts/README.md`](../README.md) — registry of all per-tool contracts
 - [ADR-0005 — Hub URL-state deep-link contract](../../../../../src/docs/adr/0005-hub-url-state-deeplink-contract.md) (Phase 4 closure history: [archived design doc](../../../../../src/docs/development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
-
----
-
-_Last Updated: 2026-05-03_
