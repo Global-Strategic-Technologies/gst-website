@@ -6,7 +6,7 @@
 >
 > - **Infrastructure reference** (Upstash token rotation and ACL users, Inoreader credentials, Analytics Engine datasets, the website's radar key) → **Part A**
 > - **Smoke-testing a deploy** → **§ B.3**
-> - **An op task** (add/rotate/revoke a key, roll back, Inoreader recovery, AE queries) → **Part C**
+> - **An op task** (add/rotate/revoke a key, roll back, Inoreader recovery, migrate client records, AE queries) → **Part C**
 > - **Investigating an incident?** Jump straight to **§ C.4 — Tail and investigate** or **§ C.6 — Incident triage tree**
 >
 > The one-time first-rollout playbook (Cloudflare account and DNS setup, database provisioning, the 2026 staging → soak → production rollout, the BL-041 ACL migration and the legacy-DB decommission) is archived at [`_archive/DEPLOY_INITIAL_ROLLOUT_BL-032.md`](./_archive/DEPLOY_INITIAL_ROLLOUT_BL-032.md). Section numbers here keep their original values, so gaps (A.1, A.2, B.1, …) are sections that moved there.
@@ -786,6 +786,60 @@ A bounded decision tree for "the MCP is broken" reports. Walk through these in o
 - **Cloudflare platform issues** → can't fix; communicate to users; Cloudflare's SLA covers it
 
 An outage is user-visible but not contractual. The Worker serves the team, OAuth clients (including self-serve trial clients) and the website's `/hub/radar` feed, but no SLA has been ratified — capability ceilings are non-contractual per [`RATE_LIMITS.md`](./RATE_LIMITS.md), and SLA ratification stays deferred under [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3).
+
+---
+
+## C.7 — Migrate client records
+
+> **When**: once per environment, for the 0.67.0 release that made radar an explicit scope ([ADR-0041](../../../../src/docs/adr/0041-radar-is-an-explicit-scope.md)). From 0.67.0, `tool:*` no longer covers the radar tools. Existing M2M clients keep radar because this script adds `tool:radar:*` to their KV records. OAuth consent grants need no migration: an unmarked grant keeps radar at read time (`effectiveScopes`, [AUTH.md](./AUTH.md)).
+
+### What it does
+
+`npm run radar:migrate-scope` (from `mcp-server/`) lists every M2M record through `GET /admin/oauth/m2m-clients` and sorts it into groups. It is a **dry run by default**: it prints the plan and writes nothing. `-- --apply` sends one `PATCH` per record to patch. Running it twice is safe, because a patched record already holds `tool:radar:*` and is skipped.
+
+| Group                                    | Which records                                                                   | Action                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------ |
+| Patch                                    | Non-trial, holds `tool:*`, lacks `tool:radar:*`                                 | Patched with `--apply`                     |
+| Patch, converted trial                   | The same, on a record named `trial` (a trial converted to `paid` in place)      | Patched with `--apply`; listed apart       |
+| Review, not patched                      | Non-trial with no `tool:*`                                                      | Nothing, unless you decide otherwise       |
+| Unpatchable                              | Needs the patch but holds a scope outside the catalog (an `--unsafe-scope` one) | Re-provision, or accept that radar is lost |
+| Already hold `tool:radar:*` / trial-tier | Already migrated, or a trial (never had radar)                                  | Counted and left alone                     |
+
+- **Review.** These records were narrowed below `tool:*`, so under the old prefix rule their tools never covered radar and there is nothing to keep. Read each one's scopes. If a client was meant to have radar, PATCH its `allowedScopes` to add `tool:radar:*` ([AUTH.md § Change an M2M client's tier, scopes or expiry](./AUTH.md#change-an-m2m-clients-tier-scopes-or-expiry-in-place)). Since 0.67.0 a narrowed record is also held to exactly the tools it names, so check that its `tool:<name>` scopes cover what the client actually calls.
+- **Unpatchable.** `PATCH` validates the whole `allowedScopes` array against the catalog, so a record with an off-catalog scope is refused. Either re-provision the client with `npm run provision:client -- --allow-radar` plus its extra scopes (via `--unsafe-scope`), which issues a new credential you must hand over, or accept that it loses radar at deploy.
+
+### Steps
+
+1. **Check static-key scope overrides first.** The legacy rule does not cover static keys, and a key with an `MCP_KEY_<OWNER>_SCOPES` override gets exactly its override. List the secret names only:
+   ```bash
+   cd mcp-server
+   npx wrangler secret list --env staging
+   npx wrangler secret list --env production
+   ```
+   For every `MCP_KEY_*_SCOPES` other than `MCP_KEY_WEBSITE_RADAR_SCOPES` (which holds only `resource:radar:read` and needs no tools): add `tool:radar:*` to the override if that key should keep radar (`wrangler secret put … --env <env>`, value on stdin). Flag any override with neither `tool:*` nor a `tool:<name>` for the tools it uses, because from 0.67.0 it loses every tool, not just radar.
+2. **Put the admin key in the environment**, never on the command line (Directive 15):
+   ```powershell
+   $env:MCP_ADMIN_KEY = '<key>'      # PowerShell
+   ```
+   ```bash
+   export MCP_ADMIN_KEY='<key>'      # bash / zsh
+   ```
+3. **Staging** (it auto-deploys from the pushed branch, so do this first):
+   ```bash
+   npm run radar:migrate-scope -- --env staging            # dry run: read the groups
+   npm run radar:migrate-scope -- --env staging --apply
+   ```
+4. **Production, at least 1 hour before approving the `mcp-production` deploy.** An M2M token carries the scopes of its `/token` mint and lives ≤1h, so after an hour every live token of a client that sends no `scope` already carries `tool:radar:*`. Running early is harmless: under the old code `tool:*` already covered `tool:radar:*`, so the patch changes nothing until the deploy.
+   ```bash
+   npm run radar:migrate-scope                   # dry run (production is the default env)
+   npm run radar:migrate-scope -- --apply
+   ```
+5. **Right before approving the deploy, re-run the production dry run.** It should show nothing to patch. A record created in between shows up here; apply again if so.
+6. **After the deploy:** the latency probe's `search_radar` succeeds; `GET /admin/oauth/m2m-clients` shows `tool:radar:*` on the non-trial records that had `tool:*`; and 24 hours of `tool.scope-denied` and `mcp.batch-rejected` log lines ([§ C.4](#c4--tail-and-investigate)) show no unexpected client.
+
+**The one residual it cannot fix:** an M2M client that sends an **explicit** `scope` on `/token` without `tool:radar:*` (e.g. `scope=tool:*`) loses radar at deploy, whatever its record holds, until it adds `tool:radar:*` to its request. Nothing logs the requested scope, so these clients cannot be found in advance; the `tool.scope-denied` line is where they show up. `BREAKING_CHANGES.md` carries the client-impact line.
+
+**Rollback stays safe.** Old code ignores the `scopeModel` grant marker, and under the old prefix rule a migrated record's extra `tool:radar:*` changes nothing.
 
 ---
 

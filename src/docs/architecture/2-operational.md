@@ -59,22 +59,23 @@ flowchart TB
 flowchart LR
   subgraph gates["Required on master (branch ruleset)"]
     t["test.yml<br/>Unit & Integration"]
-    e2e["test-cross-browser.yml<br/>E2E (Playwright)"]
+    e2e["E2E (Playwright)<br/>(inside test.yml, chromium)"]
     lint["Lint & Type Check<br/>(inside test.yml)"]
     docs["docs-integrity.yml<br/>Verify doc links"]
+    lh["lighthouse.yml<br/>CLS ≤ 0.1"]
   end
+  xb["test-cross-browser.yml<br/>manual, three browsers, never gates"]
   mcp["test-mcp-server.yml<br/>typecheck · build · vitest"] --> dstg["deploy-mcp-staging.yml"]
   master(("master")) --> dprod["deploy-mcp-production.yml"] --> rb["rollback-mcp.yml"]
   subgraph sched["Scheduled evidence, never gates"]
     probe["latency-probe.yml<br/>4×/day, client-observed p50/p95"]
-    lh["lighthouse.yml"]
     perf["perf-dashboard.yml"]
     audit["npm-audit.yml"]
     drift["prettier-drift-check.yml<br/>weekly"]
   end
 ```
 
-- Four checks are **required** and the rest are evidence. The docs check exists separately because the test workflow skips itself on docs-only diffs.
+- Five checks are **required** (confirmed against ruleset 12237842 on 2026-09-27) and the rest are evidence. The docs check exists separately because the test workflow skips itself on docs-only diffs.
 - The MCP suite is not a required check on the website's ruleset, but a red run **suppresses the staging deploy**, which is the same effect one step later.
 - The ad-hoc probe surfaces that measured ADR-0036 are in the same script as the scheduled probe and are excluded from its schedule by contract ([LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md)).
 

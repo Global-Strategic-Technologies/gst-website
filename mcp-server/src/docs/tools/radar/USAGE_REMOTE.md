@@ -6,6 +6,8 @@ End-to-end examples of the **live** radar tools — calling Inoreader directly w
 
 > **Setup**: this assumes you have remote MCP configured per [`REMOTE_CLIENT_SETUP.md`](../../operations/REMOTE_CLIENT_SETUP.md). Per-key budgets: 5 calls/min, 50 calls/day for radar tools. The 6h cache amortizes — repeat queries within 6h hit the cache, not Inoreader.
 
+> **Access**: both tools **require `tool:radar:*`**, which `tool:*` does not include. Without it, a call is refused with **JSON-RPC error `-32002` in an HTTP 200** (`data.missingScope: "tool:radar:*"`) before the tool runs; trial credentials are always refused. See [CONTRACT.md § Authorization](./CONTRACT.md#authorization-bl-166).
+
 ---
 
 ## Scenario 1: live category brief
@@ -133,6 +135,7 @@ The breaker auto-closes via TTL expiry. Note that **nothing refreshes the radar 
 
 | Symptom in MCP error envelope                   | What it means                                         | What to do                                                                           |
 | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| JSON-RPC `-32002`, `missingScope: tool:radar:*` | Your credential lacks `tool:radar:*` (or is a trial)  | Ask the operator for radar access; `tool:*` alone does not include it                |
 | `error: "config-missing"`                       | Worker doesn't have `INOREADER_APP_ID/_KEY` set       | Operator: `wrangler secret put` per `AUTH.md`                                        |
 | `error: "token-missing"`                        | OAuth access token not in Upstash AND no env fallback | Same — operator wires Inoreader creds                                                |
 | `error: "token-stale"`                          | Inoreader returned 401                                | Wait for the website's next ISR call to refresh; retry the Worker call after that    |

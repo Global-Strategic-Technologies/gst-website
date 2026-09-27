@@ -291,8 +291,12 @@ the tier check today is inline in `parseArgs` (`:126-135`) with CLI-specific mes
 The two properties this protects, which the handler must not reimplement: an explicit tier (the API
 silently resolves an absent one to `free-pilot`, `m2m-clients.ts:80`) and scope-catalog validation
 (the API accepts any non-empty array, so a typo provisions a client that can call nothing). Assert in
-the SKU test that no catalog entry contains `tool:radar:*` or `resource:radar:read` — checkout must
-not become the `--allow-radar` bypass.
+the SKU test that no catalog entry grants radar — checkout must not become the `--allow-radar`
+bypass. Since server 0.67.0 ([ADR-0041](../adr/0041-radar-is-an-explicit-scope.md)) withholding the
+scopes is sufficient: `tool:*` no longer covers the radar tools and `tools/call` asserts each tool's
+scope, so a `paid` SKU without radar scopes is refused `search_radar` with no tier-scoped check.
+Assert it with `hasScope`, not string equality: no entry may cover `tool:radar:<name>` for any
+`RADAR_TOOLS` member (an exact `tool:radar:search_radar` counts) or `resource:radar:read`.
 
 ### Keys
 
@@ -699,8 +703,10 @@ for retry safety, so they get assertions, not prose:
   `tests/unit/security-headers.test.ts` precedent — including `no-store` on _every_ response, which is
   what makes _Check again_ function at all, and `img-src data:` so the pin cannot freeze a
   favicon-blocking CSP.
-- Radar exclusion: no SKU grants `tool:radar:*` / `resource:radar:read`, asserted over a non-zero
-  probe count so the test cannot pass over an empty set.
+- Radar exclusion: no SKU's scopes cover a radar tool (`hasScope` against `tool:radar:<name>` for
+  each `RADAR_TOOLS` member) or `resource:radar:read`, asserted over a non-zero probe count so the
+  test cannot pass over an empty set. Since ADR-0041 this scope exclusion is what keeps a SKU off
+  radar; no tier-scoped deny is needed.
 
 ### Docs
 

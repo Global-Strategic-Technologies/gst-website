@@ -5,7 +5,7 @@
   "title": "Experimente o servidor GST MCP por 3 dias",
   "includesLabel": "O que o teste inclui",
   "facts.tools.term": "Ferramentas",
-  "facts.tools.desc": "As dezesseis ferramentas de diligência, portfólio e regulação, os recursos da biblioteca e de regulações, e todos os prompts gst_. Ferramentas e feeds do Radar ficam excluídos.",
+  "facts.tools.desc": "As catorze ferramentas de diligência, portfólio e regulação, os recursos da biblioteca e de regulações, e todos os prompts gst_. Ferramentas e feeds do Radar ficam excluídos.",
   "facts.ceilings.term": "Tetos",
   "facts.ceilings.desc": "15 chamadas por minuto, 100 por dia. Limites de capacidade não contratuais, não um SLA.",
   "facts.after.term": "Após 72 horas",

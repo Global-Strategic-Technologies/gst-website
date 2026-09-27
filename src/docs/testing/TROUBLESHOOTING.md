@@ -360,7 +360,7 @@ node --version  # Your version
 
 1. **Branch not up to date with master** - The ruleset's strict policy requires it
 2. **A required check is missing, not failing** - The checks passed on an older head, or never reported on this one
-3. **A required check is still expected** - e.g. `lighthouse`, once it is in the ruleset
+3. **A required check is still expected** - e.g. `lighthouse`, which is required and runs only on pull requests, so a head that no PR run has seen has no result for it
 
 **Solution:**
 

@@ -32,7 +32,7 @@ enumParity:
 >
 > **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
-> **Version**: `v1` | **Last authored**: 2026-08-05 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-091 revision of the live-tool surface documented below)
+> **Version**: `v1` | **Last authored**: 2026-09-27 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-166 authorization note on the live-tool surface documented below)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
@@ -201,6 +201,10 @@ There is **no `limit` input to narrow with** — see item 4 of the deliberately-
   },
 }
 ```
+
+### Authorization (BL-166)
+
+`search_radar` and `get_latest_insights` **require `tool:radar:*`** (or the exact `tool:radar:<name>`). `tool:*` does not cover them ([ADR-0041](../../../../../src/docs/adr/0041-radar-is-an-explicit-scope.md)). A caller without the scope is refused at the Worker's pipeline boundary, before the rate limiter and before the tool runs: **JSON-RPC error `-32002` in an HTTP 200**, with `data.missingScope: "tool:radar:*"`. A `trial`-tier caller is refused the same way by the tier gate even if it holds the scope. Neither refusal is a row in the failure-mode table below, which lists the tool's own `isError` envelopes. `tools/list` still lists both tools to every caller.
 
 ### Degraded mode (BL-091)
 
