@@ -33,6 +33,16 @@ describe('grantedScopesFor (delegation ceiling)', () => {
     expect(grantedScopesFor(['tool:search_portfolio'], ['resource:radar:read'])).toEqual([]);
   });
 
+  it('a tool:* ceiling asking for tool:radar:* is not granted it (BL-166)', () => {
+    // Pre-BL-166 prefix matching let exactly this escalate — including trials.
+    expect(grantedScopesFor(['tool:radar:*'], ['tool:*', 'prompt:*'])).toEqual([]);
+    expect(grantedScopesFor(['tool:*', 'tool:radar:*'], ['tool:*'])).toEqual(['tool:*']);
+  });
+
+  it('a key holding tool:radar:* can delegate it', () => {
+    expect(grantedScopesFor(['tool:radar:*'], DEFAULT_SCOPES)).toEqual(['tool:radar:*']);
+  });
+
   it('never mutates inputs', () => {
     const requested = ['tool:*'];
     const owned = [...DEFAULT_SCOPES];
@@ -98,10 +108,14 @@ describe('authFailureResponse — RFC 9728 challenge', () => {
 });
 
 describe('SCOPE_DESCRIPTIONS consent copy', () => {
-  it('covers every catalog scope plus the radar narrowing wildcard', () => {
+  it('covers every catalog scope, the radar tool wildcard included', () => {
     for (const scope of Object.values(SCOPES)) {
       expect(SCOPE_DESCRIPTIONS[scope]).toBeTruthy();
     }
     expect(SCOPE_DESCRIPTIONS['tool:radar:*']).toBeTruthy();
+  });
+
+  it('tells the consenting user that tool:* excludes Radar (BL-166)', () => {
+    expect(SCOPE_DESCRIPTIONS['tool:*']).toMatch(/excluding Radar/);
   });
 });

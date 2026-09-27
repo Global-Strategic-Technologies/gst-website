@@ -76,9 +76,11 @@ export const TIER_LIMITS: Record<string, TierLimits> = {
   // The radar ceilings are defense-in-depth, NOT the control. Radar is denied
   // to this tier at the pipeline seam (`pipeline/tier-gate.ts`, BL-155 Slice
   // 2b) before the limiter is consulted, because radar is the Inoreader-funded product a self-serve path
-  // must not become a bypass for. These numbers exist only so that accidentally
-  // removing that deny does not silently hand a stranger free-pilot-level radar
-  // access. They are 1/1 rather than 0/0 because a zero sliding window is not
+  // must not become a bypass for. Since BL-166 a trial record's scopes also
+  // exclude `tool:radar:*`, so the tool-scope gate refuses it too — but a legacy
+  // trial grant can still hold that scope, which is why the tier deny stays.
+  // These numbers exist only so that accidentally removing that deny does not
+  // silently hand a stranger free-pilot-level radar access. They are 1/1 rather than 0/0 because a zero sliding window is not
   // verified to be representable in `@upstash/ratelimit`.
   trial: { perMinute: 15, perDay: 100, radarPerMinute: 1, radarPerDay: 1 },
   'free-pilot': { perMinute: 30, perDay: 300, radarPerMinute: 3, radarPerDay: 20 },

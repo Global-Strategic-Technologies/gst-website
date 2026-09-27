@@ -2,13 +2,16 @@
  * Tier-scoped tool gate (BL-155 Slice 2b) — the pipeline seam where a
  * `trial` identity is refused the radar tools.
  *
- * Why a TIER check and not a scope: `hasScope` matches by prefix, so the
- * `tool:*` every client holds already covers `tool:radar:search_radar`. A
- * scope assertion inside the radar tools would be satisfied by every trial
- * grant and contain nothing (the archived SELF_SERVE_TRIAL_BL-155.md § Slice 2
- * records the two rejected mechanisms). Until a per-tool scope catalog exists
- * (BACKLOG BL-166), the tier is the only signal that distinguishes a trial
- * from a pilot.
+ * Why a TIER check as well as a scope: since BL-166 (ADR-0041) radar is an
+ * explicit scope — `tool:*` no longer covers `tool:radar:*` — and the tool-
+ * scope gate (`tool-scope-gate.ts`) runs right after this one. But a trial
+ * grant can still HOLD `tool:radar:*`: before BL-166, prefix matching let a
+ * `tool:*` trial that asked for it at consent or `/token` be granted it, and
+ * PRM `scopes_supported` advertises it. Those legacy grants live on until
+ * revoked, so the scope gate alone would let them through. This tier deny is
+ * unconditional — every trial-tier radar call is refused whatever its scopes
+ * — which is what keeps the published trial "None" radar cells true (the
+ * archived SELF_SERVE_TRIAL_BL-155.md § Slice 2 records the original design).
  *
  * Why it matters: radar is the Inoreader-funded product the operator gates
  * commercially. Handing strangers free radar is a pricing decision made by
@@ -19,11 +22,13 @@
  * `tools/call`. A transport-level 403 reads as a broken connection; a
  * `-32002` error with `missingScope` is the same legible refusal the radar
  * Resource already emits via `MissingScopeError`. The `data.missingScope`
- * names `tool:radar:*` while the caller may hold `tool:*` — that is
- * deliberate: it names the capability being withheld in the vocabulary
- * clients already parse, not a scope they could request.
+ * names `tool:radar:*` even when the caller holds it (a legacy trial) —
+ * that is deliberate: it names the capability being withheld in the
+ * vocabulary clients already parse, and the tool-scope gate names the same
+ * scope for a non-trial caller without it.
  *
- * Placement: `handle-authenticated.ts` calls this BEFORE the limiter, so a
+ * Placement: `handle-authenticated.ts` calls this BEFORE the tool-scope gate
+ * and the limiter, so a
  * refused call consumes no radar-window token, and before the MCP handler,
  * so no SSE stream starts. Only `tools/call` bodies can be classed `radar`,
  * and those are plain JSON-RPC POSTs.

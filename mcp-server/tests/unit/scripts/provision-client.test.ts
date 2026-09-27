@@ -47,21 +47,23 @@ describe('provision-client — constant parity with the server', () => {
     // reaches a `cloudflare:` scheme import the node pool cannot resolve)
     // into the provider-free scopes module, so it is now imported directly.
     expect([...SUPPORTED_SCOPES]).toEqual([...SCOPES_SUPPORTED]);
-    expect([...SUPPORTED_SCOPES]).toEqual([...DEFAULT_SCOPES, 'tool:radar:*']);
+    // BL-166: `tool:radar:*` moved INTO DEFAULT_SCOPES (appended last), so the
+    // catalog is now exactly the default set — same members, same order.
+    expect([...SUPPORTED_SCOPES]).toEqual([...DEFAULT_SCOPES]);
+    expect(SUPPORTED_SCOPES.at(-1)).toBe('tool:radar:*');
 
     // The composition itself is also pinned by reading the source as text.
-    // Without this, appending a second narrowing wildcard there (exactly how
-    // `tool:radar:*` got added) would leave this mirror stale and green.
+    // Without this, appending a narrowing wildcard there (exactly how
+    // `tool:radar:*` was first added) would leave this mirror stale and green.
     const providerSrc = repoFile('src/auth/scopes.ts');
     const start = providerSrc.indexOf('export const SCOPES_SUPPORTED');
     const declaration = providerSrc.slice(start, providerSrc.indexOf(');', start) + 2);
-    expect(declaration).toContain('...DEFAULT_SCOPES');
-    expect(declaration).toContain("'tool:radar:*'");
-    // Exactly one literal scope string beyond the DEFAULT_SCOPES spread.
-    // Match ANY quoted literal, not a scope-shaped character class: a class
-    // like [a-z:*] silently omits underscores and digits, so adding
+    expect(declaration).toContain('[...DEFAULT_SCOPES]');
+    // No literal scope string beyond the DEFAULT_SCOPES spread. Match ANY
+    // quoted literal, not a scope-shaped character class: a class like
+    // [a-z:*] silently omits underscores and digits, so adding
     // 'tool:search_portfolio' here would drift past the guard unseen.
-    expect(declaration.match(/'[^']*'/g)).toEqual(["'tool:radar:*'"]);
+    expect(declaration.match(/'[^']*'/g)).toBeNull();
   });
 
   it('keeps the omit-scopes default free of every radar scope', () => {

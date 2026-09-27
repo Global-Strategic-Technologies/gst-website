@@ -1,6 +1,6 @@
 # ADR-0008: OAuth 2.1 as an embedded authorization server on the MCP Worker
 
-- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below; the rejected credential-recovery paths were added to it at BL-155's closure, 2026-09-27)
+- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below; the rejected credential-recovery paths were added to it at BL-155's closure, 2026-09-27, and a dated line records [ADR-0041](0041-radar-is-an-explicit-scope.md)'s tool-scope gate)
 - **Source initiative**: BL-033 Slice 2 (external-pilot auth; the BL-033 stanza in [`../development/BACKLOG.md`](../development/BACKLOG.md) remains the open initiative tracker — this slice closes its Authentication & authorization AC block)
 
 ## Context
@@ -44,6 +44,7 @@ Load-bearing choices:
 - `trial` tier only, the tightest ceilings (`ratelimit/tiers.ts`), minted only by the signup path — never assignable by hand in the operator runbooks' spirit, though the admin API accepts it for tests and conversions.
 - Hard `expiresAt` = mint + 72h, asserted at the record level; the KV reap is derived from it and cannot slide (Slice 1).
 - `TRIAL_SCOPES` = the catalog minus the radar Resource (`auth/scopes.ts`). **Radar tools are denied by the tier-scoped pipeline check** (`pipeline/tier-gate.ts`, JSON-RPC `-32002`, before the limiter) — described as that mechanism deliberately, because `tool:*` covers the radar tools by prefix and a scope exclusion cannot do this.
+  - **2026-09-27:** [ADR-0041](0041-radar-is-an-explicit-scope.md) adds a tool-scope gate after the tier gate. The tier gate stays and is still the trial radar deny. The prefix premise above no longer holds (`tool:*` stops covering the radar tools and `TRIAL_SCOPES` now excludes `tool:radar:*` too); the tier gate is kept because legacy trial grants can hold `tool:radar:*`.
 - **Both doors are open to the record** (operator decision, 2026-09-06): the consent page (the connector flow BL-155 is for) and `client_credentials` at `/token` (the developer flow, BL-156). The trial is contained identically at either — expiry, ceilings and the radar gate all read the token or the grant props.
 - Attribution vs. limiting are deliberately split: every trial attributes as one constant `keyOwner` (`OAUTH:M2M:TRIAL` / `M2M:TRIAL`, all records named `trial`) so the Analytics Engine index stays roster-sized, while the limiter buckets per client (`rateLimitSubject`), so one trial cannot exhaust another's budget.
 - Fail-closed minting: the endpoint 503s with nothing minted on any unbound dependency, Redis error, or unreachable Turnstile — the inverse of this Worker's fail-open substrate, because here Upstash is the anti-farming gate, not a throttle.

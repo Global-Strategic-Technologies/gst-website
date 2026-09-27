@@ -43,7 +43,21 @@ function trialCeilings(): { perMinute: number; perDay: number } {
   return { perMinute: Number(m![1]), perDay: Number(m![2]) };
 }
 
+/**
+ * `RADAR_TOOLS` read as TEXT from the dispatch module, the way this suite reads
+ * every other server fact, so the root program never imports mcp-server source.
+ * A trial can call every registered remote tool except these (the tier gate
+ * and, since ADR-0041, the tool-scope gate both refuse them).
+ */
+function radarToolNames(): string[] {
+  const src = read('mcp-server/src/dispatch/extract-tool-name.ts');
+  const m = src.match(/export const RADAR_TOOLS[^=]*=\s*new Set\(\[([^\]]*)\]\)/);
+  expect(m, 'RADAR_TOOLS not found in extract-tool-name.ts').not.toBeNull();
+  return [...m![1].matchAll(/'([a-z_]+)'/g)].map((n) => n[1]);
+}
+
 const NUMBER_WORDS: Record<number, Record<keyof typeof CATALOGS, string>> = {
+  14: { en: 'fourteen', es: 'catorce', 'pt-BR': 'catorze' },
   16: { en: 'sixteen', es: 'dieciséis', 'pt-BR': 'dezesseis' },
 };
 
@@ -57,11 +71,16 @@ describe('trial page — published facts', () => {
     }
   });
 
-  it('counts the tools as the registered remote count, as a word, in every locale', () => {
+  it('counts the tools a trial can call (registered remote tools minus radar), as a word, in every locale', () => {
     const tools = registeredToolNames(SERVER_PATH);
     expect(tools).toHaveLength(EXPECTED_REMOTE_TOOL_COUNT);
-    const words = NUMBER_WORDS[tools.length];
-    expect(words, `no words for count ${tools.length} — extend NUMBER_WORDS`).toBeDefined();
+    const radar = radarToolNames();
+    // Vacuity guard: an empty parse would silently publish the full count.
+    expect(radar.length).toBeGreaterThan(0);
+    for (const name of radar) expect(tools, `${name} is not a registered tool`).toContain(name);
+    const trialCount = tools.filter((t) => !radar.includes(t)).length;
+    const words = NUMBER_WORDS[trialCount];
+    expect(words, `no words for count ${trialCount} — extend NUMBER_WORDS`).toBeDefined();
     for (const [code, catalog] of Object.entries(CATALOGS)) {
       expect(catalog['facts.tools.desc'].toLowerCase(), code).toContain(
         words![code as keyof typeof CATALOGS]

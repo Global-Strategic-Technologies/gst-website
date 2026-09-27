@@ -12,7 +12,10 @@
  * lets `prompts/embed.ts` consume these constants while the ESLint rule on
  * `mcp-server/src/prompts/**` bans `content/radar-snapshot`.
  *
- * ## Why three constants and not one
+ * ## Why three degraded-state constants and not one
+ *
+ * (`RADAR_NOT_GRANTED_REMOTE` is a fourth, but not a degraded state: it is
+ * the BL-166 answer for a caller without the radar scope.)
  *
  * The remediation genuinely differs by transport and by failure mode, and a
  * single message got one of them wrong on every surface it reached:
@@ -48,6 +51,16 @@ export const SNAPSHOT_MISSING_STDIO =
  */
 export const SNAPSHOT_UNAVAILABLE_REMOTE =
   'Radar snapshot unavailable — the shared cache is currently empty. It is refreshed by a scheduled job every 6 hours. While the Inoreader budget circuit breaker is open, no read refreshes the cache (that is deliberate — it protects the shared upstream budget), so this state can persist until the breaker closes. No items are available to report right now.';
+
+/**
+ * Worker, caller lacks `resource:radar:read` (BL-166). The prompt embed reads
+ * the same Inoreader-funded feed as the radar Resource, so a grant without
+ * that scope (every trial) gets this in place of the snapshot rather than
+ * reading radar through `prompts/get`. Names the scope so the refusal is
+ * actionable, and says nothing is broken.
+ */
+export const RADAR_NOT_GRANTED_REMOTE =
+  'Radar snapshot not included — this connection is not granted the GST Radar feed (scope `resource:radar:read`). Nothing is broken; ask your GST contact if you need Radar access. No items are available to report here.';
 
 /**
  * The tier was read successfully but holds no items. Distinct from

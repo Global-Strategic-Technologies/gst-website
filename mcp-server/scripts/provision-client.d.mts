@@ -20,9 +20,10 @@ export declare const ASSIGNABLE_TIERS: readonly string[];
 export declare const SUPPORTED_SCOPES: readonly string[];
 
 /**
- * Scopes granted when `--scopes` is omitted. Free of the radar Resource only:
- * `tool:*` covers the radar tools by prefix; only the `trial` tier is refused
- * them (`src/pipeline/tier-gate.ts`).
+ * Scopes granted when `--scopes` is omitted. Free of both radar scopes, and
+ * since BL-166 that withholds radar: `tool:*` no longer covers `tool:radar:*`
+ * (`src/auth/scopes.ts`), and `src/pipeline/tool-scope-gate.ts` refuses a
+ * radar call without it. Grant radar with `--allow-radar` plus `tool:radar:*`.
  */
 export declare const MINIMUM_SCOPES: readonly string[];
 

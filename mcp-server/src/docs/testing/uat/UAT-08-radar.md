@@ -57,7 +57,7 @@ Mode A only meaningfully. A model summarising the feed is the actual use case; M
 | Symptom                                      | Means                                                      | Verdict                                                                 |
 | -------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `degraded: true` with items returned         | Budget circuit open; results come from cache, up to 6h old | **Pass**, noting `fetchedAt` — stale-but-real is the designed behaviour |
-| `403` naming a radar scope                   | Credential provisioned without `--allow-radar`             | **Blocked**                                                             |
+| `-32002` naming `tool:radar:*`               | Credential provisioned without `--allow-radar`             | **Blocked**                                                             |
 | `429`                                        | 5/min or 50/day exceeded                                   | **Blocked** — wait out `Retry-After`                                    |
 | `error: "config-missing"`                    | Inoreader credentials not bound. Expected on local stdio   | **Blocked** on stdio; **Fail** on production                            |
 | `error: "token-stale"`                       | The Inoreader OAuth token in Upstash expired               | **Blocked** — recovery is in [`DEPLOY.md`](../../operations/DEPLOY.md)  |

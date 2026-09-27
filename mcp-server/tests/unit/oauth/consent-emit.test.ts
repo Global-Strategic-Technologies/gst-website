@@ -6,6 +6,7 @@
  * with a stubbed provider, a Map-backed KV, and a spy binding.
  */
 import { handleAuthorizePost } from '../../../src/oauth/consent';
+import { SCOPE_MODEL } from '../../../src/auth/scopes';
 
 const NONCE = 'abcdef0123456789';
 const NONCE_KEY_PREFIX = 'mcp:oauth:consent-nonce:';
@@ -81,6 +82,22 @@ describe('oauth_consent emission (BL-152)', () => {
     expect(dp.blobs[1]).toBe('consent');
     expect(dp.blobs[3]).toBe('approved');
     expect(dp.indexes[0]).toBe('OAUTH:RP');
+  });
+
+  it('approve stamps the BL-166 scopeModel marker into the grant props', async () => {
+    // Without it, api-handler would treat the new grant as legacy and add
+    // tool:radar:* back — the marker is what makes the explicit scope stick.
+    const { env } = makeEnv();
+    await handleAuthorizePost(post('approve'), env as never);
+    const call = env.OAUTH_PROVIDER.completeAuthorization.mock.calls[0] as unknown as [
+      { props: Record<string, unknown> },
+    ];
+    expect(call[0].props).toMatchObject({
+      keyOwner: 'OAUTH:RP',
+      scopes: ['tool:*'],
+      authKind: 'oauth',
+      scopeModel: SCOPE_MODEL,
+    });
   });
 
   it('deny emits nothing', async () => {

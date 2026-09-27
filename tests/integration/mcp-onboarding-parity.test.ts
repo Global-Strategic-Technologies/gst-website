@@ -14,7 +14,7 @@
  * The guardrails that do carry over — no em dashes (operator preference,
  * extended to these pages 2026-08-27), no docs subdomain — are restated here.
  */
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { extractAstroMarkup } from './helpers/astro-markup';
 import {
@@ -186,6 +186,29 @@ describe('MCP onboarding pages — supported clients and the consent page', () =
     const src = markup.getStarted.match(/src="(\/images\/hub\/mcp\/consent-page-still\.webp)"/);
     expect(src).not.toBeNull();
     expect(existsSync(resolve('public', src![1]!.slice(1)))).toBe(true);
+  });
+
+  it('declares the consent still at its real pixel size', () => {
+    // A re-render changes the height whenever the scope list or copy changes;
+    // stale width/height attributes distort the aspect ratio and shift layout.
+    // WebP header: a simple lossy file ('VP8 ') carries 14-bit LE width/height
+    // at bytes 26/28 after the 9d 01 2a start code; an extended one ('VP8X')
+    // carries canvas width-1/height-1 as 24-bit LE at bytes 24/27.
+    const bytes = readFileSync(resolve('public/images/hub/mcp/consent-page-still.webp'));
+    const chunk = bytes.toString('ascii', 12, 16);
+    expect(
+      ['VP8 ', 'VP8X'],
+      `unsupported WebP chunk "${chunk}" (lossless VP8L is not parsed here; re-render lossy)`
+    ).toContain(chunk);
+    const [width, height] =
+      chunk === 'VP8X'
+        ? [bytes.readUIntLE(24, 3) + 1, bytes.readUIntLE(27, 3) + 1]
+        : [bytes.readUInt16LE(26) & 0x3fff, bytes.readUInt16LE(28) & 0x3fff];
+    const figure = markup.getStarted.match(
+      /src="\/images\/hub\/mcp\/consent-page-still\.webp"\s+width=\{(\d+)\}\s+height=\{(\d+)\}/
+    );
+    expect(figure, 'width/height must follow src on the still').not.toBeNull();
+    expect([Number(figure![1]), Number(figure![2])]).toEqual([width, height]);
   });
 });
 
