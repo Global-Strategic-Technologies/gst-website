@@ -351,11 +351,28 @@ describe('push-review-gate: pushedSources refspec parsing', () => {
 });
 
 describe('push-review-gate (Implementation Review Gate)', () => {
-  const env = () => ({ GST_HOOK_MARKER_DIR: dir, GST_HOOK_REPO_DIR: REPO_ROOT });
+  // A throwaway two-commit repo, so the ref-binding cases have a real
+  // non-HEAD commit. CI's shallow checkout has no HEAD~1 of its own.
+  let repo: string;
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+      cwd: repo,
+      encoding: 'utf-8',
+    }).trim();
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), 'gst-hooks-repo-'));
+    git('init', '-q');
+    git('commit', '-q', '--allow-empty', '-m', 'one');
+    git('commit', '-q', '--allow-empty', '-m', 'two');
+  });
+  afterAll(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  const env = () => ({ GST_HOOK_MARKER_DIR: dir, GST_HOOK_REPO_DIR: repo });
   const payload = (command: string) => ({ tool_name: 'Bash', tool_input: { command } });
 
-  const currentHead = () =>
-    execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+  const currentHead = () => git('rev-parse', 'HEAD');
 
   function writeMarker(overrides: Record<string, unknown> = {}) {
     writeFileSync(
@@ -420,8 +437,7 @@ describe('push-review-gate (Implementation Review Gate)', () => {
   });
 
   // The review covers HEAD; every ref the push names must be HEAD's commit.
-  const parentSha = () =>
-    execFileSync('git', ['rev-parse', 'HEAD~1'], { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+  const parentSha = () => git('rev-parse', 'HEAD~1');
 
   it('allows a reviewed push whose output is redirected (`2>&1`)', () => {
     writeMarker();
