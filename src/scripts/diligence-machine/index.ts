@@ -941,7 +941,7 @@ function restoreState(): void {
   // Completeness predicate is the canonical export from
   // `src/utils/diligence-url.ts` — pure-logic so it lives at the
   // unit-test tier (`tests/unit/diligence-url.test.ts`) per the
-  // project test pyramid; this Astro inline script just imports it.
+  // project test pyramid; the tool page's client script (ADR-0042) just imports it.
   const urlParams = new URLSearchParams(window.location.search);
   const urlInputs = urlParams.toString() ? deserializeDiligenceUrl(urlParams) : null;
   const hasCompleteUrlState = isCompleteUrlState(urlInputs);
@@ -966,7 +966,7 @@ function restoreState(): void {
 
   inputs = { geographies: [], ...saved.inputs };
   if (saved.targetIdentifier) targetIdentifier = saved.targetIdentifier;
-  highestStepReached = saved.highestStepReached ?? saved.currentStep;
+  highestStepReached = saved.highestStepReached;
   dismissedAttention = new Set(saved.dismissedAttention ?? []);
   dismissedQuestions = new Set(saved.dismissedQuestions ?? []);
   collapsedAttention = new Set(saved.collapsedAttention ?? []);

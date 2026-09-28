@@ -142,6 +142,14 @@ describe('Diligence Machine wizard navigation', () => {
       expect(canNavigateTo(7, restored)).toBe(false);
     });
 
+    it('restores a missing high-water mark as the saved step', () => {
+      const { highestStepReached: _omitted, ...withoutMark } = saved;
+      const restored = parseSavedState(JSON.stringify(withoutMark))!;
+      expect(restored.highestStepReached).toBe(3);
+      expect(canNavigateTo(4, restored)).toBe(false);
+      expect(canNavigateTo(2, restored)).toBe(true);
+    });
+
     it('starts fresh on another version, malformed JSON, or nothing saved', () => {
       expect(parseSavedState(JSON.stringify({ ...saved, version: 2 }))).toBeNull();
       expect(parseSavedState('{not json')).toBeNull();

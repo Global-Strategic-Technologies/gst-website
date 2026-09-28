@@ -59,13 +59,16 @@ export function canNavigateTo(step: number, position: WizardPosition): boolean {
 /**
  * Read a saved wizard from storage. Anything unparseable, or written under a
  * different `STORAGE_VERSION`, reads as "nothing saved" so the wizard starts
- * fresh rather than restoring a shape it no longer understands.
+ * fresh rather than restoring a shape it no longer understands. A state with
+ * no high-water mark restores it as the saved step, so the wizard never
+ * reopens with its current step beyond its reachable range.
  */
 export function parseSavedState(raw: string | null): SavedState | null {
   if (!raw) return null;
   try {
     const state = JSON.parse(raw) as SavedState;
-    return state?.version === STORAGE_VERSION ? state : null;
+    if (state?.version !== STORAGE_VERSION) return null;
+    return { ...state, highestStepReached: state.highestStepReached ?? state.currentStep };
   } catch {
     return null;
   }
