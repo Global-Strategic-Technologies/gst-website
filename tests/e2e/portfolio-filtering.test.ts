@@ -270,14 +270,31 @@ test.describe('Portfolio Filtering - sticky search bar', () => {
 
     await openFilterDrawer(page);
     // Dispatched rather than clicked: the sticky overlay (z-index 9999) can sit over
-    // the drawer's top edge, so a coordinate click could land on it (§7).
-    await page.evaluate(() => {
-      (document.querySelector('[data-testid="clear-filters-button"]') as HTMLElement)?.click();
-    });
+    // the drawer's top edge, so a coordinate click could land on it (§7). A
+    // locator dispatch still fails loudly if the testid ever stops matching.
+    await page.locator('[data-testid="clear-filters-button"]').dispatchEvent('click');
 
     await expect(page.locator(STICKY_SEARCH)).toHaveValue('');
     await expect(page.locator(HEADER_SEARCH)).toHaveValue('');
     await expect.poll(() => searchParam(page)).toBeNull();
     await expect.poll(() => visibleCardCount(page)).toBe(total);
+  });
+
+  test('the sticky Filters button opens the drawer, and both toggles report its state', async ({
+    page,
+  }) => {
+    await revealStickyBar(page);
+    const drawer = page.locator('#filter-drawer');
+    const toggles = [page.locator('#filter-toggle'), page.locator('#filter-toggle-sticky')];
+
+    await page.locator('[data-testid="sticky-filter-toggle"]').click();
+    await expect(drawer).toHaveClass(/\bopen\b/);
+    for (const toggle of toggles) await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    // Closed by Escape rather than by a toggle, so both buttons must still
+    // follow the drawer when neither of them closed it.
+    await page.keyboard.press('Escape');
+    await expect(drawer).not.toHaveClass(/\bopen\b/);
+    for (const toggle of toggles) await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });
