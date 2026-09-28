@@ -1,3 +1,5 @@
+/* Global `pulse` keyframes. The rounded .skeleton-* classes that first used it
+   are gone; HeaderLogo.astro still animates with it, so it stays global. */
 @keyframes pulse {
   0%,
   100% {
@@ -6,28 +8,6 @@
   50% {
     opacity: 0.3;
   }
-}
-
-/* Skeleton Loading Placeholders */
-
-.skeleton-bar {
-  height: 0.875rem;
-  background: var(--accent-light-bg-hover);
-  border-radius: 4px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.skeleton-bar--sm {
-  height: 0.625rem;
-}
-
-.skeleton-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-light-bg-hover);
-  flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
 }
 
 /* ==============================

@@ -208,7 +208,7 @@
    * Tool-internal layers (map annotations, chart overlays) may use
    * direct values for contextual reasons; prefer variables otherwise.
    */
-  --z-negative: -1; /* body::before background grid */
+  --z-negative: -1; /* behind content; published, no in-repo consumer today */
   --z-base: 1; /* normal content stacking */
   --z-raised: 5; /* tool content layers (maps, charts) */
   --z-sticky: 10; /* sticky headers, dropdowns anchored to content */
@@ -221,10 +221,8 @@
   --z-skip-nav: 10000; /* skip-nav link (top of page) */
 
   /* Section Backgrounds */
-  --services-bg: light-dark(#eeeeee, #141414);
   --footer-bg: light-dark(#eeeeee, #141414);
   --cta-box-bg: light-dark(#ffffff, #1a1a1a);
-  --service-card-bg: light-dark(#0a0a0a, #1a1a1a);
 
   /* Accent & UI Elements */
   --filter-chip-bg: light-dark(rgba(26, 26, 26, 0.05), var(--color-primary-10));
@@ -247,10 +245,6 @@
   --clear-filters-text: light-dark(rgba(26, 26, 26, 0.6), rgba(200, 200, 200, 0.6));
   --search-input-text: light-dark(rgba(26, 26, 26, 0.85), rgba(245, 245, 245, 0.85));
   --search-input-placeholder: light-dark(rgba(26, 26, 26, 0.5), rgba(200, 200, 200, 0.5));
-  --service-card-text: light-dark(#b0b0b0, #d0d0d0);
-  --service-card-heading: light-dark(#ffffff, #0a0a0a);
-  --footer-text: light-dark(rgba(26, 26, 26, 0.85), rgba(153, 153, 153, 0.85));
-  --footer-border: light-dark(rgba(26, 26, 26, 0.1), rgba(153, 153, 153, 0.15));
   --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
 
   /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
@@ -268,11 +262,6 @@
 
   /* Misc */
   --checkerboard-line: light-dark(rgba(0, 0, 0, 0.032), rgba(255, 255, 255, 0.032));
-  --theme-toggle-color: light-dark(rgba(74, 74, 74, 0.8), rgba(200, 200, 200, 0.8));
-  --service-card-border: light-dark(#1a1a1a, #2a2a2a);
-  --about-image-bg: light-dark(#141414, #1a1a1a);
-  --about-image-border: light-dark(#1a1a1a, #2a2a2a);
-  --about-image-text: light-dark(#404040, #808080);
 
   /* Expanded Palette — purpose-named tokens for tool derivation */
   --color-authority: light-dark(#5b7a9d, #7a9dbd);
@@ -308,10 +297,8 @@
   --dm-results-tan: var(--color-subdued);
   --dm-positive: var(--color-success);
   --dm-negative: var(--color-error);
-  --dm-negative-dark: var(--color-error);
   --dm-negative-dark-bg: light-dark(rgba(178, 34, 34, 0.06), rgba(178, 34, 34, 0.1));
   --dm-warning: var(--color-warning);
-  --dm-warning-dark: var(--color-warning);
   --dm-success: var(--color-success);
   --icg-maturity-reactive: var(--color-error);
   --icg-maturity-aware: var(--color-warning);
@@ -394,14 +381,9 @@ html.theme-dim {
   --surface-panel-bg: light-dark(rgba(235, 235, 235, 0.85), rgba(28, 28, 28, 0.85));
   --surface-overlay-bg: light-dark(rgba(220, 220, 220, 0.92), rgba(34, 34, 34, 0.92));
 
-  --services-bg: light-dark(#dcdcdc, #202020);
   --footer-bg: light-dark(#dcdcdc, #202020);
   --cta-box-bg: light-dark(#ebebeb, #262626);
-  --service-card-bg: light-dark(#0a0a0a, #262626);
   --search-input-focus-bg: light-dark(#ebebeb, #262626);
-  --service-card-border: light-dark(#1a1a1a, #333333);
-  --about-image-bg: light-dark(#141414, #262626);
-  --about-image-border: light-dark(#1a1a1a, #333333);
 
   /* Root-only ink (no palette re-points it, see palettes.css § Dim-light inks
      for the rest): darkened for the gray dim-light page, dark half unchanged. */
@@ -415,25 +397,10 @@ html.theme-dim {
   /* Text alphas raised where a charcoal surface drops them under AA. */
   --text-muted: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.64));
   --text-dark-muted: rgba(200, 200, 200, 0.64);
-  --footer-text: light-dark(rgba(26, 26, 26, 0.85), rgba(153, 153, 153, 0.91));
   --clear-filters-text: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.64));
 }
 
 /* Utility Classes for Common Patterns */
-
-.interactive-element {
-  transition: all var(--transition-normal);
-}
-
-.interactive-element:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.interactive-focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
 
 .text-uppercase {
   text-transform: uppercase;

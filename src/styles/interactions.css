@@ -39,28 +39,6 @@
   outline-offset: var(--spacing-xs);
 }
 
-/* Button/Control Hover States */
-.control-hover {
-  background: light-dark(rgba(26, 26, 26, 0.08), rgba(var(--color-primary-rgb), 0.15));
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.control-active {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-  border-color: var(--color-primary);
-}
-
-/* Accent Background States */
-.accent-light-bg {
-  background: rgba(var(--color-primary-rgb), 0.1);
-}
-
-.accent-light-bg-hover {
-  background: rgba(var(--color-primary-rgb), 0.15);
-}
-
 /* Focus Outline Utility */
 .focus-outline {
   outline: 2px solid var(--color-primary);
@@ -71,11 +49,6 @@
   outline: 2px solid var(--color-primary);
   outline-offset: var(--spacing-xs);
 }
-
-/* Dark theme overrides removed — interaction states use var(--color-primary)
-   which does not change between themes, so all overrides were redundant.
-   .control-hover and .control-active differ only in background/color which
-   now use light-dark() below. */
 
 /* Delta Chevron — Collapse/Expand Toggle Indicator
    Uses the brand delta triangle SVG or <img>. Points up when collapsed,

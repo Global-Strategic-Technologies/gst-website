@@ -16,14 +16,14 @@ Complete brand palette, usage rules, and asset guidelines for the GST website.
 
 ### Neutral Backgrounds
 
-| Role              | Hex       | Variable                       | Usage                                  |
-| ----------------- | --------- | ------------------------------ | -------------------------------------- |
-| **White**         | `#ffffff` | `--bg-light`                   | Primary page background (light theme)  |
-| **Off-white**     | `#f5f5f5` | `--bg-light-alt`               | Secondary background — sections, cards |
-| **Light gray**    | `#eeeeee` | `--services-bg`, `--footer-bg` | Services section, footer               |
-| **Near black**    | `#0a0a0a` | `--bg-dark`                    | Primary background (dark theme)        |
-| **Dark gray**     | `#1a1a1a` | `--bg-dark-secondary`          | Secondary dark background              |
-| **Dark charcoal** | `#141414` | `--bg-dark-tertiary`           | Tertiary dark background               |
+| Role              | Hex       | Variable              | Usage                                  |
+| ----------------- | --------- | --------------------- | -------------------------------------- |
+| **White**         | `#ffffff` | `--bg-light`          | Primary page background (light theme)  |
+| **Off-white**     | `#f5f5f5` | `--bg-light-alt`      | Secondary background — sections, cards |
+| **Light gray**    | `#eeeeee` | `--footer-bg`         | Footer                                 |
+| **Near black**    | `#0a0a0a` | `--bg-dark`           | Primary background (dark theme)        |
+| **Dark gray**     | `#1a1a1a` | `--bg-dark-secondary` | Secondary dark background              |
+| **Dark charcoal** | `#141414` | `--bg-dark-tertiary`  | Tertiary dark background               |
 
 ### Text Colors
 
@@ -190,7 +190,7 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 ## Accessibility
 
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
-- **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
+- **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via the `.focus-outline` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
 - **Touch targets**: 44x44px per WCAG 2.5.5 (Level **AAA**) on the guarded families; **AA's 24x24 (2.5.8) everywhere else**.
 

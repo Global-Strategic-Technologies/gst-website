@@ -272,37 +272,6 @@ html.dark-theme {
   --alt6-color-subdued-ink: var(--alt6-color-subdued);
 }
 
-/* ── Tool color derivation (cascades from palette overrides) ── */
-html[class*='palette-'] {
-  --hub-authority-blue: var(--color-authority);
-  --techpar-zone-ahead: var(--color-success);
-  --techpar-zone-underinvest: var(--color-warning);
-  --techpar-zone-above: var(--color-warning);
-  --techpar-zone-elevated: var(--color-error);
-  --techpar-zone-critical: var(--color-error);
-  --techpar-zone-healthy: var(--color-primary);
-  --techpar-category-infra: var(--color-primary);
-  --techpar-category-personnel: var(--color-authority);
-  --techpar-category-rd-opex: var(--color-distinguish);
-  --techpar-category-rd-capex: var(--color-secondary);
-  --techpar-kpi-positive: var(--color-primary);
-  --techpar-kpi-warn: var(--color-warning);
-  --techpar-kpi-negative: var(--color-error);
-  --dm-methodology-brown: var(--color-subdued);
-  --dm-results-blue: var(--color-authority);
-  --dm-results-tan: var(--color-subdued);
-  --dm-positive: var(--color-success);
-  --dm-negative: var(--color-error);
-  --dm-warning: var(--color-warning);
-  --dm-success: var(--color-success);
-  --icg-maturity-reactive: var(--color-error);
-  --icg-maturity-aware: var(--color-warning);
-  --icg-maturity-optimizing: var(--color-success);
-  --icg-maturity-strategic: var(--color-primary);
-  --regmap-category-industry: var(--color-distinguish);
-  --regmap-category-cyber: var(--color-error);
-}
-
 /* ── Per-palette overrides (applied to <html>) ── */
 html.palette-0 {
   --color-authority: var(--alt0-color-authority);

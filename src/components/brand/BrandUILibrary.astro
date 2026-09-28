@@ -73,22 +73,6 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       </div>
     </div>
 
-    <h4 class="brutal-label brand-subgroup-title">Nav Link</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item">
-        <a class="nav-link" href="#ui-library">
-          Default
-        </a>
-        <code class="brand-code">.nav-link</code>
-      </div>
-      <div class="brand-component-item">
-        <a class="nav-link active" href="#ui-library">
-          Active
-        </a>
-        <code class="brand-code">.nav-link.active</code>
-      </div>
-    </div>
-
     <!-- 8a-1b. Site Chrome -->
     <h3 class="brutal-heading-sm brand-group-title" id="lib-site-chrome">
       Site Chrome
@@ -938,7 +922,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Search Controls Bar</h4>
-    {/* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): both own the portfolio filter runtime (singleton ids + scroll handlers), so a presentational extraction is off the table. Keep in sync with those files. */}
+    {/* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): PortfolioHeader owns the portfolio filter runtime and its sticky-scroll handler, and both render singleton ids, so a presentational extraction is off the table. Keep in sync with those files. */}
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div
