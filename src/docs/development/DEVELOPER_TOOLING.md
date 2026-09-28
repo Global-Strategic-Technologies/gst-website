@@ -297,7 +297,7 @@ concurrency:
 | [.github/workflows/test-cross-browser.yml](../../../.github/workflows/test-cross-browser.yml) | Manual `workflow_dispatch` only — the full E2E suite as a chromium / firefox / webkit matrix, with the same build and radar-stub steps as `test.yml`'s chromium-only required job. Not a check |
 | [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [scripts/await-mcp-test-run.sh](../../../scripts/await-mcp-test-run.sh)           | The production deploy's pre-flight guard (BL-111) — polls the GitHub API for an MCP Server Test Suite verdict on the exact SHA being deployed, and refuses the deploy without one. Its **exit code is the contract** (0–6, table in the script header); the incident Issue body renders that table for the operator. Lives at repo root, not `mcp-server/scripts/`, because `mcp-server/**` is the first entry of both the test and production `paths` allowlists — a CI helper there would run the full MCP suite and queue a production approval on every edit. Guarded by `tests/integration/await-mcp-test-run.test.ts` (there is no shell lint in this repo) |
-| [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
+| [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions). npm groups, in match order (Dependabot assigns an update to the **first** group that matches): `sentry` (`@sentry/*`, every update type — keeps the exactly-pinned `@sentry/browser` in lockstep with the version `@sentry/astro` pins, so no second SDK copy resolves beside the one Astro initializes; must stay above `production-patches`), `dev-dependencies` (dev minor/patch), `production-patches` (production patch) |
 | [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json)       | Tracked registration source for the Claude review-gate hooks (installed per-machine via `npm run setup:claude-hooks`; see § Claude Code review gates) |
 | [.claude/hooks/](../../../.claude/hooks/)                                         | Gate scripts (`plan-review-gate.mjs`, `push-review-gate.mjs`) + installer (`install.mjs`) — unit-tested in `tests/unit/claude-hooks.test.ts` |
 
@@ -396,7 +396,7 @@ give it an explicit `-text` override rather than relying on verbatim storage.
 
 See [.prettierignore](../../../.prettierignore) for the full list. Notable entries:
 
-- **Hand-curated data files**: `src/data/ma-portfolio/projects.json`, `src/data/canada-provinces.json`
+- **Hand-curated data files**: `src/data/ma-portfolio/projects.json`
 - **Regulatory map content collection**: `src/data/regulatory-map/` (one JSON file per regulation, curated manually)
 - **Lock files**: `package-lock.json`
 - **Generated output**: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`

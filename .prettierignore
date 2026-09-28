@@ -15,7 +15,6 @@ package-lock.json
 
 # Hand-curated JSON data files — preserve existing formatting
 src/data/ma-portfolio/projects.json
-src/data/canada-provinces.json
 
 # Regulatory map (123 files, curated manually)
 src/data/regulatory-map/
