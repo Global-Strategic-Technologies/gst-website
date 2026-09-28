@@ -137,11 +137,10 @@ describe('Tool Analytics Naming Convention', () => {
   });
 
   describe('ICG events', () => {
-    const events = extractTrackEventCalls(
-      'src/pages/hub/tools/infrastructure-cost-governance/index.astro'
-    );
+    const events = extractTrackEventCalls('src/scripts/infrastructure-cost-governance');
 
     it('should use icg_ prefix for all events', () => {
+      expect(events.length).toBeGreaterThan(0);
       for (const e of events) {
         expect(e.event).toMatch(/^icg_/);
       }
@@ -196,7 +195,7 @@ describe('Tool Analytics Naming Convention', () => {
       'src/pages/hub/tools/regulatory-map/index.astro',
       'src/pages/hub/tools/diligence-machine/index.astro',
       'src/scripts/tech-debt-calculator',
-      'src/pages/hub/tools/infrastructure-cost-governance/index.astro',
+      'src/scripts/infrastructure-cost-governance',
       'src/utils/mcp-analytics.ts',
     ];
 
@@ -225,7 +224,7 @@ describe('Tool Analytics Naming Convention', () => {
         { prefix: 'tdc_', paths: ['src/scripts/tech-debt-calculator'] },
         {
           prefix: 'icg_',
-          paths: ['src/pages/hub/tools/infrastructure-cost-governance/index.astro'],
+          paths: ['src/scripts/infrastructure-cost-governance'],
         },
         { prefix: 'mcp_', paths: ['src/utils/mcp-analytics.ts'] },
       ];
