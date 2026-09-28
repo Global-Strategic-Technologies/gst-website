@@ -9,7 +9,6 @@ import {
   buildSummaryText,
   buildExportPayload,
   compareSnapshots,
-  buildRadarPoints,
   contextualizeScore,
   findMatchingRange,
 } from '../../utils/icg-engine';
@@ -21,6 +20,7 @@ import { DOMAINS, ANSWER_OPTIONS } from '../../data/infrastructure-cost-governan
 import { RECOMMENDATIONS } from '../../data/infrastructure-cost-governance/recommendations';
 import { copyWithFeedback } from '../../utils/copy-feedback';
 import { escapeHtml } from '../../utils/escape-html';
+import { emailHref, gaugeArcSVG, maturityDescription, radarChartSVG } from './logic';
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
 
@@ -123,115 +123,14 @@ function clearAllSnapshots(): void {
   }
 }
 
-// ─── Gauge SVG ──────────────────────────────────────────────────────────────
+// ─── Page-bound wrapper over logic.ts ───────────────────────────────────────
 
-function gaugeArcSVG(score: number, color: string): string {
-  const cx = 110,
-    cy = 92,
-    r = 78;
-  const a = Math.PI * (1 - score / 100);
-  const ex = (cx + r * Math.cos(a)).toFixed(2);
-  const ey = (cy - r * Math.sin(a)).toFixed(2);
-  const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
-  const fill = score > 0 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${ex} ${ey}` : null;
-  // Resolve CSS variable for SVG fill (can't use var() in SVG attributes in all browsers)
-  const resolvedColor = color.startsWith('var(')
+// Resolve a CSS variable to a concrete colour for the gauge's SVG attributes.
+function resolveColor(color: string): string {
+  return color.startsWith('var(')
     ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1)).trim() ||
-      '#05cd99'
+        '#05cd99'
     : color;
-  return `<svg viewBox="0 0 220 112" role="img" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="Maturity score: ${score} out of 100">
-  <path d="${track}" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.15"/>
-  ${fill ? `<path d="${fill}" fill="none" stroke="${resolvedColor}" stroke-width="14" stroke-linecap="round"/>` : ''}
-  <text x="${cx}" y="84" text-anchor="middle"
-    style="font-size:54px;font-weight:500;font-family:var(--font-family);fill:${resolvedColor}">${score}</text>
-  <text x="${cx}" y="109" text-anchor="middle"
-    style="font-size:12px;font-family:var(--font-family);fill:currentColor;opacity:0.5">out of 100</text>
-</svg>`;
-}
-
-// ─── Maturity description ───────────────────────────────────────────────────
-
-function maturityDescription(score: number): string {
-  if (score <= 25) return 'Cloud spend is a black box with no visibility or controls.';
-  if (score <= 50) return 'Some monitoring exists but systematic optimization is absent.';
-  if (score <= 75) return 'Active cost management in place with meaningful room to improve.';
-  return 'Cloud spend is a managed, optimized discipline.';
-}
-
-// ─── Radar chart SVG ────────────────────────────────────────────────────────
-
-function radarChartSVG(domainScores: Array<{ name: string; score: number }>): string {
-  const cx = 150,
-    cy = 150,
-    r = 110;
-  const n = domainScores.length;
-
-  // Use explicit colors so the SVG is print-safe (currentColor fails
-  // when dark-mode text color meets white print paper)
-  const gridColor = 'var(--text-muted)';
-  const labelColor = 'var(--text-muted)';
-  const primaryColor = 'var(--color-primary)';
-
-  // Grid rings at 25%, 50%, 75%, 100%
-  const rings = [25, 50, 75, 100]
-    .map((pct) => {
-      const ringR = (pct / 100) * r;
-      const pts = Array.from({ length: n }, (_, i) => {
-        const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-        return `${(cx + ringR * Math.cos(a)).toFixed(1)},${(cy + ringR * Math.sin(a)).toFixed(1)}`;
-      }).join(' ');
-      return `<polygon points="${pts}" style="fill:none;stroke:${gridColor};opacity:${pct === 100 ? 0.4 : 0.2};stroke-width:1"/>`;
-    })
-    .join('');
-
-  // Axis lines
-  const axes = Array.from({ length: n }, (_, i) => {
-    const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const ex = (cx + r * Math.cos(a)).toFixed(1);
-    const ey = (cy + r * Math.sin(a)).toFixed(1);
-    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" style="stroke:${gridColor};opacity:0.2;stroke-width:1"/>`;
-  }).join('');
-
-  // Labels
-  const labelOffset = 18;
-  const labels = domainScores
-    .map((ds, i) => {
-      const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-      const lx = cx + (r + labelOffset) * Math.cos(a);
-      const ly = cy + (r + labelOffset) * Math.sin(a);
-      const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
-      // Abbreviate long names
-      const short = ds.name.replace('and ', '& ').split(' ').slice(0, 2).join(' ');
-      return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${short}</text>`;
-    })
-    .join('');
-
-  // Data polygon
-  const dataPoints = buildRadarPoints(domainScores, cx, cy, r);
-
-  return `<svg viewBox="0 0 300 300" role="img" aria-label="Radar chart showing domain scores" style="width:100%;max-width:300px;display:block;margin:0 auto">
-  ${rings}${axes}${labels}
-  <polygon points="${dataPoints}" style="fill:${primaryColor};fill-opacity:0.15;stroke:${primaryColor};stroke-width:2"/>
-  ${domainScores
-    .map((ds, i) => {
-      const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-      const dr = (ds.score / 100) * r;
-      const dx = cx + dr * Math.cos(a);
-      const dy = cy + dr * Math.sin(a);
-      return `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="4" style="fill:${primaryColor}"/>`;
-    })
-    .join('')}
-</svg>`;
-}
-
-// ─── Email helper ────────────────────────────────────────────────────────────
-
-function emailHref(context: 'landing' | 'results', score?: number): string {
-  const baseUrl = window.location.href.split('?')[0];
-  if (context === 'landing') {
-    return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance Assessment')}&body=${encodeURIComponent('Use this tool to identify useful opportunities for cloud cost optimization:\n\n' + baseUrl)}`;
-  }
-  return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance - ' + score + '/100')}&body=${encodeURIComponent('Here are potential opportunities for improvement that were identified for your consideration:\n\n' + window.location.href)}`;
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────
@@ -349,7 +248,7 @@ function renderResults(): void {
   // Gauge
   qs<HTMLElement>('[data-gauge-container]').innerHTML = gaugeArcSVG(
     result.overallScore,
-    result.maturityColor
+    resolveColor(result.maturityColor)
   );
 
   // Level and description
@@ -473,7 +372,7 @@ function renderResults(): void {
 
   // Email link
   const emailLink = qs<HTMLAnchorElement>('[data-action="email"]');
-  emailLink.href = emailHref('results', result.overallScore);
+  emailLink.href = emailHref('results', window.location.href, result.overallScore);
   emailLink.onclick = () => {
     trackEvent({
       event: 'icg_send_email',
@@ -754,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const landingEmail = qs<HTMLAnchorElement>('[data-action="landing-email"]');
-  landingEmail.href = emailHref('landing');
+  landingEmail.href = emailHref('landing', window.location.href);
   landingEmail.addEventListener('click', () => {
     trackEvent({ event: 'icg_send_email', category: 'engagement', location: 'landing' });
   });
