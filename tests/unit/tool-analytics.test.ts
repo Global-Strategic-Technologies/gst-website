@@ -7,12 +7,27 @@
  * These tests scan source files for trackEvent calls and verify
  * naming consistency, rather than executing the DOM-dependent handlers.
  */
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync, readdirSync, statSync } from 'fs';
+import { join, resolve } from 'path';
 
-/** Extract all trackEvent call blocks from a source file */
+/**
+ * Read a source file, or every `.ts` file under a tool's script directory
+ * (`src/scripts/<tool>/`, ADR-0042). A directory with no `.ts` files throws,
+ * so a moved or renamed directory fails loudly instead of yielding zero events.
+ */
+function readSource(path: string): string {
+  const abs = resolve(path);
+  if (!statSync(abs).isDirectory()) return readFileSync(abs, 'utf-8');
+  const files = readdirSync(abs, { recursive: true, encoding: 'utf-8' }).filter((f) =>
+    f.endsWith('.ts')
+  );
+  if (files.length === 0) throw new Error(`no .ts files under ${path}`);
+  return files.map((f) => readFileSync(join(abs, f), 'utf-8')).join('\n');
+}
+
+/** Extract all trackEvent call blocks from a source file or tool script directory */
 function extractTrackEventCalls(filePath: string): Array<{ event: string; category: string }> {
-  const src = readFileSync(resolve(filePath), 'utf-8');
+  const src = readSource(filePath);
   const results: Array<{ event: string; category: string }> = [];
 
   // Match trackEvent({ event: '...', category: '...' }) patterns
@@ -105,9 +120,10 @@ describe('Tool Analytics Naming Convention', () => {
   });
 
   describe('Tech Debt Calculator events', () => {
-    const events = extractTrackEventCalls('src/pages/hub/tools/tech-debt-calculator/index.astro');
+    const events = extractTrackEventCalls('src/scripts/tech-debt-calculator');
 
     it('should use tdc_ prefix for all events', () => {
+      expect(events.length).toBeGreaterThan(0);
       for (const e of events) {
         expect(e.event).toMatch(/^tdc_/);
       }
@@ -179,7 +195,7 @@ describe('Tool Analytics Naming Convention', () => {
       'src/utils/techpar/chart.ts',
       'src/pages/hub/tools/regulatory-map/index.astro',
       'src/pages/hub/tools/diligence-machine/index.astro',
-      'src/pages/hub/tools/tech-debt-calculator/index.astro',
+      'src/scripts/tech-debt-calculator',
       'src/pages/hub/tools/infrastructure-cost-governance/index.astro',
       'src/utils/mcp-analytics.ts',
     ];
@@ -187,6 +203,7 @@ describe('Tool Analytics Naming Convention', () => {
     it('all tools should use snake_case event names', () => {
       for (const file of allFiles) {
         const events = extractTrackEventCalls(file);
+        expect(events.length, `${file} yields no trackEvent calls`).toBeGreaterThan(0);
         for (const e of events) {
           expect(e.event).toMatch(/^[a-z][a-z0-9_]+$/);
         }
@@ -205,7 +222,7 @@ describe('Tool Analytics Naming Convention', () => {
         },
         { prefix: 'rm_', paths: ['src/pages/hub/tools/regulatory-map/index.astro'] },
         { prefix: 'dm_', paths: ['src/pages/hub/tools/diligence-machine/index.astro'] },
-        { prefix: 'tdc_', paths: ['src/pages/hub/tools/tech-debt-calculator/index.astro'] },
+        { prefix: 'tdc_', paths: ['src/scripts/tech-debt-calculator'] },
         {
           prefix: 'icg_',
           paths: ['src/pages/hub/tools/infrastructure-cost-governance/index.astro'],
@@ -215,6 +232,7 @@ describe('Tool Analytics Naming Convention', () => {
 
       for (const { prefix, paths } of tools) {
         const events = paths.flatMap((p) => extractTrackEventCalls(p));
+        expect(events.length, `${prefix} tool yields no trackEvent calls`).toBeGreaterThan(0);
         for (const e of events) {
           expect(e.event.startsWith(prefix)).toBe(true);
         }

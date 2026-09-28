@@ -8,7 +8,9 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
     coverage: {
-      include: ['src/utils/**', 'src/data/**/*.ts'],
+      // `src/scripts/*/logic.ts`: a tool page's DOM-free logic (ADR-0042). The
+      // rest of `src/scripts/` is browser-only and covered by E2E.
+      include: ['src/utils/**', 'src/data/**/*.ts', 'src/scripts/*/logic.ts'],
       exclude: [
         // Browser-only modules — covered by E2E (Playwright), not unit tests.
         // These files depend on DOM APIs, Canvas, localStorage, or Clipboard

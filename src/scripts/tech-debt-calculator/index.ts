@@ -22,6 +22,7 @@ import {
 import type { CalcState, CalcResult } from '../../utils/tech-debt-engine';
 import { trackEvent } from '../../utils/analytics';
 import { copyWithFeedback } from '../../utils/copy-feedback';
+import { CURRENCIES, formatCurrency, formatShortCurrency, hasNonDefaultAdvanced } from './logic';
 
 // Analytics: fire tdc_start once per page load on first slider interaction
 let tdcStartFired = false;
@@ -71,31 +72,11 @@ function showSharedStateNotice(adjustedLabels: string[]): void {
 }
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
-// Static approximate multipliers (mid-market rates, fixed at tool release).
-
-const CURRENCIES: Record<string, { symbol: string; multiplier: number }> = {
-  USD: { symbol: '$', multiplier: 1.0 },
-  EUR: { symbol: '€', multiplier: 0.92 },
-  GBP: { symbol: '£', multiplier: 0.79 },
-  CAD: { symbol: 'C$', multiplier: 1.36 },
-  AUD: { symbol: 'A$', multiplier: 1.53 },
-};
 
 let currency = 'USD';
 
-function fmtC(n: number): string {
-  const { symbol, multiplier } = CURRENCIES[currency];
-  const converted = n * multiplier;
-  return symbol + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(converted);
-}
-
-function fmtShortC(n: number): string {
-  const { symbol, multiplier } = CURRENCIES[currency];
-  const v = n * multiplier;
-  if (v >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
-  return fmtC(n);
-}
+const fmtC = (n: number): string => formatCurrency(n, currency);
+const fmtShortC = (n: number): string => formatShortCurrency(n, currency);
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -322,27 +303,6 @@ function initSliders(): void {
 }
 
 // ─── Event wiring ─────────────────────────────────────────────────────────────
-
-// Advanced-tier inputs live behind the collapsible panel. A shared link may
-// carry non-default values for any of them (MCP-generated deeplinks always
-// encode `a:0` regardless of the advanced fields they populate). If we honor
-// `advancedOpen:false` blindly, the recipient lands on a collapsed panel whose
-// advanced results breakdown is never rendered — the inputs are silently
-// applied to the primary figure but invisible. Auto-expand when any advanced
-// field diverges from its default so the full analysis is surfaced on arrival.
-const ADVANCED_KEYS = [
-  'deployIdx',
-  'incidents',
-  'mttr',
-  'remediationBudget',
-  'arr',
-  'remediationPct',
-  'contextSwitchOn',
-] as const;
-
-function hasNonDefaultAdvanced(s: CalcState): boolean {
-  return ADVANCED_KEYS.some((k) => s[k] !== DEFAULT_STATE[k]);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   // Apply URL-encoded state before initialising sliders so DOM positions match
