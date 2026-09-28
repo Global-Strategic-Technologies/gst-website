@@ -323,7 +323,7 @@ Tracks:
 Tracks:
 
 - Filter applications (listens to `portfolioFiltered` custom events)
-- Sends `filter_applied` only when the event's `detail` carries `filterType` and `filterValue`. The chip handlers in `PortfolioHeader.astro` and `StickyControls.astro` add those two fields; init, reset and search dispatch `{ count }` alone, so they send nothing
+- Sends `filter_applied` only when the event's `detail` carries `filterType` and `filterValue`. The chip handlers in `PortfolioHeader.astro` (the page's only filter runtime; `StickyControls.astro` is markup it binds) add those two fields; init, reset and search dispatch `{ count }` alone, so they send nothing
 
 ### Services Page
 

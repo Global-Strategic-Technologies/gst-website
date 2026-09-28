@@ -156,16 +156,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     width: 100%;
   }
 
-  .portfolio-controls-fixed.sticky-active {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    width: fit-content;
-    max-width: calc(100% - 3rem);
-    z-index: 1002;
-    box-shadow: var(--shadow-sm);
-  }
-
   /* `.portfolio-controls-fixed .container` used to be declared here at all three
      tiers and matched NOTHING at any of them: the fixed bar's only child is
      `.controls-wrapper` (see the markup above), and no `.container` exists
@@ -265,15 +255,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       padding: 0.625rem 0;
     }
 
-    .portfolio-controls-fixed.sticky-active {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      width: fit-content;
-      max-width: calc(100% - 2rem);
-      z-index: 1002;
-    }
-
     .search-icon {
       left: var(--spacing-md);
       width: 16px;
@@ -316,16 +297,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .portfolio-controls-fixed {
       padding: 0.625rem 0;
       height: auto;
-    }
-
-    .portfolio-controls-fixed.sticky-active {
-      position: fixed;
-      left: 0;
-      right: 0;
-      transform: none;
-      width: 100%;
-      max-width: 100%;
-      z-index: 1002;
     }
 
     .search-box {
@@ -375,11 +346,18 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     serializeToParams as portfolioSerializeToParams,
     deserializeFromParams as portfolioDeserializeFromParams,
   } from '../../utils/portfolio-url';
+  // The one filter engine: the same functions MCP `search_portfolio` uses, so the
+  // page and the tool cannot drift. Aliased because the local `filterProjects(change)`
+  // below is the DOM-facing wrapper around it.
+  import { filterProjects as applyFilters, computeAvailableChips } from '../../utils/filterLogic';
+  import type { Project } from '../../types/portfolio';
   /* eslint-disable @typescript-eslint/no-explicit-any -- hasListener idiom on DOM elements */
-  // Portfolio globals shared across PortfolioHeader, StickyControls, and PortfolioGrid.
-  // Previously untyped is:inline JS — uses Record types to avoid strict typing of the
-  // project data that flows from the JSON data island. Full typed imports will replace
-  // the duplicated filter logic in Phase 2.
+  // The portfolio filter runtime for the whole page. This script owns every control:
+  // the header bar rendered above, the floating copy StickyControls.astro renders
+  // (markup only — it has no script), and the drawer. PortfolioGrid reads
+  // `window.portfolioState` and listens for `portfolioFiltered`. Project records are
+  // typed loosely on the window (they arrive through the JSON data island) and cast to
+  // `Project` where they meet the shared engine.
   interface PortfolioFilters {
     search: string;
     theme: string;
@@ -488,32 +466,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
    * leaves the page.
    */
   function filterProjects(change?: FilterChange) {
-    window.portfolioState.filteredProjects = allProjects.filter((project) => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const techs = Array.isArray(project.technologies)
-          ? project.technologies
-          : typeof project.technologies === 'string'
-            ? project.technologies.split(',').map((t) => t.trim())
-            : [];
-        const searchableText = [project.codeName, project.industry, project.summary, ...techs]
-          .join(' ')
-          .toLowerCase();
-
-        if (!searchableText.includes(searchLower)) return false;
-      }
-
-      // Theme filter
-      if (filters.theme !== 'all' && project.theme !== filters.theme) return false;
-
-      // Engagement category filter
-      if (filters.engagement !== 'all') {
-        if (project.engagementCategory !== filters.engagement) return false;
-      }
-
-      return true;
-    });
+    window.portfolioState.filteredProjects = applyFilters(allProjects as Project[], filters);
 
     filteredProjects = window.portfolioState.filteredProjects;
     updateGridDisplay();
@@ -610,23 +563,43 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
   }
 
+  // The header bar and the floating StickyControls bar each carry a search box for
+  // the same filter. Both are bound here with one shared debounce: typing in either
+  // mirrors the value into the other at once, then filters and writes the URL.
+  const SEARCH_INPUT_IDS = ['search-input-fixed', 'search-input-sticky'] as const;
+
+  function getSearchInputs(): HTMLInputElement[] {
+    return SEARCH_INPUT_IDS.map((id) => document.getElementById(id)).filter(
+      (el): el is HTMLInputElement => el instanceof HTMLInputElement
+    );
+  }
+
+  function setSearchInputs(value: string): void {
+    getSearchInputs().forEach((input) => {
+      input.value = value;
+    });
+  }
+
   function attachSearchListener() {
-    const searchInput = document.getElementById('search-input-fixed');
-    if (searchInput) {
-      let searchTimeout: ReturnType<typeof setTimeout> | undefined;
-      if (!(searchInput as any).hasListener) {
-        searchInput.addEventListener('input', (e: Event) => {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(() => {
-            filters.search = (e.target as HTMLInputElement).value;
-            window.portfolioState.filters.search = filters.search;
-            filterProjects();
-            syncPortfolioUrlState(window.portfolioState.filters);
-          }, 300);
+    let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+    const inputs = getSearchInputs();
+    inputs.forEach((searchInput) => {
+      if ((searchInput as any).hasListener) return;
+      searchInput.addEventListener('input', () => {
+        const value = searchInput.value;
+        inputs.forEach((other) => {
+          if (other !== searchInput) other.value = value;
         });
-        (searchInput as any).hasListener = true;
-      }
-    }
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          filters.search = value;
+          window.portfolioState.filters.search = filters.search;
+          filterProjects();
+          syncPortfolioUrlState(window.portfolioState.filters);
+        }, 300);
+      });
+      (searchInput as any).hasListener = true;
+    });
   }
 
   function updateFilterBadge() {
@@ -697,29 +670,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (isUpdatingChips) return;
     isUpdatingChips = true;
 
-    const available = { engagement: new Set<string>(), theme: new Set<string>() };
-
-    for (const project of allProjects) {
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const techs = Array.isArray(project.technologies)
-          ? project.technologies
-          : typeof project.technologies === 'string'
-            ? project.technologies.split(',').map((t) => t.trim())
-            : [];
-        const searchableText = [project.codeName, project.industry, project.summary, ...techs]
-          .join(' ')
-          .toLowerCase();
-        if (!searchableText.includes(searchLower)) continue;
-      }
-
-      const matchesEngagement =
-        filters.engagement === 'all' || project.engagementCategory === filters.engagement;
-      const matchesTheme = filters.theme === 'all' || project.theme === filters.theme;
-
-      if (matchesTheme) available.engagement.add(project.engagementCategory as string);
-      if (matchesEngagement) available.theme.add(project.theme as string);
-    }
+    const available = computeAvailableChips(allProjects as Project[], filters);
 
     const r1 = updateChipAvailability('engagement-chips', available.engagement, 'engagement');
     const r2 = updateChipAvailability('theme-chips', available.theme, 'theme');
@@ -740,6 +691,22 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   let drawerDocumentClickHandler: ((event: MouseEvent) => void) | null = null;
   let drawerDocumentKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
+  // Both bars' toggles control the one drawer, so both report its state.
+  function setToggleExpanded(expanded: boolean): void {
+    ['filter-toggle', 'filter-toggle-sticky'].forEach((id) => {
+      document.getElementById(id)?.setAttribute('aria-expanded', String(expanded));
+    });
+  }
+
+  function toggleFilterDrawer(): void {
+    const drawer = document.getElementById('filter-drawer');
+    if (drawer && drawer.classList.contains('open')) {
+      closeFilterDrawer();
+    } else {
+      openFilterDrawer();
+    }
+  }
+
   function openFilterDrawer() {
     const drawer = document.getElementById('filter-drawer');
     const overlay = document.getElementById('filter-overlay');
@@ -748,7 +715,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (drawer && overlay && toggle) {
       drawer.classList.add('open');
       overlay.classList.add('open');
-      toggle.setAttribute('aria-expanded', 'true');
+      setToggleExpanded(true);
 
       // Defer attaching the click handler one tick so the in-flight click that
       // opened the drawer doesn't immediately trigger it and close the drawer.
@@ -786,7 +753,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (drawer && overlay && toggle) {
       drawer.classList.remove('open');
       overlay.classList.remove('open');
-      toggle.setAttribute('aria-expanded', 'false');
+      setToggleExpanded(false);
     }
 
     if (drawerDocumentClickHandler) {
@@ -799,21 +766,27 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
   }
 
+  // The floating bar's Filters button (StickyControls.astro) opens the same drawer.
+  // The drawer's outside-click handler already ignores clicks on it (see
+  // openFilterDrawer), so a click here toggles once and never closes itself.
+  function attachStickyDrawerToggle() {
+    const stickyToggle = document.getElementById('filter-toggle-sticky');
+    if (stickyToggle && !(stickyToggle as any).hasListener) {
+      stickyToggle.addEventListener('click', toggleFilterDrawer);
+      (stickyToggle as any).hasListener = true;
+    }
+  }
+
   function attachDrawerListeners() {
     const toggle = document.getElementById('filter-toggle');
     const closeBtn = document.getElementById('drawer-close');
     const clearBtn = document.getElementById('clear-filters');
 
     if (toggle) {
-      toggle.addEventListener('click', () => {
-        const drawer = document.getElementById('filter-drawer');
-        if (drawer && drawer.classList.contains('open')) {
-          closeFilterDrawer();
-        } else {
-          openFilterDrawer();
-        }
-      });
+      toggle.addEventListener('click', toggleFilterDrawer);
     }
+
+    attachStickyDrawerToggle();
 
     if (closeBtn) {
       closeBtn.addEventListener('click', closeFilterDrawer);
@@ -831,8 +804,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         filters.engagement = 'all';
         window.portfolioState.filters = { ...filters };
 
-        const searchInput = document.getElementById('search-input-fixed');
-        if (searchInput) (searchInput as HTMLInputElement).value = '';
+        setSearchInputs('');
         document
           .querySelectorAll('.filter-chip.active')
           .forEach((c) => c.classList.remove('active'));
@@ -856,10 +828,9 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   function applyHydratedFiltersToDom(): void {
     const current = window.portfolioState.filters;
 
-    // Search input
+    // Search inputs — both bars, so a `?search=` deeplink shows in the sticky one too
     if (current.search && current.search.length > 0) {
-      const searchInput = document.getElementById('search-input-fixed');
-      if (searchInput) (searchInput as HTMLInputElement).value = current.search;
+      setSearchInputs(current.search);
     }
 
     // Theme chip
@@ -926,9 +897,14 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 </script>
 
 <script>
+  // Slides the floating StickyControls bar in once the portfolio header has
+  // scrolled up behind the site nav, and parks it just under the nav. This is the
+  // bar's only scroll runtime (StickyControls.astro has no script). The threshold is
+  // the nav's bottom edge, not the viewport top, so the bar appears as the header's
+  // own controls disappear under the nav rather than a nav-height later.
   function initStickyControls() {
     const controlsElement = document.querySelector(
-      '.portfolio-controls-fixed'
+      '.sticky-controls-overlay .portfolio-controls-fixed'
     ) as HTMLElement | null;
     const headerElement = document.querySelector('.portfolio-header') as HTMLElement | null;
     const navHeader = document.querySelector('header') as HTMLElement | null;
@@ -937,24 +913,19 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       return;
     }
 
-    let isSticky = false;
-
     function handleScroll() {
       if (!controlsElement || !headerElement) return;
 
-      const headerRect = headerElement.getBoundingClientRect();
-      const shouldBeSticky = headerRect.bottom <= 0;
+      // Read every call: the nav's height changes across breakpoints on resize.
+      const navHeight = navHeader ? navHeader.offsetHeight : 0;
+      const shouldBeSticky = headerElement.getBoundingClientRect().bottom <= navHeight;
 
-      if (shouldBeSticky !== isSticky) {
-        if (shouldBeSticky) {
-          controlsElement.classList.add('sticky-active');
-          const navHeight = navHeader ? navHeader.offsetHeight : 0;
-          controlsElement.style.top = navHeight + 'px';
-        } else {
-          controlsElement.classList.remove('sticky-active');
-          controlsElement.style.top = '';
-        }
-        isSticky = shouldBeSticky;
+      if (shouldBeSticky) {
+        controlsElement.classList.add('sticky-active');
+        controlsElement.style.top = navHeight + 'px';
+      } else {
+        controlsElement.classList.remove('sticky-active');
+        controlsElement.style.top = '';
       }
     }
 
