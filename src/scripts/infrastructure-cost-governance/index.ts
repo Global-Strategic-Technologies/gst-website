@@ -123,13 +123,15 @@ function clearAllSnapshots(): void {
   }
 }
 
-// ─── Page-bound wrapper over logic.ts ───────────────────────────────────────
+// ─── Browser reads passed into logic.ts ─────────────────────────────────────
 
 // Resolve a CSS variable to a concrete colour for the gauge's SVG attributes.
+// Every maturity colour is a defined token, so the fallback only matters if a
+// token goes missing; currentColor keeps it on the theme rather than a hex.
 function resolveColor(color: string): string {
   return color.startsWith('var(')
     ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1)).trim() ||
-        '#05cd99'
+        'currentColor'
     : color;
 }
 
