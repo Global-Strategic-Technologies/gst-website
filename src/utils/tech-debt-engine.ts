@@ -171,19 +171,6 @@ export function calculate(state: CalcState): CalcResult {
 
 // ─── Formatting utilities ─────────────────────────────────────────────────────
 
-export const fmt = (n: number): string =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n);
-
-export const fmtShort = (n: number): string => {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return fmt(n);
-};
-
 export const fmtPayback = (months: number): string => {
   if (months < 1) return '< 1 mo';
   if (months > 60) return '> 5 yrs';
@@ -323,7 +310,8 @@ export function parseShortCurrency(input: string): number {
 
 export const fmtShortC = (n: number, symbol: string = '$', multiplier: number = 1): string => {
   const v = n * multiplier;
-  if (v >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
+  // From 999,500 the K form would round up to "1000K"; print it as millions.
+  if (v >= 999_500) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
   return `${symbol}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v)}`;
 };

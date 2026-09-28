@@ -6,7 +6,7 @@
  * currency formatting and the "does this state need the advanced panel open"
  * predicate. Unit-tested by `tests/unit/tech-debt-calculator-logic.test.ts`.
  */
-import { DEFAULT_STATE } from '../../utils/tech-debt-engine';
+import { DEFAULT_STATE, fmtShortC } from '../../utils/tech-debt-engine';
 import type { CalcState } from '../../utils/tech-debt-engine';
 
 // Static approximate multipliers (mid-market rates, fixed at tool release).
@@ -25,14 +25,14 @@ export function formatCurrency(n: number, currency: string): string {
   return symbol + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(converted);
 }
 
-/** The short form used in the direct inputs, e.g. `$1.2M`, `£79K`. */
+/**
+ * The short form used in the results, slider readouts and direct inputs, e.g.
+ * `$1.2M`, `£79K` — the engine's `fmtShortC`, which also formats the copied
+ * summary, keyed by currency code.
+ */
 export function formatShortCurrency(n: number, currency: string): string {
   const { symbol, multiplier } = CURRENCIES[currency];
-  const v = n * multiplier;
-  // From 999,500 the K form would round up to "1000K"; print it as millions.
-  if (v >= 999_500) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
-  return formatCurrency(n, currency);
+  return fmtShortC(n, symbol, multiplier);
 }
 
 // Advanced-tier inputs live behind the collapsible panel. A shared link may

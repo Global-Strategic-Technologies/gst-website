@@ -4,7 +4,7 @@
  * Tests all pure functions:
  * - Slider transform functions (pos → value, value → pos)
  * - calculate(): core cost computation in quick and deep modes
- * - fmt / fmtShort / fmtPayback: formatting utilities
+ * - fmtPayback / fmtShortC: formatting utilities
  * - DEPLOY_OPTIONS: data integrity
  * - DEFAULT_STATE: initial values
  */
@@ -19,9 +19,8 @@ import {
   budgetToPos,
   arrToPos,
   calculate,
-  fmt,
-  fmtShort,
   fmtPayback,
+  fmtShortC,
   DEFAULT_STATE,
   DEPLOY_OPTIONS,
   encodeState,
@@ -360,31 +359,32 @@ describe('DEPLOY_OPTIONS', () => {
 
 // ─── Formatting utilities ─────────────────────────────────────────────────────
 
-describe('fmt', () => {
-  it('formats as USD with no decimals', () => {
-    expect(fmt(1000)).toBe('$1,000');
-    expect(fmt(1500000)).toBe('$1,500,000');
-  });
-});
-
-describe('fmtShort', () => {
-  it('formats millions with one decimal', () => {
-    expect(fmtShort(1_500_000)).toBe('$1.5M');
-    expect(fmtShort(2_000_000)).toBe('$2.0M');
+describe('fmtShortC', () => {
+  it('formats millions with one decimal and thousands whole', () => {
+    expect(fmtShortC(1_500_000)).toBe('$1.5M');
+    expect(fmtShortC(1_000_000)).toBe('$1.0M');
+    expect(fmtShortC(150_000)).toBe('$150K');
+    expect(fmtShortC(1_000)).toBe('$1K');
   });
 
-  it('formats exactly 1_000_000 as $1.0M (>= branch)', () => {
-    expect(fmtShort(1_000_000)).toBe('$1.0M');
+  it('never prints "1000K": amounts that round to a thousand K are millions', () => {
+    expect(fmtShortC(999_499)).toBe('$999K');
+    expect(fmtShortC(999_500)).toBe('$1.0M');
+    expect(fmtShortC(999_999)).toBe('$1.0M');
   });
 
-  it('formats thousands with no decimal', () => {
-    expect(fmtShort(150_000)).toBe('$150K');
-    expect(fmtShort(1_000)).toBe('$1K');
+  it('prints whole units below 1,000', () => {
+    expect(fmtShortC(999)).toBe('$999');
+    expect(fmtShortC(500)).toBe('$500');
   });
 
-  it('falls back to full format below 1000', () => {
-    expect(fmtShort(500)).toBe('$500');
-    expect(fmtShort(999)).toBe('$999');
+  it('applies the symbol and multiplier before choosing the unit', () => {
+    expect(fmtShortC(100_000, '£', 0.79)).toBe('£79K');
+    expect(fmtShortC(1_200, '£', 0.79)).toBe('£948');
+  });
+
+  it('round-trips through parseShortCurrency at the K/M boundary', () => {
+    expect(parseShortCurrency(fmtShortC(999_500))).toBe(1_000_000);
   });
 });
 
