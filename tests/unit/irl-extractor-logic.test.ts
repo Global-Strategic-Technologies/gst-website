@@ -1,7 +1,5 @@
-import {
-  WEB_PROMPT_ARG_CEILING,
-  summarizeExtraction,
-} from '../../src/scripts/information-request-list-extractor/logic';
+import { summarizeExtraction } from '../../src/scripts/information-request-list-extractor/logic';
+import { WEB_PROMPT_ARG_CEILING } from '../../src/utils/irl/extract-markdown.mjs';
 import type { ExtractIrlMarkdownResult } from '../../src/utils/irl/extract-markdown.mjs';
 
 function result(overrides: Partial<ExtractIrlMarkdownResult> = {}): ExtractIrlMarkdownResult {

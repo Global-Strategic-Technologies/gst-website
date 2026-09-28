@@ -42,6 +42,9 @@ export interface ExtractIrlMarkdownOptions {
 /** The sheet the IRL generator writes its request table to. */
 export const PRIMARY_SHEET_NAME: string;
 
+/** The claude.ai web prompt-argument ceiling in UTF-8 bytes (an advisory, not an error). */
+export const WEB_PROMPT_ARG_CEILING: number;
+
 /** Join the Response (G) and Comments (E) cells into one contiguous answer span. */
 export function joinAnswerSpan(response: string, comments: string): string;
 

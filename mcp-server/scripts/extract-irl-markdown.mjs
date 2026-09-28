@@ -62,6 +62,7 @@ import XLSX from 'xlsx-js-style';
 
 import {
   PRIMARY_SHEET_NAME,
+  WEB_PROMPT_ARG_CEILING,
   extractIrlMarkdownFromRows,
 } from '../../src/utils/irl/extract-markdown.mjs';
 
@@ -220,9 +221,10 @@ function runCli() {
   // Desktop → prompt-arg path never emits the body, so a general "large body"
   // warning would fire on essentially every real workbook and contradict the
   // runbook's own "5-150KB is typical".
-  if (byteLength > 57_000) {
+  if (byteLength > WEB_PROMPT_ARG_CEILING) {
     process.stderr.write(
-      `\nNote: ${byteLength} bytes exceeds ~57KB. claude.ai web refuses a prompt argument this\n` +
+      `\nNote: ${byteLength} bytes exceeds ~${WEB_PROMPT_ARG_CEILING / 1000}KB. ` +
+        `claude.ai web refuses a prompt argument this\n` +
         `  size outright — use Claude Desktop for the paste. Nothing else is affected.\n`
     );
   }

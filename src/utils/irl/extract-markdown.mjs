@@ -70,6 +70,15 @@
 export const PRIMARY_SHEET_NAME = 'Information Request List';
 
 /**
+ * The claude.ai web prompt-argument ceiling, in UTF-8 bytes. Above it the
+ * body still converts and is still valid — only the web client refuses to
+ * carry it as a prompt arg, and Desktop does not. Both callers (the browser
+ * extractor page and the operator CLI) treat it as an advisory, never an
+ * error, and read it from here so the two cannot drift apart.
+ */
+export const WEB_PROMPT_ARG_CEILING = 57_000;
+
+/**
  * Join the Response and Comments cells into one contiguous answer span.
  *
  * Both are answers (BL-120): GST pre-populates research into Comments and the

@@ -6,16 +6,8 @@
  * download filename, the status line, the diagnostics row and the advisory.
  * Unit-tested by `tests/unit/irl-extractor-logic.test.ts`.
  */
+import { WEB_PROMPT_ARG_CEILING } from '../../utils/irl/extract-markdown.mjs';
 import type { ExtractIrlMarkdownResult } from '../../utils/irl/extract-markdown.mjs';
-
-/**
- * The claude.ai web prompt-argument ceiling. Above this the body still
- * converts and is still valid — only the web client refuses to carry it as
- * a prompt arg, and Desktop does not. Advisory, never an error: the CLI
- * treats it the same way, with its own copy of this number
- * (`mcp-server/scripts/extract-irl-markdown.mjs`) — change both together.
- */
-export const WEB_PROMPT_ARG_CEILING = 57_000;
 
 /** What the page renders for a workbook that converted to at least one row. */
 export interface ExtractionSummary {
@@ -52,7 +44,8 @@ export function summarizeExtraction(
       'not been filled in yet. It converted, but there is nothing in it to sweep.';
   } else if (byteLength > WEB_PROMPT_ARG_CEILING) {
     advisory =
-      `${byteLength.toLocaleString()} bytes exceeds the ~57,000-byte ceiling for a ` +
+      `${byteLength.toLocaleString()} bytes exceeds the ` +
+      `~${WEB_PROMPT_ARG_CEILING.toLocaleString('en-US')}-byte ceiling for a ` +
       'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
   }
 
