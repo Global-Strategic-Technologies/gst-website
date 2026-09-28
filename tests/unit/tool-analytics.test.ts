@@ -105,7 +105,7 @@ describe('Tool Analytics Naming Convention', () => {
   });
 
   describe('Diligence Machine events', () => {
-    const events = extractTrackEventCalls('src/pages/hub/tools/diligence-machine/index.astro');
+    const events = extractTrackEventCalls('src/scripts/diligence-machine');
 
     it('should use dm_ prefix for all events', () => {
       for (const e of events) {
@@ -193,7 +193,7 @@ describe('Tool Analytics Naming Convention', () => {
       'src/utils/techpar/dom.ts',
       'src/utils/techpar/chart.ts',
       'src/pages/hub/tools/regulatory-map/index.astro',
-      'src/pages/hub/tools/diligence-machine/index.astro',
+      'src/scripts/diligence-machine',
       'src/scripts/tech-debt-calculator',
       'src/scripts/infrastructure-cost-governance',
       'src/utils/mcp-analytics.ts',
@@ -220,7 +220,7 @@ describe('Tool Analytics Naming Convention', () => {
           ],
         },
         { prefix: 'rm_', paths: ['src/pages/hub/tools/regulatory-map/index.astro'] },
-        { prefix: 'dm_', paths: ['src/pages/hub/tools/diligence-machine/index.astro'] },
+        { prefix: 'dm_', paths: ['src/scripts/diligence-machine'] },
         { prefix: 'tdc_', paths: ['src/scripts/tech-debt-calculator'] },
         {
           prefix: 'icg_',
