@@ -26,6 +26,15 @@ export function formatCurrency(n: number, currency: string): string {
 }
 
 /**
+ * A typed amount, read in the selected currency, back to the USD the state
+ * holds. The direct inputs display converted amounts, so what the user types
+ * is in that currency too. `NaN` stays `NaN` for the "couldn't read" path.
+ */
+export function toUsd(n: number, currency: string): number {
+  return n / CURRENCIES[currency].multiplier;
+}
+
+/**
  * The short form used in the results, slider readouts and direct inputs, e.g.
  * `$1.2M`, `£79K` — the engine's `fmtShortC`, which also formats the copied
  * summary, keyed by currency code.

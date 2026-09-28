@@ -849,6 +849,19 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('€500K')).toBe(500_000);
   });
 
+  it('reads back the multi-character symbols the display prints (C$, A$)', () => {
+    expect(parseShortCurrency('C$1.2B')).toBe(1_200_000_000);
+    expect(parseShortCurrency('A$153K')).toBe(153_000);
+    expect(parseShortCurrency('usd 5M')).toBe(5_000_000);
+    expect(parseShortCurrency('C$-500K')).toBe(-500_000);
+  });
+
+  it('reads back every fmtShortC output, whatever the symbol', () => {
+    for (const symbol of ['$', '€', '£', 'C$', 'A$']) {
+      expect(parseShortCurrency(fmtShortC(2_500_000, symbol)), symbol).toBe(2_500_000);
+    }
+  });
+
   it('strips commas and whitespace', () => {
     expect(parseShortCurrency('1,500,000')).toBe(1_500_000);
     expect(parseShortCurrency(' $1.5M ')).toBe(1_500_000);

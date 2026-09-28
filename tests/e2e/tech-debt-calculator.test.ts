@@ -928,5 +928,18 @@ test.describe('Tech Debt Calculator', () => {
       const msg = await getClampMsg(page, 'maint-pct');
       expect(msg).toMatch(/Maximum maintenance burden is 100%/);
     });
+
+    test('typed amounts are read in the selected currency, not as USD', async ({ page }) => {
+      await page.locator('#currency-select').selectOption('EUR');
+      await typeDirect(page, 'salary', '€140K');
+      // Stored as USD and converted back for display: it must read what was typed
+      expect(await page.locator('[data-direct="salary"]').inputValue()).toBe('€140K');
+
+      // A CAD amount under the $1B ceiling (C$1.2B ≈ $882M) must not be clamped
+      await page.locator('#currency-select').selectOption('CAD');
+      await typeDirect(page, 'arr', 'C$1.2B');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(false);
+      expect(await page.locator('[data-direct="arr"]').inputValue()).toBe('C$1.2B');
+    });
   });
 });

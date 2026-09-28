@@ -4,6 +4,7 @@ import {
   formatCurrency,
   formatShortCurrency,
   hasNonDefaultAdvanced,
+  toUsd,
 } from '../../src/scripts/tech-debt-calculator/logic';
 import { DEFAULT_STATE } from '../../src/utils/tech-debt-engine';
 
@@ -33,6 +34,19 @@ describe('tech-debt-calculator logic — currency formatting', () => {
     expect(formatShortCurrency(999, 'USD')).toBe('$999');
     // 1,200 USD is 948 GBP — the threshold applies to the converted value
     expect(formatShortCurrency(1_200, 'GBP')).toBe('£948');
+  });
+
+  it('toUsd reads a typed amount in the selected currency back to USD', () => {
+    expect(toUsd(140_000, 'USD')).toBe(140_000);
+    expect(toUsd(92_000, 'EUR')).toBeCloseTo(100_000, 6);
+    expect(toUsd(1_360_000_000, 'CAD')).toBeCloseTo(1_000_000_000, 3);
+    expect(toUsd(NaN, 'EUR')).toBeNaN();
+  });
+
+  it('a typed amount survives the round trip to USD and back to the display', () => {
+    for (const code of Object.keys(CURRENCIES)) {
+      expect(formatShortCurrency(toUsd(140_000, code), code), code).toMatch(/140K$/);
+    }
   });
 
   it('every currency has a symbol and a positive multiplier', () => {

@@ -22,7 +22,13 @@ import {
 import type { CalcState, CalcResult } from '../../utils/tech-debt-engine';
 import { trackEvent } from '../../utils/analytics';
 import { copyWithFeedback } from '../../utils/copy-feedback';
-import { CURRENCIES, formatCurrency, formatShortCurrency, hasNonDefaultAdvanced } from './logic';
+import {
+  CURRENCIES,
+  formatCurrency,
+  formatShortCurrency,
+  hasNonDefaultAdvanced,
+  toUsd,
+} from './logic';
 
 // Analytics: fire tdc_start once per page load on first slider interaction
 let tdcStartFired = false;
@@ -411,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (salInput) {
     salInput.addEventListener('input', () => showClampMsg('salary', null));
     salInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(salInput.value);
+      const parsed = toUsd(parseShortCurrency(salInput.value), currency);
       const { value, reason } = resolveTyped(
         salInput.value,
         parsed,
@@ -495,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (arrInput) {
     arrInput.addEventListener('input', () => showClampMsg('arr', null));
     arrInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(arrInput.value);
+      const parsed = toUsd(parseShortCurrency(arrInput.value), currency);
       const { value, reason } = resolveTyped(
         arrInput.value,
         parsed,
@@ -516,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (budgetInput) {
     budgetInput.addEventListener('input', () => showClampMsg('budget', null));
     budgetInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(budgetInput.value);
+      const parsed = toUsd(parseShortCurrency(budgetInput.value), currency);
       const { value, reason } = resolveTyped(
         budgetInput.value,
         parsed,

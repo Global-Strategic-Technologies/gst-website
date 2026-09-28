@@ -295,7 +295,11 @@ export function decodeState(encoded: string): DecodedState | null {
  */
 export function parseShortCurrency(input: string): number {
   if (typeof input !== 'string') return NaN;
-  const cleaned = input.replace(/[\s,$£€¥]/g, '').toUpperCase();
+  const cleaned = input
+    .replace(/[\s,$£€¥]/g, '')
+    .toUpperCase()
+    // A letter prefix left by "C$" / "A$" (or a typed "USD"), before the number
+    .replace(/^[A-Z]{1,3}(?=[+-]?\d)/, '');
   // Allow optional leading +/-, digits, optional decimal, optional K|M|B suffix
   const match = cleaned.match(/^([+-]?\d+(?:\.\d+)?)([KMB])?$/);
   if (!match) return NaN;
