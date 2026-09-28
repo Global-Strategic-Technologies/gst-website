@@ -274,7 +274,15 @@ describe('formatDollars()', () => {
   it('formats thousands correctly', () => {
     expect(formatDollars(5000)).toBe('$5K');
     expect(formatDollars(50_000)).toBe('$50K');
-    expect(formatDollars(999_999)).toBe('$1000K');
+    expect(formatDollars(999_499)).toBe('$999K');
+  });
+
+  it('never prints "1000K" or "1000.0M": a rounded-up amount takes the larger unit', () => {
+    expect(formatDollars(999_500)).toBe('$1.0M');
+    expect(formatDollars(999_999)).toBe('$1.0M');
+    expect(formatDollars(999_949_999)).toBe('$999.9M');
+    expect(formatDollars(999_950_000)).toBe('$1.0B');
+    expect(formatDollars(-999_999)).toBe('-$1.0M');
   });
 
   it('formats millions correctly', () => {

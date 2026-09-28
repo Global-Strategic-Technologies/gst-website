@@ -12,7 +12,7 @@
  * is written against.
  *
  * Lives in its own module and **imports nothing**, following
- * `radar-feed-bounds.ts` — the page consumes it from a client `<script>`, and
+ * `radar-feed-bounds.ts` — the page consumes it from its client script, and
  * `fetchRegulations.ts` (the other natural home) reaches `astro:content` via a
  * dynamic import. Keeping this dependency-free means the browser bundle cannot
  * take a path to a server-only virtual module. The parameter is typed

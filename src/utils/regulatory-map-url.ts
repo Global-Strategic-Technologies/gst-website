@@ -8,7 +8,7 @@
  *   - `filter` — category, one of VALID_CATEGORIES; unrecognized values are
  *     dropped on decode (treated as "no filter")
  *
- * Imported by both the website page (`src/pages/hub/tools/regulatory-map/index.astro`)
+ * Imported by both the website's regulatory-map page client script (ADR-0042)
  * and the MCP tool wrapper (`mcp-server/src/tools/regulations.ts`) so the
  * encoder is a single source of truth.
  */

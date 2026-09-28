@@ -6,7 +6,7 @@
  * parameter; the `geographies` array is comma-joined.
  *
  * Imported by both:
- *   - the website page (`src/pages/hub/tools/diligence-machine/index.astro`)
+ *   - the website's diligence-machine page client script (ADR-0042)
  *     for syncing URL state on input changes and hydrating from URL on
  *     page-load init (URL takes precedence over localStorage)
  *   - the MCP tool wrapper (`mcp-server/src/tools/diligence.ts`) for

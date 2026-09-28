@@ -4,7 +4,7 @@
  * Tests all pure functions:
  * - Slider transform functions (pos → value, value → pos)
  * - calculate(): core cost computation in quick and deep modes
- * - fmt / fmtShort / fmtPayback: formatting utilities
+ * - fmtPayback / fmtShortC: formatting utilities
  * - DEPLOY_OPTIONS: data integrity
  * - DEFAULT_STATE: initial values
  */
@@ -19,9 +19,8 @@ import {
   budgetToPos,
   arrToPos,
   calculate,
-  fmt,
-  fmtShort,
   fmtPayback,
+  fmtShortC,
   DEFAULT_STATE,
   DEPLOY_OPTIONS,
   encodeState,
@@ -360,31 +359,39 @@ describe('DEPLOY_OPTIONS', () => {
 
 // ─── Formatting utilities ─────────────────────────────────────────────────────
 
-describe('fmt', () => {
-  it('formats as USD with no decimals', () => {
-    expect(fmt(1000)).toBe('$1,000');
-    expect(fmt(1500000)).toBe('$1,500,000');
-  });
-});
-
-describe('fmtShort', () => {
-  it('formats millions with one decimal', () => {
-    expect(fmtShort(1_500_000)).toBe('$1.5M');
-    expect(fmtShort(2_000_000)).toBe('$2.0M');
+describe('fmtShortC', () => {
+  it('formats millions with one decimal and thousands whole', () => {
+    expect(fmtShortC(1_500_000)).toBe('$1.5M');
+    expect(fmtShortC(1_000_000)).toBe('$1.0M');
+    expect(fmtShortC(150_000)).toBe('$150K');
+    expect(fmtShortC(1_000)).toBe('$1K');
   });
 
-  it('formats exactly 1_000_000 as $1.0M (>= branch)', () => {
-    expect(fmtShort(1_000_000)).toBe('$1.0M');
+  it('never prints "1000K": amounts that round to a thousand K are millions', () => {
+    expect(fmtShortC(999_499)).toBe('$999K');
+    expect(fmtShortC(999_500)).toBe('$1.0M');
+    expect(fmtShortC(999_999)).toBe('$1.0M');
   });
 
-  it('formats thousands with no decimal', () => {
-    expect(fmtShort(150_000)).toBe('$150K');
-    expect(fmtShort(1_000)).toBe('$1K');
+  it('never prints "1000.0M": amounts that round to a thousand M are billions', () => {
+    expect(fmtShortC(999_949_999)).toBe('$999.9M');
+    expect(fmtShortC(999_950_000)).toBe('$1.0B');
+    expect(fmtShortC(1_000_000_000)).toBe('$1.0B');
   });
 
-  it('falls back to full format below 1000', () => {
-    expect(fmtShort(500)).toBe('$500');
-    expect(fmtShort(999)).toBe('$999');
+  it('prints whole units below 1,000', () => {
+    expect(fmtShortC(999)).toBe('$999');
+    expect(fmtShortC(500)).toBe('$500');
+  });
+
+  it('applies the symbol and multiplier before choosing the unit', () => {
+    expect(fmtShortC(100_000, '£', 0.79)).toBe('£79K');
+    expect(fmtShortC(1_200, '£', 0.79)).toBe('£948');
+  });
+
+  it('round-trips through parseShortCurrency at the K/M and M/B boundaries', () => {
+    expect(parseShortCurrency(fmtShortC(999_500))).toBe(1_000_000);
+    expect(parseShortCurrency(fmtShortC(1_000_000_000))).toBe(1_000_000_000);
   });
 });
 
@@ -830,11 +837,29 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('1.5M')).toBe(1_500_000);
   });
 
+  it('honors B suffix as billions (matches fmtShortC output)', () => {
+    expect(parseShortCurrency('$1.0B')).toBe(1_000_000_000);
+    expect(parseShortCurrency('5b')).toBe(5_000_000_000);
+  });
+
   it('strips currency symbol prefix ($, £, €, ¥)', () => {
     expect(parseShortCurrency('$237500')).toBe(237_500);
     expect(parseShortCurrency('$12.5M')).toBe(12_500_000);
     expect(parseShortCurrency('£1M')).toBe(1_000_000);
     expect(parseShortCurrency('€500K')).toBe(500_000);
+  });
+
+  it('reads back the multi-character symbols the display prints (C$, A$)', () => {
+    expect(parseShortCurrency('C$1.2B')).toBe(1_200_000_000);
+    expect(parseShortCurrency('A$153K')).toBe(153_000);
+    expect(parseShortCurrency('usd 5M')).toBe(5_000_000);
+    expect(parseShortCurrency('C$-500K')).toBe(-500_000);
+  });
+
+  it('reads back every fmtShortC output, whatever the symbol', () => {
+    for (const symbol of ['$', '€', '£', 'C$', 'A$']) {
+      expect(parseShortCurrency(fmtShortC(2_500_000, symbol)), symbol).toBe(2_500_000);
+    }
   });
 
   it('strips commas and whitespace', () => {
@@ -860,7 +885,7 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('')).toBeNaN();
     expect(parseShortCurrency('abc')).toBeNaN();
     expect(parseShortCurrency('1.2.3')).toBeNaN();
-    expect(parseShortCurrency('1B')).toBeNaN(); // B suffix not supported
+    expect(parseShortCurrency('1X')).toBeNaN(); // unknown suffix
     expect(parseShortCurrency('12.5MM')).toBeNaN();
   });
 

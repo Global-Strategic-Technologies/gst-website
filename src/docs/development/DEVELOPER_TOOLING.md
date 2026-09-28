@@ -605,7 +605,7 @@ expect(results.critical).toHaveLength(0);
 
 ### Coverage reporting
 
-`npm run test:coverage` reports line coverage via `@vitest/coverage-v8` over `src/utils/**` and `src/data/**/*.ts`, minus the browser-only modules listed in `vitest.config.ts` (covered by E2E instead). The threshold is **70% lines**; CI's Unit & Integration Tests job runs with coverage, so dropping below it fails a required check.
+`npm run test:coverage` reports line coverage via `@vitest/coverage-v8` over `src/utils/**`, `src/data/**/*.ts` and each tool page's DOM-free `src/scripts/*/logic.ts` ([ADR-0042](../adr/0042-tool-page-client-scripts.md)), minus the browser-only modules listed in `vitest.config.ts` (covered by E2E instead). The threshold is **70% lines**; CI's Unit & Integration Tests job runs with coverage, so dropping below it fails a required check.
 
 ## Lighthouse CI (performance budgets)
 

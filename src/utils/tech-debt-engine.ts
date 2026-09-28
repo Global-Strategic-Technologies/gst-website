@@ -2,7 +2,7 @@
  * Tech Debt Cost Calculator — pure calculation engine
  *
  * All functions are stateless and side-effect free, making them
- * directly importable by unit tests and by the page <script> block.
+ * directly importable by unit tests and by the tool page's client script.
  */
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -171,19 +171,6 @@ export function calculate(state: CalcState): CalcResult {
 
 // ─── Formatting utilities ─────────────────────────────────────────────────────
 
-export const fmt = (n: number): string =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n);
-
-export const fmtShort = (n: number): string => {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return fmt(n);
-};
-
 export const fmtPayback = (months: number): string => {
   if (months < 1) return '< 1 mo';
   if (months > 60) return '> 5 yrs';
@@ -291,7 +278,7 @@ export function decodeState(encoded: string): DecodedState | null {
 // ─── Currency parsing ─────────────────────────────────────────────────────────
 
 /**
- * Parses a currency string with optional K/M suffix into a number.
+ * Parses a currency string with optional K/M/B suffix into a number.
  * Honors the same shorthand format the UI displays back (`fmtShortC`), so the
  * user can mirror what they see ("$12.5M") instead of being forced to type
  * seven zeros. Leading currency symbol, commas, and whitespace are stripped.
@@ -301,19 +288,26 @@ export function decodeState(encoded: string): DecodedState | null {
  * Examples:
  *   parseShortCurrency("$12.5M") → 12500000
  *   parseShortCurrency("750K")   → 750000
+ *   parseShortCurrency("$1.0B")  → 1000000000
  *   parseShortCurrency("237500") → 237500
  *   parseShortCurrency("1,000")  → 1000
  *   parseShortCurrency("")       → NaN
  */
 export function parseShortCurrency(input: string): number {
   if (typeof input !== 'string') return NaN;
-  const cleaned = input.replace(/[\s,$£€¥]/g, '').toUpperCase();
-  // Allow optional leading +/-, digits, optional decimal, optional K|M suffix
-  const match = cleaned.match(/^([+-]?\d+(?:\.\d+)?)([KM])?$/);
+  const cleaned = input
+    .replace(/[\s,$£€¥]/g, '')
+    .toUpperCase()
+    // A letter prefix left by "C$" / "A$" (or a typed "USD"), before the number
+    .replace(/^[A-Z]{1,3}(?=[+-]?\d)/, '');
+  // Allow optional leading +/-, digits, optional decimal, optional K|M|B suffix
+  const match = cleaned.match(/^([+-]?\d+(?:\.\d+)?)([KMB])?$/);
   if (!match) return NaN;
   const num = parseFloat(match[1]);
   if (!Number.isFinite(num)) return NaN;
-  const mult = match[2] === 'M' ? 1_000_000 : match[2] === 'K' ? 1_000 : 1;
+  const suffix = match[2];
+  const mult =
+    suffix === 'B' ? 1_000_000_000 : suffix === 'M' ? 1_000_000 : suffix === 'K' ? 1_000 : 1;
   return num * mult;
 }
 
@@ -323,7 +317,10 @@ export function parseShortCurrency(input: string): number {
 
 export const fmtShortC = (n: number, symbol: string = '$', multiplier: number = 1): string => {
   const v = n * multiplier;
-  if (v >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
+  // Each threshold sits where the smaller unit would round up to 1000
+  // ("1000K", "1000.0M"), so such amounts print in the larger unit instead.
+  if (v >= 999_950_000) return `${symbol}${(v / 1_000_000_000).toFixed(1)}B`;
+  if (v >= 999_500) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
   return `${symbol}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v)}`;
 };

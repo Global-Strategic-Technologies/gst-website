@@ -2,7 +2,7 @@
  * TechPar - pure calculation engine
  *
  * All functions are stateless and side-effect free, making them
- * directly importable by unit tests and by the page <script> block.
+ * directly importable by unit tests and by the tool page's client script.
  */
 
 import { STAGES } from '../data/techpar/stages';
@@ -158,8 +158,10 @@ export function formatDollars(n: number, symbol: string = '$'): string {
   if (!isFinite(n) || n === null) return '\u2014';
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  if (abs >= 1e9) return sign + symbol + (abs / 1e9).toFixed(1) + 'B';
-  if (abs >= 1e6) return sign + symbol + (abs / 1e6).toFixed(1) + 'M';
+  // Each threshold sits where the smaller unit would round up to 1000
+  // ("1000.0M", "1000K"), so such amounts print in the larger unit instead.
+  if (abs >= 999_950_000) return sign + symbol + (abs / 1e9).toFixed(1) + 'B';
+  if (abs >= 999_500) return sign + symbol + (abs / 1e6).toFixed(1) + 'M';
   if (abs >= 1e3) return sign + symbol + Math.round(abs / 1e3) + 'K';
   return sign + symbol + Math.round(abs);
 }
