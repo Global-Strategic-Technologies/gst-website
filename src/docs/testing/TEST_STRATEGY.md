@@ -39,7 +39,7 @@ For **Astro static sites**, the pyramid is inverted from traditional SPAs:
 4. **Static rendering is reliable** - Less need for E2E snapshot testing
 5. **Build-time safety is high** - TypeScript catches many errors early
 
-The practical rule that follows: **logic that can be a pure function should be one**, exported from `src/utils/` (or `src/data/`) and tested at the unit tier. An inline predicate inside an `.astro` `<script>` can only be reached by E2E, which is the slowest and least precise place to pin a truth table.
+The practical rule that follows: **logic that can be a pure function should be one**, exported from `src/utils/` (or `src/data/`, or a tool page's `src/scripts/<tool>/logic.ts` — [ADR-0042](../adr/0042-tool-page-client-scripts.md)) and tested at the unit tier. An inline predicate inside an `.astro` `<script>` can only be reached by E2E, which is the slowest and least precise place to pin a truth table.
 
 ---
 
@@ -48,7 +48,7 @@ The practical rule that follows: **logic that can be a pure function should be o
 | Tool                       | Used for                                                                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Vitest**                 | Unit and integration tiers. Vite-native, TypeScript without extra config. `globals: true` supplies `describe`/`it`/`expect`/`vi`; value imports from `'vitest'` are lint-banned |
-| **`@vitest/coverage-v8`**  | Line coverage over `src/utils/**` and `src/data/**/*.ts` (threshold in `vitest.config.ts`)                                                                                      |
+| **`@vitest/coverage-v8`**  | Line coverage over `src/utils/**`, `src/data/**/*.ts` and `src/scripts/*/logic.ts` (threshold in `vitest.config.ts`)                                                            |
 | **Playwright**             | E2E tier — chromium, firefox and webkit projects against a dev server                                                                                                           |
 | **`@axe-core/playwright`** | Accessibility scans inside the E2E tier (§ 3.3)                                                                                                                                 |
 | **No Testing Library**     | Astro components render to static HTML, so there is no component runtime to mount; Playwright locators cover the DOM                                                            |
@@ -81,7 +81,7 @@ describe('compute() null guards', () => {
 });
 ```
 
-Engines that a browser-only module wraps (`techpar-ui.ts`, `techpar/chart.ts`, `techpar/dom.ts`, …) are excluded from coverage in `vitest.config.ts` and covered by E2E instead.
+Engines that a browser-only module wraps (`techpar-ui.ts`, `techpar/chart.ts`, `techpar/dom.ts`, …) are excluded from coverage in `vitest.config.ts` and covered by E2E instead. Tool-page client scripts under `src/scripts/<tool>/` are outside the coverage `include` for the same reason — except each tool's DOM-free `logic.ts`, which is unit-tested and counted ([ADR-0042](../adr/0042-tool-page-client-scripts.md)).
 
 ---
 
@@ -196,7 +196,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
     coverage: {
-      include: ['src/utils/**', 'src/data/**/*.ts'],
+      include: ['src/utils/**', 'src/data/**/*.ts', 'src/scripts/*/logic.ts'],
       thresholds: { lines: 70 },
     },
   },

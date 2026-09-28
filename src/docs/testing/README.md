@@ -25,7 +25,7 @@ What to test at each tier, where tests live, and what E2E does in CI. Commands, 
 ## Quick Facts
 
 - **Unit and integration**: Vitest, Node environment, globals on (`vitest.config.ts`). Do not write value imports from `'vitest'` — ESLint bans them; a type-only import is fine.
-- **Coverage**: 70% line threshold over `src/utils/**` and `src/data/**/*.ts`, with browser-only modules excluded (the list is in `vitest.config.ts`).
+- **Coverage**: 70% line threshold over `src/utils/**`, `src/data/**/*.ts` and `src/scripts/*/logic.ts`, with browser-only modules excluded (the list is in `vitest.config.ts`).
 - **E2E**: Playwright with chromium, firefox and webkit projects. Local `npm run test:e2e` runs all three. The required CI job runs chromium only; the full three-browser run is the manual `test-cross-browser.yml` workflow.
 - **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet, plus the orphan-class scan (BL-116: every DOM class needs a CSS rule or a reasoned `ALLOWED_UNSTYLED` entry). See [DEVELOPER_TOOLING § Accessibility testing](../development/DEVELOPER_TOOLING.md#accessibility-testing).
 

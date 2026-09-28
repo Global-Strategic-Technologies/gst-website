@@ -2,7 +2,7 @@
  * TechPar - pure calculation engine
  *
  * All functions are stateless and side-effect free, making them
- * directly importable by unit tests and by the page <script> block.
+ * directly importable by unit tests and by the tool page's client script.
  */
 
 import { STAGES } from '../data/techpar/stages';
