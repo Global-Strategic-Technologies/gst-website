@@ -40,7 +40,7 @@ describe('IRL extractor — summarizeExtraction', () => {
     expect(summarizeExtraction(r, 'IRL', 'a.xlsx').diag).toEqual({
       bullets: '2',
       sections: '00 09',
-      bytes: '0.1 KB', // ~56 UTF-8 bytes (each "—" is 3), to one decimal of a KB
+      bytes: '0.1 KB', // 54 UTF-8 bytes (each "—" is 3), to one decimal of a KB
       comments: '1',
       contradictions: '2',
     });

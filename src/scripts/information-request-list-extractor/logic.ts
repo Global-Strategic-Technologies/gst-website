@@ -12,7 +12,8 @@ import type { ExtractIrlMarkdownResult } from '../../utils/irl/extract-markdown.
  * The claude.ai web prompt-argument ceiling. Above this the body still
  * converts and is still valid — only the web client refuses to carry it as
  * a prompt arg, and Desktop does not. Advisory, never an error: the CLI
- * treats it the same way.
+ * treats it the same way, with its own copy of this number
+ * (`mcp-server/scripts/extract-irl-markdown.mjs`) — change both together.
  */
 export const WEB_PROMPT_ARG_CEILING = 57_000;
 
