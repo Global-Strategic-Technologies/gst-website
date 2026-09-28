@@ -60,9 +60,8 @@ const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';
 const CACHE_KEY_FYI = 'mcp:radar:cache:fyi';
 
 // FYI_FETCH_COUNT (the shared FYI fetch size) lives in the dependency-free
-// radar-transform.ts so light modules can key the cache without this file's
-// Upstash graph; re-exported for existing importers.
-export { FYI_FETCH_COUNT };
+// radar-transform.ts, so light modules can key the cache without this file's
+// Upstash graph; import it from there.
 
 /** What the radar-live tools get back. Mirrors `SnapshotTier` shape. */
 export type LiveTierResult =
