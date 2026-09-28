@@ -29,7 +29,8 @@ export function formatCurrency(n: number, currency: string): string {
 export function formatShortCurrency(n: number, currency: string): string {
   const { symbol, multiplier } = CURRENCIES[currency];
   const v = n * multiplier;
-  if (v >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
+  // From 999,500 the K form would round up to "1000K"; print it as millions.
+  if (v >= 999_500) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
   return formatCurrency(n, currency);
 }

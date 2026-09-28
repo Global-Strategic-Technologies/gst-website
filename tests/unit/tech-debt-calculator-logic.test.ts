@@ -23,6 +23,12 @@ describe('tech-debt-calculator logic — currency formatting', () => {
     expect(formatShortCurrency(100_000, 'GBP')).toBe('£79K');
   });
 
+  it('short form never prints "1000K": amounts that round to a thousand K are millions', () => {
+    expect(formatShortCurrency(999_499, 'USD')).toBe('$999K');
+    expect(formatShortCurrency(999_500, 'USD')).toBe('$1.0M');
+    expect(formatShortCurrency(999_999, 'USD')).toBe('$1.0M');
+  });
+
   it('short form falls back to the whole form under 1,000 after conversion', () => {
     expect(formatShortCurrency(999, 'USD')).toBe('$999');
     // 1,200 USD is 948 GBP — the threshold applies to the converted value
