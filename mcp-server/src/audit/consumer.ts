@@ -16,8 +16,9 @@
  *
  * **Failure posture — the load-bearing divergence from the `scheduled`
  * handler.** Unlike the retry-less cron (which deliberately swallows and
- * drops, `worker.ts:265-273`), a dropped audit record is unacceptable. Any
- * failure — including a null/unreachable Upstash — re-queues the whole batch
+ * drops, in the `scheduled` handler's outer catch in `worker.ts`), a
+ * dropped audit record is unacceptable. Any failure — including a
+ * null/unreachable Upstash — re-queues the whole batch
  * (`batch.retryAll()`) → platform retry → DLQ. We ack ONLY on a fully durable
  * commit. This is SDK-free (owns its own Sentry-envelope lifecycle; the fetch
  * handler's `withSentry` does not wrap `queue`).

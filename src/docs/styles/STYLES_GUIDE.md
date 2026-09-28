@@ -125,16 +125,16 @@ when it was removed: a Total of 160 against rows summing to 152, over a `:root` 
 | --------------------- | ------------------------------------------------------------------------------ |
 | Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary`                              |
 | Primary opacity scale | `--color-primary-02` through `--color-primary-65`                              |
-| Component colors      | `--filter-chip-bg`, `--service-card-text`, `--footer-bg`                       |
+| Component colors      | `--filter-chip-bg`, `--cta-box-text`, `--footer-bg`                            |
 | Tool-domain colors    | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*`, `--regmap-*`       |
-| Misc colors           | `--checkerboard-line`, `--theme-toggle-color`                                  |
+| Misc colors           | `--checkerboard-line`                                                          |
 | Spacing               | `--spacing-xs` through `--spacing-3xl`, plus `--spacing-1_25`/`-1_75`/`-2_5xl` |
 | Gaps                  | `--gap-tight` through `--gap-extra-wide`                                       |
 | Typography            | `--font-family`, `--font-weight-*`, `--text-*`                                 |
 | Transitions           | `--transition-fast`, `--transition-normal`, `--transition-slow`                |
 | Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                                    |
 
-> Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
+> Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. Utility classes are defined across `variables.css`, `typography.css`, and `interactions.css` (see [Available Utility Classes](#available-utility-classes) below).
 
 **A token name that doesn't exist fails the build.** An undefined custom property does not error
 in the browser: the declaration becomes invalid at computed-value time and the property silently
@@ -156,8 +156,8 @@ Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 src/styles/
 ├── variables.css           # Design tokens + utility classes (flex-center, text-label, etc.)
 ├── palettes.css            # Alternative color palette definitions (light + dark theme)
-├── typography.css          # 11 semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .nav-link, .button-text-*)
-├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .control-*, .focus-outline-*)
+├── typography.css          # Semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .brutal-data-*)
+├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .focus-outline-*, .brutal-* variants, .delta-chevron)
 ├── global.css              # Page layout, utilities, responsive rules — imports component modules below
 └── components/             # Extracted component-specific styles (from global.css)
     ├── tool-ui.css          # Tool bench notes, action bars, methodology panels
@@ -571,15 +571,11 @@ page before it was caught.
 - `.flex-between` — space-between flexbox
 - `.text-uppercase` — uppercase + letter-spacing
 - `.text-label` — label styling (xs, bold, uppercase, muted)
-- `.interactive-element` — transition + primary color on hover
-- `.interactive-focus` — 2px primary outline
 
 **From `interactions.css`:**
 
 - `.interactive` — transition + primary hover + focus-visible outline
 - `.link-interactive` — link with underline animation
-- `.control-hover` / `.control-active` — button state classes
-- `.accent-light-bg` / `.accent-light-bg-hover` — accent backgrounds
 - `.focus-outline` / `.focus-outline-sm` — focus ring utilities
 - `.delta-chevron` — collapse/expand toggle indicator using the brand delta triangle
 
@@ -782,7 +778,7 @@ Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css
 
 | Token                  | Value   | Usage                                        |
 | ---------------------- | ------- | -------------------------------------------- |
-| `--z-negative`         | `-1`    | `body::before` background grid               |
+| `--z-negative`         | `-1`    | Behind content (published; no in-repo consumer) |
 | `--z-base`             | `1`     | Normal content stacking                      |
 | `--z-raised`           | `5`     | Tool content layers (maps, charts)           |
 | `--z-sticky`           | `10`    | Sticky headers, dropdowns anchored to content |
@@ -1025,15 +1021,13 @@ Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css
 
 ### Skeleton Loading Placeholders
 
-For components that load content asynchronously, use the skeleton loading pattern. The `@keyframes pulse` animation and the classes below are defined in [`src/styles/components/skeleton.css`](../../styles/components/skeleton.css).
+For components that load content asynchronously, use the skeleton loading pattern. The classes below and their `brutal-blink` animation are defined in [`src/styles/components/skeleton.css`](../../styles/components/skeleton.css).
 
 **Canonical reference**: the live specimens on [`/brand`](../../pages/brand.astro) — see `src/components/brand/BrandComponents.astro`, which is the in-repo control example for this pattern.
 
 > Do **not** reach for a skeleton to defer a page's primary content **on a page you want indexed**. Crawlers run JS on a deferred queue and judge the shell, so the page gets rated on whatever the skeleton is standing in for. `/hub/radar` is the exception that proves the rule rather than a violation of it: its feed _is_ deferred behind a skeleton, and that is fine precisely because the page is `noindex` — a rotating feed with no per-item permalinks is not an indexable page type. See [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md) and [RADAR.md § Why the feed is a server island](../hub/RADAR.md). If you are deferring primary content on an indexable page, you have the wrong tool.
 
-**Global classes** — two families, and they are not interchangeable.
-
-Brutalist (current design system; what new work should use):
+**Global classes**:
 
 | Class                      | Description                                   |
 | -------------------------- | --------------------------------------------- |
@@ -1041,22 +1035,12 @@ Brutalist (current design system; what new work should use):
 | `.brutal-skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
 | `.brutal-skeleton-dot`     | Square placeholder (8px, `border-radius: 0`)  |
 
-These are outlined, not filled: `background: transparent` with a `1px solid var(--color-primary)` border, animated with the stepped `brutal-blink`. `RadarFeedSkeleton.astro` is the in-repo consumer.
-
-Legacy (soft/filled, retained for existing callers):
-
-| Class               | Description                                   |
-| ------------------- | --------------------------------------------- |
-| `.skeleton-bar`     | Rectangular placeholder bar (0.875rem height) |
-| `.skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
-| `.skeleton-dot`     | Circular placeholder (8px)                    |
-
-These use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the smooth `pulse` animation.
+These are outlined, not filled: `background: transparent` with a `1px solid var(--color-primary)` border, animated with the stepped `brutal-blink`. `RadarFeedSkeleton.astro` is the reference in-repo consumer.
 
 ```html
 <!-- Example: text block skeleton -->
-<div class="skeleton-bar" style="width: 80%"></div>
-<div class="skeleton-bar skeleton-bar--sm" style="width: 40%; animation-delay: 0.3s"></div>
+<div class="brutal-skeleton-bar" style="width: 80%"></div>
+<div class="brutal-skeleton-bar brutal-skeleton-bar--sm" style="width: 40%; animation-delay: 0.3s"></div>
 ```
 
 **Convention**:

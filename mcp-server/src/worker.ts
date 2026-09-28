@@ -169,8 +169,8 @@ export const handler: ExportedHandler<Env> = {
    * ignored by Cloudflare.
    *
    * **Envelope-direct observability** (BL-032.76 — replaces the prior
-   * `withMonitor` + `captureException` + `flushSentry` stack as of
-   * 2026-05-26):
+   * SDK cron-monitor + exception-capture + flush stack as of 2026-05-26;
+   * those wrappers were later deleted from `observability/sentry.ts`):
    *
    *   - Sentry Crons check-ins are sent via direct envelope POST
    *     (`postSentryCheckIn`) — `in_progress` at start, then `ok` /

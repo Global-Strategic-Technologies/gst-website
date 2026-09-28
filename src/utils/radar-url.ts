@@ -18,8 +18,7 @@
  * encoder + decoder grow in lockstep with the website surface.
  */
 
-const RADAR_CATEGORIES = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security'] as const;
-type RadarCategory = (typeof RADAR_CATEGORIES)[number];
+import { RADAR_CATEGORIES, type RadarCategoryId as RadarCategory } from './radar-categories';
 
 const CATEGORY_SET: ReadonlySet<string> = new Set(RADAR_CATEGORIES);
 

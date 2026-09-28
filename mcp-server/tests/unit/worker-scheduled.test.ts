@@ -50,10 +50,7 @@ const {
 vi.mock('@sentry/cloudflare', () => ({
   init: vi.fn(),
   captureMessage: vi.fn(),
-  captureException: vi.fn(),
   setTag: vi.fn(),
-  flush: vi.fn().mockResolvedValue(true),
-  withMonitor: vi.fn(),
   withSentry: withSentryMock,
 }));
 vi.mock('agents/mcp', () => ({

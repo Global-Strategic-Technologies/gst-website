@@ -51,6 +51,7 @@ import {
   type LiveTierResult,
   type CachedTierResult,
 } from '../content/radar-live-store';
+import { FYI_FETCH_COUNT } from '../content/radar-transform';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { Env } from '../env';
@@ -303,11 +304,11 @@ export async function handleAuthenticated(
     let wire: LiveTierResult | CachedTierResult;
     let fyi: LiveTierResult | CachedTierResult;
     if (snapshotDegraded) {
-      [wire, fyi] = await Promise.all([readWireCached(env), readFyiCached(env, 30)]);
+      [wire, fyi] = await Promise.all([readWireCached(env), readFyiCached(env, FYI_FETCH_COUNT)]);
     } else {
       const [liveWire, liveFyi] = await Promise.all([
         readWireLive(env, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
-        readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
+        readFyiLive(env, FYI_FETCH_COUNT, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
       ]);
       // BL-091 — this surface can now OPEN the breaker. It is the highest-volume
       // Inoreader consumer and was previously one of two paths that could eat a
@@ -357,7 +358,7 @@ export async function handleAuthenticated(
   // Authenticated + within rate limit — log + delegate to MCP handler.
   // Wall-clock timing recorded via durationMs for Phase 5 observability.
   // Tool-name extraction at the Worker boundary is now ACTIVE for the
-  // rate-limit gate (BL-038, via `extractToolName` above); broader
+  // rate-limit gate (BL-038, via `inspectToolCalls` above); broader
   // tagging of safeLog events with the resolved tool name remains in
   // BL-032.75 maturity scope.
   const startedAt = Date.now();

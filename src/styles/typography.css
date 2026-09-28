@@ -1,62 +1,7 @@
 @import './variables.css';
 
-/* Typography Utility Classes */
-
-/* Navigation/Link Styles */
-.nav-link {
-  font-size: 0.9rem;
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition:
-    color var(--transition-fast),
-    border-bottom var(--transition-fast);
-  position: relative;
-  padding-bottom: var(--spacing-xs);
-  border-bottom: 2px solid transparent;
-}
-
-/* Mirrors the header nav link states (HeaderNavLinks.astro). Ink is
-   --color-tertiary for the contrast reason documented there; the accent stays
-   --color-primary. This utility has no production consumer — it renders only as
-   the /brand specimen (BrandUILibrary.astro) — but it must not teach an ink
-   production stopped using; brand-page.test.ts guards it cross-page. */
-.nav-link:hover {
-  color: var(--color-tertiary);
-  border-bottom-color: var(--color-primary);
-}
-
-.nav-link:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: var(--spacing-xs);
-}
-
-.nav-link.active {
-  color: var(--color-tertiary);
-  border-bottom-color: var(--color-primary);
-}
-
-/* Button Text Styles */
-.button-text {
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-family: var(--font-family);
-}
-
-.button-text-lg {
-  font-size: 0.95rem;
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: var(--font-family);
-}
-
-/* Brutalist Typography — monospace-first variants for controls, data display,
-   and tool interfaces. Mirror the standard typography scale above. */
+/* Typography Utility Classes — monospace-first variants for controls, data
+   display, and tool interfaces. */
 
 /* Brutalist Heading Styles */
 .brutal-heading-xl {
@@ -161,6 +106,3 @@
   letter-spacing: 0;
   line-height: 1;
 }
-
-/* Dark theme nav-link overrides removed — all values were identical to base
-   rules (var(--color-primary) does not change between themes). */

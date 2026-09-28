@@ -36,6 +36,7 @@
  */
 
 import { readWireLive, readFyiLive } from '../content/radar-live-store';
+import { FYI_FETCH_COUNT } from '../content/radar-transform';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
@@ -238,7 +239,7 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
   try {
     const [wire, fyi] = await Promise.all([
       readWireLive(env, { forceRefresh: true, source: 'cron' }),
-      readFyiLive(env, 30, { forceRefresh: true, source: 'cron' }),
+      readFyiLive(env, FYI_FETCH_COUNT, { forceRefresh: true, source: 'cron' }),
     ]);
 
     // T.Z.1 (BL-032.7) — only count Inoreader calls that actually

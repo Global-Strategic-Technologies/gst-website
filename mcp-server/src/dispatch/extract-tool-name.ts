@@ -1,10 +1,10 @@
 /**
  * BL-038 — Worker-boundary tool-name extraction for rate-limit dispatch.
  *
- * Reads the JSON-RPC request body and returns the tool name for
- * `tools/call` requests so the rate-limiter can pick the right tier
+ * `inspectToolCalls` reads the JSON-RPC request body and reports the
+ * `tools/call` (name + id) so the rate-limiter can pick the right tier
  * (`'general'` vs `'radar'`). Every other path — `tools/list`, non-JSON,
- * empty body, missing fields, malformed `params` — returns `null` so
+ * empty body, missing fields, malformed `params` — reports `call: null` so
  * the caller fail-safes to `'general'` (the broader bucket).
  *
  * Uses `request.clone()` so the original body remains intact for the
@@ -27,7 +27,29 @@ export interface ToolCall {
   readonly id: string | number | null;
 }
 
+/** What the boundary gates need from one body parse. */
+export interface ToolCallInspection {
+  /**
+   * The single-object `tools/call` (name + JSON-RPC id, so a boundary refusal
+   * in `pipeline/tier-gate.ts` can be framed as an error the client correlates
+   * to its call — BL-155), or `null` for anything else.
+   */
+  readonly call: ToolCall | null;
+  /**
+   * BL-166 — `true` when the body is a JSON-RPC batch ARRAY holding at least
+   * one `tools/call`. `call` is always `null` for an array, so without this
+   * flag a batched call would slip past the tier gate, the scope gate and the
+   * radar rate bucket (the SDK's legacy lane accepts batches).
+   */
+  readonly batchedToolCall: boolean;
+}
+
 /**
+ * BL-166 — one clone-and-parse that answers both boundary questions: the
+ * single `tools/call` and whether the body is a batch containing a
+ * `tools/call`, which the pipeline refuses. Kept as a separate field rather
+ * than a widened `ToolCall`, so every `ToolCall` consumer keeps its exact shape.
+ *
  * BL-106 — why this still parses the body rather than reading `Mcp-Name`.
  *
  * Protocol revision `2026-07-28` mirrors `params.name` into an `Mcp-Name`
@@ -47,40 +69,6 @@ export interface ToolCall {
  * per-tool without parsing a body, which is a different layer from this
  * in-Worker gate. Replacing the parse here would trade a correct check for a
  * bypassable one and save a sub-millisecond clone. Left as-is deliberately.
- */
-export async function extractToolName(request: Request): Promise<string | null> {
-  return (await extractToolCall(request))?.name ?? null;
-}
-
-/**
- * BL-155 Slice 2b — the same parse, keeping the request `id` as well, so a
- * boundary refusal (`pipeline/tier-gate.ts`) can be framed as a JSON-RPC
- * error that the client correlates to its call. `extractToolName` delegates
- * here; its contract is unchanged.
- */
-export async function extractToolCall(request: Request): Promise<ToolCall | null> {
-  return (await inspectToolCalls(request)).call;
-}
-
-/** What the boundary gates need from one body parse. */
-export interface ToolCallInspection {
-  /** The single-object `tools/call`, or `null` (see `extractToolCall`). */
-  readonly call: ToolCall | null;
-  /**
-   * BL-166 — `true` when the body is a JSON-RPC batch ARRAY holding at least
-   * one `tools/call`. `call` is always `null` for an array, so without this
-   * flag a batched call would slip past the tier gate, the scope gate and the
-   * radar rate bucket (the SDK's legacy lane accepts batches).
-   */
-  readonly batchedToolCall: boolean;
-}
-
-/**
- * BL-166 — one clone-and-parse that answers both boundary questions: the
- * single `tools/call` (unchanged `extractToolCall` semantics) and whether the
- * body is a batch containing a `tools/call`, which the pipeline refuses.
- * Kept as a separate field rather than a widened `ToolCall`, so every
- * existing `ToolCall` consumer keeps its exact shape.
  */
 export async function inspectToolCalls(request: Request): Promise<ToolCallInspection> {
   const none: ToolCallInspection = { call: null, batchedToolCall: false };

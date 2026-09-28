@@ -20,6 +20,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
+import { z } from 'zod';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
@@ -66,7 +67,7 @@ export function registerListIrlRequestsTool(
     {
       title: 'List Information Request List questions (keys + directives)',
       description: TOOL_DESCRIPTION,
-      inputSchema: {},
+      inputSchema: z.object({}),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

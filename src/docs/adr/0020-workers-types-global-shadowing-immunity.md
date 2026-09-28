@@ -41,7 +41,7 @@ Eviction also strips ambient globals from mcp-server files that _remain_ in the 
 ### 2. Nothing in `mcp-server/src` uses `Buffer` or `process` as a global
 
 - `src/lib/utf8-bytes.ts` provides `utf8ByteLength()`, a module-singleton `TextEncoder`. This **hoists an existing convention** rather than inventing one: `metrics/guard.ts` had already written a private copy with the comment "Workers-runtime + Node both expose `TextEncoder`; cheaper than `Buffer`". Byte-identity with `Buffer.byteLength(s, 'utf8')` is asserted against `node:buffer` as an independent oracle.
-- The three `process` sites import from `node:process` **and annotate** — see Consequences, this is not optional.
+- The `process` sites import from `node:process` **and annotate** — see Consequences, this is not optional.
 
 ### 3. Two ESLint rules, because one is not enough
 
@@ -75,7 +75,7 @@ import nodeProcess from 'node:process';
 const process: NodeJS.Process = nodeProcess;
 ```
 
-All three `process` sites (`config.ts`, `index.ts`, `tools/diligence.ts`) carry it. **Removing the annotation silently reverts them to `any`** — it is load-bearing, not decoration.
+Both `process` sites (`config.ts`, `index.ts`) carry it; a third, in `tools/diligence.ts`, left with the repro instrumentation it served (2026-09-27). **Removing the annotation silently reverts them to `any`** — it is load-bearing, not decoration.
 
 **Accepted limitation:** `Buffer` value imports inside mcp-server **tests** are still `any` under the current workers-types. This is not fully fixable while the upstream declaration collides — `BufferConstructor` annotations recover the statics, but the damaged instance interface then rejects `.toString('base64url')` in the OAuth test helpers. It is confined to test assertions, whose runtime behaviour the tests themselves verify. `mcp-server/src` reaches for neither global at all, which is the property the ESLint pair keeps true. **Revisit trigger:** if Cloudflare narrows those declarations, or `@types/node` stops exporting the global binding, re-measure with the probe described above and drop the annotations.
 

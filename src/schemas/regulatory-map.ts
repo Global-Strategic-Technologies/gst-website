@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { REGULATION_CATEGORY_VALUES } from '../utils/regulation-categories';
 
 /**
  * Zod schema for a single regulation record.
@@ -12,12 +13,20 @@ import { z } from 'zod';
  * URI taxonomy, sub-region detection rules) lives at:
  *   `mcp-server/src/docs/tools/regulatory-map/CONTRACT.md`
  */
-export const REGULATION_CATEGORY_VALUES = [
-  'data-privacy',
-  'ai-governance',
-  'industry-compliance',
-  'cybersecurity',
-] as const;
+// The vocabulary lives in a Zod-free leaf so the page bundle can share it;
+// re-exported here for existing importers (including the MCP server).
+export { REGULATION_CATEGORY_VALUES };
+
+// The category list as the MCP descriptions print it, one constant per
+// existing format, so the enumerated lists are single-sourced with unchanged bytes.
+/** `"data-privacy", "ai-governance", "industry-compliance", "cybersecurity"` */
+export const REGULATION_CATEGORY_LIST_DQ_COMMA = REGULATION_CATEGORY_VALUES.map(
+  (c) => `"${c}"`
+).join(', ');
+/** `"data-privacy" / "ai-governance" / "industry-compliance" / "cybersecurity"` */
+export const REGULATION_CATEGORY_LIST_DQ_SLASHED = REGULATION_CATEGORY_VALUES.map(
+  (c) => `"${c}"`
+).join(' / ');
 
 export const RegulationCategorySchema = z.enum(REGULATION_CATEGORY_VALUES);
 
@@ -98,7 +107,7 @@ export const RegulationSearchInputSchema = z.object({
     'Jurisdiction code, or an array of codes (matched as OR). Lowercase ISO 3166-1 alpha-2 for countries ("us", "gb", "sg"), lowercase subdivision codes for states/provinces ("us-ca", "ca-qc"), plus the aggregates "eu" and "global". `list_regulation_facets` returns every code present. Omit for all jurisdictions.'
   ),
   category: CategoryOrArray.describe(
-    'Category, or an array of categories (matched as OR). One of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity". Combined with `jurisdiction` as AND. Omit for all categories.'
+    `Category, or an array of categories (matched as OR). One of ${REGULATION_CATEGORY_LIST_DQ_COMMA}. Combined with \`jurisdiction\` as AND. Omit for all categories.`
   ),
   query: z
     .string()

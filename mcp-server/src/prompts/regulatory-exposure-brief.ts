@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { arrayFromWire } from './wire-shape';
+import { REGULATION_CATEGORY_LIST_DQ_SLASHED } from '../../../src/schemas/regulatory-map';
 import { authorialIntentLine, irlEvidencePrecedence } from './embed';
 
 const argsSchema = z.object({
@@ -26,7 +27,7 @@ const argsSchema = z.object({
     'Jurisdictions where the target operates / collects / processes data (e.g. ["eu", "us-ca"]).'
   ),
   dataCategories: arrayFromWire(z.array(z.string().min(3)).min(1)).describe(
-    'Regulatory categories to assess — typically a subset of "data-privacy" / "ai-governance" / "industry-compliance" / "cybersecurity".'
+    `Regulatory categories to assess — typically a subset of ${REGULATION_CATEGORY_LIST_DQ_SLASHED}.`
   ),
   productType: z
     .string()

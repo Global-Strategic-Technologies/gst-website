@@ -22,8 +22,6 @@ User (Map UI)
 ├── src/data/regulatory-map/
 │     *.json                      ← 123 regulation files (Zod-validated at build time)
 │
-├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries (simplified)
-│
 ├── public/data/
 │     world-110m.json             ← World country boundaries (fetched at runtime)
 │     us-states-10m.json          ← US state boundaries (fetched at runtime)
@@ -54,7 +52,7 @@ All rendering logic runs client-side. Regulation data and TopoJSON geodata are s
 |-------|-----------|---------|
 | Framework | Astro (SSG) | Static page generation |
 | Visualization | `d3-geo`, `d3-selection`, `d3-zoom`, `d3-transition` | SVG map rendering, pan/zoom |
-| Geospatial | `topojson-client`, `world-atlas`, `us-atlas` | Country, state, province boundaries |
+| Geospatial | `topojson-client` + TopoJSON vendored in `public/data/` | Country, state, province boundaries |
 | Validation | Zod | Build-time JSON schema enforcement |
 | Rendering | SVG with CSS classes | Resolution-independent, theme-aware |
 | State | Native `CustomEvent` | Decoupled component communication |
@@ -458,8 +456,8 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 | Decision | Rationale |
 |----------|-----------|
 | `d3-geo` + `d3-selection` only (not full D3) | Reduces client bundle from ~240KB to ~35KB gzipped |
-| `world-atlas` 110m resolution | Sufficient detail for country-level interaction; smaller than 50m/10m |
-| `us-atlas` 10m for US states | Higher resolution needed for small states (RI, CT, DE) |
+| world-atlas 110m resolution, vendored as `public/data/world-110m.json` (not an npm dependency) | Sufficient detail for country-level interaction; smaller than 50m/10m |
+| us-atlas 10m for US states, vendored as `public/data/us-states-10m.json` | Higher resolution needed for small states (RI, CT, DE) |
 | CSS classes on SVG paths (not inline fills) | Enables dark theme via `:global(html.dark-theme)` selectors |
 | Runtime fetch of geodata from `public/data/` | Keeps HTML at ~48KB for fast FCP; data loads in parallel |
 | `CustomEvent` for component communication | Native browser API, no framework dependency, decoupled |

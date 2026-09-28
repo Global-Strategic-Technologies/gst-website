@@ -107,7 +107,6 @@ export const UNKNOWN_PROPAGATION_RULE = [
  * further drift (BL-045 PR B audit BL-3).
  */
 export const CONDITIONAL_TRIGGER_NAMES = ['EU_AI_ACT', 'NIS2'] as const;
-export type ConditionalTriggerName = (typeof CONDITIONAL_TRIGGER_NAMES)[number];
 
 /**
  * SOP § "Section 05 ML/AI + EU geography → EU AI Act gap-fill".

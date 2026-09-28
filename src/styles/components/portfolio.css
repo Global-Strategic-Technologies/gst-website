@@ -140,8 +140,8 @@ Brutalist Project Card
 
 Portfolio grid: no-results message
 
-Created by the search/filter scripts in PortfolioHeader.astro and
-StickyControls.astro (`message.className = 'no-results-message'`), so it
+Created by the filter script in PortfolioHeader.astro
+(`message.className = 'no-results-message'`), so it
 carries no scoped cid — a scoped rule in PortfolioGrid.astro never applied.
 
 ============================== */

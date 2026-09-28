@@ -507,66 +507,12 @@ test.describe('Brand Page', () => {
    * presentational inners that Header/ThemeToggle/Footer/CTASection compose),
    * so the per-specimen parity guards this section used to carry are gone with
    * the replicas they guarded: a specimen that IS the component cannot drift
-   * from it. What remains are the carriers with no component behind them: the
-   * `.nav-link` utility mirror, and `.project-card`, whose single global rule
-   * both production and the specimen consume and which is pinned cross-page
-   * below so a second (scoped) definition cannot silently return.
+   * from it. What remains is the one carrier with no component behind it:
+   * `.project-card`, whose single global rule both production and the
+   * specimen consume and which is pinned cross-page below so a second
+   * (scoped) definition cannot silently return.
    */
   test.describe('Site chrome specimens match production', () => {
-    /**
-     * `.nav-link` / `.nav-link.active` (typography.css) is a hand-maintained
-     * MIRROR of the header nav treatment with no production consumer — which is
-     * precisely why it drifts unnoticed. It did: BL-096 changed the active ink
-     * from `--color-primary` (1.88:1) to `--color-tertiary` and found this
-     * utility still hardcoding the old token, needing a hand-correction in the
-     * slice that added this test.
-     *
-     * This reads TWO pages, because `/brand` renders no production-branch nav
-     * (its HeaderNavLinks specimen uses the untracked demo branch, and the live
-     * header marks `active` only for `/services`, `/ma-portfolio`, `/hub` and
-     * `/about`). The production side is the real active link on `/services/`;
-     * the nav-treatment declarations live in `HeaderNavLinks.astro`. Asserting
-     * against a resolved `var(--color-tertiary)` would be cheaper and weaker —
-     * it cannot see production moving to some third token.
-     */
-    test('.nav-link.active utility matches the real active header nav link', async ({ page }) => {
-      /**
-       * Transitions are suppressed before every read. The nav anchors declare
-       * `transition: color var(--transition-fast)` (HeaderNavLinks.astro), and
-       * the theme script re-resolves `light-dark()` after first paint — so an
-       * immediate read samples the animation rather than the value. It caught
-       * this test out with `rgb(4, 181, 134)`, which is `#05cd99 → #02724f`
-       * about a quarter of the way through. Same-page comparisons never hit
-       * this because both elements transition together; reading across two
-       * navigations does not.
-       */
-      const freeze = () =>
-        page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
-      const readInk = (l: ReturnType<typeof page.locator>) =>
-        l.evaluate((el) => {
-          const cs = getComputedStyle(el);
-          return { color: cs.color, borderBottomColor: cs.borderBottomColor };
-        });
-
-      await page.goto('/services/', { waitUntil: 'domcontentloaded' });
-      const production = page.locator('.site-header nav a.active');
-      await expect(production).toBeVisible();
-      await freeze();
-      const p = await readInk(production);
-
-      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-      const utility = page.locator('.nav-link.active');
-      await expect(utility).toBeVisible();
-      await freeze();
-      const u = await readInk(utility);
-
-      expect(u.color, '.nav-link.active utility ink vs real active header nav link').toBe(p.color);
-      expect(
-        u.borderBottomColor,
-        '.nav-link.active utility accent vs real active header nav link'
-      ).toBe(p.borderBottomColor);
-    });
-
     /**
      * `.project-card` is ONE global rule (cards.css) that production
      * (/ma-portfolio) and the /brand specimen both consume. It used to be two:
@@ -584,8 +530,11 @@ test.describe('Brand Page', () => {
      *   identical on both sides by construction.
      * - transitionDuration is read BEFORE the transition freeze (the freeze
      *   forces 0s on both sides, which would make that assertion vacuous);
-     *   the freeze precedes only the colour reads, per the lesson in the test
-     *   above.
+     *   the freeze precedes only the colour reads. Without it, a read taken
+     *   just after navigation can sample a colour transition mid-flight (the
+     *   theme script re-resolves `light-dark()` after first paint) — a
+     *   same-page comparison never sees this, because both elements
+     *   transition together, but a comparison across two navigations does.
      * - ALL `.project-card` nodes on /brand are compared, with a non-zero
      *   count asserted first so removing a specimen cannot silently reduce
      *   this to zero comparisons.

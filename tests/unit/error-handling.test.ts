@@ -81,8 +81,8 @@ describe('localStorage error handling', () => {
 });
 
 // ─── Pattern 2: JSON parsing with fallback ──────────────────────────────────
-// Replicates: PortfolioHeader.astro (~571), PortfolioGrid.astro (~338),
-//             StickyControls.astro (~468)
+// Replicates: the `#portfolio-data` parse in PortfolioHeader.astro's global-state
+//             init block (the page's only reader of that data island)
 
 function parseProjectsData(raw: string | null | undefined): Record<string, unknown>[] {
   if (!raw) return [];

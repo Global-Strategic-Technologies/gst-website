@@ -13,14 +13,13 @@
  * encoder is a single source of truth.
  */
 
-export const VALID_CATEGORIES = [
-  'data-privacy',
-  'ai-governance',
-  'industry-compliance',
-  'cybersecurity',
-] as const;
+import { REGULATION_CATEGORY_VALUES, type RegulationCategoryId } from './regulation-categories';
 
-export type RegulatoryMapCategory = (typeof VALID_CATEGORIES)[number];
+// The shared Zod-free vocabulary leaf, so this module stays out of Zod's reach
+// (the page bundle imports it).
+export const VALID_CATEGORIES = REGULATION_CATEGORY_VALUES;
+
+export type RegulatoryMapCategory = RegulationCategoryId;
 
 const VALID_CATEGORY_SET: ReadonlySet<string> = new Set(VALID_CATEGORIES);
 

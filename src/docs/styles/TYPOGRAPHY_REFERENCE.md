@@ -1,6 +1,6 @@
 # Typography Reference
 
-All 14 semantic text utility classes defined in `src/styles/typography.css`. Dark theme colors switch automatically via `--text-*` variables.
+All 11 semantic text utility classes defined in `src/styles/typography.css`. Dark theme colors switch automatically via `--text-*` variables.
 
 ---
 
@@ -43,25 +43,6 @@ Monospace, bold, primary-colored. Purpose-built for numeric readouts (KPIs, perc
 | `.brutal-data`    | `var(--text-xl)` 1.25rem (20px)  | Bold (700) | `-0.02em` | 1           | `--color-primary` | KPI values, percentages        |
 | `.brutal-data-sm` | `var(--text-sm)` 0.875rem (14px) | Bold (700) | `0`       | 1           | `--color-primary` | Small data values, table cells |
 
-## Navigation
-
-Uppercase, bold, in the pinned mono (inherits `--font-family`, which points at `--font-family-mono`).
-
-| Class       | Size              | Weight     | Transform | Spacing | Color              |
-| ----------- | ----------------- | ---------- | --------- | ------- | ------------------ |
-| `.nav-link` | `0.9rem` (14.4px) | Bold (700) | UPPERCASE | `0.1em` | `--text-secondary` |
-
-States: `:hover` and `.active` change color to `--color-primary` with `border-bottom`. `:focus` adds 2px primary outline.
-
-## Button Text
-
-Uppercase, bold, in the pinned mono (inherits `--font-family`, which points at `--font-family-mono`).
-
-| Class             | Size               | Weight     | Transform | Spacing  |
-| ----------------- | ------------------ | ---------- | --------- | -------- |
-| `.button-text`    | `0.75rem` (12px)   | Bold (700) | UPPERCASE | `0.05em` |
-| `.button-text-lg` | `0.95rem` (15.2px) | Bold (700) | UPPERCASE | `0.08em` |
-
 ---
 
 ## Text Size Token Scale
@@ -93,7 +74,6 @@ All utilities use theme-agnostic `--text-*` variables that auto-switch in dark t
 | `.brutal-text-base`, `.brutal-text-small` | `--text-secondary` | `rgba(26,26,26, 0.7)`  | `rgba(200,200,200, 0.8)`  |
 | `.brutal-text-tiny`, `.brutal-label*`     | `--text-muted`     | `rgba(26,26,26, 0.6)`  | `rgba(200,200,200, 0.6)`  |
 | `.brutal-data*`                           | `--color-primary`  | `#05cd99`              | `#05cd99`                 |
-| `.nav-link`                               | `--text-secondary` | `rgba(26,26,26, 0.7)`  | `rgba(200,200,200, 0.8)`  |
 
 No dark theme overrides needed for text colors — the variables handle theme switching automatically.
 

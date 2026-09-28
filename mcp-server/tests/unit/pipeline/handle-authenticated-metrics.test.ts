@@ -35,7 +35,10 @@ const { check, limiter } = vi.hoisted(() => {
 });
 vi.mock('../../../src/ratelimit/limiter', () => ({ createLimiter: limiter }));
 
-import { handleAuthenticated } from '../../../src/pipeline/handle-authenticated';
+import {
+  BATCHED_TOOL_CALL_MESSAGE,
+  handleAuthenticated,
+} from '../../../src/pipeline/handle-authenticated';
 import type { AuthSuccess } from '../../../src/auth/bearer';
 import type { Env } from '../../../src/env';
 
@@ -230,7 +233,7 @@ describe('batched tools/call (BL-166) → 400 -32600, mcp.batch-rejected', () =>
     expect(await res!.json()).toEqual({
       jsonrpc: '2.0',
       id: null,
-      error: { code: -32600, message: 'JSON-RPC batches may not contain tools/call' },
+      error: { code: -32600, message: BATCHED_TOOL_CALL_MESSAGE },
     });
     expect(logs.filter((l) => l.event === 'mcp.batch-rejected')).toEqual([
       expect.objectContaining({

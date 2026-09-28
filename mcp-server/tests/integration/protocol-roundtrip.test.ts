@@ -238,6 +238,19 @@ describe('protocol roundtrip', () => {
       }
     });
 
+    // `list_irl_requests` registers `z.object({})` (it used a raw `{}` shape);
+    // both are the same no-argument tool on the wire, which this pins against
+    // the sibling that has always used `z.object({})`.
+    it('list_irl_requests publishes the same empty inputSchema as list_portfolio_facets', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const { tools } = res.result as unknown as ListToolsResultPayload;
+      const schemaOf = (name: string) => tools.find((t) => t.name === name)?.inputSchema;
+      expect(schemaOf('list_irl_requests')).toBeDefined();
+      expect(schemaOf('list_irl_requests')).toEqual(schemaOf('list_portfolio_facets'));
+    });
+
     // BL-152 Slice 2 — the Claude connector directory's review checks that
     // EVERY tool is annotated, and greps for `destructiveHint` specifically.
     // Two tools registered with no block at all and none declared

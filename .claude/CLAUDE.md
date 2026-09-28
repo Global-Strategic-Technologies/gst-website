@@ -132,7 +132,7 @@ For allowlist setups: the permission matcher evaluates compound commands **per-s
 - **Website**: Astro 7.x + Vite, static pages plus on-demand SSR via the Vercel adapter (`/hub/radar`, ISR-cached), deployed to Vercel
 - **MCP server** (`mcp-server/`, workspace `@gst/mcp-server`): TypeScript MCP server; runs over stdio locally and as a **Cloudflare Worker** remotely (staging + production); Upstash Redis for caching/rate-limiting; Sentry + custom observability
 - **Testing**: Vitest (unit/integration, both workspaces) + Playwright (E2E, website)
-- **Package Manager**: npm (workspaces: `.` and `mcp-server`)
+- **Package Manager**: npm (the root package plus one workspace, `mcp-server`)
 - **Node Version**: `^22.12.0 || ^24.0.0 || >=26.0.0` (`engines` in `package.json`; `.nvmrc` pins 22)
 
 ## 🎨 Design System

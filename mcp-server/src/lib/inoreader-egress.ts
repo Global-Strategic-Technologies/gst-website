@@ -70,7 +70,7 @@ import type { Env } from '../env';
  *
  *   - `'cron-radar'`           — `cron/radar-refresh.ts` 6×/24h via `readWireLive` / `readFyiLive` with `source: 'cron'`.
  *   - `'live-radar'`           — MCP-tool live calls (search_radar, get_latest_insights, etc.) with `source: 'live-tool'`.
- *   - `'http-radar-snapshot'`  — website's SSR endpoint at `worker.ts:357` (`GET /radar/snapshot`), with `source: 'http-snapshot'` (Phase 0 widening).
+ *   - `'http-radar-snapshot'`  — website's SSR endpoint (`GET /radar/snapshot`, the snapshot branch of `handleAuthenticated` in `pipeline/handle-authenticated.ts`), with `source: 'http-snapshot'` (Phase 0 widening).
  *   - `'oauth-refresh'`        — `refreshAccessToken` POST to `/oauth2/token`. Reported per-category but `zone1: false` — excluded from Zone-1 totals (see module docstring).
  *   - `'401-retry'`            — the retry leg of `authenticatedFetch` after a 401. A real Inoreader call against the Zone-1 quota.
  */

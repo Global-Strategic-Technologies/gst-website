@@ -43,8 +43,9 @@ export type InoreaderStatus = 'ok' | 'degraded' | 'unknown';
 /**
  * Where the last Inoreader observation originated. BL-032.75 Phase 0 widened
  * this enum to add `'http-snapshot'` so the `/radar/snapshot` SSR endpoint
- * (worker.ts:357) — a high-volume cache-miss path during website redeploys —
- * is distinguishable from MCP-tool live calls in /health and dashboards.
+ * (the snapshot branch of `handleAuthenticated` in
+ * `pipeline/handle-authenticated.ts`) — a high-volume cache-miss path during
+ * website redeploys — is distinguishable from MCP-tool live calls in /health and dashboards.
  *
  * Widening is backward-compatible at the type level: Upstash entries written
  * before the enum widened still parse (the value is just a string). Readers

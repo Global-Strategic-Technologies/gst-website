@@ -8,6 +8,7 @@
 
 import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { BATCHED_TOOL_CALL_MESSAGE } from '../../src/pipeline/handle-authenticated';
 
 const ADMIN_KEY = 'test-admin-key';
 const SIGNING_KEY = 'integration-test-m2m-signing-key';
@@ -441,7 +442,7 @@ describe('tool scopes at the boundary (BL-166)', () => {
     expect(await res.json()).toEqual({
       jsonrpc: '2.0',
       id: null,
-      error: { code: -32600, message: 'JSON-RPC batches may not contain tools/call' },
+      error: { code: -32600, message: BATCHED_TOOL_CALL_MESSAGE },
     });
   });
 });

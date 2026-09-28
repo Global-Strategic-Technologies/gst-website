@@ -38,14 +38,16 @@ import { z } from 'zod';
 import {
   readFyiSnapshot,
   readWireSnapshot,
-  SNAPSHOT_MISSING_MESSAGE,
   type RadarCategory,
   type SnapshotItem,
 } from '../content/radar-snapshot';
+import { SNAPSHOT_MISSING_STDIO } from '../content/radar-messages';
 import {
   oldestItemDaysAgo,
   projectItemForModel,
   RADAR_CATEGORIES,
+  RADAR_CATEGORY_LIST_DQ_COMMA,
+  RADAR_CATEGORY_LIST_DQ_SLASHED,
 } from '../content/radar-transform';
 import { boundWireItems } from '../../../src/utils/radar-feed-bounds';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
@@ -55,7 +57,7 @@ import { toolOk, toolFail } from './_result';
 
 const SearchRadarOfflineInputSchema = z.object({
   category: RadarCategoryEnum.optional().describe(
-    'Optional category filter. One of "pe-ma" / "enterprise-tech" / "ai-automation" / "security". Omit for all categories. Mirrors the /hub/radar website\'s category filter pills (the only filter the website surfaces).'
+    `Optional category filter. One of ${RADAR_CATEGORY_LIST_DQ_SLASHED}. Omit for all categories. Mirrors the /hub/radar website's category filter pills (the only filter the website surfaces).`
   ),
 });
 
@@ -65,7 +67,7 @@ const TOOL_DESCRIPTION = `Search the locally-cached GST Radar snapshot — stric
 
 Reads from \`.cache/inoreader/\` populated by \`npm run radar:seed\`. Never makes live Inoreader API calls — protects the shared 200 req/day budget.
 
-Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output mirrors the website's unified FYI + Wire feed sorted by \`publishedAt\` newest-first, plus a \`deeplink\` URL that opens /hub/radar pre-filtered to the same category. **The Wire tier is capped at 30 items** (up to 3 slots reserved per category so no category is crowded out), as /hub/radar does; the snapshot's FYI tier is returned whole. \`returned\` counts after the cap, \`totalMatched\` before it — differing values mean the feed was truncated. Item \`summary\` is plain text (source HTML stripped).
+Input: optional \`category\` (one of ${RADAR_CATEGORY_LIST_DQ_COMMA}); omit for all categories. Output mirrors the website's unified FYI + Wire feed sorted by \`publishedAt\` newest-first, plus a \`deeplink\` URL that opens /hub/radar pre-filtered to the same category. **The Wire tier is capped at 30 items** (up to 3 slots reserved per category so no category is crowded out), as /hub/radar does; the snapshot's FYI tier is returned whole. \`returned\` counts after the cap, \`totalMatched\` before it — differing values mean the feed was truncated. Item \`summary\` is plain text (source HTML stripped).
 
 If the snapshot is missing, returns a structured error with instructions. Companion to the gst://radar/... Resources.`;
 
@@ -98,7 +100,7 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
   const fyi = readFyiSnapshot();
   const wire = readWireSnapshot();
   if (!fyi && !wire) {
-    return toolFail('snapshot-missing', SNAPSHOT_MISSING_MESSAGE);
+    return toolFail('snapshot-missing', SNAPSHOT_MISSING_STDIO);
   }
 
   // BL-109: bound the wire tier to the website's display cap, as `search_radar` now

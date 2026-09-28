@@ -13,29 +13,27 @@
 
 import type { RadarFyiItem, RadarWireItem, RadarFeedItem, RadarCategory } from './types';
 import { stripHtml, truncate } from '../../utils/html-text';
+import {
+  RADAR_CATEGORIES,
+  RADAR_CATEGORY_LABELS,
+  type RadarCategoryId,
+} from '../../utils/radar-categories';
 
-export const CATEGORIES: Record<string, RadarCategory> = {
-  'pe-ma': {
-    id: 'pe-ma',
-    label: 'PE & M&A',
-    color: '#9B59B6',
-  },
-  'enterprise-tech': {
-    id: 'enterprise-tech',
-    label: 'Enterprise Tech',
-    color: '#A0785A',
-  },
-  'ai-automation': {
-    id: 'ai-automation',
-    label: 'AI & Automation',
-    color: '#3498DB',
-  },
-  security: {
-    id: 'security',
-    label: 'Security',
-    color: '#E74C3C',
-  },
+// Ids and labels come from the shared vocabulary leaf (also the MCP server's
+// source); only the pill/dot colors are website-local.
+const CATEGORY_COLORS: Readonly<Record<RadarCategoryId, string>> = {
+  'pe-ma': '#9B59B6',
+  'enterprise-tech': '#A0785A',
+  'ai-automation': '#3498DB',
+  security: '#E74C3C',
 };
+
+export const CATEGORIES: Record<string, RadarCategory> = Object.fromEntries(
+  RADAR_CATEGORIES.map((id) => [
+    id,
+    { id, label: RADAR_CATEGORY_LABELS[id], color: CATEGORY_COLORS[id] },
+  ])
+);
 
 // BL-109: `stripHtml` / `truncate` moved to `src/utils/html-text.ts` so the MCP radar
 // handlers can share `stripHtml` without taking a runtime import on this display module.

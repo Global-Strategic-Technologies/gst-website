@@ -112,8 +112,8 @@ export async function checkA11y(
   // `iterations` lives on the EFFECT's timing, not on the Animation. Reading
   // `anim.iterations` yields undefined, which compares unequal to Infinity, so
   // the naive filter silently awaits the infinite animations instead of
-  // skipping them — every route would then pay the full cap. Seven infinite
-  // declarations ship in src/ (skeleton.css ×4, HeaderLogo.astro,
+  // skipping them — every route would then pay the full cap. Six infinite
+  // declarations ship in src/ (skeleton.css ×2, ambient.css, HeaderLogo.astro,
   // MapVisualizer.astro, ThemeToggleButton.astro); they never finish, so they
   // must be filtered out, never awaited. The timeout is a backstop for an
   // animation paused mid-flight — not a substitute for the filter, and not a

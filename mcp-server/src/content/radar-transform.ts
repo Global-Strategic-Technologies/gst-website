@@ -17,8 +17,40 @@ import type { InoreaderItem } from '../../../src/lib/inoreader/types';
 // Dependency-free website leaf (BL-109) — see `src/utils/html-text.ts` for why the
 // helper lives there rather than in `src/lib/inoreader/transform.ts`.
 import { stripHtml } from '../../../src/utils/html-text';
+// The category vocabulary lives in a zero-import website leaf shared with
+// `/hub/radar`; re-exported here so existing importers are unchanged.
+import { RADAR_CATEGORIES, type RadarCategoryId } from '../../../src/utils/radar-categories';
 
-export type RadarCategory = 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security';
+/**
+ * How many FYI items every reader requests from Inoreader. One fixed count so
+ * all callers (the tools, the website `/radar/snapshot` route, the cron and
+ * the stdio seeded snapshot's cache key) share a single cached fetch. It is
+ * deliberately NOT `FYI_MAX_COUNT` (the read-time output cap, lower): fetching
+ * only that many would let aged-out items crowd fresh ones out of the shared
+ * cache before the freshness gate runs. `get_latest_insights`' `limit` is
+ * schema-capped at this value, so no caller ever needs more.
+ */
+export const FYI_FETCH_COUNT = 30;
+
+export { RADAR_CATEGORIES };
+
+export type RadarCategory = RadarCategoryId;
+
+// The category list as it appears in published descriptions and prompt text,
+// one constant per existing format. Interpolating these keeps every enumerated
+// list single-sourced while the rendered bytes stay exactly as before (the
+// count words next to them, e.g. "four values", stay literal).
+const quoteEach = (q: string): string[] => RADAR_CATEGORIES.map((c) => `${q}${c}${q}`);
+/** `pe-ma | enterprise-tech | ai-automation | security` */
+export const RADAR_CATEGORY_LIST_PIPED = RADAR_CATEGORIES.join(' | ');
+/** `pe-ma, enterprise-tech, ai-automation, security` */
+export const RADAR_CATEGORY_LIST_COMMA = RADAR_CATEGORIES.join(', ');
+/** `"pe-ma" / "enterprise-tech" / "ai-automation" / "security"` */
+export const RADAR_CATEGORY_LIST_DQ_SLASHED = quoteEach('"').join(' / ');
+/** `"pe-ma", "enterprise-tech", "ai-automation", "security"` */
+export const RADAR_CATEGORY_LIST_DQ_COMMA = quoteEach('"').join(', ');
+/** `'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'` */
+export const RADAR_CATEGORY_LIST_SQ_SLASHED = quoteEach("'").join(' / ');
 
 export const FOLDER_TO_CATEGORY: Readonly<Record<string, RadarCategory>> = {
   'GST-PE-MA': 'pe-ma',
@@ -26,13 +58,6 @@ export const FOLDER_TO_CATEGORY: Readonly<Record<string, RadarCategory>> = {
   'GST-AI-Automation': 'ai-automation',
   'GST-Security': 'security',
 };
-
-export const RADAR_CATEGORIES: ReadonlyArray<RadarCategory> = [
-  'pe-ma',
-  'enterprise-tech',
-  'ai-automation',
-  'security',
-];
 
 export interface SnapshotItem {
   readonly id: string;

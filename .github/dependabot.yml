@@ -7,6 +7,12 @@ updates:
       day: 'monday'
     open-pull-requests-limit: 10
     groups:
+      # Dependabot assigns an update to the FIRST group that matches, so this
+      # stays above production-patches. @sentry/browser is pinned exactly to
+      # the version @sentry/astro pins; the group moves them in lockstep so a
+      # caret-free bump can never leave a second SDK copy behind.
+      sentry:
+        patterns: ['@sentry/*']
       # Group minor/patch updates to reduce PR noise
       dev-dependencies:
         dependency-type: 'development'

@@ -137,7 +137,11 @@ export {
 // Sourced from `radar-transform` (the original definition) rather than the
 // `radar-snapshot` re-export: `radar-snapshot.ts` imports node:fs/path/url and
 // must stay out of the Worker bundle, and this module is reachable from it.
-import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-transform';
+import {
+  RADAR_CATEGORIES,
+  RADAR_CATEGORY_LIST_PIPED,
+  type RadarCategory,
+} from './content/radar-transform';
 
 /**
  * Radar feed categories — matches the four GST-prefixed Inoreader folders
@@ -147,9 +151,8 @@ import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-transform'
 export const RadarCategoryEnum = z
   .enum(RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]])
   .describe(
-    'Radar category. One of: pe-ma | enterprise-tech | ai-automation | security. Mirrors the four filter pills on the /hub/radar website page, which is the only filter the page offers.'
+    `Radar category. One of: ${RADAR_CATEGORY_LIST_PIPED}. Mirrors the four filter pills on the /hub/radar website page, which is the only filter the page offers.`
   );
-export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
 
 // `RadarTierEnum` was removed under BL-031.95 Phase 3.A — the website's
 // /hub/radar page renders a unified FYI+Wire feed via mergeFeed(), so no
@@ -202,7 +205,6 @@ export type SearchPortfolioInput = z.infer<typeof SearchPortfolioInputSchema>;
 
 /** Input for the `list_portfolio_facets` tool — no parameters. */
 export const ListPortfolioFacetsInputSchema = z.object({});
-export type ListPortfolioFacetsInput = z.infer<typeof ListPortfolioFacetsInputSchema>;
 
 // ─── MCP tool input schemas with canonical-stage backward-compat (BL-031.87)
 //

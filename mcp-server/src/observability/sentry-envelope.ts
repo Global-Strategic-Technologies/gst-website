@@ -17,8 +17,8 @@
  * The fix is structural: stop wrapping `scheduled` with `withSentry`
  * (`worker.ts` default export splits to `{ fetch: withSentry(...).fetch,
  * scheduled: handler.scheduled }`), and inside the cron path use these
- * direct envelope POSTs instead of the SDK's `captureMessage` /
- * `withMonitor` / `flushSentry`.
+ * direct envelope POSTs instead of the SDK's `captureMessage`, cron
+ * monitor and flush calls (the wrappers this path once used are deleted).
  *
  * Modeled on the PowerShell envelope test that proved transport health
  * on 2026-05-26 (Sentry event_id `7a22ca8212983f1d0b58a54e4f283841`
