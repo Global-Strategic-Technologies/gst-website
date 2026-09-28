@@ -8,14 +8,7 @@ import {
   extractIrlMarkdownFromRows,
 } from '../../utils/irl/extract-markdown.mjs';
 import { copyWithFeedback } from '../../utils/copy-feedback';
-
-/**
- * The claude.ai web prompt-argument ceiling. Above this the body still
- * converts and is still valid — only the web client refuses to carry it as
- * a prompt arg, and Desktop does not. Advisory, never an error: the CLI
- * treats it the same way.
- */
-const WEB_PROMPT_ARG_CEILING = 57_000;
+import { summarizeExtraction } from './logic';
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
 
@@ -179,49 +172,17 @@ async function handleFile(file: File) {
     return;
   }
 
-  const byteLength = new TextEncoder().encode(result.markdown).length;
-  const kb = Math.round((byteLength / 1024) * 10) / 10;
-
-  current = {
-    markdown: result.markdown,
-    filename: file.name.replace(/\.xlsx$/i, '') + '.md',
-  };
+  const summary = summarizeExtraction(result, sheetName, file.name);
+  current = { markdown: result.markdown, filename: summary.filename };
 
   if (mdEl) mdEl.textContent = result.markdown;
-  if (statusEl) {
-    statusEl.textContent =
-      `Read “${sheetName}”: ${result.bulletCount} ` +
-      `${result.bulletCount === 1 ? 'request' : 'requests'} across ` +
-      `${result.sectionsSeen.length} ${result.sectionsSeen.length === 1 ? 'section' : 'sections'}`;
-  }
-
-  setDiag({
-    bullets: String(result.bulletCount),
-    sections: result.sectionsSeen.length ? result.sectionsSeen.join(' ') : 'none',
-    bytes: `${kb} KB`,
-    comments: String(result.commentsSourcedAnswers.length),
-    contradictions: String(result.statusContradictions.length),
-  });
+  if (statusEl) statusEl.textContent = summary.status;
+  setDiag(summary.diag);
   diag?.setAttribute('data-empty', 'false');
 
-  // Two advisories, neither of them an error. An unfilled template converts
-  // successfully into a body of `<NO RESPONSE>` rows — the CLI does the same
-  // — so the honest signal is "nothing here is answered yet", not a failure.
-  const unanswered = result.markdown.split('— <NO RESPONSE>').length - 1;
   if (advisory) {
-    if (unanswered === result.bulletCount) {
-      advisory.textContent =
-        `All ${result.bulletCount} rows are unanswered, so this looks like a template that has ` +
-        'not been filled in yet. It converted, but there is nothing in it to sweep.';
-      advisory.hidden = false;
-    } else if (byteLength > WEB_PROMPT_ARG_CEILING) {
-      advisory.textContent =
-        `${byteLength.toLocaleString()} bytes exceeds the ~57,000-byte ceiling for a ` +
-        'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
-      advisory.hidden = false;
-    } else {
-      advisory.hidden = true;
-    }
+    advisory.textContent = summary.advisory ?? '';
+    advisory.hidden = summary.advisory === null;
   }
 
   showState('ok');
