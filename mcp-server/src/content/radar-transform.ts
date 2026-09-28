@@ -21,6 +21,17 @@ import { stripHtml } from '../../../src/utils/html-text';
 // `/hub/radar`; re-exported here so existing importers are unchanged.
 import { RADAR_CATEGORIES, type RadarCategoryId } from '../../../src/utils/radar-categories';
 
+/**
+ * How many FYI items every reader requests from Inoreader. One fixed count so
+ * all callers (the tools, the website `/radar/snapshot` route, the cron and
+ * the stdio seeded snapshot's cache key) share a single cached fetch. It is
+ * deliberately NOT `FYI_MAX_COUNT` (the read-time output cap, lower): fetching
+ * only that many would let aged-out items crowd fresh ones out of the shared
+ * cache before the freshness gate runs. `get_latest_insights`' `limit` is
+ * schema-capped at this value, so no caller ever needs more.
+ */
+export const FYI_FETCH_COUNT = 30;
+
 export { RADAR_CATEGORIES };
 
 export type RadarCategory = RadarCategoryId;

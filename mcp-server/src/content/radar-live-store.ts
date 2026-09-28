@@ -46,7 +46,12 @@ import {
   recordInoreaderStatus,
   type InoreaderObservedSource,
 } from '../observability/inoreader-status';
-import { filterFreshFyi, toSnapshotItem, type SnapshotItem } from './radar-transform';
+import {
+  filterFreshFyi,
+  toSnapshotItem,
+  FYI_FETCH_COUNT,
+  type SnapshotItem,
+} from './radar-transform';
 import type { RadarUpstreamReason } from '../tools/_result';
 import type { Env } from '../env';
 
@@ -54,16 +59,10 @@ const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the radar refresh cron int
 const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';
 const CACHE_KEY_FYI = 'mcp:radar:cache:fyi';
 
-/**
- * How many FYI items every reader requests from Inoreader. One fixed count so
- * all callers (the tools, the website `/radar/snapshot` route, the cron and
- * the stdio seeded snapshot's cache key) share a single cached fetch. It is
- * deliberately NOT `FYI_MAX_COUNT` (the read-time output cap, lower): fetching
- * only that many would let aged-out items crowd fresh ones out of the shared
- * cache before the freshness gate runs. `get_latest_insights`' `limit` is
- * schema-capped at this value, so no caller ever needs more.
- */
-export const FYI_FETCH_COUNT = 30;
+// FYI_FETCH_COUNT (the shared FYI fetch size) lives in the dependency-free
+// radar-transform.ts so light modules can key the cache without this file's
+// Upstash graph; re-exported for existing importers.
+export { FYI_FETCH_COUNT };
 
 /** What the radar-live tools get back. Mirrors `SnapshotTier` shape. */
 export type LiveTierResult =

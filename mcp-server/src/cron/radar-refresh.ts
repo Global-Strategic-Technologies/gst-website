@@ -35,7 +35,8 @@
  * `radarSnapshotAgeSeconds` field on `/health` to surface staleness.
  */
 
-import { readWireLive, readFyiLive, FYI_FETCH_COUNT } from '../content/radar-live-store';
+import { readWireLive, readFyiLive } from '../content/radar-live-store';
+import { FYI_FETCH_COUNT } from '../content/radar-transform';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';

@@ -67,8 +67,9 @@ if (process.argv.includes('--unseed')) {
 } else {
   const fyi = createMockAnnotatedResponse();
   const wire = createMockAllStreamsResponse();
-  // 30 = FYI_FETCH_COUNT (mcp-server/src/content/radar-live-store.ts), which
+  // 30 = FYI_FETCH_COUNT (mcp-server/src/content/radar-transform.ts), which
   // readFyiSnapshot() keys on; plain .mjs cannot import the .ts constant.
+  // tests/unit/seed-radar-cache-parity.test.ts pins the two together.
   writeCacheEntry(buildCacheKey('fetchAnnotatedItems', 30), fyi);
   writeCacheEntry(buildCacheKey('fetchAllStreams', 'GST-', 15), wire);
   console.log(

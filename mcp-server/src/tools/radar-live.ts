@@ -52,10 +52,10 @@ import {
   readFyiLive,
   readWireCached,
   readFyiCached,
-  FYI_FETCH_COUNT,
   type LiveTierResult,
   type CachedTierResult,
 } from '../content/radar-live-store';
+import { FYI_FETCH_COUNT } from '../content/radar-transform';
 import { isCircuitOpen, type CircuitState } from '../ratelimit/circuit-breaker';
 import {
   handleInoreaderFailure,

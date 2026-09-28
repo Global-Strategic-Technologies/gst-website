@@ -55,8 +55,6 @@ vi.mock('../../src/content/radar-live-store', () => ({
   // must exist on the mock or the handler calls `undefined`.
   readWireCached: mockReadWireCached,
   readFyiCached: mockReadFyiCached,
-  // A plain constant the handler passes to the FYI readers.
-  FYI_FETCH_COUNT: 30,
 }));
 
 // BL-091 — mock the circuit breaker directly. Seeding `redisGet` cannot work

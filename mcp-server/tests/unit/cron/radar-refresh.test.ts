@@ -15,8 +15,6 @@ const { mockReadWireLive, mockReadFyiLive } = vi.hoisted(() => ({
 vi.mock('../../../src/content/radar-live-store', () => ({
   readWireLive: mockReadWireLive,
   readFyiLive: mockReadFyiLive,
-  // A plain constant the cron passes to readFyiLive.
-  FYI_FETCH_COUNT: 30,
 }));
 
 const { mockIsCircuitOpen, mockOpenCircuit } = vi.hoisted(() => ({

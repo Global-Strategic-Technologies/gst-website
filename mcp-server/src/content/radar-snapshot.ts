@@ -41,10 +41,8 @@ import {
   type RadarCategory,
   type SnapshotItem,
   type SnapshotTier,
+  FYI_FETCH_COUNT,
 } from './radar-transform';
-// Worker-only deps come along with this import, which is fine: this module is
-// stdio-only, and stdio already loads radar-live-store through createServer().
-import { FYI_FETCH_COUNT } from './radar-live-store';
 
 // Re-export from radar-transform so callers that previously imported from
 // here continue to work. The actual definitions moved to radar-transform.ts
