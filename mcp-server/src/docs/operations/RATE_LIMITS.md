@@ -251,7 +251,7 @@ This is intentional fail-open — the bearer-token check still gates access. Rat
 
 ### Radar-tier activation (shipped via BL-038, 2026-05-31)
 
-The limiter carries a third + fourth `Ratelimit` instance scoped to `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day` with the 5/min and 50/day caps. The Worker pre-parses the MCP request body via [`extractToolName`](../../dispatch/extract-tool-name.ts) at the rate-limit gate; if the call is `tools/call` for `search_radar` or `get_latest_insights`, all four buckets (general AND radar) get checked in parallel. Non-radar calls + non-`tools/call` requests + parse failures fail-safe to the general-only 2-bucket path.
+The limiter carries a third + fourth `Ratelimit` instance scoped to `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day` with the 5/min and 50/day caps. The Worker pre-parses the MCP request body via [`inspectToolCalls`](../../dispatch/extract-tool-name.ts) at the rate-limit gate; if the call is `tools/call` for `search_radar` or `get_latest_insights`, all four buckets (general AND radar) get checked in parallel. Non-radar calls + non-`tools/call` requests + parse failures fail-safe to the general-only 2-bucket path.
 
 The general tier still applies to radar calls — they count toward the general 60/min, 1000/day allowance too. The radar tier is **additive** (a stricter parallel constraint), not replacement.
 

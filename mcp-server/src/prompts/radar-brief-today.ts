@@ -28,6 +28,10 @@
 
 import { z } from 'zod';
 import { RadarCategoryEnum } from '../schemas';
+import {
+  RADAR_CATEGORY_LIST_COMMA,
+  RADAR_CATEGORY_LIST_SQ_SLASHED,
+} from '../content/radar-transform';
 import type { GstPrompt } from './types';
 import { enumFromWire } from './wire-shape';
 import { authorialIntentLine } from './embed';
@@ -50,7 +54,7 @@ const argsSchema = z.object({
   category: enumFromWire(RadarCategoryEnum.optional())
     .optional()
     .describe(
-      "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories. Mirrors the /hub/radar website's category filter pills."
+      `Optional category filter. One of ${RADAR_CATEGORY_LIST_SQ_SLASHED}. Omit for all categories. Mirrors the /hub/radar website's category filter pills.`
     ),
 });
 
@@ -79,7 +83,7 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
             'Step 1. The `gst://radar/fyi/latest` snapshot is embedded in the next message. Treat its `items[]` array as the authoritative item set for this brief — do not invent items.',
             args.category
               ? `  Filter to items where \`category === "${args.category}"\`.`
-              : '  Use all categories (pe-ma, enterprise-tech, ai-automation, security).',
+              : `  Use all categories (${RADAR_CATEGORY_LIST_COMMA}).`,
             '',
             'Step 2. If the next message is a plain TEXT block rather than an embedded resource, no items are available: surface that text to the user verbatim and STOP. Do not fabricate items, and do not add remediation advice of your own — the text already states what applies to this deployment.',
             '',

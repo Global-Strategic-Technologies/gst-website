@@ -121,7 +121,6 @@ export const TOOL_FAILURE_REASONS = [
 ] as const;
 
 export type RadarUpstreamReason = (typeof RADAR_UPSTREAM_REASONS)[number];
-export type RadarFailureReason = (typeof RADAR_FAILURE_REASONS)[number];
 export type ToolFailureReason = (typeof TOOL_FAILURE_REASONS)[number];
 
 /**

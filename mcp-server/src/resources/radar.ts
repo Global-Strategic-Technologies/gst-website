@@ -36,13 +36,10 @@ import { emitScopeDenial } from '../metrics/pipeline-events';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
 import type { Env } from '../env';
+import { RADAR_CATEGORY_LABELS } from '../../../src/utils/radar-categories';
 
-const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
-  'pe-ma': 'PE & M&A',
-  'enterprise-tech': 'Enterprise Tech',
-  'ai-automation': 'AI & Automation',
-  security: 'Security',
-};
+// Shared with the /hub/radar pills — see `src/utils/radar-categories.ts`.
+const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = RADAR_CATEGORY_LABELS;
 
 // Deliberately NOT the shared constant from `content/radar-messages.ts`.
 // This string is embedded in a published Resource body, so its wording is a

@@ -33,6 +33,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { stringFromWire } from './wire-shape';
+import { RADAR_CATEGORY_LIST_PIPED } from '../content/radar-transform';
 import {
   authorialIntentLine,
   deliveredAsDocumentClause,
@@ -119,7 +120,7 @@ const SWEEP_STEPS = [
   '- **`estimate_tech_debt_cost`**: per the MTTR rule; `null` for fields §04 does not state (the response returns `extractionOnly` naming them).',
   '- **`list_regulation_facets`** then **`search_regulations`**: one call per framework/jurisdiction, using facet values verbatim. Keep `limit` at or below 50 — larger responses have exceeded real client ceilings; if `returned < totalMatched`, narrow by category and batch a second call rather than raising the limit.',
   '- **`list_portfolio_facets`** then **`search_portfolio`**: use returned theme / engagement values VERBATIM — anything else matches zero projects. When the engagement side is ambiguous, pass both in one call.',
-  '- **`search_radar`**: the category enum has four values (`pe-ma | enterprise-tech | ai-automation | security`); omit `category` to sweep all.',
+  `- **\`search_radar\`**: the category enum has four values (\`${RADAR_CATEGORY_LIST_PIPED}\`); omit \`category\` to sweep all.`,
   '',
   '**Deeplink discipline**: every tool response carries a `deeplink`. Each tool-backed dossier section MUST close with its deeplink, copied VERBATIM — never invent or edit a URL. Without the links the dossier is read-only.',
   '',

@@ -115,7 +115,7 @@ const ACCEPTED_SHADOWS: Readonly<Record<string, string>> = {
     'tests that still need it import from node:buffer. Banned in value AND type position.',
   process:
     'declare const process: any — cost src/index.ts its `never` narrowing on process.exit(1). ' +
-    'The three call sites now `import process from "node:process"`. Banned as a bare global.',
+    'The two call sites (config.ts, index.ts) `import process from "node:process"`. Banned as a bare global.',
   global:
     'declare const global: ServiceWorkerGlobalScope — not what @types/node means by `global`. ' +
     'Never used bare in this workspace (verified at BL-137 time); `globalThis` is the idiom ' +

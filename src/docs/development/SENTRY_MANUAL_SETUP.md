@@ -263,7 +263,7 @@ The Worker entrypoint wraps its handler with `withSentry(optionsCallback, handle
 
 Key files:
 
-- [`mcp-server/src/observability/sentry.ts`](../../../mcp-server/src/observability/sentry.ts) — `sentryOptions(env)`, `tagRequest(keyOwner, path)`, `captureException(error)`, re-export of `withSentry`
+- [`mcp-server/src/observability/sentry.ts`](../../../mcp-server/src/observability/sentry.ts) — `sentryOptions(env)`, `tagRequest(keyOwner, path)`, `captureMessage(...)`, re-export of `withSentry`
 - [`mcp-server/src/worker.ts`](../../../mcp-server/src/worker.ts) — wraps the default export with `withSentry(sentryOptions, handler)`; calls `tagRequest(auth.keyOwner, url.pathname)` after bearer auth resolves so per-request Sentry events carry attribution
 
 ### Tags applied automatically

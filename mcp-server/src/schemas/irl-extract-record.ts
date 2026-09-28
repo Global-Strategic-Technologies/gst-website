@@ -399,8 +399,6 @@ export const IrlExtractRecordMetaV2Schema = z.object({
   coverage: IrlExtractRecordMetaSchema.shape.coverage,
 });
 
-export type IrlExtractRecordMetaV2 = z.infer<typeof IrlExtractRecordMetaV2Schema>;
-
 // ─── Record ────────────────────────────────────────────────────────────────
 
 /**
@@ -478,8 +476,6 @@ export const IrlExtractRecordV2Schema = z
     facts: z.array(IrlExtractFactSchema),
   })
   .superRefine(runRecordCrossChecks);
-
-export type IrlExtractRecordV2 = z.infer<typeof IrlExtractRecordV2Schema>;
 
 // ─── The body directive ────────────────────────────────────────────────────
 

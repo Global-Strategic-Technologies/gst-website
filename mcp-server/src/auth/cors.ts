@@ -209,6 +209,3 @@ function applyHeaders(response: Response, corsHeaders: Record<string, string>): 
     headers: newHeaders,
   });
 }
-
-/** Exported for testing only. Do not import from runtime code. */
-export const __ALLOWED_ORIGINS_FOR_TESTS = ALLOWED_ORIGINS;

@@ -84,18 +84,6 @@ export function tagRequest(keyOwner: string | undefined, path: string): void {
 }
 
 /**
- * Manual exception capture — for cases where the handler catches an
- * exception and reports it through a structured error envelope (so the
- * caller never sees the raw throw) but we still want the diagnostic in
- * Sentry. The radar-live tools use this pattern: catch Inoreader errors,
- * return MCP-shaped error to the client, capture-but-don't-rethrow to
- * Sentry.
- */
-export function captureException(error: unknown, context?: Record<string, unknown>): void {
-  Sentry.captureException(error, context ? { extra: context } : undefined);
-}
-
-/**
  * Manual message capture — for handled-error paths that don't have an
  * Error instance to capture but still need to surface a breadcrumb to
  * Sentry so configured alert rules fire (per
@@ -157,67 +145,6 @@ export function captureMessage(
   });
 }
 
-/**
- * Drain the Sentry SDK's in-memory event queue. Returns `true` if the
- * queue was flushed within `timeoutMs`, `false` if the timeout fired
- * first.
- *
- * Why this exists: the fetch handler is wrapped in `withSentry`, which
- * holds the isolate open until any pending Sentry HTTP POSTs complete
- * before letting the Response return. The scheduled handler has no
- * Response to anchor that wait against — so `captureMessage` events
- * emitted from cron paths race against Cloudflare reclaiming the
- * isolate and can be dropped silently.
- *
- * Observed at BL-032.8 Phase B soak Day 3 (2026-05-19): Cloudflare's
- * cron event log showed all 4/4 daily firings succeeding, but Sentry
- * was only capturing ~1 of 4 `cron.radar-refresh.success` events. The
- * fix is to `await flushSentry()` inside `ctx.waitUntil` so the
- * isolate stays alive until the SDK has drained.
- *
- * No-op when Sentry isn't initialized (graceful: `Sentry.flush()`
- * returns true immediately if there's no active client).
- */
-export async function flushSentry(timeoutMs = 2000): Promise<boolean> {
-  return Sentry.flush(timeoutMs);
-}
-
 // Re-export `withSentry` so worker.ts has a single import surface for
 // observability rather than reaching into @sentry/cloudflare directly.
 export { withSentry } from '@sentry/cloudflare';
-
-/**
- * Re-export of Sentry's `withMonitor` — the cron-monitoring wrapper that
- * sends `in_progress` / `ok` / `error` check-ins to Sentry Crons.
- *
- * **Critical behavior** (from `@sentry/core` source, verified 2026-05-25):
- * `withMonitor` finishes the check-in with the matching status on
- * callback resolution / rejection AND **re-throws** any rejection. It
- * does NOT call `captureException` itself. To capture the stack trace,
- * callers must layer an outer try/catch that calls `captureException`
- * on the re-thrown error. The reference `instrumentCron` implementation
- * in `@sentry/node-core/src/cron/cron.ts` follows exactly this pattern.
- *
- * **Why this matters for the GST scheduled handler**: missing this
- * outer catch was the load-bearing cause of the 2026-05-25 incident
- * where Cloudflare reported `outcome: exception` on cron firings but
- * Sentry had zero corresponding events. The scheduled handler had a
- * `try { … } finally { … }` shape with no `catch` — exceptions escaped
- * `ctx.waitUntil` without ever being captured by Sentry.
- *
- * Pattern shape (canonical, mirrors Sentry's own instrumentCron):
- *
- *   try {
- *     await withMonitor('radar-refresh', () => doWork(), { schedule: … });
- *   } catch (err) {
- *     captureException(err, { source: 'cron.scheduled' });
- *   } finally {
- *     await flushSentry();
- *   }
- *
- * Free-plan note: Sentry Crons is available on all plans with a monthly
- * check-in quota. The `upsertMonitorConfig` parameter (passed by
- * including `schedule` in the options) auto-creates the monitor on
- * first check-in, so no manual setup is required.
- */
-export { withMonitor } from '@sentry/cloudflare';

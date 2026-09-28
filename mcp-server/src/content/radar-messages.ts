@@ -37,9 +37,8 @@
 
 /**
  * stdio, no seeded cache. Unchanged byte-for-byte from its original
- * definition in `radar-snapshot.ts`, which re-exports it under its historical
- * name `SNAPSHOT_MISSING_MESSAGE` so existing callers and their assertions
- * (`tools/radar-offline.ts`, `tests/unit/radar-offline.test.ts`) are untouched.
+ * definition in `radar-snapshot.ts` (where it was `SNAPSHOT_MISSING_MESSAGE`);
+ * `tools/radar-offline.ts` returns it when the offline snapshot is missing.
  */
 export const SNAPSHOT_MISSING_STDIO =
   'Radar snapshot not found. Run `npm run radar:seed` from the gst-website repo root to populate the local cache.';

@@ -23,8 +23,8 @@ import {
   readWireSnapshot,
   readWireSnapshotByCategory,
   RADAR_CATEGORIES,
-  SNAPSHOT_MISSING_MESSAGE,
 } from '../../src/content/radar-snapshot';
+import { SNAPSHOT_MISSING_STDIO } from '../../src/content/radar-messages';
 import { SearchRadarOfflineInputSchema } from '../../src/tools/radar-offline';
 import {
   createMockAnnotatedResponse,
@@ -122,7 +122,7 @@ describe('radar-snapshot reader', () => {
   });
 
   it('exposes a snapshot-missing message constant for callers', () => {
-    expect(SNAPSHOT_MISSING_MESSAGE).toMatch(/npm run radar:seed/);
+    expect(SNAPSHOT_MISSING_STDIO).toMatch(/npm run radar:seed/);
   });
 });
 

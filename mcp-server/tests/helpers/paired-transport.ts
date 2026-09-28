@@ -4,8 +4,11 @@ import type { Transport, TransportSendOptions } from '@modelcontextprotocol/serv
 /**
  * Paired-pipe Transport for in-process protocol-roundtrip tests.
  *
- * `@modelcontextprotocol/sdk@1.29.0` does not export an in-memory test
- * transport. The architecture decision lives in
+ * Written when the server was on `@modelcontextprotocol/sdk@1.29.0`, which
+ * exported no in-memory test transport. The v2 `@modelcontextprotocol/server`
+ * does export `InMemoryTransport`; this helper is kept because the suites
+ * already drive it and it has no behaviour to migrate. The architecture
+ * decision lives in
  * `src/docs/development/_archive/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
  *
  * Two halves hold references to each other; `send()` on one side enqueues

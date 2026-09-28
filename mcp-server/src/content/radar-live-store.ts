@@ -54,6 +54,17 @@ const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the radar refresh cron int
 const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';
 const CACHE_KEY_FYI = 'mcp:radar:cache:fyi';
 
+/**
+ * How many FYI items every reader requests from Inoreader. One fixed count so
+ * all callers (the tools, the website `/radar/snapshot` route, the cron and
+ * the stdio seeded snapshot's cache key) share a single cached fetch. It is
+ * deliberately NOT `FYI_MAX_COUNT` (the read-time output cap, lower): fetching
+ * only that many would let aged-out items crowd fresh ones out of the shared
+ * cache before the freshness gate runs. `get_latest_insights`' `limit` is
+ * schema-capped at this value, so no caller ever needs more.
+ */
+export const FYI_FETCH_COUNT = 30;
+
 /** What the radar-live tools get back. Mirrors `SnapshotTier` shape. */
 export type LiveTierResult =
   | {
@@ -179,7 +190,10 @@ export async function readWireCached(env: Env): Promise<CachedTierResult> {
  * all aged out yields an empty — but successful — result. That is an accurate
  * "no fresh items", not an error. **Never calls Inoreader.**
  */
-export async function readFyiCached(env: Env, count: number = 30): Promise<CachedTierResult> {
+export async function readFyiCached(
+  env: Env,
+  count: number = FYI_FETCH_COUNT
+): Promise<CachedTierResult> {
   const cached = await readTierFromCache(env, CACHE_KEY_FYI);
   if (!cached) return cacheEmpty('fyi');
   return {
@@ -308,7 +322,7 @@ export async function readWireLive(
  */
 export async function readFyiLive(
   env: Env,
-  count: number = 30,
+  count: number = FYI_FETCH_COUNT,
   opts: { forceRefresh?: boolean; source?: InoreaderObservedSource; keyOwner?: string } = {}
 ): Promise<LiveTierResult> {
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
@@ -318,7 +332,7 @@ export async function readFyiLive(
     if (cached) {
       // Apply the freshness gate against the current clock (cache holds RAW
       // items), then honor the caller's `count` upper bound. The trailing
-      // slice is a no-op in production — every caller passes count >= 30 and
+      // slice is a no-op in production — every caller passes FYI_FETCH_COUNT and
       // FYI_MAX_COUNT already caps lower — but preserves the "caller may
       // request fewer" contract.
       const items = filterFreshFyi(cached.items).slice(0, count);

@@ -10,7 +10,7 @@ lastAuthored: 2026-09-27
 schema: mcp-server/src/tools/radar-offline.ts
 enumParity:
   - tableHeading: '`category`'
-    schemaExport: mcp-server/src/content/radar-transform.ts#RADAR_CATEGORIES
+    schemaExport: src/utils/radar-categories.ts#RADAR_CATEGORIES
   - tableHeading: 'Failure modes'
     schemaExport: mcp-server/src/tools/_result.ts#RADAR_FAILURE_REASONS
 ---
@@ -26,13 +26,13 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`mcp-server/src/tools/radar-offline.ts`](../../../tools/radar-offline.ts) — `SearchRadarOfflineInputSchema` (single optional `category` field)
-> - **Category enum**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategory` type
+> - **Category enum**: [`src/utils/radar-categories.ts`](../../../../../src/utils/radar-categories.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategoryId` type and `RADAR_CATEGORY_LABELS`; a zero-import leaf shared with the `/hub/radar` website page. [`mcp-server/src/content/radar-transform.ts`](../../../content/radar-transform.ts) re-exports it (with `RadarCategory` as the server-side alias) and holds the formatted category lists every description interpolates
 > - **URL encoder**: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (`src/components/radar/CategoryFilter.astro` hydrates / syncs) and the MCP wrapper (`buildRadarDeeplink`); single source of truth for radar URL state.
-> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. The offline snapshot has no live TTL — its freshness is whenever `npm run radar:seed` last ran. (The live tools cache separately: `RESOURCE_TTL_SECONDS.RADAR` for Resources and a 6h Upstash store for `readFyiLive` / `readWireLive`.)
+> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`; the missing-snapshot text is `SNAPSHOT_MISSING_STDIO` in [`radar-messages.ts`](../../../content/radar-messages.ts). The offline snapshot has no live TTL — its freshness is whenever `npm run radar:seed` last ran. (The live tools cache separately: `RESOURCE_TTL_SECONDS.RADAR` for Resources and a 6h Upstash store for `readFyiLive` / `readWireLive`.)
 >
 > **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
-> **Version**: `v1` | **Last authored**: 2026-09-27 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-166 authorization note on the live-tool surface documented below)
+> **Version**: `v1` | **Last authored**: 2026-09-27 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-166 authorization note on the live-tool surface documented below, and again when the category enum moved to the shared `src/utils/radar-categories.ts` leaf and the `SNAPSHOT_MISSING_MESSAGE` alias was retired, both with no wire change)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
@@ -91,7 +91,7 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
 
 **Deeplink**: a URL that opens `/hub/radar` with the category filter pre-applied (matching the user's input). Empty input emits a bare `/hub/radar` URL (no query string).
 
-**Snapshot-missing path**: when `.cache/inoreader/` is missing or empty, the response is `{ isError: true, content: [{ type: 'text', text: SNAPSHOT_MISSING_MESSAGE }] }` — the message instructs the caller to run `npm run radar:seed`. No stack traces leak; engineering-correctness verified by `mcp-server/tests/integration/radar-offline-handler.test.ts`.
+**Snapshot-missing path**: when `.cache/inoreader/` is missing or empty, the response is `{ isError: true, content: [{ type: 'text', text: SNAPSHOT_MISSING_STDIO }] }` — the message instructs the caller to run `npm run radar:seed`. No stack traces leak; engineering-correctness verified by `mcp-server/tests/integration/radar-offline-handler.test.ts`.
 
 ---
 

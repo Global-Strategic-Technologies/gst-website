@@ -309,6 +309,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   import type { Topology, GeometryCollection } from 'topojson-specification';
   import type { FeatureCollection, Geometry } from 'geojson';
   import { encodeFilters, decodeFilters } from '../../../../utils/regulatory-map-url';
+  import {
+    REGULATION_CATEGORY_CSS,
+    REGULATION_CATEGORY_SHORT_LABELS,
+  } from '../../../../utils/regulation-categories';
   import type { Regulation, RegionSelectedDetail } from '../../../../types/regulatory-map';
   import { numericToAlpha3, alpha3ToName } from '../../../../utils/countryCodeMap';
   import { fipsToStateCode, stateCodeToName } from '../../../../utils/fipsToStateCode';
@@ -832,12 +836,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   // Category → CSS class map (used by timeline rendering and search)
-  const categoryColorMap: Record<string, string> = {
-    'data-privacy': 'privacy',
-    'ai-governance': 'ai',
-    'industry-compliance': 'industry',
-    cybersecurity: 'cyber',
-  };
+  const categoryColorMap: Record<string, string> = REGULATION_CATEGORY_CSS;
 
   // Initial timeline render (requires regionMap)
   renderTimeline();
@@ -1190,12 +1189,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   // --- Search ---
   // categoryColorMap declared earlier (before renderTimeline) to avoid TDZ
 
-  const categoryLabelMap: Record<string, string> = {
-    'data-privacy': 'Privacy',
-    'ai-governance': 'AI',
-    'industry-compliance': 'Industry',
-    cybersecurity: 'Cyber',
-  };
+  const categoryLabelMap: Record<string, string> = REGULATION_CATEGORY_SHORT_LABELS;
 
   function performSearch(query: string): RegIndexEntry[] {
     if (!query.trim()) return [];

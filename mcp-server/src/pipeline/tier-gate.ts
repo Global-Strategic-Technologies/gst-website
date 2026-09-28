@@ -37,11 +37,10 @@
  */
 
 import type { AuthSuccess } from '../auth/bearer';
-import { MissingScopeError } from '../auth/scopes';
+import { MissingScopeError, SCOPES } from '../auth/scopes';
 import { toolClassFor, type ToolCall } from '../dispatch/extract-tool-name';
 
 export const TRIAL_TIER = 'trial';
-const RADAR_TOOL_SCOPE = 'tool:radar:*';
 
 /**
  * Returns the JSON-RPC refusal for a trial identity calling a radar tool,
@@ -49,7 +48,7 @@ const RADAR_TOOL_SCOPE = 'tool:radar:*';
  */
 export function trialRadarDenial(auth: AuthSuccess, call: ToolCall | null): Response | null {
   if (auth.tier !== TRIAL_TIER || !call || toolClassFor(call.name) !== 'radar') return null;
-  const error = new MissingScopeError(RADAR_TOOL_SCOPE, auth.scopes).toJsonRpcError();
+  const error = new MissingScopeError(SCOPES.TOOL_RADAR_ALL, auth.scopes).toJsonRpcError();
   return new Response(JSON.stringify({ jsonrpc: '2.0', id: call.id, error }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },

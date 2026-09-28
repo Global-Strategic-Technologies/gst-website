@@ -53,6 +53,7 @@
 
 import { z } from 'zod';
 import { TechParMcpInputsSchema } from '../schemas';
+import { CITATION_FORM_RE, PARTNER_SUPPLIED_DEFAULT_CITATION } from './partner-supplied';
 
 // ─── Enums ──────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export const NULL_REQUIRING_SOURCES: readonly (typeof ANNUALIZATION_SOURCE_VALUE
 const citationSchema = z
   .string()
   .regex(
-    /^Section (\d{2}|--)[^—]*—.{20,}$/,
+    CITATION_FORM_RE,
     'Citation must match the form "Section NN — <substantial excerpt of at least 20 characters>".'
   );
 
@@ -144,8 +145,6 @@ const ytdMathCheckSchema = z.object({
     'IRL citation for the reported YTD figure (e.g., Section 00 row 10: $7.86M YTD FY27 recurring).'
   ),
 });
-
-export type YtdMathCheck = z.infer<typeof ytdMathCheckSchema>;
 
 const monetaryFieldAuditSchema = z.object({
   annualizationSource: annualizationSourceEnum.describe(
@@ -500,8 +499,7 @@ export function formatTechParAuditIssues(issues: TechParAuditIssue[]): string {
  * Used by prompts that don't ingest a structured IRL.
  */
 export function buildPartnerSuppliedTechParAudit(mode: 'quick' | 'deepdive'): TechParAuditMetadata {
-  const baseCitation =
-    'Section -- — partner-supplied form input — value sourced from prompt form, no IRL provenance available';
+  const baseCitation = PARTNER_SUPPLIED_DEFAULT_CITATION;
   const baseField = {
     annualizationSource: 'irl-annualized-stated' as const,
     citation: baseCitation,

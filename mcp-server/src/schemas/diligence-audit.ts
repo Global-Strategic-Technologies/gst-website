@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { UserInputsSchema } from '../../../src/schemas/diligence';
 import { REVENUE_RANGE_IDS } from '../../../src/data/diligence-machine/wizard-config';
 import { extractExcerpt } from './validate-irl-provenance';
+import { CITATION_FORM_RE, PARTNER_SUPPLIED_DEFAULT_CITATION } from './partner-supplied';
 
 /**
  * Test whether `value` appears as a whole-token literal inside `text`.
@@ -136,7 +137,7 @@ const velocityEvidenceEnum = z.enum([
 const citationSchema = z
   .string()
   .regex(
-    /^Section (\d{2}|--)[^—]*—.{20,}$/,
+    CITATION_FORM_RE,
     'Citation must match the form "Section NN — <excerpt of ≥20 characters>". ' +
       'Common rejection causes: (1) using a hyphen "-" (U+002D) where an em-dash "—" (U+2014) is required — the separator between the section header and the excerpt is an EM-DASH; (2) excerpt under 20 characters of substantive IRL content — one- or two-word excerpts will be rejected; (3) missing the "Section NN" prefix. ' +
       'For partner-supplied (non-IRL) callers, use "Section -- — partner-supplied form input — <description>" (the literal "--" indicates no IRL section). ' +
@@ -586,21 +587,19 @@ void REVENUE_RANGE_IDS;
  * includes the value literally to satisfy the Tier-1 substring check —
  * the helper raises tier to 3 instead to avoid forcing artificial citations.
  *
- * Use cases:
- *   - Engine-pipeline tests that exercise the handler without re-stating
- *     audit metadata per case.
- *   - Prompt callers that don't ingest a structured IRL
- *     (`gst_diligence_kickoff`, `gst_diligence_handoff_memo`): the model
- *     supplies user-form values + Tier-3 audit defaults so the tool call
- *     succeeds. Per the M7 finding of the impartial audit (deferring
- *     non-IRL callers is wrong), both kickoff and handoff supply this
- *     default and explicitly mark each dimension as Tier 3.
+ * **Test-only.** No production module calls it: engine-pipeline and
+ * protocol tests use it to exercise the handler without re-stating audit
+ * metadata per case. The prompt callers that don't ingest a structured IRL
+ * (`gst_diligence_kickoff`, `gst_diligence_handoff_memo`) do not call it —
+ * their bodies instruct the model to author the same Tier-3 partner-supplied
+ * `_audit` block itself (M7 finding of the impartial audit: deferring non-IRL
+ * callers is wrong). Its TechPar twin, `buildPartnerSuppliedTechParAudit`, is
+ * different: `gst_target_quick_look` calls that one in production.
  */
 type DimsInput = Omit<AuditedUserInputs, '_audit'>;
 
 export function buildPartnerSuppliedAudit(inputs: DimsInput): AuditMetadata {
-  const baseCitation =
-    'Section -- — partner-supplied form input — value sourced from prompt form, no IRL provenance available';
+  const baseCitation = PARTNER_SUPPLIED_DEFAULT_CITATION;
   const base = { tier: '3' as const, citation: baseCitation };
 
   // dataSensitivity matched categories — defensible "what the partner

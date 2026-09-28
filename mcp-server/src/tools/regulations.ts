@@ -24,6 +24,7 @@ import {
 } from '../content/regulation-loader';
 import { normalizeFrameworkName, HUB_MATCH_MIN_LENGTH } from '../schemas/compose-dossier-envelope';
 import { encodeFilters } from '../../../src/utils/regulatory-map-url';
+import { REGULATION_CATEGORY_LIST_DQ_COMMA } from '../../../src/schemas/regulatory-map';
 import { HUB_BASE } from '../config';
 import { pickSingle } from '../lib/pick-single';
 import { toolOk } from './_result';
@@ -36,7 +37,7 @@ const SEARCH_DESCRIPTION = `The authoritative source for regulatory frameworks, 
 
 Search the GST Regulatory Map (${REGULATION_ENTRIES.length} frameworks across data privacy, AI governance, cybersecurity, and industry compliance).
 
-Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity"), and free-text \`query\` (matches name, curated aliases, summary, and id). Aliases mean the common short forms resolve to the statute rather than to some other framework that merely mentions it — "Colorado AI Act", "EU AI Act", "UK GDPR", "NIST AI RMF" and "SB 24-205" all reach their own record. Returns up to \`limit\` matches (default 20, max 120), plus \`totalMatched\` (the count before the cap) and \`returned\`. There is no pagination: when the two differ, narrow the filters and call again rather than raising \`limit\`.
+Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of ${REGULATION_CATEGORY_LIST_DQ_COMMA}), and free-text \`query\` (matches name, curated aliases, summary, and id). Aliases mean the common short forms resolve to the statute rather than to some other framework that merely mentions it — "Colorado AI Act", "EU AI Act", "UK GDPR", "NIST AI RMF" and "SB 24-205" all reach their own record. Returns up to \`limit\` matches (default 20, max 120), plus \`totalMatched\` (the count before the cap) and \`returned\`. There is no pagination: when the two differ, narrow the filters and call again rather than raising \`limit\`.
 
 **Multi-value filters** — both \`jurisdiction\` and \`category\` accept either a single string OR an array of strings (e.g. \`jurisdiction: ["eu", "us", "gb"]\`, \`category: ["data-privacy", "ai-governance"]\`). When multiple values are supplied, the response combines all matches in one call — preferred over sequential per-value fan-out. When arrays contain >1 element, the response's \`filterDeeplink\` omits that filter (the website UI uses single-select chips and cannot represent multi-select); use single-value filters when you need a deeplink that mirrors the agent's filter exactly. Batching beats sequential per-value fan-out, but **broad multi-jurisdiction queries return very large responses** — measured at ~153,200 characters at \`limit: 50\` and ~355,700 at the maximum, against a 143,027-character response that has already exceeded a real client's tool-result ceiling. Keep \`limit\` at or near its default of 20 and narrow by category; raise it deliberately, not as a matter of course.
 

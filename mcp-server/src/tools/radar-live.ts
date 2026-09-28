@@ -52,6 +52,7 @@ import {
   readFyiLive,
   readWireCached,
   readFyiCached,
+  FYI_FETCH_COUNT,
   type LiveTierResult,
   type CachedTierResult,
 } from '../content/radar-live-store';
@@ -69,6 +70,8 @@ import {
   oldestItemDaysAgo,
   projectItemForModel,
   RADAR_CATEGORIES,
+  RADAR_CATEGORY_LIST_DQ_COMMA,
+  RADAR_CATEGORY_LIST_DQ_SLASHED,
   type SnapshotItem,
   type RadarCategory,
 } from '../content/radar-transform';
@@ -80,7 +83,7 @@ import { toolOk, toolFail } from './_result';
 
 const SearchRadarInputSchema = z.object({
   category: RadarCategoryEnum.optional().describe(
-    'Optional category filter. One of "pe-ma" / "enterprise-tech" / "ai-automation" / "security". Omit for all categories. Mirrors the /hub/radar website\'s single category filter.'
+    `Optional category filter. One of ${RADAR_CATEGORY_LIST_DQ_SLASHED}. Omit for all categories. Mirrors the /hub/radar website's single category filter.`
   ),
 });
 type SearchRadarInput = z.infer<typeof SearchRadarInputSchema>;
@@ -96,7 +99,7 @@ const GetLatestInsightsInputSchema = z.object({
       `Maximum number of FYI items to return (1-30, default 10). At most ${FYI_MAX_COUNT} FYI items exist at any time, so values above ${FYI_MAX_COUNT} return the same set as ${FYI_MAX_COUNT}.`
     ),
   category: RadarCategoryEnum.optional().describe(
-    'Optional category filter. One of "pe-ma" / "enterprise-tech" / "ai-automation" / "security". Omit for all categories.'
+    `Optional category filter. One of ${RADAR_CATEGORY_LIST_DQ_SLASHED}. Omit for all categories.`
   ),
 });
 type GetLatestInsightsInput = z.infer<typeof GetLatestInsightsInputSchema>;
@@ -109,7 +112,7 @@ const SEARCH_RADAR_DESCRIPTION = `Live GST Radar search — strict mirror of the
 
 Sister tool: \`search_radar_offline\` — same shape, reads from a frozen local snapshot. **Registered on the stdio transport only**, so it is not callable over the remote (HTTP) server; use it for dev/CI/budget-exhausted contexts when running the server locally.
 
-Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`degraded\` flag + \`deeplink\` URL. **The Wire tier is capped at 30 items** (with up to 3 slots reserved per category so no category is crowded out), mirroring what /hub/radar renders. The curated FYI tier passes through this tool uncapped — though it is already limited upstream to the 15 freshest annotated items. \`returned\` is the count after that cap and \`totalMatched\` the count before it — when they differ, the feed was truncated and the \`deeplink\` opens the full view. Item \`summary\` is plain text (source HTML is stripped). When \`liveInfo.degraded\` is true the results come from the cached snapshot (up to 6h old) because the Inoreader budget circuit is open — treat them as stale-but-real, and check \`fetchedAt\` for age.
+Input: optional \`category\` (one of ${RADAR_CATEGORY_LIST_DQ_COMMA}); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`degraded\` flag + \`deeplink\` URL. **The Wire tier is capped at 30 items** (with up to 3 slots reserved per category so no category is crowded out), mirroring what /hub/radar renders. The curated FYI tier passes through this tool uncapped — though it is already limited upstream to the 15 freshest annotated items. \`returned\` is the count after that cap and \`totalMatched\` the count before it — when they differ, the feed was truncated and the \`deeplink\` opens the full view. Item \`summary\` is plain text (source HTML is stripped). When \`liveInfo.degraded\` is true the results come from the cached snapshot (up to 6h old) because the Inoreader budget circuit is open — treat them as stale-but-real, and check \`fetchedAt\` for age.
 
 Failure modes return \`isError: true\` with a machine-readable \`error\` field in \`structuredContent\` (\`config-missing\` | \`token-missing\` | \`token-stale\` | \`inoreader-rate-limit\` | \`upstream-error\` | \`network-timeout\` | \`service-unavailable\`) — so agents can distinguish "Inoreader stale token, retry later" from "Inoreader rate limit, circuit broken" from "transient network error." \`content[0].text\` carries the human-readable message. A broken circuit only returns an error when there is ALSO no cached snapshot to serve; otherwise you get cached results flagged \`degraded\`.
 
@@ -216,14 +219,17 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOw
     // Breaker open → cache only, never Inoreader. Serve whatever is cached;
     // tier-tolerance is deliberately scoped to THIS path (there is nothing
     // left to open, and `cache-empty` carries no upstream signal).
-    const [wire, fyi] = await Promise.all([readWireCached(env), readFyiCached(env, 30)]);
+    const [wire, fyi] = await Promise.all([
+      readWireCached(env),
+      readFyiCached(env, FYI_FETCH_COUNT),
+    ]);
     if (!wire.ok && !fyi.ok) return circuitOpenEnvelope(breaker);
     wireView = tierView(wire);
     fyiView = tierView(fyi);
   } else {
     const [wire, fyi] = await Promise.all([
       readWireLive(env, { keyOwner }),
-      readFyiLive(env, 30, { keyOwner }),
+      readFyiLive(env, FYI_FETCH_COUNT, { keyOwner }),
     ]);
     // Per-tier fail-fast — load-bearing (ADR-0006 T.Z.2): this is the path
     // that routes a 429 into `handleInoreaderFailure` → `openCircuit`.
@@ -329,18 +335,18 @@ export async function handleGetLatestInsights(
   const degraded = breaker?.open === true;
 
   const limit = input.limit ?? 10;
-  // Fetch 30 always so the Upstash cache is shared with search_radar. Note:
+  // Fetch FYI_FETCH_COUNT always so the Upstash cache is shared with search_radar. Note:
   // readFyiLive caps FYI output at FYI_MAX_COUNT (15) via the freshness gate,
   // so `limit` (schema max 30) can never actually yield more than 15 items.
   let fyiView: TierView;
   if (degraded && breaker) {
-    const fyi = await readFyiCached(env, Math.max(limit, 30));
+    const fyi = await readFyiCached(env, FYI_FETCH_COUNT);
     // A cached-but-fully-aged-out blob yields `ok` with zero items — that's an
     // accurate "no fresh items", not an error. Only a true cache miss 503s.
     if (!fyi.ok) return circuitOpenEnvelope(breaker);
     fyiView = tierView(fyi);
   } else {
-    const fyi = await readFyiLive(env, Math.max(limit, 30), { keyOwner });
+    const fyi = await readFyiLive(env, FYI_FETCH_COUNT, { keyOwner });
     if (!fyi.ok) return failureResponse(env, fyi, 'live-get-latest-insights');
     fyiView = tierView(fyi);
   }

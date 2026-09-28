@@ -42,6 +42,9 @@ import {
   type SnapshotItem,
   type SnapshotTier,
 } from './radar-transform';
+// Worker-only deps come along with this import, which is fine: this module is
+// stdio-only, and stdio already loads radar-live-store through createServer().
+import { FYI_FETCH_COUNT } from './radar-live-store';
 
 // Re-export from radar-transform so callers that previously imported from
 // here continue to work. The actual definitions moved to radar-transform.ts
@@ -116,7 +119,7 @@ function readTier(tier: 'fyi' | 'wire', key: string): SnapshotTier | null {
 
 /** Read the FYI (annotated) tier from the seeded snapshot, or null if missing. */
 export function readFyiSnapshot(): SnapshotTier | null {
-  return readTier('fyi', buildCacheKey('fetchAnnotatedItems', 30));
+  return readTier('fyi', buildCacheKey('fetchAnnotatedItems', FYI_FETCH_COUNT));
 }
 
 /** Read the Wire (all-streams merged) tier from the seeded snapshot, or null if missing. */
@@ -134,9 +137,3 @@ export function readWireSnapshotByCategory(category: RadarCategory): SnapshotTie
     lastSeededAt: wire.lastSeededAt,
   };
 }
-
-// The text moved to `radar-messages.ts` (node-free, zero imports) so prompt
-// modules can surface it without importing this node:fs-backed module. The
-// historical name is re-exported here, unchanged, so existing callers
-// (`tools/radar-offline.ts`) and their assertions keep working.
-export { SNAPSHOT_MISSING_STDIO as SNAPSHOT_MISSING_MESSAGE } from './radar-messages';

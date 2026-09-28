@@ -7,8 +7,6 @@
 
 import {
   RADAR_TOOLS,
-  extractToolCall,
-  extractToolName,
   inspectToolCalls,
   toolClassFor,
 } from '../../../src/dispatch/extract-tool-name';
@@ -20,7 +18,11 @@ const post = (body: string | undefined) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-describe('extractToolName', () => {
+/** The single-call reading of a body — what the rate-limit and tier gates use. */
+const callOf = async (req: Request) => (await inspectToolCalls(req)).call;
+const nameOf = async (req: Request) => (await callOf(req))?.name ?? null;
+
+describe('inspectToolCalls(req).call — tool name', () => {
   it('returns the tool name for a tools/call request (search_radar)', async () => {
     const body = JSON.stringify({
       jsonrpc: '2.0',
@@ -28,7 +30,7 @@ describe('extractToolName', () => {
       method: 'tools/call',
       params: { name: 'search_radar', arguments: { query: 'AI' } },
     });
-    expect(await extractToolName(post(body))).toBe('search_radar');
+    expect(await nameOf(post(body))).toBe('search_radar');
   });
 
   it('returns the tool name for a tools/call request (list_portfolio_facets)', async () => {
@@ -38,7 +40,7 @@ describe('extractToolName', () => {
       method: 'tools/call',
       params: { name: 'list_portfolio_facets', arguments: {} },
     });
-    expect(await extractToolName(post(body))).toBe('list_portfolio_facets');
+    expect(await nameOf(post(body))).toBe('list_portfolio_facets');
   });
 
   it('returns null for tools/list (no name in params)', async () => {
@@ -47,21 +49,21 @@ describe('extractToolName', () => {
       id: 1,
       method: 'tools/list',
     });
-    expect(await extractToolName(post(body))).toBeNull();
+    expect(await nameOf(post(body))).toBeNull();
   });
 
   it('returns null for a non-JSON body (fail-safe)', async () => {
-    expect(await extractToolName(post('not-json{'))).toBeNull();
+    expect(await nameOf(post('not-json{'))).toBeNull();
   });
 
   it('returns null when params is missing on a tools/call (malformed)', async () => {
     const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call' });
-    expect(await extractToolName(post(body))).toBeNull();
+    expect(await nameOf(post(body))).toBeNull();
   });
 
   it('returns null for an empty body (e.g., GET /health)', async () => {
-    expect(await extractToolName(post(undefined))).toBeNull();
-    expect(await extractToolName(post(''))).toBeNull();
+    expect(await nameOf(post(undefined))).toBeNull();
+    expect(await nameOf(post(''))).toBeNull();
   });
 
   it('does not consume the request body — original remains readable downstream', async () => {
@@ -72,14 +74,14 @@ describe('extractToolName', () => {
       params: { name: 'search_radar' },
     });
     const req = post(body);
-    const extracted = await extractToolName(req);
+    const extracted = await nameOf(req);
     expect(extracted).toBe('search_radar');
     // The original request body must still be readable by the MCP handler.
     expect(await req.text()).toBe(body);
   });
 });
 
-describe('extractToolCall (BL-155 — name + JSON-RPC id)', () => {
+describe('inspectToolCalls(req).call — name + JSON-RPC id (BL-155)', () => {
   const call = (id: unknown, extra: Record<string, unknown> = {}) =>
     post(
       JSON.stringify({
@@ -92,13 +94,13 @@ describe('extractToolCall (BL-155 — name + JSON-RPC id)', () => {
     );
 
   it('keeps a numeric or string id', async () => {
-    expect(await extractToolCall(call(42))).toEqual({ name: 'search_radar', id: 42 });
-    expect(await extractToolCall(call('abc'))).toEqual({ name: 'search_radar', id: 'abc' });
+    expect(await callOf(call(42))).toEqual({ name: 'search_radar', id: 42 });
+    expect(await callOf(call('abc'))).toEqual({ name: 'search_radar', id: 'abc' });
   });
 
   it('normalises a missing or non-scalar id to null', async () => {
-    expect(await extractToolCall(call(undefined))).toEqual({ name: 'search_radar', id: null });
-    expect(await extractToolCall(call({ nested: true }))).toEqual({
+    expect(await callOf(call(undefined))).toEqual({ name: 'search_radar', id: null });
+    expect(await callOf(call({ nested: true }))).toEqual({
       name: 'search_radar',
       id: null,
     });
@@ -106,9 +108,9 @@ describe('extractToolCall (BL-155 — name + JSON-RPC id)', () => {
 
   it('returns null for anything that is not a tools/call', async () => {
     expect(
-      await extractToolCall(post(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })))
+      await callOf(post(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })))
     ).toBeNull();
-    expect(await extractToolCall(post('nope{'))).toBeNull();
+    expect(await callOf(post('nope{'))).toBeNull();
   });
 });
 
@@ -125,10 +127,8 @@ describe('inspectToolCalls (BL-166 — batch detection)', () => {
       msg('tools/list'),
       msg('tools/call', { id: 2, params: { name: 'search_radar' } }),
     ]);
+    // `call` is null for a batch — which is exactly why the separate flag exists.
     expect(await inspectToolCalls(post(body))).toEqual({ call: null, batchedToolCall: true });
-    // The legacy single-call reader still sees nothing — which is exactly why
-    // the separate flag exists.
-    expect(await extractToolCall(post(body))).toBeNull();
   });
 
   it('flags a batched tools/call even when its params are malformed', async () => {

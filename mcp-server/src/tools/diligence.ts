@@ -7,12 +7,6 @@
  * error before the handler runs.
  */
 
-// Default import + `NodeJS.Process` annotation. Both halves are required — the
-// import alone resolves to `any`, because `@types/node` exports the global
-// binding that workers-types redeclares. See `src/config.ts` for the full
-// rationale (BL-137 / ADR-0020).
-import nodeProcess from 'node:process';
-const process: NodeJS.Process = nodeProcess;
 import type { McpServer } from '@modelcontextprotocol/server';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
@@ -93,16 +87,6 @@ export function countUnknownDimensions(inputs: ValidatedUserInputs): number {
  * same handler.
  */
 export async function handleDiligenceTool(payload: AuditedUserInputs) {
-  // BL-032.25 § 3 instrumentation: when MCP_REPRO_TIMING=1, emit three
-  // high-resolution checkpoints to stderr so the repro-k2b3.mjs script can
-  // classify the timing distribution (engine / serialization / wire).
-  // Off by default; zero cost in normal operation.
-  const trace = process.env.MCP_REPRO_TIMING === '1';
-  const mark = (label: string): void => {
-    if (trace) console.error(`[REPRO] ${label} t=${performance.now().toFixed(2)}ms`);
-  };
-  mark('handler:enter');
-
   // BL-066 — structural validation is performed by the SDK against the
   // published `AuditedUserInputsSchema.shape` (see `registerDiligenceTool`
   // below). The handler runs only after structural parse succeeds, so
@@ -114,7 +98,6 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
   const auditIssues = payload._audit
     ? runAuditRefinements({ ...payload, _audit: payload._audit })
     : [];
-  mark('audit:complete');
   if (auditIssues.length > 0) {
     // The formatted block carries the BL-045 rule citation the `gst_irl_ingestion`
     // prompt tells the model to read and retry on — verbatim to `content`.
@@ -127,16 +110,9 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
     const { _audit: _ignored, ...inputs } = payload;
     void _ignored;
     const result = generateScript(inputs as ValidatedUserInputs);
-    mark('engine:returned');
     const unknownDimensionCount = countUnknownDimensions(inputs as ValidatedUserInputs);
     const deeplink = buildDiligenceDeeplink(inputs as ValidatedUserInputs);
     const responsePayload = { ...result, unknownDimensionCount, deeplink };
-    if (trace) {
-      // BL-090: the response no longer carries a second, pretty-printed copy of
-      // the payload, so measure the structured channel — the only copy on the wire.
-      console.error(`[REPRO] serialized bytes=${JSON.stringify(responsePayload).length}`);
-    }
-    mark('handler:returning');
     return toolOk(
       responsePayload,
       `Diligence agenda generated (${unknownDimensionCount} unknown dimensions).`

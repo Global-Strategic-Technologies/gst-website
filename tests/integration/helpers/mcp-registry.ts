@@ -18,6 +18,7 @@
  */
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
+import { RADAR_CATEGORIES } from '../../../src/utils/radar-categories';
 
 export const SERVER_PATH = 'mcp-server/src/server.ts';
 export const LOCAL_ONLY_PATH = 'mcp-server/src/tools/_local-only.ts';
@@ -128,12 +129,9 @@ export function resourceInventory(): {
   const regulations = readdirSync(resolve('src/data/regulatory-map')).filter((f) =>
     f.endsWith('.json')
   ).length;
-  const radarCategories = (
-    read('mcp-server/src/content/radar-transform.ts')
-      .match(/export const RADAR_CATEGORIES[\s\S]*?\]/)?.[0]
-      .match(/'[a-z-]+'/g) ?? []
-  ).length;
-  const radar = 2 + radarCategories;
+  // Imported, not regexed: the vocabulary is a zero-import leaf, so this pulls
+  // in nothing from the server graph (the concern in the header above).
+  const radar = 2 + RADAR_CATEGORIES.length;
   return { library, regulations, radar, total: library + regulations + radar };
 }
 

@@ -49,12 +49,12 @@
  * are directly comparable. Characters are recorded alongside because the 143,027
  * datum is in characters. The two are **never** compared to each other.
  */
-import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
-import type {
-  JSONRPCMessage,
-  JSONRPCResponse,
-  JSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+import {
+  LATEST_PROTOCOL_VERSION,
+  type JSONRPCMessage,
+  type JSONRPCResponse,
+  type JSONRPCErrorResponse,
+} from '@modelcontextprotocol/server';
 
 // A single MockRedis satisfies the token store, the cache store and the circuit
 // breaker, all of which instantiate Redis at module scope. Copied from
