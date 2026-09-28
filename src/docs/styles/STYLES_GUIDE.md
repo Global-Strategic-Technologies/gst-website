@@ -308,8 +308,8 @@ the space itself, which leaves no source whitespace to delete. Fourteen of the t
 | `&#32;` | a character reference is not source whitespace                            | plain template regions — no expression needed, survives Prettier rewrap |
 | `{' '}` | compiles to an expression (`${' '}`), not a text node a compressor can see | JSX-ish regions that already carry expressions                        |
 
-`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — five
-sites in `diligence-machine/index.astro` and one in `CTABox.astro`, the latter with a comment
+`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — in
+`diligence-machine/index.astro`'s markup and in `CTABox.astro`, the latter with a comment
 saying so. Do **not** reach for `&nbsp;`: it would wrongly suppress wrapping at that point.
 Either form collapses harmlessly against real whitespace if compression is ever turned off.
 
