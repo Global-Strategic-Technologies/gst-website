@@ -373,6 +373,12 @@ describe('fmtShortC', () => {
     expect(fmtShortC(999_999)).toBe('$1.0M');
   });
 
+  it('never prints "1000.0M": amounts that round to a thousand M are billions', () => {
+    expect(fmtShortC(999_949_999)).toBe('$999.9M');
+    expect(fmtShortC(999_950_000)).toBe('$1.0B');
+    expect(fmtShortC(1_000_000_000)).toBe('$1.0B');
+  });
+
   it('prints whole units below 1,000', () => {
     expect(fmtShortC(999)).toBe('$999');
     expect(fmtShortC(500)).toBe('$500');
@@ -383,8 +389,9 @@ describe('fmtShortC', () => {
     expect(fmtShortC(1_200, '£', 0.79)).toBe('£948');
   });
 
-  it('round-trips through parseShortCurrency at the K/M boundary', () => {
+  it('round-trips through parseShortCurrency at the K/M and M/B boundaries', () => {
     expect(parseShortCurrency(fmtShortC(999_500))).toBe(1_000_000);
+    expect(parseShortCurrency(fmtShortC(1_000_000_000))).toBe(1_000_000_000);
   });
 });
 
@@ -830,6 +837,11 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('1.5M')).toBe(1_500_000);
   });
 
+  it('honors B suffix as billions (matches fmtShortC output)', () => {
+    expect(parseShortCurrency('$1.0B')).toBe(1_000_000_000);
+    expect(parseShortCurrency('5b')).toBe(5_000_000_000);
+  });
+
   it('strips currency symbol prefix ($, £, €, ¥)', () => {
     expect(parseShortCurrency('$237500')).toBe(237_500);
     expect(parseShortCurrency('$12.5M')).toBe(12_500_000);
@@ -860,7 +872,7 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('')).toBeNaN();
     expect(parseShortCurrency('abc')).toBeNaN();
     expect(parseShortCurrency('1.2.3')).toBeNaN();
-    expect(parseShortCurrency('1B')).toBeNaN(); // B suffix not supported
+    expect(parseShortCurrency('1X')).toBeNaN(); // unknown suffix
     expect(parseShortCurrency('12.5MM')).toBeNaN();
   });
 

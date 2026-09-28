@@ -795,15 +795,15 @@ test.describe('Tech Debt Calculator', () => {
     });
 
     test('ARR: clamps to $1B ceiling on out-of-range input', async ({ page }) => {
-      await typeDirect(page, 'arr', '5B'); // B suffix unsupported → NaN → falls back to current value
-      // 5B unparseable → state unchanged; verify default remained
-      const directAfter = await page.locator('[data-direct="arr"]').inputValue();
-      expect(directAfter).toBe('$10.0M'); // DEFAULT_STATE.arr
+      // The B suffix is read (the display prints billions as "$1.0B"), so 5B clamps
+      await typeDirect(page, 'arr', '5B');
+      const clampedFromSuffix = await page.locator('[data-direct="arr"]').inputValue();
+      expect(clampedFromSuffix).toBe('$1.0B');
 
-      // Now try a valid but huge value
+      // Bare digits over the ceiling clamp the same way
       await typeDirect(page, 'arr', '2000000000'); // $2B
       const clamped = await page.locator('[data-direct="arr"]').inputValue();
-      expect(clamped).toBe('$1000.0M'); // clamped to ceiling
+      expect(clamped).toBe('$1.0B');
     });
 
     test('Salary: typing "$187,500" preserves precision (no $5K snap)', async ({ page }) => {
@@ -879,11 +879,11 @@ test.describe('Tech Debt Calculator', () => {
       expect(msg).toMatch(/100K/);
     });
 
-    test('ARR above ceiling shows "Maximum ARR is $1000.0M" message', async ({ page }) => {
+    test('ARR above ceiling shows "Maximum ARR is $1.0B" message', async ({ page }) => {
       await typeDirect(page, 'arr', '2000000000');
       expect(await isClampMsgVisible(page, 'arr')).toBe(true);
       const msg = await getClampMsg(page, 'arr');
-      expect(msg).toMatch(/Maximum ARR/);
+      expect(msg).toMatch(/Maximum ARR is \$1\.0B/);
     });
 
     test('ARR garbled input shows "Couldn\'t read" fallback message', async ({ page }) => {
