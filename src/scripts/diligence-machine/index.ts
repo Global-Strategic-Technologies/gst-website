@@ -14,24 +14,18 @@ import { getOptionLabel, WIZARD_STEPS } from '../../data/diligence-machine/wizar
 import { trackCTA, trackEvent } from '../../utils/analytics';
 import { copyWithFeedback } from '../../utils/copy-feedback';
 import { escapeHtml } from '../../utils/escape-html';
+import {
+  STORAGE_KEY,
+  STORAGE_VERSION,
+  canNavigateTo,
+  navigate,
+  parseSavedState,
+  stepState,
+  type SavedState,
+} from './logic';
 
 // Analytics: fire dm_start once per page load on first wizard interaction
 let dmStartFired = false;
-
-const STORAGE_KEY = 'diligence-machine-state';
-const STORAGE_VERSION = 3;
-
-interface SavedState {
-  version: number;
-  currentStep: number;
-  highestStepReached: number;
-  inputs: Partial<UserInputs>;
-  targetIdentifier?: string;
-  dismissedAttention?: string[];
-  dismissedQuestions?: string[];
-  collapsedAttention?: string[];
-  collapsedQuestions?: string[];
-}
 
 // ─── STATE ────────────────────────────────────────────────────────────
 
@@ -124,11 +118,7 @@ function syncUrlState(): void {
 
 function loadState(): SavedState | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const state = JSON.parse(raw) as SavedState;
-    if (state.version !== STORAGE_VERSION) return null;
-    return state;
+    return parseSavedState(localStorage.getItem(STORAGE_KEY));
   } catch {
     return null;
   }
@@ -151,8 +141,8 @@ function showStep(step: number): void {
     autoAdvanceTimer = null;
   }
 
-  currentStep = step;
-  highestStepReached = Math.max(highestStepReached, step);
+  ({ currentStep, highestStepReached } = navigate({ currentStep, highestStepReached }, step));
+  const position = { currentStep, highestStepReached };
 
   // Update step panels (cached NodeList)
   cachedWizardSteps.forEach((stepEl) => {
@@ -161,13 +151,10 @@ function showStep(step: number): void {
 
   // Update progress indicators (cached NodeList)
   cachedProgressSteps.forEach((segEl) => {
-    const segStep = Number(segEl.dataset.stepIndicator);
-    segEl.classList.toggle('tool-wizard-step--active', segStep === step);
-    segEl.classList.toggle('tool-wizard-step--completed', segStep < step);
-    segEl.classList.toggle(
-      'tool-wizard-step--reachable',
-      segStep > step && segStep <= highestStepReached
-    );
+    const state = stepState(Number(segEl.dataset.stepIndicator), position);
+    segEl.classList.toggle('tool-wizard-step--active', state === 'active');
+    segEl.classList.toggle('tool-wizard-step--completed', state === 'completed');
+    segEl.classList.toggle('tool-wizard-step--reachable', state === 'reachable');
   });
 
   // Update progress bar aria (cached ref)
@@ -182,13 +169,10 @@ function showStep(step: number): void {
     if (activeLabel) cachedMobileName.textContent = activeLabel.textContent ?? '';
   }
   cachedProgressDots.forEach((dot) => {
-    const dotStep = Number((dot as HTMLElement).dataset.dotStep);
-    dot.classList.toggle('tool-wizard-dot--active', dotStep === step);
-    dot.classList.toggle('tool-wizard-dot--completed', dotStep < step);
-    dot.classList.toggle(
-      'tool-wizard-dot--reachable',
-      dotStep > step && dotStep <= highestStepReached
-    );
+    const state = stepState(Number((dot as HTMLElement).dataset.dotStep), position);
+    dot.classList.toggle('tool-wizard-dot--active', state === 'active');
+    dot.classList.toggle('tool-wizard-dot--completed', state === 'completed');
+    dot.classList.toggle('tool-wizard-dot--reachable', state === 'reachable');
   });
 
   // Update navigation buttons
@@ -1064,7 +1048,7 @@ document.querySelectorAll('.brutal-option-card.compound-option').forEach((card) 
 document.querySelectorAll('.tool-wizard-step').forEach((el) => {
   el.addEventListener('click', () => {
     const segStep = Number((el as HTMLElement).dataset.stepIndicator);
-    if (segStep !== currentStep && segStep <= highestStepReached) {
+    if (canNavigateTo(segStep, { currentStep, highestStepReached })) {
       showStep(segStep);
     }
   });
@@ -1074,7 +1058,7 @@ document.querySelectorAll('.tool-wizard-step').forEach((el) => {
 document.querySelectorAll('.tool-wizard-dot').forEach((dot) => {
   dot.addEventListener('click', () => {
     const dotStep = Number((dot as HTMLElement).dataset.dotStep);
-    if (dotStep !== currentStep && dotStep <= highestStepReached) {
+    if (canNavigateTo(dotStep, { currentStep, highestStepReached })) {
       showStep(dotStep);
     }
   });

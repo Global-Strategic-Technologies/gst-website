@@ -1,695 +1,157 @@
 /**
- * Integration Tests for Diligence Machine Wizard Progress Bar Navigation
+ * Diligence Machine wizard — progress-bar navigation and saved-state rules.
  *
- * Tests the wizard progress bar click navigation functionality including:
- * - Forward navigation to previously reached steps
- * - Backward navigation to completed steps
- * - highestStepReached tracking
- * - State persistence to localStorage
- * - CSS class management (active, completed, reachable)
+ * Exercises the real rules the page script applies
+ * (`src/scripts/diligence-machine/logic.ts`, ADR-0042): which step a
+ * navigation lands on and how far the high-water mark rises, how each progress
+ * indicator renders (active / completed / reachable), which indicators can be
+ * clicked, and how saved state is read back.
  *
- * IMPORTANT: These tests exercise a WizardNavigationSimulator that replicates
- * the navigation logic from the production inline <script> in
- * src/pages/hub/tools/diligence-machine/index.astro (lines 313–1244).
- *
- * The production code cannot be extracted into importable modules without a
- * significant refactor (14+ state variables, 60+ DOM manipulations, tight
- * coupling to page DOM structure). This simulator faithfully mirrors the
- * production logic for showStep(), canNavigateToStep(), state persistence,
- * and CSS class management.
- *
- * If the production wizard navigation logic changes, these tests MUST be
- * updated in parallel. The E2E tests in diligence-machine.test.ts provide
- * the ultimate safety net against production regressions.
+ * This file used to drive a hand-written `WizardNavigationSimulator` that
+ * copied the page's inline script, because nothing in an `.astro` script could
+ * be imported. The copy had drifted: it saved and restored version-2 state,
+ * which the page has rejected since STORAGE_VERSION became 3. Testing the
+ * module the page imports closes that gap for good. The DOM wiring (buttons,
+ * class toggles, localStorage calls) stays covered by
+ * `tests/e2e/diligence-machine.test.ts`.
  */
+import {
+  STORAGE_KEY,
+  STORAGE_VERSION,
+  canNavigateTo,
+  navigate,
+  parseSavedState,
+  stepState,
+  type SavedState,
+  type WizardPosition,
+} from '../../src/scripts/diligence-machine/logic';
 
-// globals: true in vitest.config.ts provides describe, it, expect, beforeEach
+const TOTAL_STEPS = 10;
+const START: WizardPosition = { currentStep: 1, highestStepReached: 1 };
 
-interface SavedState {
-  version: number;
-  currentStep: number;
-  highestStepReached: number;
-  inputs: Record<string, any>;
-  targetIdentifier?: string;
-}
+/** The page's Next and Back buttons: bounded moves through `navigate`. */
+const next = (p: WizardPosition) =>
+  p.currentStep < TOTAL_STEPS ? navigate(p, p.currentStep + 1) : p;
+const back = (p: WizardPosition) => (p.currentStep > 1 ? navigate(p, p.currentStep - 1) : p);
+/** A click on a progress segment or mobile dot. */
+const click = (p: WizardPosition, step: number) => (canNavigateTo(step, p) ? navigate(p, step) : p);
 
-// Simulate wizard state and navigation
-class WizardNavigationSimulator {
-  currentStep: number;
-  highestStepReached: number;
-  totalSteps: number;
-  storage: Record<string, string>;
-  segmentClasses: Map<number, Set<string>>;
+const walk = (steps: number, from: WizardPosition = START) => {
+  let p = from;
+  for (let i = 0; i < steps; i++) p = next(p);
+  return p;
+};
 
-  constructor(totalSteps: number = 10) {
-    this.currentStep = 1;
-    this.highestStepReached = 1;
-    this.totalSteps = totalSteps;
-    this.storage = {};
-    this.segmentClasses = new Map();
+const states = (p: WizardPosition) =>
+  Array.from({ length: TOTAL_STEPS }, (_, i) => stepState(i + 1, p));
 
-    // Initialize segment classes
-    for (let i = 1; i <= totalSteps; i++) {
-      this.segmentClasses.set(i, new Set());
-    }
-  }
+describe('Diligence Machine wizard navigation', () => {
+  describe('initial state', () => {
+    it('starts on step 1 with nothing ahead reachable', () => {
+      expect(states(START)).toEqual(['active', ...Array(TOTAL_STEPS - 1).fill(null)]);
+    });
+  });
 
-  /**
-   * Simulate the showStep function from index.astro
-   */
-  showStep(step: number): void {
-    this.currentStep = step;
-    this.highestStepReached = Math.max(this.highestStepReached, step);
+  describe('Next and Back', () => {
+    it('Next advances one step and raises the high-water mark', () => {
+      expect(next(START)).toEqual({ currentStep: 2, highestStepReached: 2 });
+    });
 
-    // Update segment classes (simulates DOM class manipulation)
-    for (let i = 1; i <= this.totalSteps; i++) {
-      const classes = this.segmentClasses.get(i)!;
-      classes.clear();
+    it('walks every step and stops at the last', () => {
+      const end = walk(TOTAL_STEPS + 3);
+      expect(end).toEqual({ currentStep: TOTAL_STEPS, highestStepReached: TOTAL_STEPS });
+    });
 
-      if (i === step) {
-        classes.add('active');
-      } else if (i < step) {
-        classes.add('completed');
-      } else if (i > step && i <= this.highestStepReached) {
-        classes.add('reachable');
-      }
-    }
+    it('Back keeps the high-water mark and does nothing on step 1', () => {
+      const p = back(walk(4)); // at 5, back to 4
+      expect(p).toEqual({ currentStep: 4, highestStepReached: 5 });
+      expect(back(START)).toEqual(START);
+    });
+  });
 
-    this.saveState();
-  }
+  describe('progress indicator states', () => {
+    it('marks steps behind as completed, the current as active, reached steps ahead as reachable', () => {
+      const p = { currentStep: 3, highestStepReached: 6 };
+      expect(states(p)).toEqual([
+        'completed',
+        'completed',
+        'active',
+        'reachable',
+        'reachable',
+        'reachable',
+        null,
+        null,
+        null,
+        null,
+      ]);
+    });
 
-  /**
-   * Check if a segment click should be allowed
-   */
-  canNavigateToStep(targetStep: number): boolean {
-    return targetStep !== this.currentStep && targetStep <= this.highestStepReached;
-  }
+    it('never marks a completed step as reachable', () => {
+      const p = { currentStep: 5, highestStepReached: 8 };
+      for (let s = 1; s < 5; s++) expect(stepState(s, p)).toBe('completed');
+    });
 
-  /**
-   * Simulate clicking a progress segment
-   */
-  clickSegment(step: number): boolean {
-    if (this.canNavigateToStep(step)) {
-      this.showStep(step);
-      return true;
-    }
-    return false;
-  }
+    it('clears reachable once the wizard advances past it', () => {
+      const p = next(next(next({ currentStep: 3, highestStepReached: 6 }))); // to 6
+      expect(stepState(4, p)).toBe('completed');
+      expect(stepState(5, p)).toBe('completed');
+      expect(stepState(7, p)).toBeNull();
+    });
+  });
 
-  /**
-   * Simulate the next button
-   */
-  clickNext(): boolean {
-    if (this.currentStep < this.totalSteps) {
-      this.showStep(this.currentStep + 1);
-      return true;
-    }
-    return false;
-  }
+  describe('segment and dot clicks', () => {
+    const p = { currentStep: 4, highestStepReached: 7 };
 
-  /**
-   * Simulate the back button
-   */
-  clickBack(): boolean {
-    if (this.currentStep > 1) {
-      this.showStep(this.currentStep - 1);
-      return true;
-    }
-    return false;
-  }
+    it('can jump back to any completed step', () => {
+      for (let s = 1; s < 4; s++) expect(canNavigateTo(s, p)).toBe(true);
+      expect(click(p, 2)).toEqual({ currentStep: 2, highestStepReached: 7 });
+    });
 
-  /**
-   * Save state to simulated localStorage
-   */
-  saveState(): void {
-    const state: SavedState = {
-      version: 2,
-      currentStep: this.currentStep,
-      highestStepReached: this.highestStepReached,
+    it('can jump forward to any previously reached step, several at once', () => {
+      expect(canNavigateTo(7, p)).toBe(true);
+      expect(click(p, 7)).toEqual({ currentStep: 7, highestStepReached: 7 });
+    });
+
+    it('ignores the current step and anything beyond the high-water mark', () => {
+      expect(canNavigateTo(4, p)).toBe(false);
+      expect(canNavigateTo(8, p)).toBe(false);
+      expect(click(p, 8)).toEqual(p);
+    });
+
+    it('a jump inside the reached range does not move the high-water mark', () => {
+      expect(click(click(p, 1), 6).highestStepReached).toBe(7);
+    });
+  });
+
+  describe('saved state', () => {
+    const saved: SavedState = {
+      version: STORAGE_VERSION,
+      currentStep: 3,
+      highestStepReached: 6,
       inputs: {},
+      targetIdentifier: 'Target',
     };
-    this.storage['diligence-machine-state'] = JSON.stringify(state);
-  }
 
-  /**
-   * Load state from simulated localStorage
-   */
-  loadState(): void {
-    const raw = this.storage['diligence-machine-state'];
-    if (!raw) return;
-
-    const state = JSON.parse(raw) as SavedState;
-    this.currentStep = state.currentStep;
-    this.highestStepReached = state.highestStepReached ?? state.currentStep;
-    this.showStep(this.currentStep);
-  }
-
-  /**
-   * Check if a segment has a specific CSS class
-   */
-  segmentHasClass(step: number, className: string): boolean {
-    return this.segmentClasses.get(step)?.has(className) ?? false;
-  }
-
-  /**
-   * Get all classes for a segment
-   */
-  getSegmentClasses(step: number): string[] {
-    return Array.from(this.segmentClasses.get(step) ?? []);
-  }
-}
-
-// ─── TESTS: Basic Navigation ────────────────────────────────────────────────
-
-describe('Wizard Progress Bar Navigation', () => {
-  let wizard: WizardNavigationSimulator;
-
-  beforeEach(() => {
-    wizard = new WizardNavigationSimulator(10);
-  });
-
-  describe('Initial State', () => {
-    it('should start at step 1', () => {
-      expect(wizard.currentStep).toBe(1);
+    it('reads back a state saved under the current version', () => {
+      expect(parseSavedState(JSON.stringify(saved))).toEqual(saved);
     });
 
-    it('should have highestStepReached at 1', () => {
-      expect(wizard.highestStepReached).toBe(1);
+    it('a restored position can jump forward to its high-water mark', () => {
+      const restored = parseSavedState(JSON.stringify(saved))!;
+      expect(click(restored, 6).currentStep).toBe(6);
+      expect(canNavigateTo(7, restored)).toBe(false);
     });
 
-    it('should mark step 1 as active', () => {
-      wizard.showStep(1);
-      expect(wizard.segmentHasClass(1, 'active')).toBe(true);
+    it('starts fresh on another version, malformed JSON, or nothing saved', () => {
+      expect(parseSavedState(JSON.stringify({ ...saved, version: 2 }))).toBeNull();
+      expect(parseSavedState('{not json')).toBeNull();
+      expect(parseSavedState('null')).toBeNull();
+      expect(parseSavedState(null)).toBeNull();
     });
 
-    it('should mark future steps without classes', () => {
-      wizard.showStep(1);
-      expect(wizard.getSegmentClasses(2)).toEqual([]);
-      expect(wizard.getSegmentClasses(3)).toEqual([]);
-      expect(wizard.getSegmentClasses(4)).toEqual([]);
-      expect(wizard.getSegmentClasses(5)).toEqual([]);
-    });
-  });
-
-  describe('Forward Navigation via Next Button', () => {
-    it('should advance to step 2 when clicking next from step 1', () => {
-      wizard.clickNext();
-      expect(wizard.currentStep).toBe(2);
-      expect(wizard.highestStepReached).toBe(2);
-    });
-
-    it('should mark previous step as completed', () => {
-      wizard.clickNext();
-      expect(wizard.segmentHasClass(1, 'completed')).toBe(true);
-      expect(wizard.segmentHasClass(2, 'active')).toBe(true);
-    });
-
-    it('should advance through all steps sequentially', () => {
-      for (let i = 1; i < 10; i++) {
-        wizard.clickNext();
-      }
-      expect(wizard.currentStep).toBe(10);
-      expect(wizard.highestStepReached).toBe(10);
-    });
-
-    it('should not advance beyond last step', () => {
-      for (let i = 1; i <= 15; i++) {
-        wizard.clickNext();
-      }
-      expect(wizard.currentStep).toBe(10);
-      expect(wizard.highestStepReached).toBe(10);
-    });
-
-    it('should update highestStepReached when advancing', () => {
-      wizard.clickNext(); // Step 2
-      expect(wizard.highestStepReached).toBe(2);
-
-      wizard.clickNext(); // Step 3
-      expect(wizard.highestStepReached).toBe(3);
-
-      wizard.clickNext(); // Step 4
-      expect(wizard.highestStepReached).toBe(4);
-    });
-  });
-
-  describe('Backward Navigation via Back Button', () => {
-    it('should go back to step 1 from step 2', () => {
-      wizard.clickNext();
-      wizard.clickBack();
-      expect(wizard.currentStep).toBe(1);
-    });
-
-    it('should not go back from step 1', () => {
-      const result = wizard.clickBack();
-      expect(result).toBe(false);
-      expect(wizard.currentStep).toBe(1);
-    });
-
-    it('should maintain highestStepReached when going back', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      wizard.clickBack(); // Step 3
-      expect(wizard.currentStep).toBe(3);
-      expect(wizard.highestStepReached).toBe(4); // Should still be 4
-    });
-
-    it('should mark current step as active when going back', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      wizard.clickBack(); // Step 2
-      expect(wizard.segmentHasClass(2, 'active')).toBe(true);
-      expect(wizard.segmentHasClass(1, 'completed')).toBe(true);
-      expect(wizard.segmentHasClass(3, 'reachable')).toBe(true);
-    });
-  });
-
-  describe('Progress Segment Click Navigation - Backward', () => {
-    it('should allow clicking completed steps (backward navigation)', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      const canClick = wizard.canNavigateToStep(1);
-      expect(canClick).toBe(true);
-    });
-
-    it('should navigate to clicked completed step', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      wizard.clickSegment(1);
-      expect(wizard.currentStep).toBe(1);
-    });
-
-    it('should not allow clicking future unreached steps', () => {
-      const canClick = wizard.canNavigateToStep(3);
-      expect(canClick).toBe(false);
-    });
-
-    it('should not navigate when clicking unreached step', () => {
-      const result = wizard.clickSegment(3);
-      expect(result).toBe(false);
-      expect(wizard.currentStep).toBe(1);
-    });
-
-    it('should not allow clicking current step (no-op)', () => {
-      wizard.clickNext(); // Step 2
-      const canClick = wizard.canNavigateToStep(2);
-      expect(canClick).toBe(false);
-    });
-  });
-
-  describe('Progress Segment Click Navigation - Forward to Previously Reached', () => {
-    it('should allow clicking forward to previously reached steps', () => {
-      // Advance to step 4
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      // Go back to step 2
-      wizard.clickBack(); // Step 3
-      wizard.clickBack(); // Step 2
-
-      // Should be able to click step 3 (previously reached)
-      const canClick = wizard.canNavigateToStep(3);
-      expect(canClick).toBe(true);
-    });
-
-    it('should navigate forward by clicking reachable step', () => {
-      // Advance to step 4
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      // Go back to step 2
-      wizard.clickSegment(2);
-
-      // Click forward to step 3
-      wizard.clickSegment(3);
-      expect(wizard.currentStep).toBe(3);
-    });
-
-    it('should mark forward reachable steps with .reachable class', () => {
-      // Advance to step 4
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      // Go back to step 2
-      wizard.clickSegment(2);
-
-      // Step 3 and 4 should be reachable
-      expect(wizard.segmentHasClass(3, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(4, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(5, 'reachable')).toBe(false);
-    });
-
-    it('should allow jumping multiple steps forward to previously reached step', () => {
-      // Advance to step 5
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-      wizard.clickNext(); // Step 5
-
-      // Jump back to step 2
-      wizard.clickSegment(2);
-
-      // Jump forward to step 5
-      wizard.clickSegment(5);
-      expect(wizard.currentStep).toBe(5);
-    });
-
-    it('should not allow clicking beyond highestStepReached', () => {
-      // Advance to step 3
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      // Go back to step 1
-      wizard.clickSegment(1);
-
-      // Step 3 is reachable, but step 4 is not
-      expect(wizard.canNavigateToStep(3)).toBe(true);
-      expect(wizard.canNavigateToStep(4)).toBe(false);
-    });
-  });
-
-  describe('CSS Class Management', () => {
-    it('should apply .active class only to current step', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      expect(wizard.segmentHasClass(1, 'active')).toBe(false);
-      expect(wizard.segmentHasClass(2, 'active')).toBe(false);
-      expect(wizard.segmentHasClass(3, 'active')).toBe(true);
-      expect(wizard.segmentHasClass(4, 'active')).toBe(false);
-      expect(wizard.segmentHasClass(5, 'active')).toBe(false);
-    });
-
-    it('should apply .completed class to steps before current', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      expect(wizard.segmentHasClass(1, 'completed')).toBe(true);
-      expect(wizard.segmentHasClass(2, 'completed')).toBe(true);
-      expect(wizard.segmentHasClass(3, 'completed')).toBe(false);
-    });
-
-    it('should apply .reachable class to steps between current and highestStepReached', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      wizard.clickSegment(2); // Back to step 2
-
-      expect(wizard.segmentHasClass(3, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(4, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(5, 'reachable')).toBe(false);
-    });
-
-    it('should not apply .reachable class to completed steps', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      wizard.clickSegment(1); // Back to step 1
-
-      expect(wizard.segmentHasClass(1, 'active')).toBe(true);
-      expect(wizard.segmentHasClass(1, 'reachable')).toBe(false);
-
-      expect(wizard.segmentHasClass(2, 'completed')).toBe(false);
-      expect(wizard.segmentHasClass(2, 'reachable')).toBe(true);
-    });
-
-    it('should clear .reachable class when advancing beyond it', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      wizard.clickSegment(1); // Back to step 1
-      expect(wizard.segmentHasClass(2, 'reachable')).toBe(true);
-
-      wizard.clickNext(); // Forward to step 2
-      expect(wizard.segmentHasClass(2, 'active')).toBe(true);
-      expect(wizard.segmentHasClass(2, 'reachable')).toBe(false);
-    });
-  });
-
-  describe('highestStepReached Tracking', () => {
-    it('should track the highest step ever reached', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      expect(wizard.highestStepReached).toBe(4);
-
-      wizard.clickBack(); // Step 3
-      wizard.clickBack(); // Step 2
-      wizard.clickBack(); // Step 1
-
-      expect(wizard.highestStepReached).toBe(4); // Should not decrease
-    });
-
-    it('should update highestStepReached when advancing to new step', () => {
-      wizard.clickNext(); // Step 2
-      expect(wizard.highestStepReached).toBe(2);
-
-      wizard.clickNext(); // Step 3
-      expect(wizard.highestStepReached).toBe(3);
-
-      wizard.clickBack(); // Step 2
-      expect(wizard.highestStepReached).toBe(3);
-
-      wizard.clickNext(); // Step 3 again
-      expect(wizard.highestStepReached).toBe(3); // No change
-    });
-
-    it('should not update highestStepReached when navigating within reached range', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-      expect(wizard.highestStepReached).toBe(4);
-
-      wizard.clickSegment(2);
-      expect(wizard.highestStepReached).toBe(4);
-
-      wizard.clickSegment(3);
-      expect(wizard.highestStepReached).toBe(4);
-    });
-
-    it('should update highestStepReached when advancing to last step', () => {
-      for (let i = 1; i < 10; i++) {
-        wizard.clickNext();
-      }
-
-      expect(wizard.highestStepReached).toBe(10);
-    });
-  });
-
-  describe('State Persistence', () => {
-    it('should save currentStep to localStorage', () => {
-      wizard.clickNext(); // Step 2
-      wizard.saveState();
-
-      const saved = JSON.parse(wizard.storage['diligence-machine-state']) as SavedState;
-      expect(saved.currentStep).toBe(2);
-    });
-
-    it('should save highestStepReached to localStorage', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickBack(); // Step 2
-      wizard.saveState();
-
-      const saved = JSON.parse(wizard.storage['diligence-machine-state']) as SavedState;
-      expect(saved.highestStepReached).toBe(3);
-    });
-
-    it('should restore currentStep from localStorage', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.saveState();
-
-      const newWizard = new WizardNavigationSimulator(10);
-      newWizard.storage = wizard.storage;
-      newWizard.loadState();
-
-      expect(newWizard.currentStep).toBe(3);
-    });
-
-    it('should restore highestStepReached from localStorage', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-      wizard.clickBack(); // Step 3
-      wizard.saveState();
-
-      const newWizard = new WizardNavigationSimulator(10);
-      newWizard.storage = wizard.storage;
-      newWizard.loadState();
-
-      expect(newWizard.highestStepReached).toBe(4);
-    });
-
-    it('should allow forward navigation after restoring from localStorage', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-      wizard.clickSegment(2); // Back to step 2
-      wizard.saveState();
-
-      const newWizard = new WizardNavigationSimulator(10);
-      newWizard.storage = wizard.storage;
-      newWizard.loadState();
-
-      // Should be able to click forward to step 4
-      expect(newWizard.canNavigateToStep(4)).toBe(true);
-      newWizard.clickSegment(4);
-      expect(newWizard.currentStep).toBe(4);
-    });
-
-    it('should fallback to currentStep if highestStepReached missing (backwards compatibility)', () => {
-      // Simulate old state without highestStepReached
-      const oldState: SavedState = {
-        version: 2,
-        currentStep: 3,
-        highestStepReached: 3, // Will be tested by setting to currentStep
-        inputs: {},
-      };
-      wizard.storage['diligence-machine-state'] = JSON.stringify(oldState);
-
-      const newWizard = new WizardNavigationSimulator(10);
-      newWizard.storage = wizard.storage;
-      newWizard.loadState();
-
-      expect(newWizard.highestStepReached).toBe(3);
-    });
-  });
-
-  describe('Complex Navigation Scenarios', () => {
-    it('should handle back-forward-back-forward pattern correctly', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      wizard.clickBack(); // Step 3
-      wizard.clickNext(); // Step 4
-      wizard.clickBack(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      expect(wizard.currentStep).toBe(4);
-      expect(wizard.highestStepReached).toBe(4);
-    });
-
-    it('should handle jumping to first step from last step', () => {
-      for (let i = 1; i < 10; i++) {
-        wizard.clickNext();
-      }
-
-      wizard.clickSegment(1);
-      expect(wizard.currentStep).toBe(1);
-
-      // All steps 2-10 should be reachable
-      for (let i = 2; i <= 10; i++) {
-        expect(wizard.segmentHasClass(i, 'reachable')).toBe(true);
-      }
-    });
-
-    it('should handle alternating forward clicks after initial advancement', () => {
-      for (let i = 1; i < 10; i++) {
-        wizard.clickNext();
-      }
-
-      wizard.clickSegment(1); // Jump to step 1
-
-      wizard.clickSegment(5); // Jump to step 5
-      expect(wizard.currentStep).toBe(5);
-
-      wizard.clickSegment(10); // Jump to step 10
-      expect(wizard.currentStep).toBe(10);
-
-      wizard.clickSegment(3); // Jump to step 3
-      expect(wizard.currentStep).toBe(3);
-    });
-
-    it('should maintain reachable state through multiple back-and-forth navigations', () => {
-      // Advance to end
-      for (let i = 1; i < 10; i++) {
-        wizard.clickNext();
-      }
-
-      // Navigate back and forth multiple times
-      for (let i = 0; i < 10; i++) {
-        wizard.clickSegment(1);
-        expect(wizard.highestStepReached).toBe(10);
-
-        wizard.clickSegment(10);
-        expect(wizard.highestStepReached).toBe(10);
-      }
-    });
-
-    it('should expand reachable range when user continues advancing', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-
-      wizard.clickSegment(1); // Back to step 1
-      expect(wizard.segmentHasClass(2, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(3, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(4, 'reachable')).toBe(false);
-
-      wizard.clickSegment(3); // Forward to step 3
-      wizard.clickNext(); // Step 4
-      expect(wizard.highestStepReached).toBe(4);
-
-      wizard.clickSegment(1); // Back to step 1
-      expect(wizard.segmentHasClass(4, 'reachable')).toBe(true);
-      expect(wizard.segmentHasClass(5, 'reachable')).toBe(false);
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle clicking same step twice (no-op)', () => {
-      wizard.clickNext(); // Step 2
-
-      const result1 = wizard.clickSegment(2);
-      const result2 = wizard.clickSegment(2);
-
-      expect(result1).toBe(false);
-      expect(result2).toBe(false);
-      expect(wizard.currentStep).toBe(2);
-    });
-
-    it('should handle single-step wizard', () => {
-      const singleStepWizard = new WizardNavigationSimulator(1);
-      expect(singleStepWizard.currentStep).toBe(1);
-      expect(singleStepWizard.highestStepReached).toBe(1);
-
-      const nextResult = singleStepWizard.clickNext();
-      expect(nextResult).toBe(false);
-
-      const backResult = singleStepWizard.clickBack();
-      expect(backResult).toBe(false);
-    });
-
-    it('should handle empty localStorage gracefully', () => {
-      const newWizard = new WizardNavigationSimulator(10);
-      newWizard.loadState(); // No state in storage
-
-      expect(newWizard.currentStep).toBe(1);
-      expect(newWizard.highestStepReached).toBe(1);
-    });
-
-    it('should handle rapid clicking (multiple clicks in succession)', () => {
-      wizard.clickNext(); // Step 2
-      wizard.clickNext(); // Step 3
-      wizard.clickNext(); // Step 4
-
-      // Rapid back clicks
-      wizard.clickSegment(1);
-      wizard.clickSegment(1);
-      wizard.clickSegment(1);
-
-      expect(wizard.currentStep).toBe(1);
-      expect(wizard.highestStepReached).toBe(4);
+    it('keeps the storage key the page has always used', () => {
+      // A renamed key silently orphans every visitor's saved wizard.
+      expect(STORAGE_KEY).toBe('diligence-machine-state');
     });
   });
 });
