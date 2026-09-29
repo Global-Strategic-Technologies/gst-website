@@ -623,7 +623,7 @@ Use this pattern only for `::before`/`::after` pseudo-elements where an Astro co
 
 - Always prefer `DeltaIcon.astro` over `<img>` tags — `<img>` cannot inherit CSS colors
 - `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness — brand teal stays teal as ink by decision ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))
-- The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for favicon, RSS, and external contexts only
+- The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for `mask-image` uses, RSS, and external contexts only. The favicon is a separate file (`public/favicon.svg`, plus its palette variants — see § Browser chrome)
 
 ---
 
@@ -694,6 +694,14 @@ The mobile status bar follows the **site header's surface**, so it blends with t
 - The delta's geometry, weight and join never change in a variant.
 - The inline look block sets the restored palette's icon before first paint, and [favicon.ts](../../scripts/favicon.ts) (also loaded by Header) follows a palette pick.
 - Variants are rendered by `npm run media:pwa-assets`. [pwa-assets.test.ts](../../../tests/integration/pwa-assets.test.ts) fails when a palette has no variant, or when a variant drifts from `favicon.svg` or its primary.
+
+**The install icons** (`site.webmanifest`, plus the `apple-touch-icon` BaseLayout links) are rendered from [icon.svg](../../../public/images/icon.svg) by `npm run media:pwa-assets`, which uses Playwright and adds no image library. Re-render after changing icon.svg.
+
+- **`any`** (`web-app-manifest-{192,512}.png`): the mark as it stands, frame and all.
+- **`maskable`** (`web-app-maskable-{192,512}.png`): full-bleed white with no frame. The whole mark is scaled uniformly into the centre, so Android's circle or squircle mask never cuts ink. The renderer measures every padded icon and fails if any ink lies beyond the safe zone (40% of the width from the centre).
+- **`apple-touch-icon.png`**: the maskable composition, so iOS's rounded corners never cut the frame.
+- **Screenshots** (`images/screenshots/home-{narrow,wide}.jpg`, from `-- --screenshots` against a dev server): the home page with the look pinned to palette 0, light theme, motion off. They are **write-once**, like the consent still: re-render when the home page changes materially, because nothing guards their staleness.
+- [pwa-assets.test.ts](../../../tests/integration/pwa-assets.test.ts) keeps every file the manifest names present and true to its declared size, keeps `maskable` separate from `any`, and holds the screenshots to Chrome's size and ratio limits.
 
 ### Adding Dark Theme Support to New Components
 
