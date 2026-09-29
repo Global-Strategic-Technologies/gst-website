@@ -136,12 +136,11 @@ const isDev = import.meta.env.DEV;
 </BaseLayout>
 
 <script>
-  import { trackCTA, trackNavigation } from '../../../utils/analytics';
-  // TODO(phase-3): replace with proper ambient `Window` type declaration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackCTA = trackCTA;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackNavigation = trackNavigation;
+  import { trackCTA } from '../../../utils/analytics';
+  window.trackCTA = trackCTA;
+  // The "Return to Hub" onclick calls `trackNavigation`, which is NOT wired
+  // here: `Header.astro` puts it on `window` and BaseLayout renders that header
+  // on every page. A second assignment here was redundant.
 </script>
 
 <style>
