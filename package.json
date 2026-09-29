@@ -28,6 +28,7 @@
     "i18n:stamp": "node scripts/i18n-stamp-sources.mjs",
     "i18n:check": "node scripts/i18n-stamp-sources.mjs --check",
     "media:consent-still": "node scripts/render-consent-still.mjs",
+    "media:pwa-assets": "node scripts/render-pwa-assets.mjs",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
