@@ -84,11 +84,12 @@ function readIndex(): (SearchableCapability & { href: string })[] {
 /**
  * Capability lookup.
  *
- * Markup and keyboard contract lifted from the Regulatory Map's search
- * (`src/pages/hub/tools/regulatory-map/index.astro`): a `.brutal-search` field
- * with a sibling `role="listbox"`, arrow keys moving `aria-activedescendant`,
- * Enter committing, Escape closing. That page's script is not extracted because
- * it filters an in-page list and owns filter-chip state; this one navigates.
+ * Markup and keyboard contract lifted from the Regulatory Map's search (markup
+ * in `src/pages/hub/tools/regulatory-map/index.astro`, keyboard handling in
+ * `src/scripts/regulatory-map/index.ts`): a `.brutal-search` field with a
+ * sibling `role="listbox"`, arrow keys moving `aria-activedescendant`, Enter
+ * committing, Escape closing. The two are not shared because that one filters
+ * an in-page list and owns filter-chip state; this one navigates.
  */
 function initSearch(): void {
   const field = document.querySelector<HTMLElement>('[data-cap-search]');

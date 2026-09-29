@@ -106,7 +106,8 @@ describe('Client-side Sentry instrumentation', () => {
         src,
         /Sentry\.captureException\(err, \{ tags: \{ area: 'regulatory-map' \} \}\)/g
       );
-      expect(tagged).toBeGreaterThanOrEqual(2);
+      // Exactly two, so a new capture has to be pinned here as well.
+      expect(tagged).toBe(2);
     });
   });
 });
