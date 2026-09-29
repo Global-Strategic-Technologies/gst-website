@@ -4,7 +4,7 @@
 
 The Diligence Machine is a client-side wizard that generates a prescriptive technology due diligence agenda customized to a target company's profile. Users answer 10 steps of questions across deal structure, product profile, infrastructure, company scale, geography, and 5 contextual dimensions. The engine produces 15–20 high-impact questions organized by topic, plus contextual attention areas.
 
-**Entry point**: `src/pages/hub/tools/diligence-machine/index.astro`
+**Entry point**: `src/pages/hub/tools/diligence-machine/index.astro` (markup and styles); its client script is `src/scripts/diligence-machine/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
 
 **Current version**: v2 (February 2026)
 
@@ -526,7 +526,9 @@ A static methodology section appears in the output after the attention areas, ex
 
 | File | Purpose |
 |------|---------|
-| `src/pages/hub/tools/diligence-machine/index.astro` | Page component, 10-step wizard UI, output rendering (incl. exitImpact badges, lookoutSignal), analyze overlay, methodology section, print styles |
+| `src/pages/hub/tools/diligence-machine/index.astro` | Page component: 10-step wizard markup, analyze overlay, methodology section, styles incl. print |
+| `src/scripts/diligence-machine/index.ts` | Client script: step navigation, option selection, localStorage + URL state, output rendering (incl. exitImpact badges, lookoutSignal), copy/print |
+| `src/scripts/diligence-machine/logic.ts` | DOM-free wizard rules: `navigate()`, `stepState()`, `canNavigateTo()`, `parseSavedState()`, `STORAGE_VERSION` |
 | `src/utils/diligence-engine.ts` | Core engine: `generateScript()`, `matchesConditions()`, `balanceAcrossTopics()`, `applyArchetypePivot()`, `applyMaturityOverrides()`, `syncMultiRegion()` |
 | `src/data/diligence-machine/wizard-config.ts` | 10 step definitions, option labels, `BRACKET_ORDER`, `getOptionLabel()` helper |
 | `src/data/diligence-machine/questions.ts` | Question bank (~68 questions) with conditions, priorities, and v2 metadata |
