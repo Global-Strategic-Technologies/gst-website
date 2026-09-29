@@ -108,6 +108,8 @@ const { t } = useTranslations(locale, 'common');
 
 <script>
   import { trackNavigation } from '../utils/analytics';
+  // The status bar follows this header's surface (STYLES_GUIDE § Browser chrome).
+  import '../scripts/theme-color';
 
   // Make trackNavigation available to inline onclick handlers.
   window.trackNavigation = trackNavigation;

@@ -111,9 +111,12 @@ const isHomepage = routePath === '/' || routePath === '';
     <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Theme Colors -->
-    <meta name="theme-color" content="#05cd99" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#05cd99" media="(prefers-color-scheme: dark)" />
+    <!-- Browser chrome (status bar) colour. Brand teal is the no-JS fallback:
+         the look block below seeds the header's surface for the restored theme
+         and src/scripts/theme-color.ts keeps it in step (STYLES_GUIDE § Browser
+         chrome). One tag, not a prefers-color-scheme pair — the site's theme is
+         its own classes, not the OS setting. -->
+    <meta name="theme-color" content="#05cd99" />
 
     <!-- Preconnect to third-party origins to reduce critical path latency -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
@@ -153,6 +156,12 @@ const isHomepage = routePath === '/' || routePath === '';
         // Both theme deltas (footer + panel) inherit this, so they are turned
         // for the restored state at first paint; theme-buttons.ts takes over.
         root.style.setProperty('--theme-rotation', themes.indexOf(theme) * 90 + 'deg');
+        // Status bar (theme-color): the header's surface for this theme, before
+        // first paint. src/scripts/theme-color.ts takes over from the computed
+        // colour; tests/unit/theme-color.test.ts pins these to variables.css.
+        const headerSurfaces = ['#f5f5f5', '#dcdcdc', '#1c1c1c', '#0a0a0a'];
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.setAttribute('content', headerSurfaces[themes.indexOf(theme)]);
       } catch {
         // Never block the page — it renders light, palette 0
       }

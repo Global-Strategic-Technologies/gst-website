@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import {
   clickThemeToggle,
   currentTheme,
@@ -189,5 +189,56 @@ test.describe('Theme Toggle Journey', () => {
     // Should be able to click other buttons
     const firstButton = buttons.first();
     await expect(firstButton).toBeVisible();
+  });
+});
+
+/**
+ * The status bar follows the header's surface (STYLES_GUIDE § Browser chrome):
+ * <meta name="theme-color"> carries what the browser computes for
+ * `.site-header` — light-dark() as LightningCSS compiles it — in every theme.
+ */
+test.describe('Status bar colour (theme-color)', () => {
+  const colours = (page: Page) =>
+    page.evaluate(() => ({
+      meta: document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content,
+      header: getComputedStyle(document.querySelector('.site-header')!).backgroundColor,
+    }));
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('there is exactly one theme-color tag', async ({ page }) => {
+    await expect(page.locator('meta[name="theme-color"]')).toHaveCount(1);
+  });
+
+  test('follows the header surface through all four themes', async ({ page }) => {
+    const seen = new Set<string>();
+    for (const theme of THEMES) {
+      await cycleThemeTo(page, theme);
+      await waitForTheme(page, theme);
+      await expect
+        .poll(async () => {
+          const { meta, header } = await colours(page);
+          return meta === header ? meta : `meta ${meta} ≠ header ${header}`;
+        })
+        .toMatch(/^rgb/);
+      seen.add((await colours(page)).meta!);
+    }
+    // Four themes, four surfaces — not one colour that happened to match.
+    expect(seen.size).toBe(4);
+  });
+
+  test('matches the header after a reload restores the pick', async ({ page }) => {
+    await cycleThemeTo(page, 'dim-dark');
+    await page.waitForFunction(() => localStorage.getItem('theme') === 'dim-dark');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForTheme(page, 'dim-dark');
+    await expect
+      .poll(async () => {
+        const { meta, header } = await colours(page);
+        return meta === header;
+      })
+      .toBe(true);
   });
 });
