@@ -6,6 +6,7 @@ import {
   DATE_KEYS,
   localDateKey,
   lookForDate,
+  paletteIdOf,
   readStoredLook,
   rememberChoice,
   resolveLook,
@@ -36,6 +37,15 @@ describe('daily look rotation (ADR-0040)', () => {
     // The fourth bucket runs to the month's end, so there is no fifth.
     expect([22, 28, 29, 30, 31].map(at)).toEqual([3, 3, 3, 3, 3]);
     expect(themeForDate(day(2026, 2, 28))).toBe(3);
+  });
+
+  it('reads the palette id from a class list, never from palette-popped-out', () => {
+    expect(paletteIdOf('palette-3')).toBe(3);
+    expect(paletteIdOf('dark-theme palette-6 theme-dim')).toBe(6);
+    expect(paletteIdOf('palette-0')).toBe(0);
+    expect(paletteIdOf('')).toBeNull();
+    expect(paletteIdOf('palette-popped-out')).toBeNull();
+    expect(paletteIdOf('palette-popped-out palette-2')).toBe(2);
   });
 
   it('stamps with the local date, midnight to midnight', () => {

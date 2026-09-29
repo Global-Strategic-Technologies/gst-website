@@ -162,6 +162,11 @@ const isHomepage = routePath === '/' || routePath === '';
         const headerSurfaces = ['#f5f5f5', '#dcdcdc', '#1c1c1c', '#0a0a0a'];
         const themeColor = document.querySelector('meta[name="theme-color"]');
         if (themeColor) themeColor.setAttribute('content', headerSurfaces[themes.indexOf(theme)]);
+        // Tab icon: the restored palette's, before first paint (palette 0 keeps
+        // /favicon.svg). src/scripts/favicon.ts takes over on a palette pick.
+        const tabIcon = document.querySelector('link[rel="icon"]');
+        if (tabIcon && palette !== '0')
+          tabIcon.setAttribute('href', '/favicons/palette-' + palette + '.svg');
       } catch {
         // Never block the page — it renders light, palette 0
       }

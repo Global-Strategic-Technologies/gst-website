@@ -21,6 +21,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
 | Re-render the OAuth consent-page still for `/hub/mcp/get-started/` | `npm run media:consent-still` (esbuild + Playwright chromium + ffmpeg; write-once, see [MCP_ONBOARDING.md § Media catalog](../hub/MCP_ONBOARDING.md#media-catalog)) |
+| Re-render the PWA install icons (and install screenshots) from their sources | `npm run media:pwa-assets` (`-- --screenshots` needs a dev server; Playwright chromium; icons are checked against the maskable safe zone, screenshots are write-once — see [STYLES_GUIDE.md § Browser chrome](../styles/STYLES_GUIDE.md#browser-chrome-theme-color)) |
 | Run E2E tests                          | `npm run test:e2e` runs chromium, firefox and webkit; `npm run test:e2e -- --project=chromium` matches the required CI job |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |

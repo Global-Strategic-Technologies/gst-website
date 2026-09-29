@@ -16,6 +16,9 @@
   225 exactly as the <text> elements were). No font is needed to render this
   file, by anyone, ever. Regenerate them with fontTools if the face changes —
   see docs/styles/TYPOGRAPHY_REFERENCE.md § The pinned mono.
+
+  The PWA icons (web-app-manifest-*, web-app-maskable-*, apple-touch-icon.png)
+  are rendered from this file: after changing it, run `npm run media:pwa-assets`.
 -->
 <svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
   <!-- White background -->

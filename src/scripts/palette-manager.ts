@@ -8,7 +8,7 @@ import { rgbToHex, hexToRgb, parseAlpha } from '../utils/palette-utils';
 import * as Sentry from '@sentry/browser';
 import { cycleTheme, syncThemeButtons } from './theme-buttons';
 import { initAmbientLoader } from './ambient/loader';
-import { rememberChoice } from './daily-look';
+import { paletteIdOf, rememberChoice } from './daily-look';
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ function resetAllOverrides() {
 
 /** The palette: the only class change that invalidates a colour edit. */
 function lookKey(): string {
-  return /\bpalette-(\d)\b/.exec(document.documentElement.className)?.[1] ?? '0';
+  return String(paletteIdOf(document.documentElement.className) ?? 0);
 }
 let lastLookKey = lookKey();
 
@@ -773,9 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Sync persisted palette on load ──────────────────────
-  const currentPalette = document.documentElement.className.match(/palette-(\d)/);
-  if (currentPalette) {
-    const id = parseInt(currentPalette[1]);
+  const id = paletteIdOf(document.documentElement.className);
+  if (id !== null) {
     syncTabActiveState(id);
     const nameEl = document.getElementById('panel-palette-name');
     if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';

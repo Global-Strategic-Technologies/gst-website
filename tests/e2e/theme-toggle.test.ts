@@ -7,7 +7,7 @@ import {
   THEMES,
   waitForTheme,
 } from './helpers/theme';
-import { todayKey } from './helpers/storage-baseline';
+import { seedLook, todayKey } from './helpers/storage-baseline';
 
 test.describe('Theme Toggle Journey', () => {
   test.beforeEach(async ({ page }) => {
@@ -247,5 +247,28 @@ test.describe('Status bar colour (theme-color)', () => {
         return meta === header;
       })
       .toBe(true);
+  });
+});
+
+/**
+ * The tab icon follows the day's palette (STYLES_GUIDE § Browser chrome):
+ * palette 0 keeps /favicon.svg, the others their recoloured variant.
+ */
+test.describe('Tab icon (favicon)', () => {
+  const iconHref = (page: Page) =>
+    page.evaluate(() => document.querySelector('link[rel="icon"]')?.getAttribute('href'));
+
+  test('palette 0 keeps /favicon.svg', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    expect(await iconHref(page)).toBe('/favicon.svg');
+  });
+
+  test('another palette gets its recoloured tab icon, and the file is served', async ({ page }) => {
+    await seedLook(page, { palette: 3 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => iconHref(page)).toBe('/favicons/palette-3.svg');
+    const res = await page.request.get('/favicons/palette-3.svg');
+    expect(res.status()).toBe(200);
+    expect(await res.text()).toContain('stroke="#5a8af2"');
   });
 });
