@@ -27,20 +27,15 @@ import { fipsToStateCode, stateCodeToName } from '../../utils/fipsToStateCode';
 import { provinceCodeToName } from '../../utils/canadianProvinceMap';
 import { trackEvent } from '../../utils/analytics';
 import { escapeHtml } from '../../utils/escape-html';
-import { buildRegulationSearchText } from '../../utils/regulation-search-text';
+import {
+  buildSearchIndex,
+  filterRegionMap,
+  renderRegulationCard,
+  searchRegulations,
+  sortByEffectiveDate,
+  type RegIndexEntry,
+} from './logic';
 import * as Sentry from '@sentry/browser';
-
-// --- Lightweight index entry (inlined at build time) ---
-// Mirrors `RegulationIndexEntry` in utils/fetchRegulations.ts; kept local
-// because that module reaches `astro:content`. Add fields to both.
-interface RegIndexEntry {
-  id: string;
-  name: string;
-  aliases?: string[];
-  effectiveDate: string;
-  category: string;
-  regions: string[];
-}
 
 // --- Detail cache: full regulation objects fetched on demand ---
 const detailCache = new Map<string, Regulation>();
@@ -197,15 +192,7 @@ for (const entry of regIndexRaw.regs) {
   regById[entry.id] = entry;
 }
 
-interface SearchableReg {
-  reg: RegIndexEntry;
-  searchText: string;
-}
-
-const searchIndex: SearchableReg[] = regIndexRaw.regs.map((reg) => ({
-  reg,
-  searchText: buildRegulationSearchText(reg),
-}));
+const searchIndex = buildSearchIndex(regIndexRaw.regs);
 
 let activeSearchTerm = '';
 let searchResults: RegIndexEntry[] = [];
@@ -247,13 +234,7 @@ function highlightRegulationRegions(reg: RegIndexEntry | Regulation): void {
 }
 
 function getFilteredRegionMap(): Record<string, string[]> {
-  if (activeCategory === 'all') return regionMap;
-  const filtered: Record<string, string[]> = {};
-  for (const [code, ids] of Object.entries(regionMap)) {
-    const matching = ids.filter((id) => regById[id]?.category === activeCategory);
-    if (matching.length > 0) filtered[code] = matching;
-  }
-  return filtered;
+  return filterRegionMap(regionMap, regById, activeCategory);
 }
 
 // --- D3 Setup ---
@@ -763,39 +744,6 @@ document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedD
   }
 })();
 
-function renderRegulationCard(reg: Regulation): string {
-  const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  let html = `
-          <div class="brutal-reg-card">
-              <h3 class="brutal-reg-card__name">${escapeHtml(reg.name)}</h3>
-              <p class="brutal-reg-card__date">Effective: ${escapeHtml(date)}</p>
-              <p class="brutal-reg-card__summary">${escapeHtml(reg.summary)}</p>`;
-
-  if (reg.scope) {
-    html += `<p class="brutal-reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
-  }
-
-  if (reg.keyRequirements && reg.keyRequirements.length > 0) {
-    html += '<ul class="brutal-reg-card__requirements">';
-    for (const req of reg.keyRequirements) {
-      html += `<li>${escapeHtml(req)}</li>`;
-    }
-    html += '</ul>';
-  }
-
-  if (reg.penalties) {
-    html += `<p class="brutal-reg-card__penalties">Penalties: ${escapeHtml(reg.penalties)}</p>`;
-  }
-
-  html += '</div>';
-  return html;
-}
-
 // --- Sync panel max-height to map height so the back-link stays stable ---
 function syncPanelHeight(): void {
   if (window.innerWidth < 1024) return;
@@ -891,14 +839,7 @@ document.getElementById('regulation-filter-chips')?.addEventListener('click', (e
 const categoryLabelMap: Record<string, string> = REGULATION_CATEGORY_SHORT_LABELS;
 
 function performSearch(query: string): RegIndexEntry[] {
-  if (!query.trim()) return [];
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return searchIndex
-    .filter(({ searchText, reg }) => {
-      if (activeCategory !== 'all' && reg.category !== activeCategory) return false;
-      return terms.every((term) => searchText.includes(term));
-    })
-    .map(({ reg }) => reg);
+  return searchRegulations(searchIndex, query, activeCategory);
 }
 
 function renderSearchResults(results: RegIndexEntry[]): void {
@@ -1115,7 +1056,7 @@ document.addEventListener('click', (e) => {
 
 // --- Timeline ---
 function buildTimelineData(): RegIndexEntry[] {
-  return [...regIndexRaw.regs].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+  return sortByEffectiveDate(regIndexRaw.regs);
 }
 
 /**
