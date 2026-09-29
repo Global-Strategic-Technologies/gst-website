@@ -89,9 +89,13 @@ export function trackPageView(pageName: string, pageTitle: string): void {
   });
 }
 
-// Declare gtag on window for TypeScript
+// Declare gtag, and the trackers components put on window for their inline
+// onclick handlers (Header: trackNavigation; Hero, CTASection, HubMcpPage and
+// the Hub library: trackCTA), for TypeScript
 declare global {
   interface Window {
     gtag: (...args: unknown[]) => void;
+    trackNavigation: typeof trackNavigation;
+    trackCTA: typeof trackCTA;
   }
 }

@@ -108,9 +108,9 @@ const { t } = useTranslations(locale, 'common');
 
 <script>
   import { trackNavigation } from '../utils/analytics';
+  // The status bar follows this header's surface (STYLES_GUIDE § Browser chrome).
+  import '../scripts/theme-color';
 
   // Make trackNavigation available to inline onclick handlers.
-  // TODO(phase-3): replace with proper ambient `Window` type declaration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackNavigation = trackNavigation;
+  window.trackNavigation = trackNavigation;
 </script>

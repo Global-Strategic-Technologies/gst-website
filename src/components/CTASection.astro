@@ -41,7 +41,5 @@ const { t } = useTranslations(Astro.props.locale ?? DEFAULT_LOCALE, 'common');
   import { trackCTA } from '../utils/analytics';
 
   // Make trackCTA available to inline onclick handlers.
-  // TODO(phase-3): replace with proper ambient `Window` type declaration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackCTA = trackCTA;
+  window.trackCTA = trackCTA;
 </script>

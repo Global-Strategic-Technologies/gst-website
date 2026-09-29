@@ -650,10 +650,10 @@ html.dark-theme {
 }
 ```
 
-
 ### Dim states (four-state theme)
 
 Two intermediate states sit between light and dark: **dim light** (`html.theme-dim`) and **dim dark** (`html.dark-theme.theme-dim`). The palette panel's theme button and the footer toggle both cycle all four, and their deltas turn in step. `theme-dim` re-declares only the surface tokens (`--bg-*`, `--surface-*-bg`, section backgrounds), each as `light-dark(dim light, dim dark)`, so **the same rule as above applies: use tokens and dim works automatically.** A hardcoded `#ffffff` or `#0a0a0a` will not dim. Mapping and rationale: [ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md); state logic: `src/scripts/theme-state.ts`.
+
 ### Preferred: `light-dark()` (for all color properties)
 
 Use `light-dark(light-value, dark-value)` directly in base rules. Works for `color`, `background`, `border-color`, `fill`, `stroke`, `box-shadow` (color parts), and any property accepting a `<color>` value.
@@ -678,6 +678,15 @@ Use `light-dark(light-value, dark-value)` directly in base rules. Works for `col
   opacity: 0.8;
 }
 ```
+
+### Browser chrome (`theme-color`)
+
+The mobile status bar follows the **site header's surface**, so it blends with the page in every theme state and on every day of the rotation ([ADR-0040](../adr/0040-daily-look-rotation.md)). This applies to browsers that honour `<meta name="theme-color">`: Chromium-based mobile browsers, which includes Android Chrome and an installed PWA. No iOS behaviour is claimed. The site's theme is its own classes on `<html>`, not the OS setting, so there is one tag and no `prefers-color-scheme` pair.
+
+- **Before first paint**: the inline look block in [BaseLayout.astro](../../layouts/BaseLayout.astro) writes `headerSurfaces[theme]`, a copy of the header's four surfaces, into the tag. Brand teal is the no-JS fallback.
+- **After load**: [theme-color.ts](../../scripts/theme-color.ts), loaded by [Header.astro](../../components/Header.astro), copies the header's computed `background-color` into the tag. It re-syncs on every class or style change on `<html>`: a theme cycle, a palette switch, or a swatch-editor edit. The steady state therefore can't drift from `variables.css`.
+- **The manifest stays teal.** `site.webmanifest`'s `theme_color` is read once, at install time, for the splash screen and app switcher.
+- **Changing the header's background or its tokens?** Update `headerSurfaces` too. [theme-color.test.ts](../../../tests/unit/theme-color.test.ts) fails until the copy matches `variables.css` again.
 
 ### Adding Dark Theme Support to New Components
 
