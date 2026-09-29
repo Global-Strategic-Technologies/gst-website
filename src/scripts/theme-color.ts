@@ -13,20 +13,17 @@
  * it. Only an empty or fully transparent value is skipped.
  */
 
+import { parseAlpha } from '../utils/palette-utils';
+
 const HEADER = '.site-header';
 const META = 'meta[name="theme-color"]';
-
-/** Alpha 0: `transparent`, `rgba(…, 0)` or `rgb(… / 0)`. */
-function isFullyTransparent(color: string): boolean {
-  return color === 'transparent' || /[,/]\s*0(\.0+)?\s*\)$/.test(color);
-}
 
 export function syncThemeColor(): void {
   const header = document.querySelector(HEADER);
   const meta = document.querySelector<HTMLMetaElement>(META);
   if (!header || !meta) return;
   const color = getComputedStyle(header).backgroundColor;
-  if (!color || isFullyTransparent(color)) return;
+  if (!color || parseAlpha(color) === 0) return;
   if (meta.content !== color) meta.content = color;
 }
 

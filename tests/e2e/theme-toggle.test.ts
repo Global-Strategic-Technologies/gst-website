@@ -213,20 +213,27 @@ test.describe('Status bar colour (theme-color)', () => {
   });
 
   test('follows the header surface through all four themes', async ({ page }) => {
-    const seen = new Set<string>();
+    // The header's four surfaces (variables.css), in THEMES order — a failure
+    // names the theme, and one colour cannot match every state by accident.
+    const surfaces: Record<(typeof THEMES)[number], string> = {
+      light: 'rgb(245, 245, 245)',
+      'dim-light': 'rgb(220, 220, 220)',
+      'dim-dark': 'rgb(28, 28, 28)',
+      dark: 'rgb(10, 10, 10)',
+    };
     for (const theme of THEMES) {
       await cycleThemeTo(page, theme);
       await waitForTheme(page, theme);
       await expect
-        .poll(async () => {
-          const { meta, header } = await colours(page);
-          return meta === header ? meta : `meta ${meta} ≠ header ${header}`;
-        })
-        .toMatch(/^rgb/);
-      seen.add((await colours(page)).meta!);
+        .poll(
+          async () => {
+            const { meta, header } = await colours(page);
+            return meta === header ? meta : `meta ${meta} ≠ header ${header}`;
+          },
+          { message: theme }
+        )
+        .toBe(surfaces[theme]);
     }
-    // Four themes, four surfaces — not one colour that happened to match.
-    expect(seen.size).toBe(4);
   });
 
   test('matches the header after a reload restores the pick', async ({ page }) => {

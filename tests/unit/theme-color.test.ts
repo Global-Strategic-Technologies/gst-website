@@ -81,7 +81,8 @@ describe('theme-color (STYLES_GUIDE § Browser chrome)', () => {
   });
 
   it('skips an empty or fully transparent value, keeping the last colour', async () => {
-    for (const color of ['', 'transparent', 'rgba(0, 0, 0, 0)', 'rgb(0 0 0 / 0)']) {
+    // Computed colours use the comma form, which parseAlpha reads.
+    for (const color of ['', 'transparent', 'rgba(0, 0, 0, 0)', 'rgba(20, 20, 20, 0)']) {
       headerColor = color;
       await load();
       expect(meta()!.content, JSON.stringify(color)).toBe('#05cd99');
@@ -89,10 +90,14 @@ describe('theme-color (STYLES_GUIDE § Browser chrome)', () => {
     }
   });
 
-  it('passes a partly transparent value through', async () => {
-    headerColor = 'rgba(245, 245, 245, 0.5)';
-    await load();
-    expect(meta()!.content).toBe('rgba(245, 245, 245, 0.5)');
+  it('passes solid colours with a zero channel and partly transparent ones through', async () => {
+    // A zero LAST channel is blue, not alpha — black or an olive edit is solid.
+    for (const color of ['rgb(0, 0, 0)', 'rgb(20, 20, 0)', 'rgba(245, 245, 245, 0.5)']) {
+      headerColor = color;
+      await load();
+      expect(meta()!.content, color).toBe(color);
+      observers.splice(0).forEach((o) => o.disconnect());
+    }
   });
 
   it('is a no-op without the header or the meta tag', async () => {
