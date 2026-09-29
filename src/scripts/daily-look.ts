@@ -47,6 +47,17 @@ export interface StoredLook {
   themeDate: string | null;
 }
 
+/**
+ * The palette id an <html> class list carries, or null when it carries none
+ * (palette 0 is applied by adding no class, so null usually means 0). Word
+ * boundaries keep `palette-popped-out` from matching. BaseLayout's inline look
+ * block cannot import this and repeats the same pattern.
+ */
+export function paletteIdOf(className: string): number | null {
+  const id = /\bpalette-(\d)\b/.exec(className)?.[1];
+  return id === undefined ? null : Number(id);
+}
+
 /** 0 = Monday … 6 = Sunday, on the local clock. */
 export function weekdayIndex(date: Date): number {
   return (date.getDay() + 6) % 7;

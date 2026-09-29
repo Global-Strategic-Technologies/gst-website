@@ -140,6 +140,7 @@ try {
 
   if (flag('--check')) {
     const file = option('--check');
+    if (!file) throw new Error('usage: npm run media:pwa-assets -- --check <png>');
     // Inset 8px: skip an edge frame, measure the mark itself.
     const radius = await inkRadius(page, readFileSync(resolve(file)), 8);
     assertSafe(file, radius);

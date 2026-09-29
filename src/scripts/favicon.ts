@@ -11,14 +11,13 @@
  * before first paint; this module keeps it in step when a palette is picked.
  */
 
+import { paletteIdOf } from './daily-look';
+
 const ICON = 'link[rel="icon"]';
-/** Same match as BaseLayout's look block and palette-manager — never
- *  `palette-popped-out`. */
-const PALETTE = /\bpalette-(\d)\b/;
 
 export function faviconFor(className: string): string {
-  const id = PALETTE.exec(className)?.[1] ?? '0';
-  return id === '0' ? '/favicon.svg' : `/favicons/palette-${id}.svg`;
+  const id = paletteIdOf(className) ?? 0;
+  return id === 0 ? '/favicon.svg' : `/favicons/palette-${id}.svg`;
 }
 
 export function syncFavicon(): void {
