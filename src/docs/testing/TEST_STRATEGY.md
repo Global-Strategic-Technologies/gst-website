@@ -48,7 +48,7 @@ The practical rule that follows: **logic that can be a pure function should be o
 | Tool                       | Used for                                                                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Vitest**                 | Unit and integration tiers. Vite-native, TypeScript without extra config. `globals: true` supplies `describe`/`it`/`expect`/`vi`; value imports from `'vitest'` are lint-banned |
-| **`@vitest/coverage-v8`**  | Line coverage over `src/utils/**`, `src/data/**/*.ts` and `src/scripts/*/logic.ts` (threshold in `vitest.config.ts`)                                                            |
+| **`@vitest/coverage-v8`**  | Line coverage over `src/utils/**`, `src/data/**/*.ts`, `src/scripts/*/logic.ts` and `src/scripts/techpar/state.ts` (threshold in `vitest.config.ts`)                            |
 | **Playwright**             | E2E tier — chromium, firefox and webkit projects against a dev server                                                                                                           |
 | **`@axe-core/playwright`** | Accessibility scans inside the E2E tier (§ 3.3)                                                                                                                                 |
 | **No Testing Library**     | Astro components render to static HTML, so there is no component runtime to mount; Playwright locators cover the DOM                                                            |
@@ -81,7 +81,7 @@ describe('compute() null guards', () => {
 });
 ```
 
-Engines that a browser-only module wraps (`techpar-ui.ts`, `techpar/chart.ts`, `techpar/dom.ts`, …) are excluded from coverage in `vitest.config.ts` and covered by E2E instead. Tool-page client scripts under `src/scripts/<tool>/` are outside the coverage `include` for the same reason — except each tool's DOM-free `logic.ts`, which is unit-tested and counted ([ADR-0042](../adr/0042-tool-page-client-scripts.md)).
+Browser-only modules are covered by E2E instead of counted: each tool page's client script under `src/scripts/<tool>/` sits outside the coverage `include`, and browser-only helpers under `src/utils/` are listed in its `exclude`. The DOM-free exceptions are counted: each tool's `logic.ts`, and TechPar's `state.ts` ([ADR-0042](../adr/0042-tool-page-client-scripts.md)).
 
 ---
 
@@ -196,7 +196,12 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
     coverage: {
-      include: ['src/utils/**', 'src/data/**/*.ts', 'src/scripts/*/logic.ts'],
+      include: [
+        'src/utils/**',
+        'src/data/**/*.ts',
+        'src/scripts/*/logic.ts',
+        'src/scripts/techpar/state.ts',
+      ],
       thresholds: { lines: 70 },
     },
   },

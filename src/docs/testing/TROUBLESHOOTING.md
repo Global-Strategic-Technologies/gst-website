@@ -173,7 +173,7 @@ The drive-letter lead was noticed on 2026-08-09 and set aside, because three run
 
 Playwright's `webServer` uses `reuseExistingServer: !process.env.CI`, so locally it attaches to whatever server is already on :4321. After an editing session with dozens of hot reloads, Vite can start serving `504 (Outdated Optimize Dep)` for a chunk in a client script — lazily imported or static. The page still loads and the element still exists — it is just **empty**, because the code that fills it never ran.
 
-This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` (`src/utils/techpar/chart.ts`) awaits a dynamic `import('chart.js')` and only then fills `[data-traj-legend]`, all inside a `try/catch` whose handler calls `Sentry.captureException` and nothing else — so a failed import yields an empty legend with **no console error and no test-visible exception**. The same shape emptied the ICG wizard, where the whole client module failed and `[data-view="wizard"]` never initialised.
+This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` (`src/scripts/techpar/chart.ts`) awaits a dynamic `import('chart.js')` and only then fills `[data-traj-legend]`, all inside a `try/catch` whose handler calls `Sentry.captureException` and nothing else — so a failed import yields an empty legend with **no console error and no test-visible exception**. The same shape emptied the ICG wizard, where the whole client module failed and `[data-view="wizard"]` never initialised.
 
 **Confirm it is environmental, in this order — cheapest first:**
 

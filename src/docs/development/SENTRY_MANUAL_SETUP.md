@@ -123,7 +123,7 @@ Every `tags: { … }` passed to `Sentry.captureException` in `src/` (regenerate 
 | -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `area:portfolio-data`      | `src/components/portfolio/PortfolioHeader.astro`                  | The inlined portfolio JSON fails to parse                                |
 | `area:regulatory-map`      | `src/scripts/regulatory-map/index.ts`                             | A regulation-detail fetch throws, or the copy-link clipboard write fails |
-| `area:techpar-calculation` | `src/utils/techpar/chart.ts`                                      | TechPar chart rendering or calculation errors                            |
+| `area:techpar-calculation` | `src/scripts/techpar/chart.ts`                                    | TechPar chart rendering or calculation errors                            |
 | `feature:ambient-motion`   | `src/scripts/ambient/loader.ts`, `src/scripts/palette-manager.ts` | The ambient-motion runtime or its controls chunk fails to load           |
 
 **Breadcrumb categories, not tags**: `palette-manager` (`src/scripts/palette-manager.ts`) and `ambient-motion` (`src/scripts/ambient/controls.ts`) are `Sentry.addBreadcrumb` categories recorded when a `localStorage` write fails. They attach context to a later error and never create an issue, so no alert rule can match them.
