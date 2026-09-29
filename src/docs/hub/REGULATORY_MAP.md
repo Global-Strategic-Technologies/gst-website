@@ -4,7 +4,7 @@
 
 The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, cybersecurity and industry compliance regulations, spanning every jurisdiction enumerated by `list_regulation_facets`. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
-**Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
+**Entry point**: `src/pages/hub/tools/regulatory-map/index.astro` (markup and styles); its client script is `src/scripts/regulatory-map/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
 
 **URL**: `https://globalstrategic.tech/hub/tools/regulatory-map`
 
@@ -31,7 +31,11 @@ User (Map UI)
 │     regulations.json.ts         ← Prerendered API endpoint for regulation data
 │
 ├── src/pages/hub/tools/regulatory-map/
-│     index.astro                 ← Route entry, D3 rendering, event wiring
+│     index.astro                 ← Route entry: markup, scoped styles
+│
+├── src/scripts/regulatory-map/
+│     index.ts                    ← Client script: D3 rendering, event wiring (ADR-0042)
+│     faq-analytics.ts            ← FAQ toggle tracking, imported first by index.ts
 │
 ├── src/types/regulatory-map.ts   ← TypeScript interfaces (Regulation, RegionSelectedDetail)
 │
@@ -446,7 +450,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 1. A TopoJSON file with sub-national boundaries
 2. A code-to-name mapping utility (like `fipsToStateCode.ts`)
 3. Updates to the Zod validation regex to accept the new code format
-4. D3 rendering logic in `index.astro` to render and wire up the new paths
+4. D3 rendering logic in `src/scripts/regulatory-map/index.ts` to render and wire up the new paths
 5. Suppression of the parent country path from click handling
 
 ---

@@ -92,4 +92,21 @@ describe('Client-side Sentry instrumentation', () => {
       expect(src).toContain("area: 'techpar-calculation'");
     });
   });
+
+  // SENTRY_MANUAL_SETUP maps area:regulatory-map to this module (ADR-0042).
+  describe('regulatory map', () => {
+    const src = readSrc('src/scripts/regulatory-map/index.ts');
+
+    it('should import Sentry', () => {
+      expect(src).toContain("import * as Sentry from '@sentry/browser'");
+    });
+
+    it('should tag both captures (detail fetch, copy-link) as regulatory-map', () => {
+      const tagged = countMatches(
+        src,
+        /Sentry\.captureException\(err, \{ tags: \{ area: 'regulatory-map' \} \}\)/g
+      );
+      expect(tagged).toBeGreaterThanOrEqual(2);
+    });
+  });
 });

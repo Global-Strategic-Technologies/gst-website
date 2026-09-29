@@ -122,7 +122,7 @@ Every `tags: { … }` passed to `Sentry.captureException` in `src/` (regenerate 
 | Tag                        | Source                                                            | Fires When                                                               |
 | -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `area:portfolio-data`      | `src/components/portfolio/PortfolioHeader.astro`                  | The inlined portfolio JSON fails to parse                                |
-| `area:regulatory-map`      | `src/pages/hub/tools/regulatory-map/index.astro`                  | A regulation-detail fetch throws, or the copy-link clipboard write fails |
+| `area:regulatory-map`      | `src/scripts/regulatory-map/index.ts`                             | A regulation-detail fetch throws, or the copy-link clipboard write fails |
 | `area:techpar-calculation` | `src/utils/techpar/chart.ts`                                      | TechPar chart rendering or calculation errors                            |
 | `feature:ambient-motion`   | `src/scripts/ambient/loader.ts`, `src/scripts/palette-manager.ts` | The ambient-motion runtime or its controls chunk fails to load           |
 
