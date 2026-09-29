@@ -4,11 +4,15 @@
  * The map, panel, search and timeline wiring share state created after the
  * page's top-level data fetch, so they stay together in `index.ts`. What lives
  * here takes only data: the client search index and its matching, the
- * category filter over the region map, the timeline ordering, and the
- * regulation-card HTML. Unit-tested by `tests/unit/regulatory-map-logic.test.ts`.
+ * category filter over the region map, the timeline ordering, and the HTML
+ * for regulation cards, search-result rows and timeline entries. Unit-tested by `tests/unit/regulatory-map-logic.test.ts`.
  */
 import type { Regulation } from '../../types/regulatory-map';
 import { escapeHtml } from '../../utils/escape-html';
+import {
+  REGULATION_CATEGORY_CSS,
+  REGULATION_CATEGORY_SHORT_LABELS,
+} from '../../utils/regulation-categories';
 import { buildRegulationSearchText } from '../../utils/regulation-search-text';
 
 /**
@@ -76,10 +80,13 @@ export function sortByEffectiveDate(regs: readonly RegIndexEntry[]): RegIndexEnt
 }
 
 export function renderRegulationCard(reg: Regulation): string {
+  // The data stores bare YYYY-MM-DD, which parses as UTC midnight. Formatting
+  // in the visitor's zone put every date a day early west of UTC.
   const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 
   let html = `
@@ -105,5 +112,88 @@ export function renderRegulationCard(reg: Regulation): string {
   }
 
   html += '</div>';
+  return html;
+}
+
+// Widened to string keys: the index's `category` is a plain string, and an
+// unknown one falls back below rather than failing to type-check.
+const CATEGORY_CSS: Record<string, string> = REGULATION_CATEGORY_CSS;
+const CATEGORY_LABELS: Record<string, string> = REGULATION_CATEGORY_SHORT_LABELS;
+
+const SEARCH_RESULT_LIMIT = 15;
+
+/** The search dropdown's rows: the first 15 matches, then an overflow line. */
+export function renderSearchResultRows(results: readonly RegIndexEntry[]): string {
+  let html = results
+    .slice(0, SEARCH_RESULT_LIMIT)
+    .map((reg, i) => {
+      const catColor = CATEGORY_CSS[reg.category] ?? 'privacy';
+      const catLabel = CATEGORY_LABELS[reg.category] ?? reg.category;
+      const regionCount = reg.regions.length;
+      return `
+              <div class="brutal-search__result"
+                   role="option"
+                   id="search-result-${i}"
+                   data-reg-id="${escapeHtml(reg.id)}"
+                   tabindex="-1">
+                  <span class="brutal-search__result-name">${escapeHtml(reg.name)}</span>
+                  <span class="brutal-search__result-meta">
+                      <span class="brutal-search__category brutal-search__category--${catColor}">${escapeHtml(catLabel)}</span>
+                      <span class="brutal-search__result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
+                  </span>
+              </div>`;
+    })
+    .join('');
+
+  if (results.length > SEARCH_RESULT_LIMIT) {
+    html += `<div class="brutal-search__overflow">${results.length - SEARCH_RESULT_LIMIT} more results\u2026</div>`;
+  }
+  return html;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const TIMELINE_NAME_MAX = 35;
+
+/**
+ * The timeline's year groups for regulations already in chronological order.
+ * An entry dated after `today` (YYYY-MM-DD) is marked upcoming; names over 35
+ * characters are cut to 33 plus an ellipsis. Dates are read from the string,
+ * never through `Date`, so no time zone can shift them.
+ */
+export function renderTimelineGroups(regs: readonly RegIndexEntry[], today: string): string {
+  const byYear = new Map<number, RegIndexEntry[]>();
+  for (const reg of regs) {
+    const year = parseInt(reg.effectiveDate.slice(0, 4));
+    if (!byYear.has(year)) byYear.set(year, []);
+    byYear.get(year)!.push(reg);
+  }
+
+  let html = '';
+  for (const [year, group] of byYear) {
+    html += `<div class="brutal-timeline-year-group">`;
+    html += `<span class="brutal-timeline-year">${year}</span>`;
+    html += `<div class="brutal-timeline-year-entries">`;
+    for (const reg of group) {
+      const isUpcoming = reg.effectiveDate > today;
+      const catClass = CATEGORY_CSS[reg.category] ?? 'privacy';
+      const [y, m] = reg.effectiveDate.split('-');
+      const shortDate = `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+      const truncName =
+        reg.name.length > TIMELINE_NAME_MAX
+          ? reg.name.slice(0, TIMELINE_NAME_MAX - 2) + '\u2026'
+          : reg.name;
+      html += `
+                  <button type="button" class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
+                       data-reg-id="${escapeHtml(reg.id)}"
+                       aria-pressed="false"
+                       aria-label="${escapeHtml(reg.name)}, ${shortDate}"
+                       title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
+                      <span class="brutal-timeline-dot brutal-timeline-dot--${catClass}${isUpcoming ? ' brutal-timeline-dot--upcoming' : ''}"></span>
+                      <span class="brutal-timeline-entry__name">${escapeHtml(truncName)}</span>
+                      <span class="brutal-timeline-entry__date">${shortDate}</span>
+                  </button>`;
+    }
+    html += `</div></div>`;
+  }
   return html;
 }

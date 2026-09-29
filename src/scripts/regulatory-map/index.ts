@@ -17,21 +17,18 @@ import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { encodeFilters, decodeFilters } from '../../utils/regulatory-map-url';
-import {
-  REGULATION_CATEGORY_CSS,
-  REGULATION_CATEGORY_SHORT_LABELS,
-} from '../../utils/regulation-categories';
 import type { Regulation, RegionSelectedDetail } from '../../types/regulatory-map';
 import { numericToAlpha3, alpha3ToName } from '../../utils/countryCodeMap';
 import { fipsToStateCode, stateCodeToName } from '../../utils/fipsToStateCode';
 import { provinceCodeToName } from '../../utils/canadianProvinceMap';
 import { trackEvent } from '../../utils/analytics';
-import { escapeHtml } from '../../utils/escape-html';
 import {
   buildSearchIndex,
   filterRegionMap,
   renderRegulationCard,
   searchRegulations,
+  renderSearchResultRows,
+  renderTimelineGroups,
   sortByEffectiveDate,
   type RegIndexEntry,
 } from './logic';
@@ -186,7 +183,7 @@ document.getElementById('panelCopyLink')?.addEventListener('click', () => {
   }
 });
 
-// regById: lightweight index entries keyed by ID (populated from inline index)
+// regById: lightweight index entries keyed by ID (populated from the fetched reg-index)
 const regById: Record<string, RegIndexEntry> = {};
 for (const entry of regIndexRaw.regs) {
   regById[entry.id] = entry;
@@ -505,7 +502,7 @@ function applySubnationalHighlighting(): void {
 // Fire subnational load — does not block world map rendering
 loadSubnationalData();
 
-// --- Phase B: apply regulation data from inline index ---
+// --- Phase B: apply regulation data from the fetched reg-index ---
 // Apply --active class, role="button", and tabindex to country paths with regulations.
 // Subnational paths (US states, Canadian provinces) are handled by applySubnationalHighlighting()
 // after deferred loading completes.
@@ -520,9 +517,6 @@ if (Object.keys(regionMap).length > 0) {
     }
   });
 }
-
-// Category → CSS class map (used by timeline rendering and search)
-const categoryColorMap: Record<string, string> = REGULATION_CATEGORY_CSS;
 
 // Initial timeline render (requires regionMap)
 renderTimeline();
@@ -834,9 +828,6 @@ document.getElementById('regulation-filter-chips')?.addEventListener('click', (e
 });
 
 // --- Search ---
-// categoryColorMap declared earlier (before renderTimeline) to avoid TDZ
-
-const categoryLabelMap: Record<string, string> = REGULATION_CATEGORY_SHORT_LABELS;
 
 function performSearch(query: string): RegIndexEntry[] {
   return searchRegulations(searchIndex, query, activeCategory);
@@ -857,30 +848,7 @@ function renderSearchResults(results: RegIndexEntry[]): void {
     return;
   }
 
-  container.innerHTML = results
-    .slice(0, 15)
-    .map((reg, i) => {
-      const catColor = categoryColorMap[reg.category] ?? 'privacy';
-      const catLabel = categoryLabelMap[reg.category] ?? reg.category;
-      const regionCount = reg.regions.length;
-      return `
-              <div class="brutal-search__result"
-                   role="option"
-                   id="search-result-${i}"
-                   data-reg-id="${escapeHtml(reg.id)}"
-                   tabindex="-1">
-                  <span class="brutal-search__result-name">${escapeHtml(reg.name)}</span>
-                  <span class="brutal-search__result-meta">
-                      <span class="brutal-search__category brutal-search__category--${catColor}">${catLabel}</span>
-                      <span class="brutal-search__result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
-                  </span>
-              </div>`;
-    })
-    .join('');
-
-  if (results.length > 15) {
-    container.innerHTML += `<div class="brutal-search__overflow">${results.length - 15} more results\u2026</div>`;
-  }
+  container.innerHTML = renderSearchResultRows(results);
 
   container.hidden = false;
   activeResultIndex = -1;
@@ -1116,58 +1084,8 @@ function renderTimeline(): void {
   const filteredRegs =
     activeCategory === 'all' ? allRegs : allRegs.filter((r) => r.category === activeCategory);
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Sort chronologically so year groups render in order
-  filteredRegs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
-
-  // Group by year (Map preserves insertion order of sorted data)
-  const byYear = new Map<number, RegIndexEntry[]>();
-  for (const reg of filteredRegs) {
-    const year = parseInt(reg.effectiveDate.slice(0, 4));
-    if (!byYear.has(year)) byYear.set(year, []);
-    byYear.get(year)!.push(reg);
-  }
-
-  let html = '';
-
-  for (const [year, regs] of byYear) {
-    html += `<div class="brutal-timeline-year-group">`;
-    html += `<span class="brutal-timeline-year">${year}</span>`;
-    html += `<div class="brutal-timeline-year-entries">`;
-    for (const reg of regs) {
-      const isUpcoming = reg.effectiveDate > today;
-      const catClass = categoryColorMap[reg.category] ?? 'privacy';
-      const [y, m] = reg.effectiveDate.split('-');
-      const monthNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      const shortDate = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
-      const truncName = reg.name.length > 35 ? reg.name.slice(0, 33) + '\u2026' : reg.name;
-      html += `
-                  <button type="button" class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
-                       data-reg-id="${escapeHtml(reg.id)}"
-                       aria-pressed="false"
-                       aria-label="${escapeHtml(reg.name)}, ${shortDate}"
-                       title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
-                      <span class="brutal-timeline-dot brutal-timeline-dot--${catClass}${isUpcoming ? ' brutal-timeline-dot--upcoming' : ''}"></span>
-                      <span class="brutal-timeline-entry__name">${escapeHtml(truncName)}</span>
-                      <span class="brutal-timeline-entry__date">${shortDate}</span>
-                  </button>`;
-    }
-    html += `</div></div>`;
-  }
+  // buildTimelineData() is already chronological, and filter() keeps that order.
+  let html = renderTimelineGroups(filteredRegs, new Date().toISOString().slice(0, 10));
 
   // Today marker — absolutely positioned based on chronological position
   // among the rendered year groups. This is filter-independent.
