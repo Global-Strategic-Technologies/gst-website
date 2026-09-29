@@ -79,7 +79,7 @@ describe('Tool Analytics Naming Convention', () => {
   });
 
   describe('Regulatory Map events', () => {
-    const events = extractTrackEventCalls('src/pages/hub/tools/regulatory-map/index.astro');
+    const events = extractTrackEventCalls('src/scripts/regulatory-map');
 
     it('should have at least 7 tracked events', () => {
       expect(events.length).toBeGreaterThanOrEqual(7);
@@ -192,7 +192,7 @@ describe('Tool Analytics Naming Convention', () => {
       'src/utils/techpar-ui.ts',
       'src/utils/techpar/dom.ts',
       'src/utils/techpar/chart.ts',
-      'src/pages/hub/tools/regulatory-map/index.astro',
+      'src/scripts/regulatory-map',
       'src/scripts/diligence-machine',
       'src/scripts/tech-debt-calculator',
       'src/scripts/infrastructure-cost-governance',
@@ -219,7 +219,7 @@ describe('Tool Analytics Naming Convention', () => {
             'src/utils/techpar/chart.ts',
           ],
         },
-        { prefix: 'rm_', paths: ['src/pages/hub/tools/regulatory-map/index.astro'] },
+        { prefix: 'rm_', paths: ['src/scripts/regulatory-map'] },
         { prefix: 'dm_', paths: ['src/scripts/diligence-machine'] },
         { prefix: 'tdc_', paths: ['src/scripts/tech-debt-calculator'] },
         {

@@ -4,7 +4,7 @@
 
 The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, cybersecurity and industry compliance regulations, spanning every jurisdiction enumerated by `list_regulation_facets`. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
-**Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
+**Entry point**: `src/pages/hub/tools/regulatory-map/index.astro` (markup and styles); its client script is `src/scripts/regulatory-map/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
 
 **URL**: `https://globalstrategic.tech/hub/tools/regulatory-map`
 
@@ -31,7 +31,11 @@ User (Map UI)
 │     regulations.json.ts         ← Prerendered API endpoint for regulation data
 │
 ├── src/pages/hub/tools/regulatory-map/
-│     index.astro                 ← Route entry, D3 rendering, event wiring
+│     index.astro                 ← Route entry: markup, scoped styles
+│
+├── src/scripts/regulatory-map/
+│     index.ts                    ← Client script: D3 rendering, event wiring (ADR-0042)
+│     faq-analytics.ts            ← FAQ toggle tracking, imported first by index.ts
 │
 ├── src/types/regulatory-map.ts   ← TypeScript interfaces (Regulation, RegionSelectedDetail)
 │
@@ -446,7 +450,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 1. A TopoJSON file with sub-national boundaries
 2. A code-to-name mapping utility (like `fipsToStateCode.ts`)
 3. Updates to the Zod validation regex to accept the new code format
-4. D3 rendering logic in `index.astro` to render and wire up the new paths
+4. D3 rendering logic in `src/scripts/regulatory-map/index.ts` to render and wire up the new paths
 5. Suppression of the parent country path from click handling
 
 ---
@@ -471,7 +475,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 - **Category filter UI** — Filter chips for data privacy, AI governance, industry compliance, cybersecurity. Updates map highlighting and panel cards in real time.
 - **Regulation timeline/tracker** — Horizontal scrollable timeline with Today marker and filter-aware display.
-- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the inline client index is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does raw term-wise substring matching with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
+- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the client index (fetched at runtime from `/data/reg-index.json`) is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does raw term-wise substring matching with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
 - **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
 - **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
 - **Industry compliance expansion** — 12 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II.

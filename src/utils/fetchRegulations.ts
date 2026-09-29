@@ -1,6 +1,6 @@
 import type { Regulation } from '../types/regulatory-map';
 
-/** Lightweight regulation entry for the inline index (no summary/scope/penalties). */
+/** Lightweight regulation entry for the client index at `/data/reg-index.json` (no summary/scope/penalties). */
 export interface RegulationIndexEntry {
   id: string;
   name: string;
