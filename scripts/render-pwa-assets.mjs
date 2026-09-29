@@ -5,7 +5,7 @@
  * Render the PWA install assets from their sources (STYLES_GUIDE § Browser
  * chrome).
  *
- *   npm run media:pwa-assets                    icons (and tab icons, below)
+ *   npm run media:pwa-assets                    tab icons + install icons
  *   npm run media:pwa-assets -- --screenshots   also the install screenshots
  *   npm run media:pwa-assets -- --check <png>   safe-zone check on one PNG
  *
@@ -105,6 +105,35 @@ function assertSafe(name, radius) {
   console.log(`  ${name}: farthest ink ${pct}% of the width (safe zone 40%)`);
 }
 
+/**
+ * Tab icons: public/favicons/palette-N.svg for every palette but 0, which
+ * keeps public/favicon.svg. Each is favicon.svg with ONLY the stroke colour
+ * swapped — the delta's geometry, weight and join are the brand's and never
+ * change. The colour is the palette's LIGHT-theme primary (palettes.css, first
+ * :root block): the tab strip follows the browser's theme, not the site's,
+ * and the dark-theme primaries include white. Palette ids come from the
+ * `--altN-color-primary` keys; tests/integration/pwa-assets.test.ts checks
+ * them against src/data/palettes.ts.
+ */
+function renderTabIcons() {
+  const favicon = readFileSync(at('public/favicon.svg'), 'utf8');
+  const STROKE = 'stroke="#05cd99"';
+  if (favicon.split(STROKE).length !== 2) {
+    throw new Error(`favicon.svg: expected exactly one ${STROKE}`);
+  }
+  const css = readFileSync(at('src/styles/palettes.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const root = /:root\s*\{([\s\S]*?)\}/.exec(css)?.[1];
+  if (!root) throw new Error('palettes.css: no :root block');
+  const primaries = [...root.matchAll(/--alt(\d+)-color-primary\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)];
+  if (primaries.length === 0) throw new Error('palettes.css: no --altN-color-primary tokens');
+  mkdirSync(at('public/favicons'), { recursive: true });
+  for (const [, id, hex] of primaries) {
+    const out = `public/favicons/palette-${id}.svg`;
+    writeFileSync(at(out), favicon.replace(STROKE, `stroke="${hex.toLowerCase()}"`));
+    console.log(`  wrote ${out} (${hex.toLowerCase()})`);
+  }
+}
+
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage({ deviceScaleFactor: 1 });
@@ -115,6 +144,8 @@ try {
     const radius = await inkRadius(page, readFileSync(resolve(file)), 8);
     assertSafe(file, radius);
   } else {
+    console.log('tab icons');
+    renderTabIcons();
     console.log('icons');
     for (const size of [192, 512]) {
       const out = `public/images/web-app-manifest-${size}.png`;

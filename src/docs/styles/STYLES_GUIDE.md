@@ -688,6 +688,13 @@ The mobile status bar follows the **site header's surface**, so it blends with t
 - **The manifest stays teal.** `site.webmanifest`'s `theme_color` is read once, at install time, for the splash screen and app switcher.
 - **Changing the header's background or its tokens?** Update `headerSurfaces` too. [theme-color.test.ts](../../../tests/unit/theme-color.test.ts) fails until the copy matches `variables.css` again.
 
+**The tab icon** follows the day's **palette** but not its theme. On palette 0 it is `public/favicon.svg`. On every other palette it is `public/favicons/palette-N.svg`: the same delta with only the stroke recoloured to that palette's **light-theme** primary.
+
+- The tab strip belongs to the browser and follows the browser's theme, not the site's. Dark-theme primaries include white (Monolith), which would vanish on a light tab strip.
+- The delta's geometry, weight and join never change in a variant.
+- The inline look block sets the restored palette's icon before first paint, and [favicon.ts](../../scripts/favicon.ts) (also loaded by Header) follows a palette pick.
+- Variants are rendered by `npm run media:pwa-assets`. [pwa-assets.test.ts](../../../tests/integration/pwa-assets.test.ts) fails when a palette has no variant, or when a variant drifts from `favicon.svg` or its primary.
+
 ### Adding Dark Theme Support to New Components
 
 1. Use existing variables wherever possible — most already auto-switch via `light-dark()`:

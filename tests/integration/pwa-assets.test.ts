@@ -2,13 +2,15 @@
  * The PWA install assets (STYLES_GUIDE § Browser chrome) — the files the
  * manifest names exist, are the size it claims, and keep the jobs apart.
  *
- * The icons are rendered by `npm run media:pwa-assets`. This guard reads the
+ * The tab icons and install icons are rendered by `npm run media:pwa-assets`. This guard reads the
  * committed files, not the renderer, so a hand-edited manifest or a missed
  * re-render fails here. The maskable safe zone itself is measured by the
  * renderer, which fails the run when ink crosses it.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { parseRootTokens } from './helpers/css-parse';
+import { palettes } from '../../src/data/palettes';
 
 const ROOT = resolve(__dirname, '../..');
 const RERUN = 'regenerate with `npm run media:pwa-assets`';
@@ -102,6 +104,51 @@ describe('manifest screenshots', () => {
       expect(Math.max(w, h) / Math.min(w, h)).toBeLessThanOrEqual(2.3);
       if (shot.form_factor === 'narrow') expect(h, `${shot.src} is portrait`).toBeGreaterThan(w);
       else expect(w, `${shot.src} is landscape`).toBeGreaterThan(h);
+    }
+  });
+});
+
+/**
+ * Tab icons: palette 0 keeps public/favicon.svg; every other palette has
+ * public/favicons/palette-N.svg — favicon.svg with ONLY the stroke recoloured
+ * to the palette's light-theme primary. The delta's geometry is the brand's
+ * and must never drift in a variant.
+ */
+describe('palette tab icons', () => {
+  const favicon = readFileSync(resolve(ROOT, 'public/favicon.svg'), 'utf8');
+  const tokens = parseRootTokens(readFileSync(resolve(ROOT, 'src/styles/palettes.css'), 'utf8'));
+  const cssIds = Object.keys(tokens)
+    .map((name) => /^--alt(\d+)-color-primary$/.exec(name)?.[1])
+    .filter((id): id is string => id !== undefined)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const variant = (id: number) => resolve(ROOT, `public/favicons/palette-${id}.svg`);
+
+  it('reads the light-theme primaries (known-present values)', () => {
+    // First, so a drifting extractor cannot make the checks below vacuous.
+    expect(tokens['--alt1-color-primary']).toBe('#8e8e8e');
+    expect(tokens['--alt5-color-primary']).toBe('#c145ff');
+    expect(favicon).toContain('stroke="#05cd99"');
+  });
+
+  it('every palette but 0 has a tab icon', () => {
+    const dataIds = palettes
+      .map((p) => p.id)
+      .filter((id) => id !== 0)
+      .sort((a, b) => a - b);
+    expect(cssIds, 'palettes.css primaries match src/data/palettes.ts').toEqual(dataIds);
+    for (const id of dataIds) {
+      expect(existsSync(variant(id)), `favicons/palette-${id}.svg exists — ${RERUN}`).toBe(true);
+    }
+  });
+
+  it('each tab icon is favicon.svg with only the stroke recoloured to its primary', () => {
+    for (const id of cssIds) {
+      const primary = tokens[`--alt${id}-color-primary`].toLowerCase();
+      expect(
+        readFileSync(variant(id), 'utf8'),
+        `favicons/palette-${id}.svg is favicon.svg in ${primary} — ${RERUN}`
+      ).toBe(favicon.replace('stroke="#05cd99"', `stroke="${primary}"`));
     }
   });
 });
