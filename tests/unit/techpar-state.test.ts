@@ -1,4 +1,4 @@
-import { tp, MAX_HISTORICAL, MAX_SCENARIOS, LS_KEY, VISITED_KEY } from '@/utils/techpar/state';
+import { tp, MAX_HISTORICAL, MAX_SCENARIOS, LS_KEY, VISITED_KEY } from '@/scripts/techpar/state';
 
 describe('techpar/state', () => {
   describe('constants', () => {

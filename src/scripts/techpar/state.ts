@@ -5,7 +5,7 @@
  * dom.ts and chart.ts can read/write without circular imports.
  */
 import type { Chart } from 'chart.js';
-import type { TechParInputs, TechParResult, HistoricalPoint } from '../techpar-engine';
+import type { TechParInputs, TechParResult, HistoricalPoint } from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
 
 // ─── Shared mutable state ─────────────────────────────────
@@ -22,7 +22,7 @@ export const VISITED_KEY = 'techpar-visited';
 
 /**
  * Centralised mutable state object. Every field that was formerly a
- * module-level `let` in techpar-ui.ts now lives here.
+ * module-level `let` in the page script (`index.ts`) now lives here.
  */
 export const tp = {
   stageKey: null as string | null,

@@ -48,10 +48,7 @@ function extractTrackEventCalls(filePath: string): Array<{ event: string; catego
 
 describe('Tool Analytics Naming Convention', () => {
   describe('TechPar events', () => {
-    const uiEvents = extractTrackEventCalls('src/utils/techpar-ui.ts');
-    const domEvents = extractTrackEventCalls('src/utils/techpar/dom.ts');
-    const chartEvents = extractTrackEventCalls('src/utils/techpar/chart.ts');
-    const allEvents = [...uiEvents, ...domEvents, ...chartEvents];
+    const allEvents = extractTrackEventCalls('src/scripts/techpar');
 
     it('should have at least 10 tracked events', () => {
       expect(allEvents.length).toBeGreaterThanOrEqual(10);
@@ -189,9 +186,7 @@ describe('Tool Analytics Naming Convention', () => {
 
   describe('Cross-tool consistency', () => {
     const allFiles = [
-      'src/utils/techpar-ui.ts',
-      'src/utils/techpar/dom.ts',
-      'src/utils/techpar/chart.ts',
+      'src/scripts/techpar',
       'src/scripts/regulatory-map',
       'src/scripts/diligence-machine',
       'src/scripts/tech-debt-calculator',
@@ -213,11 +208,7 @@ describe('Tool Analytics Naming Convention', () => {
       const tools: Array<{ prefix: string; paths: string[] }> = [
         {
           prefix: 'tp_',
-          paths: [
-            'src/utils/techpar-ui.ts',
-            'src/utils/techpar/dom.ts',
-            'src/utils/techpar/chart.ts',
-          ],
+          paths: ['src/scripts/techpar'],
         },
         { prefix: 'rm_', paths: ['src/scripts/regulatory-map'] },
         { prefix: 'dm_', paths: ['src/scripts/diligence-machine'] },

@@ -11,13 +11,13 @@ import {
   zoneLabel,
   kpiClass,
   formatPercent,
-} from '../techpar-engine';
-import type { TechParInputs, TechParResult, StageConfig } from '../techpar-engine';
+} from '../../utils/techpar-engine';
+import type { TechParInputs, TechParResult, StageConfig } from '../../utils/techpar-engine';
 import { SIGNAL_COPY } from '../../data/techpar/signal-copy';
 import { INDUSTRY_NOTES } from '../../data/techpar/industry-notes';
 import { RECOMMENDATIONS } from '../../data/techpar/recommendations';
 import { tp } from './state';
-import { trackEvent } from '../analytics';
+import { trackEvent } from '../../utils/analytics';
 import * as Sentry from '@sentry/browser';
 import {
   g,

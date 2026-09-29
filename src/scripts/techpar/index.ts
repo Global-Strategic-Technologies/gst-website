@@ -6,10 +6,10 @@
  *
  * This file is loaded by hub/tools/techpar/index.astro via a <script> import.
  */
-import { compute } from './techpar-engine';
-import type { Industry } from '../data/techpar/industry-notes';
-import { trackEvent } from './analytics';
-import { tp, MAX_HISTORICAL, VISITED_KEY } from './techpar/state';
+import { compute } from '../../utils/techpar-engine';
+import type { Industry } from '../../data/techpar/industry-notes';
+import { trackEvent } from '../../utils/analytics';
+import { tp, MAX_HISTORICAL, VISITED_KEY } from './state';
 import {
   $$,
   g,
@@ -36,8 +36,8 @@ import {
   syncUrlState,
   hydrateFromUrl,
   syncRadioGroup,
-} from './techpar/dom';
-import { renderAnalysis, renderTrajectory } from './techpar/chart';
+} from './dom';
+import { renderAnalysis, renderTrajectory } from './chart';
 
 // ─── Dependency injection helpers ─────────────────────────
 // Several dom.ts functions need updateAll/renderTrajectory/goTab but can't

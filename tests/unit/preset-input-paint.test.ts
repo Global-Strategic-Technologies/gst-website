@@ -2,7 +2,7 @@
 
 /**
  * Locks the chip-paint contract shared by:
- *   - `paintCostChips()` in `src/utils/techpar/dom.ts` (called from
+ *   - `paintCostChips()` in `src/scripts/techpar/dom.ts` (called from
  *     `hydrateFromUrl`'s `setInput()` on URL state restoration)
  *   - `<PresetInput>`'s hoisted `syncAll()` in
  *     `src/components/techpar/PresetInput.astro` (called on every input
@@ -12,7 +12,7 @@
  * rule. If you change one, change the other.
  */
 
-import { paintCostChips } from '../../src/utils/techpar/dom';
+import { paintCostChips } from '../../src/scripts/techpar/dom';
 
 function buildControlMarkup(inputName: string, presetValues: number[], inputValue: string): void {
   document.body.innerHTML = `
