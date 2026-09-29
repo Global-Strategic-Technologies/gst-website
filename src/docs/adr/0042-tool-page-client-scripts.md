@@ -11,7 +11,7 @@ Six Hub tool pages carried their whole client app as one bundled `<script>` insi
 - **The pages ran to 2,000–3,000 lines** of markup, scoped CSS and application code together.
 - **Tests that guard the code had to read `.astro` source** (`tests/unit/tool-analytics.test.ts` regex-scanned the pages for `trackEvent` calls).
 
-Two precedents already existed. TechPar's page is one `<script>import '…/techpar-ui';</script>`, with the UI split across `src/utils/techpar-ui.ts` and `src/utils/techpar/{state,dom,chart}.ts`. And `src/scripts/ambient/` is a feature directory whose pure `build.ts` is unit-tested by `tests/unit/ambient-build.test.ts`.
+Two precedents already existed. TechPar's page is one `<script>import '…/techpar-ui';</script>`, with the UI split across `src/utils/techpar-ui.ts` and `src/utils/techpar/{state,dom,chart}.ts` (moved to `src/scripts/techpar/` by this decision's final PR). And `src/scripts/ambient/` is a feature directory whose pure `build.ts` is unit-tested by `tests/unit/ambient-build.test.ts`.
 
 ## Decision
 
