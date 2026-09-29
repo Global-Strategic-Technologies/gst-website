@@ -18,6 +18,9 @@ export default defineConfig({
         'src/scripts/techpar/state.ts',
       ],
       exclude: [
+        // Type declarations carry no runtime code; coverage's remapper cannot
+        // parse `.d.mts` (e.g. src/utils/irl/extract-markdown.d.mts) as JS.
+        '**/*.d.mts',
         // Browser-only modules — covered by E2E (Playwright), not unit tests.
         // These files depend on DOM APIs, Canvas, localStorage, or Clipboard
         // that vitest's node environment cannot execute.
