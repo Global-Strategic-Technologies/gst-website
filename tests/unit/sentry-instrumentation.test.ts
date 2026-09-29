@@ -77,7 +77,7 @@ describe('Client-side Sentry instrumentation', () => {
   });
 
   describe('techpar chart', () => {
-    const src = readSrc('src/utils/techpar/chart.ts');
+    const src = readSrc('src/scripts/techpar/chart.ts');
 
     it('should import Sentry', () => {
       expect(src).toContain("import * as Sentry from '@sentry/browser'");

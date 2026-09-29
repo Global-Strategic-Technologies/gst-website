@@ -21,7 +21,7 @@
  *   - `[data-preset-for]`, `[data-input]`, `[data-preset-val]`, `.tp-arr-chip`,
  *     `.tp-arr-chip--active`, `aria-pressed`
  *
- * URL hydration: `setInput()` in `src/utils/techpar/dom.ts` calls
+ * URL hydration: `setInput()` in `src/scripts/techpar/dom.ts` calls
  * `paintCostChips(name)` directly rather than dispatching an input event,
  * to avoid fan-out to ~9 page-level `updateAll` listeners on every hydrated
  * field. The chip-active paint logic in `syncAll()` here and `paintCostChips()`

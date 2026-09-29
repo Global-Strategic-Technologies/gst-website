@@ -2,14 +2,18 @@
  * TechPar UI — DOM helpers, formatting, tab navigation, input validation,
  * and UI-sync utilities.
  */
-import { formatDollars, formatPercent, zoneColorVar, zoneLabel } from '../techpar-engine';
-import type { TechParInputs, TechParResult, Stage } from '../techpar-engine';
+import { formatDollars, formatPercent, zoneColorVar, zoneLabel } from '../../utils/techpar-engine';
+import type { TechParInputs, TechParResult, Stage } from '../../utils/techpar-engine';
 import { STAGES } from '../../data/techpar/stages';
 import { tp, MAX_HISTORICAL, MAX_SCENARIOS } from './state';
-import { compute } from '../techpar-engine';
-import { copyWithFeedback } from '../copy-feedback';
-import { trackEvent } from '../analytics';
-import { serializeToParams, deserializeFromParams, buildSummaryText } from '../techpar-engine';
+import { compute } from '../../utils/techpar-engine';
+import { copyWithFeedback } from '../../utils/copy-feedback';
+import { trackEvent } from '../../utils/analytics';
+import {
+  serializeToParams,
+  deserializeFromParams,
+  buildSummaryText,
+} from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
 import { LS_KEY } from './state';
 
@@ -586,7 +590,7 @@ export function buildInputs(): TechParInputs | null {
     capexView: gaapEl?.checked ? 'gaap' : 'cash',
     growthRate: tp.growthRate || 0,
     // The exit-multiple field is only shown for PE / Enterprise stages (see the
-    // `showExit` toggle in techpar-ui). On any other stage the field is hidden,
+    // `showExit` toggle in `index.ts`). On any other stage the field is hidden,
     // so a value entered while on PE/Enterprise must not silently persist into
     // results or URL state (`syncUrlState` serializes this output). Force the
     // default unless the stage actually exposes the field.

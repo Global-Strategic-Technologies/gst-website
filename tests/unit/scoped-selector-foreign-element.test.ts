@@ -157,7 +157,7 @@ const rightmostClasses = (selector: string): string[] => {
  * present when its `block` is: the element is then rendered here and carries
  * the cid, and the remaining classes are runtime states that another module
  * may legitimately toggle (`.palette-panel.is-open` from palette-manager.ts,
- * `.tp-deep-wrap--on` from techpar/dom.ts).
+ * `.tp-deep-wrap--on` from src/scripts/techpar/dom.ts).
  */
 export const findUnreferencedTargets = (css: string, markupAndScripts: string): Finding[] => {
   const mentioned = (cls: string): boolean =>

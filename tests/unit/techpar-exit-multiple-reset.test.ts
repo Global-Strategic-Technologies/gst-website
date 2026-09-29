@@ -13,8 +13,8 @@
  * exit multiple regardless of the (hidden) DOM value.
  */
 
-import { buildInputs } from '../../src/utils/techpar/dom';
-import { tp } from '../../src/utils/techpar/state';
+import { buildInputs } from '../../src/scripts/techpar/dom';
+import { tp } from '../../src/scripts/techpar/state';
 
 function setupDom(exitMultValue: string): void {
   document.body.innerHTML = `

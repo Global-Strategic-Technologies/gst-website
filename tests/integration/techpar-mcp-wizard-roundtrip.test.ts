@@ -4,11 +4,11 @@
  * **Why this test exists** (post-demo audit finding, 2026-05-22):
  *
  * The TechPar wizard has two infra-cost-period modes (monthly / annual) and
- * defaults `tp.infraPeriod` to `'monthly'` ([`src/utils/techpar/state.ts:35`]).
+ * defaults `tp.infraPeriod` to `'monthly'` (`tp` in `src/scripts/techpar/state.ts`).
  * In monthly mode, the wizard's `buildInputs()` multiplies the `infra` DOM
- * field by 12 before computing ([`src/utils/techpar/dom.ts:569`]). The wizard's
+ * field by 12 before computing (`buildInputs` in `src/scripts/techpar/dom.ts`). The wizard's
  * own URL writer sets `b=annual` only when the user manually toggles to
- * annual mode ([`src/utils/techpar/dom.ts:597`]); the MCP TechPar tool's
+ * annual mode (`syncUrlState` in the same file); the MCP TechPar tool's
  * `buildTechparDeeplink` was NOT setting `b` at all (until commit `e40bdcc`).
  *
  * Effect of the regression: when a partner clicked an "Open TechPar Wizard"
@@ -35,7 +35,7 @@
  * **Why this catches the entire MCP↔wizard contract-drift class**: any
  * future change to either the MCP emitter (`buildTechparDeeplink` in
  * `mcp-server/src/tools/techpar.ts`) OR the wizard hydrator
- * (`hydrateFromUrl` in `src/utils/techpar/dom.ts`) that breaks the
+ * (`hydrateFromUrl` in `src/scripts/techpar/dom.ts`) that breaks the
  * round-trip will fail this test deterministically in CI, before merge.
  */
 
@@ -43,8 +43,8 @@
 
 import { handleTechparTool } from '../../mcp-server/src/tools/techpar';
 import { buildPartnerSuppliedTechParAudit } from '../../mcp-server/src/schemas/techpar-audit';
-import { hydrateFromUrl } from '../../src/utils/techpar/dom';
-import { tp } from '../../src/utils/techpar/state';
+import { hydrateFromUrl } from '../../src/scripts/techpar/dom';
+import { tp } from '../../src/scripts/techpar/state';
 
 // BL-045 PR B Phase 2 — compute_techpar requires `_audit`. Use the
 // partner-supplied Tier-3 helper for the engine-pipeline round-trip test;

@@ -8,16 +8,19 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
     coverage: {
-      // `src/scripts/*/logic.ts`: a tool page's DOM-free logic (ADR-0042). The
-      // rest of `src/scripts/` is browser-only and covered by E2E.
-      include: ['src/utils/**', 'src/data/**/*.ts', 'src/scripts/*/logic.ts'],
+      // `src/scripts/*/logic.ts`: a tool page's DOM-free logic (ADR-0042), plus
+      // TechPar's state module, which is DOM-free and unit-tested. The rest of
+      // `src/scripts/` is browser-only and covered by E2E.
+      include: [
+        'src/utils/**',
+        'src/data/**/*.ts',
+        'src/scripts/*/logic.ts',
+        'src/scripts/techpar/state.ts',
+      ],
       exclude: [
         // Browser-only modules — covered by E2E (Playwright), not unit tests.
         // These files depend on DOM APIs, Canvas, localStorage, or Clipboard
         // that vitest's node environment cannot execute.
-        'src/utils/techpar-ui.ts',
-        'src/utils/techpar/chart.ts',
-        'src/utils/techpar/dom.ts',
         'src/utils/copy-feedback.ts',
         'src/utils/mcp-onboarding.ts',
         'src/utils/mcp-docs.ts',
