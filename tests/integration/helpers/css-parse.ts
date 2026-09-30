@@ -33,6 +33,24 @@ export function extractAstroStyles(source: string): string[] {
 }
 
 /**
+ * The declaration text of every static inline `style="…"` / `style='…'` attribute
+ * in an Astro file.
+ *
+ * `extractAstroStyles` reads `<style>` blocks only, and ADR-0029 records what that
+ * costs: an inline attribute is invisible to a guard built on it. stylelint parses
+ * inline attributes, but a guard that judges REFERENCES (which token a declaration
+ * names) cannot lean on stylelint, so it needs this. Expression attributes
+ * (`style={…}`) are skipped: their text is JavaScript, not CSS.
+ */
+export function extractInlineStyles(source: string): string[] {
+  const out: string[] = [];
+  const re = /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) out.push(m[1] ?? m[2]);
+  return out;
+}
+
+/**
  * A single length to px, or null when it cannot be judged.
  *
  * ANCHORED to one bare length on purpose — `calc()`, percentages, viewport units

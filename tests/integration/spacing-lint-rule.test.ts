@@ -98,7 +98,7 @@ describe('spacing lint rule (ADR-0029)', () => {
       ['an on-scale px inside calc()', '.x { padding: calc(24px + 1%); }'],
       ['a longer px number ending in an on-scale one', '.x { padding: 104px; }'],
       ['a decimal px whose tail looks on-scale', '.x { padding: 0.4px; }'],
-      ['a font-size, which belongs to BL-094', '.x { font-size: 1.5rem; }'],
+      ['a font-size, which has its own rule (ADR-0043)', '.x { font-size: 1.5rem; }'],
     ])('leaves %s alone', async (_label, code) => {
       expect(await lint(code, 'x.css')).toEqual([]);
     });
