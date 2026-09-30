@@ -171,7 +171,7 @@ Brutalist Timeline
 
 .brutal-timeline-entry__name {
   font-family: var(--font-family-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   overflow: hidden;

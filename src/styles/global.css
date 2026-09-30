@@ -336,7 +336,7 @@ Legal Page Layout (Privacy, Terms)
 }
 
 .legal-page-updated {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-family: var(--font-family-mono);
   color: var(--text-muted);
 }

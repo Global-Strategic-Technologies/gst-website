@@ -14,7 +14,7 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
   border: 2px solid var(--color-primary);
   transition: all var(--transition-normal);
   font-family: var(--font-family-mono);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   cursor: pointer;
 }
 
