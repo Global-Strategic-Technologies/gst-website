@@ -13,6 +13,11 @@
  *       `font-size: var(--text-primary)` and `color: var(--text-size-title)` both
  *       lint clean. So a `font-size` may only name size tokens, and a colour
  *       property may never name one.
+ *   (c) The allow-list's `/var[(]/` is unanchored, so ANY value containing a
+ *       var() passes: `calc(var(--text-sm) + 2px)`, `clamp(1rem, 2vw,
+ *       var(--text-xl))`, and a fallback like `var(--text-sm, 13px)` all lint
+ *       clean. The `font` shorthand is not checked by the rule at all. So once
+ *       every plain `var(--token)` is removed, no rem or px length may remain.
  *
  * Scans `<style>` blocks, plain `.css` files AND inline `style="…"` attributes
  * (via `extractInlineStyles`): `/brand` sets both properties inline, and the
@@ -45,7 +50,7 @@ interface Decl {
  * A brace walker, not a regex: a regex cannot know which block a declaration is
  * in, and "is it inside print" is the whole question for (a).
  */
-export function scanSheet(sheet: string, file: string, inline = false): Decl[] {
+function scanSheet(sheet: string, file: string, inline = false): Decl[] {
   const css = stripComments(sheet);
   const out: Decl[] = [];
   const stack: string[] = [];
@@ -100,26 +105,39 @@ const TOKENS = parseRootTokens(readFileSync(join(SRC_DIR, 'styles/variables.css'
 const TEXT_TOKENS = Object.keys(TOKENS).filter((t) => t.startsWith('--text-'));
 const SIZE_TOKENS = new Set(TEXT_TOKENS.filter((t) => /^[0-9.]+(rem|px|em)$/.test(TOKENS[t])));
 const COLOUR_TOKENS = new Set(TEXT_TOKENS.filter((t) => !SIZE_TOKENS.has(t)));
-const COLOUR_PROP = /(^|-)color$|^fill$|^stroke$/;
+const COLOUR_PROP =
+  /(^|-)color$|^fill$|^stroke$|^background$|^border(-(top|right|bottom|left|block|inline))?$|^outline$|^(box|text)-shadow$|^text-decoration$/;
+const FONT_PROP = /^font(-size)?$/;
 const textRefs = (value: string) =>
   [...value.matchAll(/var\(\s*(--text-[A-Za-z0-9_-]+)/g)].map((m) => m[1]);
 
 /** (a): a pt font-size outside print. */
-export function ptOutsidePrint(decls: Decl[]): Decl[] {
+function ptOutsidePrint(decls: Decl[]): Decl[] {
   return decls.filter((d) => d.prop === 'font-size' && /[0-9.]pt\b/.test(d.value) && !d.print);
 }
 /** (b): a font-size naming a colour token, or a colour property naming a size token. */
-export function crossedTextTokens(decls: Decl[]): string[] {
+function crossedTextTokens(decls: Decl[]): string[] {
   const bad: string[] = [];
   for (const d of decls) {
     for (const ref of textRefs(d.value)) {
-      if (d.prop === 'font-size' && COLOUR_TOKENS.has(ref))
+      if (FONT_PROP.test(d.prop) && COLOUR_TOKENS.has(ref))
         bad.push(`${d.file}: font-size names colour token ${ref}`);
       if (COLOUR_PROP.test(d.prop) && SIZE_TOKENS.has(ref))
         bad.push(`${d.file}: ${d.prop} names size token ${ref}`);
     }
   }
   return bad;
+}
+/** (c): a rem/px length left in a font-size (or `font`) once plain var() refs are removed. */
+function literalBesideToken(decls: Decl[]): string[] {
+  return decls
+    .filter((d) => FONT_PROP.test(d.prop))
+    .filter((d) =>
+      /(?<![\w.-])[0-9]*\.?[0-9]+(px|rem)\b/.test(
+        d.value.replace(/var\(\s*--[A-Za-z0-9_-]+\s*\)/g, '')
+      )
+    )
+    .map((d) => `${d.file}: ${d.prop}: ${d.value}`);
 }
 
 describe('font-size token floor (ADR-0043)', () => {
@@ -182,11 +200,41 @@ describe('font-size token floor (ADR-0043)', () => {
     ])('%s', (_label, css, expected) => {
       expect(crossedTextTokens(scanSheet(css, 'fixture.css'))).toHaveLength(expected);
     });
+
+    it.each([
+      ['a literal added to a token in calc()', '.x { font-size: calc(var(--text-sm) + 2px); }', 1],
+      ['a literal floor inside clamp()', '.x { font-size: clamp(1rem, 2vw, var(--text-xl)); }', 1],
+      ['a literal var() fallback', '.x { font-size: var(--text-sm, 13px); }', 1],
+      ['a literal in the font shorthand', '.x { font: 700 13px var(--font-family); }', 1],
+      ['a font shorthand naming a colour token', '.x { font: var(--text-muted) serif; }', 0],
+      [
+        'a clamp of tokens and a vw',
+        '.x { font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl)); }',
+        0,
+      ],
+      ['a print pt', '@media print { .x { font-size: 9pt; } }', 0],
+      ['an em', '.x { font-size: 0.9em; }', 0],
+      ['font: inherit', '.x { font: inherit; }', 0],
+    ])('%s', (_label, css, expected) => {
+      expect(literalBesideToken(scanSheet(css, 'fixture.css'))).toHaveLength(expected);
+    });
+
+    it('fails a font shorthand that names a colour token', () => {
+      expect(
+        crossedTextTokens(scanSheet('.x { font: var(--text-muted) serif; }', 'f.css'))
+      ).toHaveLength(1);
+    });
   });
 
   it('no pt font-size outside @media print', () => {
     const bad = ptOutsidePrint(decls).map((d) => `${d.file}: font-size: ${d.value}`);
     expect(bad, 'pt is for paper only (ADR-0043 § 4)').toEqual([]);
+  });
+
+  it('no rem or px literal hides beside a token, in a fallback, or in the font shorthand', () => {
+    expect(literalBesideToken(decls), 'an unanchored /var[(]/ passes these (ADR-0043 § 7)').toEqual(
+      []
+    );
   });
 
   it('no font-size names a colour token, and no colour names a size token', () => {

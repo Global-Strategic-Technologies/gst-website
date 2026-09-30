@@ -75,7 +75,11 @@ describe('font-size lint rule (ADR-0043)', () => {
 
   it('declares the same allow-list at error severity in both config blocks', () => {
     const config = JSON.parse(readFileSync(CONFIG, 'utf-8'));
-    const blocks = [config.rules[RULE], config.overrides[0].rules[RULE]];
+    // Found by its glob, not its index, so reordering the overrides cannot make
+    // this compare the wrong block.
+    const astro = config.overrides.find((o: { files: string[] }) => o.files.includes('**/*.astro'));
+    expect(astro, 'no **/*.astro override in .stylelintrc.json').toBeTruthy();
+    const blocks = [config.rules[RULE], astro.rules[RULE]];
     for (const block of blocks) {
       expect(block[1]).toEqual({ severity: 'error' });
     }
