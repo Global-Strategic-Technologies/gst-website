@@ -158,28 +158,10 @@ const PAGES: A11yPage[] = [
     name: 'Regulatory Map',
     path: '/hub/tools/regulatory-map/',
     // The map is d3-rendered after two blocking fetches, so `load` can resolve with an
-    // empty <svg>. Wait for a painted country path instead of the lifecycle.
-    waitFor: '#mapSvg path',
-    exclude: [
-      // Adding this route surfaced two REAL findings, both about the same unanswered
-      // question — how the map is exposed to assistive tech — so both are filed as
-      // BL-102 rather than settled inside a route addition:
-      //
-      //   - aria-prohibited-attr (110 nodes): every `.country-path` carries BOTH
-      //     `role="presentation"` AND `aria-label="<country>"`. A global ARIA attribute
-      //     suppresses the presentation role, so it is genuinely ambiguous whether 110
-      //     country names are announced or silent. Deleting the labels and deleting the
-      //     role are both defensible and produce opposite experiences.
-      //   - nested-interactive (1): the <svg> is `role="img"` — "treat as one image" —
-      //     while holding focusable descendants.
-      //
-      // EXCLUDED rather than baselined, deliberately. The 110 tracks the number of
-      // country paths in the topojson, so a baseline would be a data-derived number
-      // that breaks the day the map data changes — the same fixture-count trap that
-      // nearly shipped on the radar feed. Scoped to the SVG only: the search, filter
-      // chips, region cards and compliance panel all stay in scope.
-      '#mapSvg',
-    ],
+    // empty <svg>. Wait for a region BUTTON, not just geometry, so the scan covers
+    // the interactive state. The SVG is fully in scope (BL-102 ruling: a navigable
+    // group of active-region buttons; inactive paths are aria-hidden).
+    waitFor: '#mapSvg [role="button"]',
   },
   {
     name: 'Radar',

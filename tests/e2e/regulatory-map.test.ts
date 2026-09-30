@@ -117,6 +117,62 @@ test.describe('Regulatory Map E2E', () => {
     });
   });
 
+  test.describe('2b. Assistive-tech model (BL-102)', () => {
+    // The map is a navigable group of its ACTIVE regions: each one a named keyboard
+    // button, every other path hidden. Filters and search change which regions are
+    // active, so the invariant is re-checked after one.
+    async function expectRegionA11yInvariant(page: import('@playwright/test').Page) {
+      const offenders = await page.evaluate(() =>
+        Array.from(
+          document.querySelectorAll<SVGPathElement>(
+            '#mapSvg path.country-path, #mapSvg path.state-path'
+          )
+        )
+          .filter((el) => {
+            const active =
+              el.classList.contains('country-path--active') ||
+              el.classList.contains('state-path--active');
+            return active
+              ? el.getAttribute('role') !== 'button' ||
+                  el.getAttribute('tabindex') !== '0' ||
+                  !el.getAttribute('aria-label') ||
+                  el.hasAttribute('aria-hidden')
+              : el.getAttribute('aria-hidden') !== 'true' ||
+                  el.hasAttribute('role') ||
+                  el.hasAttribute('tabindex') ||
+                  el.hasAttribute('aria-label');
+          })
+          .map((el) => el.dataset.alpha3 || el.dataset.stateCode || '?')
+      );
+      expect(offenders).toEqual([]);
+    }
+
+    test('should open a country from the keyboard by its accessible name', async ({ page }) => {
+      const brazil = page.getByRole('button', { name: 'Brazil', exact: true });
+      await brazil.focus();
+      await page.keyboard.press('Enter');
+
+      await expect(page.locator('[data-testid="compliance-panel"]')).toBeVisible();
+      await expect(page.locator('#panelCountryName')).toHaveText('Brazil');
+    });
+
+    test('should expose only active regions, before and after a filter', async ({ page }) => {
+      await waitForSubnationalReady(page);
+      await expectRegionA11yInvariant(page);
+      const activeBefore = await page.locator('#mapSvg [role="button"]').count();
+
+      await page.evaluate(() =>
+        (
+          document.querySelector(
+            '.brutal-filter-chip[data-category="ai-governance"]'
+          ) as HTMLElement
+        ).click()
+      );
+      await expect(page.locator('#mapSvg [role="button"]')).not.toHaveCount(activeBefore);
+      await expectRegionA11yInvariant(page);
+    });
+  });
+
   test.describe('3. Map Interaction — US State Selection', () => {
     test('should show state-level regulation when clicking a highlighted US state', async ({
       page,
