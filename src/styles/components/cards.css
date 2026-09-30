@@ -437,7 +437,7 @@ Brutalist Rec Card
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -464,7 +464,7 @@ Brutalist Rec Card
   flex-shrink: 0;
   padding: 1px var(--spacing-sm);
   margin-right: var(--spacing-xs);
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -934,7 +934,7 @@ Brutalist Gateway Card (Library/Tools index pages)
 }
 
 .brutal-gateway-card__badge {
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-family: var(--font-family-mono);
   font-weight: 700;
   text-transform: uppercase;

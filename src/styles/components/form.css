@@ -6,7 +6,7 @@ Brutalist Input
 
 .brutal-input {
   padding: var(--spacing-sm) var(--spacing-md);
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-family: var(--font-family-mono);
   color: var(--text-secondary);
   background: var(--surface-input-bg);

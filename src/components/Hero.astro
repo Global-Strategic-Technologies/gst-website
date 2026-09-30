@@ -134,7 +134,7 @@ const { t } = useTranslations(locale, 'common');
   }
 
   .hero h1 {
-    font-size: 6rem;
+    font-size: var(--text-size-hero);
     font-weight: 900;
     line-height: 0.95;
     color: light-dark(var(--text-primary), var(--text-dark-primary));
@@ -196,7 +196,7 @@ const { t } = useTranslations(locale, 'common');
 
   @media (max-width: 768px) {
     .hero h1 {
-      font-size: 3.5rem;
+      font-size: var(--text-6xl);
     }
 
     .hero-content {
@@ -225,7 +225,7 @@ const { t } = useTranslations(locale, 'common');
     }
 
     .hero h1 {
-      font-size: 2.25rem;
+      font-size: var(--text-size-hero-sm);
       line-height: 1.15;
       margin-bottom: var(--spacing-md);
     }

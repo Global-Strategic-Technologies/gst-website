@@ -276,7 +276,7 @@ Brutalist Filter Chips
   border: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -368,7 +368,7 @@ Brutalist Filter Drawer
 }
 
 .brutal-filter-drawer__title {
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -566,7 +566,7 @@ Brutalist Search
 }
 
 .brutal-search__result-meta {
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   color: var(--text-muted);
 }
 
@@ -574,7 +574,7 @@ Brutalist Search
   display: inline-block;
   padding: 1px var(--spacing-xs);
   font-family: var(--font-family-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;

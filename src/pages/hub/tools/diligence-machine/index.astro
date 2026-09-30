@@ -1033,7 +1033,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .doc-meta :global(.doc-meta-cta-button) {
-    font-size: 0.7rem;
+    font-size: var(--text-size-compact);
     padding: var(--spacing-sm) var(--spacing-lg);
     text-align: center;
     line-height: 1.3;
@@ -1458,7 +1458,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     gap: var(--spacing-xs);
     margin-bottom: var(--spacing-xs);
     font-family: var(--font-family-mono);
-    font-size: 0.6rem;
+    font-size: var(--text-3xs);
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.02em;
     color: var(--text-secondary);
@@ -1471,7 +1471,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   .doc-footer-disclaimer {
     font-family: var(--font-family-mono);
-    font-size: 0.6rem;
+    font-size: var(--text-3xs);
     color: var(--text-muted);
     line-height: 1.4;
     margin: 0;
@@ -1608,7 +1608,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     .doc-page :global(.doc-section-subtitle) {
       padding-left: var(--spacing-md);
-      font-size: 0.7rem;
+      font-size: var(--text-size-compact);
     }
 
     .doc-meta :global(.doc-meta-grid) {
@@ -1792,13 +1792,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     .doc-title {
       margin: 0 0 var(--spacing-xs);
-      font-size: 20px;
+      font-size: 15pt;
       page-break-after: avoid;
     }
 
     .doc-generation-date {
       margin: 0;
-      font-size: 11px;
+      font-size: 8.25pt;
     }
 
     /* Dividers - reduce spacing */
@@ -1836,14 +1836,14 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-meta :global(.doc-meta-value) {
-      font-size: 13px;
+      font-size: 9.75pt;
       line-height: 1.2;
     }
 
     .doc-meta :global(.doc-meta-identifier-input) {
       border: none !important;
       padding: 0 !important;
-      font-size: 13px;
+      font-size: 9.75pt;
     }
 
     /* TOC - inline horizontal nav */
@@ -1858,7 +1858,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     .doc-toc :global(.doc-toc-link) {
       padding: 2px var(--spacing-sm);
-      font-size: 12px;
+      font-size: 9pt;
       line-height: 1.3;
       border-left: 1px solid var(--color-primary);
     }
@@ -1868,13 +1868,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-toc :global(.doc-toc-topic-name) {
-      font-size: 12px;
+      font-size: 9pt;
       font-weight: var(--font-weight-semibold);
     }
 
     /* Attention Areas */
     .doc-attention-anchors :global(.doc-section-heading) {
-      font-size: 12px;
+      font-size: 9pt;
       margin: 0 0 var(--spacing-sm);
       page-break-after: avoid;
     }
@@ -1912,7 +1912,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-attention-grid :global(.doc-attention-title) {
-      font-size: 13px;
+      font-size: 9.75pt;
       font-weight: var(--font-weight-bold);
       margin: 0 0 2px;
       color: var(--color-primary);
@@ -1923,7 +1923,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-attention-grid :global(.doc-attention-desc) {
-      font-size: 11px;
+      font-size: 8.25pt;
       line-height: 1.4;
       margin: 0;
     }
@@ -1950,13 +1950,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-topic-number) {
-      font-size: 10px;
+      font-size: 7.5pt;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
     .doc-topics :global(.doc-topic-title) {
-      font-size: 16px;
+      font-size: 12pt;
       font-weight: var(--font-weight-bold);
       margin: 0 0 2px;
       color: var(--color-secondary-ink);
@@ -1964,14 +1964,14 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-section-subtitle) {
-      font-size: 9px;
+      font-size: 6.75pt;
       margin: 0 0 var(--spacing-xs);
       padding-left: 0;
       page-break-after: avoid;
     }
 
     .doc-topics :global(.doc-topic-audience) {
-      font-size: 10px;
+      font-size: 7.5pt;
       margin: 0;
       font-style: italic;
       page-break-after: avoid;
@@ -2012,7 +2012,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-q-number) {
-      font-size: 11px;
+      font-size: 8.25pt;
       font-weight: var(--font-weight-bold);
       color: var(--color-primary);
       flex-shrink: 0;
@@ -2020,7 +2020,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-q-priority) {
-      font-size: 8px;
+      font-size: 6pt;
       font-weight: var(--font-weight-bold);
       text-transform: uppercase;
       padding: 1px var(--spacing-xs);
@@ -2030,7 +2030,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-q-text) {
-      font-size: 12px;
+      font-size: 9pt;
       font-weight: var(--font-weight-semibold);
       line-height: 1.3;
       margin: 0 0 2px;
@@ -2039,7 +2039,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-q-rationale) {
-      font-size: 10px;
+      font-size: 7.5pt;
       line-height: 1.3;
       margin: 0;
       font-style: italic;
@@ -2053,7 +2053,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       padding: var(--spacing-md) var(--spacing-2_5xl);
       margin-top: var(--spacing-xl);
       opacity: 0.6;
-      font-size: 9px;
+      font-size: 6.75pt;
       background: #fff;
       border: none;
       border-top: 1px solid var(--border-light);
@@ -2072,24 +2072,24 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     .doc-footer-brand {
       gap: 2px;
       margin-bottom: 2px;
-      font-size: 9px;
+      font-size: 6.75pt;
     }
 
     .doc-footer-disclaimer {
-      font-size: 9px;
+      font-size: 6.75pt;
       line-height: 1.2;
       margin: 0;
     }
 
     /* Section headings */
     .doc-page :global(.doc-section-heading) {
-      font-size: 11px;
+      font-size: 8.25pt;
       margin: 0 0 6px;
       page-break-after: avoid;
     }
 
     .doc-page :global(.doc-section-subtitle) {
-      font-size: 9px;
+      font-size: 6.75pt;
       line-height: 1.4;
       margin: -4px 0 6px;
       padding-left: 0;
@@ -2104,7 +2104,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     }
 
     .doc-topics :global(.doc-q-exit-impact) {
-      font-size: 8px;
+      font-size: 6pt;
       font-weight: var(--font-weight-bold);
       text-transform: uppercase;
       padding: 1px var(--spacing-xs);
@@ -2129,7 +2129,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     /* v2: Red flag signals */
     .doc-topics :global(.doc-q-red-flag) {
-      font-size: 10px;
+      font-size: 7.5pt;
       line-height: 1.3;
       margin: 0 0 2px;
       padding: 2px 6px;
