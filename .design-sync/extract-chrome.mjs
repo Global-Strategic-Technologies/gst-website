@@ -28,7 +28,8 @@
 // that has cids, and — with --check — a Playwright render of every card with
 // the validator's own floors (height ≥ 8px, screenshot ≥ 5000 bytes) plus the
 // assertion that each dark twin resolves --bg-light to a value different from
-// its own light sibling's (measured, not a literal copied from variables.css).
+// its own light sibling's (measured, not a literal copied from variables.css),
+// and that no link in a card is visibility:hidden (a script-gated rule).
 //
 // Usage (repo root):  node .design-sync/extract-chrome.mjs [--check]
 /* global document, getComputedStyle -- page.evaluate() callbacks run in the browser. */
@@ -270,6 +271,15 @@ function neutralise(el) {
   // the Hero's markup contract, and ~40 empty spans a design would copy.
   // Stripped before cidsIn(), so its scoped rules leave the card too.
   for (const node of el.querySelectorAll('.ambient')) node.remove();
+  // The TOC's script is stripped above, so settle the nav into the state it
+  // leaves on desktop. toc.css hides the list until `data-toc-ready` (the
+  // CLS ready-gate), and `is-collapsed` hides it at ≤768px with no way to
+  // reopen it. Either one alone makes the card, and any design copied from
+  // it, an empty box.
+  for (const nav of [el, ...el.querySelectorAll('nav.toc')].filter((n) => n.matches('nav.toc'))) {
+    nav.setAttribute('data-toc-ready', '');
+    nav.classList.remove('is-collapsed');
+  }
 }
 
 function card({ dark, title, cssText, markup }) {
@@ -405,6 +415,13 @@ if (CHECK) {
         h: root ? root.getBoundingClientRect().height : 0,
         bg: cs.getPropertyValue('--bg-light').trim(),
         bodyBg: getComputedStyle(document.body).backgroundColor,
+        // A script-gated rule (toc.css's ready-gate) hides content the size
+        // floors can't see: the TOC card passed them with its whole list hidden.
+        hiddenLinks: root
+          ? [...root.querySelectorAll('a')].filter(
+              (a) => getComputedStyle(a).visibility === 'hidden'
+            ).length
+          : 0,
       };
     });
     const shot = join(OUT, '_screenshots', `chrome__${e.name}.png`);
@@ -414,10 +431,10 @@ if (CHECK) {
     if (!e.dark) lightBg.set(e.name, r.bg);
     const sibling = e.dark ? lightBg.get(e.name.replace(/Dark$/, '')) : undefined;
     const darkOk = !e.dark || (Boolean(r.bg) && sibling !== undefined && r.bg !== sibling);
-    const ok = r.h >= 8 && bytes >= 5000 && errs.length === 0 && darkOk;
+    const ok = r.h >= 8 && bytes >= 5000 && errs.length === 0 && darkOk && r.hiddenLinks === 0;
     if (!ok) bad++;
     console.error(
-      `  ${ok ? '✓' : '✗'} ${e.name.padEnd(24)} height=${Math.round(r.h)} png=${bytes}B --bg-light=${r.bg} body=${r.bodyBg}${errs.length ? `  ERRORS: ${errs.join(' | ')}` : ''}`
+      `  ${ok ? '✓' : '✗'} ${e.name.padEnd(24)} height=${Math.round(r.h)} png=${bytes}B --bg-light=${r.bg} body=${r.bodyBg}${r.hiddenLinks ? `  HIDDEN LINKS: ${r.hiddenLinks}` : ''}${errs.length ? `  ERRORS: ${errs.join(' | ')}` : ''}`
     );
   }
   await browser.close();

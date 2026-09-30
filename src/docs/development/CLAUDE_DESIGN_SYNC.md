@@ -110,21 +110,21 @@ and regenerated — never commit them.
 
 ## What lives where (all committed)
 
-| Path                               | Role                                                                                                                                                                                               |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.design-sync/config.json`         | Converter config + the pinned `projectId`                                                                                                                                                          |
-| `.design-sync/conventions.md`      | **The highest-value file.** Prepended to the uploaded README and inlined into the design agent's system prompt: the class vocabulary, token families, BEM sub-elements, layout and dark-mode rules |
-| `.design-sync/specimens/*.tsx`     | The ten galleries — the markup, single-sourced                                                                                                                                                     |
-| `.design-sync/specimen-docs/*.md`  | Per-specimen `.prompt.md` content the agent reads                                                                                                                                                  |
-| `.design-sync/previews/*.tsx`      | Thin card renderers                                                                                                                                                                                |
-| `.design-sync/build-css.mjs`       | Flattens the stylesheet graph (see below)                                                                                                                                                          |
-| `.design-sync/extract-chrome.mjs`  | Slices the production build into the chrome cards (`SLICES` config at the top); `--check` renders each with the validator's floors and asserts dark twins resolve dark                             |
-| `.design-sync/lib/inline-urls.mjs` | Shared `url()` → data-URI inliner used by `build-css.mjs` (assets under `public/`) and `extract-chrome.mjs` (assets under `dist/client/`)                                                          |
-| `.design-sync/ds-entry.mjs`        | Zero-export bundle entry stub                                                                                                                                                                      |
-| `.design-sync/dark-probe.mjs`      | Verifies dark mode still switches tokens                                                                                                                                                           |
-| `.design-sync/palette-probe.mjs`   | Verifies every palette still re-points `--color-primary` and a painted element                                                                                                                     |
-| `.design-sync/tsconfig.json`       | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
-| `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**; standing rules only, no per-run logs                                                                           |
+| Path                               | Role                                                                                                                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.design-sync/config.json`         | Converter config + the pinned `projectId`                                                                                                                                                                 |
+| `.design-sync/conventions.md`      | **The highest-value file.** Prepended to the uploaded README and inlined into the design agent's system prompt: the class vocabulary, token families, BEM sub-elements, layout and dark-mode rules        |
+| `.design-sync/specimens/*.tsx`     | The ten galleries — the markup, single-sourced                                                                                                                                                            |
+| `.design-sync/specimen-docs/*.md`  | Per-specimen `.prompt.md` content the agent reads                                                                                                                                                         |
+| `.design-sync/previews/*.tsx`      | Thin card renderers                                                                                                                                                                                       |
+| `.design-sync/build-css.mjs`       | Flattens the stylesheet graph (see below)                                                                                                                                                                 |
+| `.design-sync/extract-chrome.mjs`  | Slices the production build into the chrome cards (`SLICES` config at the top); `--check` renders each with the validator's floors, asserts dark twins resolve dark and fails any card with a hidden link |
+| `.design-sync/lib/inline-urls.mjs` | Shared `url()` → data-URI inliner used by `build-css.mjs` (assets under `public/`) and `extract-chrome.mjs` (assets under `dist/client/`)                                                                 |
+| `.design-sync/ds-entry.mjs`        | Zero-export bundle entry stub                                                                                                                                                                             |
+| `.design-sync/dark-probe.mjs`      | Verifies dark mode still switches tokens                                                                                                                                                                  |
+| `.design-sync/palette-probe.mjs`   | Verifies every palette still re-points `--color-primary` and a painted element                                                                                                                            |
+| `.design-sync/tsconfig.json`       | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                        |
+| `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**; standing rules only, no per-run logs                                                                                  |
 
 ### Why the CSS is flattened
 
@@ -144,8 +144,8 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   (teal is theme-invariant; `--border-light` is a light-only token).
 - **Palettes**: `node .design-sync/palette-probe.mjs` — applies every `html.palette-N` to the
   same card and checks that `--color-primary` AND a painted element (the progress-bar
-  fill) re-point under each alternative and stay put under 0 (the default palette). Verified 2026-08-16
-  for palettes 0–5 against the shipped bundle; palette 6 (2026-09-25) is verified at its first re-sync.
+  fill) re-point under each alternative and stay put under 0 (the default palette). Verified 2026-09-30
+  for all seven palettes (0–6) against the shipped bundle.
 - **Names — guarded in CI.** `tests/integration/design-sync-guards.test.ts` (part of
   `npm run test:docs`, a required check) asserts every class, BEM sub-element, modifier
   and token named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in
