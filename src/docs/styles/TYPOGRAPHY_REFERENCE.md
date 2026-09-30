@@ -11,9 +11,9 @@ Monospace, uppercase, bold. Used for all headings in the brutalist design system
 | Class                | Size                                           | Weight     | Transform | Spacing  | Line Height | Color            |
 | -------------------- | ---------------------------------------------- | ---------- | --------- | -------- | ----------- | ---------------- |
 | `.brutal-heading-xl` | `var(--text-4xl)` 2.5rem (40px)                | Bold (700) | UPPERCASE | `0.04em` | 1.1         | `--text-primary` |
-| `.brutal-heading-lg` | `2rem` (32px)                                  | Bold (700) | UPPERCASE | `0.04em` | 1.15        | `--text-primary` |
+| `.brutal-heading-lg` | `var(--text-3xl)` 2rem (32px)                  | Bold (700) | UPPERCASE | `0.04em` | 1.15        | `--text-primary` |
 | `.brutal-heading-md` | `var(--text-size-heading-md)` 1.35rem (21.6px) | Bold (700) | UPPERCASE | `0.06em` | 1.2         | `--text-primary` |
-| `.brutal-heading-sm` | `1.1rem` (17.6px)                              | Bold (700) | UPPERCASE | `0.06em` | 1.25        | `--text-primary` |
+| `.brutal-heading-sm` | `var(--text-lg)` 1.1rem (17.6px)               | Bold (700) | UPPERCASE | `0.06em` | 1.25        | `--text-primary` |
 
 ## Brutalist Body Text
 
@@ -76,14 +76,14 @@ One-offs, each owned by one component (not for reuse):
 --text-size-legal-title 2.75rem  (44px)    Legal page h1 at ≥480
 ```
 
-Utility classes reference these tokens. Every `font-size` in `src/` is a token; see the ruling below.
+Utility classes reference these tokens. Every on-screen `font-size` in `src/` is a token; the only other values allowed are `pt` in print, `em`, and the CSS keywords (see the ruling below).
 
 ## Type-scale ruling
 
 Recorded 2026-09-30 in [ADR-0043](../adr/0043-type-scale-enforcement.md), which has the full
 reasoning and the rendered evidence.
 
-- **Every `font-size` is a token.** stylelint's allow-list is an **error**. It admits `var()`, the
+- **Every on-screen `font-size` is a token.** The exceptions are print `pt`, `em`, and the CSS keywords. stylelint's allow-list is an **error**. It admits `var()`, the
   CSS-wide keywords, `pt` and `em`.
 - **Naming.** T-shirt names form the ladder. A size between two steps, or owned by one component, is
   role-named `--text-size-*`. Never give a size token a bare role name such as `--text-title`: the
@@ -95,7 +95,7 @@ reasoning and the rendered evidence.
 - **Need a new size?** Add a token under the naming rule, a `VARIABLES_REFERENCE.md` row, and a
   `/brand` specimen in `BrandTypography.astro` if it is a ladder or in-between step. Adding a token is
   a claude.ai/design re-sync trigger.
-- **Snapping an existing size moves pixels.** It needs rendered evidence (ADR-0028), not arithmetic.
+- **Snapping an existing size moves pixels.** It needs rendered evidence (ADR-0028), not arithmetic. A snap targets the nearest **ladder** step, and a tie rounds up. `--text-size-*` tokens are never snap targets: they hold sizes that were kept, not ones to round towards.
 
 ---
 

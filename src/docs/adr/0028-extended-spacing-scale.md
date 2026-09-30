@@ -70,4 +70,4 @@ remain in force, and ADR-0029 rests on them.
 
 ## Note 2026-09-30 — the type-scale sweep this ADR contrasted itself with has shipped
 
-§ 5 and § _Why this was safe, where the type-scale sweep is not_ describe BL-094 as deferred. It closed on 2026-09-30 under [ADR-0043](0043-type-scale-enforcement.md): every `font-size` is now a token and the lint rule is an error. The snaps it made were shown in rendered evidence before and after, which is the test this ADR set. The `--text-xl` / `--spacing-1_25` note in § 5 still holds: they share a value and move for different reasons.
+§ 5 and § _Why this was safe, where the type-scale sweep is not_ describe BL-094 as deferred. It closed on 2026-09-30 under [ADR-0043](0043-type-scale-enforcement.md): every on-screen `font-size` is now a token (print `pt`, `em` and the CSS keywords are the ruled exceptions) and the lint rule is an error. The snaps it made were shown in rendered evidence before and after, which is the test this ADR set. The `--text-xl` / `--spacing-1_25` note in § 5 still holds: they share a value and move for different reasons.

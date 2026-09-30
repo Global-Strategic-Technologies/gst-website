@@ -67,7 +67,7 @@ size, and print is the one medium where a fixed physical size is correct.
 the surrounding text; disclosure glyphs at 0.6em of their trigger). A `rem` token would break that.
 The allow-list admits `/^[0-9.]+em$/`; the leading `[0-9.]+` makes a `rem` literal unmatchable.
 
-**6. Near misses snap to the nearest step, and a tie rounds up.** These are the only declarations
+**6. Near misses snap to the nearest ladder step, and a tie rounds up.** Only the t-shirt ladder is a snap target. A `--text-size-*` token never is: it holds a size that was kept, not one to round towards. That is why `1.4rem` (22.4px) goes to `--text-2xl` although `--text-size-heading-md` (21.6px) is nearer, and why `1.3rem` goes to `--text-xl`. These are the only declarations
 whose rendered size changes. Two are exact ties once the new tiers exist: `0.8125rem` (13px, 1px
 from both 12px and 14px) and `10px` (0.4px from both 9.6px and 10.4px). Both round **up**, the
 legibility-safe direction; `0.8125rem` is the search-input and search-result text. Its one visible
@@ -92,6 +92,13 @@ The `/brand` `.cta-button` specimen drops its inline `0.85rem` so it shows the l
 `tests/integration/font-size-lint-rule.test.ts` proves by mutation that it fires in `.css`, in an
 `.astro` `<style>` and in an inline `style=`, that `var()`, `pt` and `em` pass, and that `0.9rem`
 and `13px` fail.
+
+The allow-list's `/var[(]/` is unanchored, so any value containing a `var()` passes. That covers
+`calc(var(--text-sm) + 2px)`, `clamp(1rem, 2vw, var(--text-xl))` and the fallback in
+`var(--text-sm, 13px)`, and the rule never checks the `font` shorthand at all.
+`font-size-token-floor.test.ts` closes this: once every plain `var(--token)` is removed from a
+`font-size` or `font` value, no `rem` or `px` length may remain. Anchoring the pattern instead would
+reject the legitimate `clamp(var(--text-3xl), 6vw, var(--text-5xl))`.
 
 **Out of scope, deliberately.** `src/scripts/infrastructure-cost-governance/logic.ts` writes
 `font-size:54px/12px/10px` into generated SVG `<text>`, and `CompositeLogo.astro` uses the
