@@ -182,7 +182,10 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Text Sizes */
+  /* Text Sizes (ADR-0043). T-shirt names are the ladder. A size between two
+     steps, or owned by one component, is role-named under --text-size-* so it
+     cannot be mistaken for a --text-* colour token. */
+  --text-3xs: 0.6rem;
   --text-2xs: 0.65rem;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -191,6 +194,21 @@
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
   --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.5rem;
+
+  /* Between ladder steps */
+  --text-size-compact: 0.7rem;
+  --text-size-heading-md: 1.35rem;
+  --text-size-title: 1.75rem;
+
+  /* One-offs, each owned by one component. Not for reuse. */
+  --text-size-hero: 6rem;
+  --text-size-hero-sm: 2.25rem;
+  --text-size-kpi-hero: 4.5rem;
+  --text-size-toggle-glyph: 5rem;
+  --text-size-legal-title: 2.75rem;
 
   /* Transitions */
   --transition-fast: 0.2s ease-out;

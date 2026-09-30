@@ -14,7 +14,7 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
   border: 2px solid var(--color-primary);
   transition: all var(--transition-normal);
   font-family: var(--font-family-mono);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   cursor: pointer;
 }
 
@@ -93,7 +93,7 @@ Smaller text, uppercase, tight padding. Distinct from .cta-button
   /* WCAG 2.5.5 floor. Without this the rule computes to 33px (16px padding +
      ~13px line box + 4px variant border) — see BRAND_GUIDELINES § Accessibility. */
   min-height: var(--touch-target-min);
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;

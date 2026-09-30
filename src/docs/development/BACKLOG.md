@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Sixteen cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Seventeen cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -68,6 +68,10 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **BL-106 and BL-098**, the last two retained-closed stanzas. Their content was already in `mcp-server/src/docs/ARCHITECTURE.md`, [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md), [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) and [RADAR.md](../hub/RADAR.md). BL-106's per-sighting flake detail (sightings 1–6) is recoverable from `3d875b2e`. The retained list's reason that TROUBLESHOOTING.md and CLAUDE.md still cite BL-106 was false: neither mentions it. The BL-092 and BL-107 links to BL-106 now point at ADR-0013 and the [archived analysis](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md).
 >   - **BL-118** (a freshness check for docs' "Last Updated" dates) closed **won't-fix**. Git is the record of when a doc changed, so the hand-maintained "Last Updated", "Last updated" and "Last verified" stamps across `src/docs/`, `mcp-server/src/docs/` and `mcp-server/README.md` were deleted rather than guarded. Where a stamp carried history or run state that the body lacked, that content moved into the body first. Deliberately untouched: `_archive/`, which is frozen; `mcp-server/src/docs/library/irl-tool-input-mapping.md` and the IRL article footers under `src/data/`, which are served content and byte-bound by the dual-source drift guard; the `lastAuthored` and `lastReviewedAt` frontmatter that tests enforce; and the labelled historical "Last verified" stanzas in `mcp-server/README.md`. A new stamp should not be added.
 >   - **BL-166** (non-trial `tool:*` clients reached radar, and no `tools/call` checked a tool scope) closed the day it was filed, shipped in server `0.67.0`. Radar is now an explicit scope that `tool:*` does not cover, and a tool-scope gate runs after the unchanged trial tier gate. Existing clients keep radar, per the operator's decision: OAuth grants through a read-time `scopeModel` marker, and KV records through a one-time `npm run radar:migrate-scope` ([DEPLOY.md § C.7](../../../mcp-server/src/docs/operations/DEPLOY.md#c7--migrate-client-records)). The fix also closed two leaks found on the way: batched `tools/call`, which skipped the tier gate, and the radar prompt embed, which read radar without a scope check. The decisions and rejected options, including the stanza's option (b), a tier deny for pilots, went to [ADR-0041](../adr/0041-radar-is-an-explicit-scope.md). The BL-033, BL-133 and BL-145 radar lines that cited it were rewritten to the new model rather than repointed.
+> - **2026-09-30**: 1 stanza (BL-094, off-scale font-size literals) closed and pruned the day its trigger fired. Last pre-prune revision: `df882402`. The operator supplied the type-scale ruling and the go-decision on visual review the same day.
+>   - **Measured, not inherited:** 129 findings in 27 files, not the stanza's 150. The ruling, the naming rule, the tie-break and the rendered evidence are in [ADR-0043](../adr/0043-type-scale-enforcement.md); the working rules are in [TYPOGRAPHY_REFERENCE.md § Type-scale ruling](../styles/TYPOGRAPHY_REFERENCE.md#type-scale-ruling).
+>   - **The rule is an error**, proven by mutation in `font-size-lint-rule.test.ts`. `font-size-token-floor.test.ts` covers what an allow-list cannot: `pt` outside print, and a size/colour token crossed through the shared `--text-` prefix, scanning inline `style=` too.
+>   - **Design sync:** the local re-sync steps passed; the claude.ai/design upload needs the operator's authenticated session.
 >
 > **One closed stanza is deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -510,28 +514,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 - [ ] A ruling on which model the map presents, recorded here
 - [ ] `aria-prohibited-attr` and `nested-interactive` are zero on the route with `#mapSvg` back in scope
 - [ ] The `#mapSvg` exclusion is removed from `accessibility.test.ts`, not merely lowered
-
----
-
-### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
-
-**Source**: split out of the design-token lint enforcement initiative (2026-07-28). **This stanza is the authoritative record**: the roadmap's § 14 that it came from was [archived](_archive/STYLES_REMEDIATION_ROADMAP.md) on 2026-09-27, and everything load-bearing in it (the ruling needed, the two-part trigger, why it is not bulk-snapped, the print exemption and the cluster counts) is carried below | **Effort**: Medium-Large — 150 judgement calls across ~31 files + per-page visual review | **Status**: **Deferred** — visible as lint warnings in every run; do NOT bulk-snap (see why below)
-
-**As a** developer changing type sizes, **I want** every `font-size` to come from the `--text-*` scale **so that** typography is consistent and a size change is a token change — but not at the cost of an unreviewed layout regression.
-
-#### Acceptance Criteria
-
-- [ ] A type-scale ruling recorded in [TYPOGRAPHY_REFERENCE.md](../styles/TYPOGRAPHY_REFERENCE.md): do the off-scale sizes snap to the nearest existing token, or does the scale gain steps (the `0.6rem`/`0.7rem` cluster is the strongest candidate for a new tier)?
-- [ ] The 150 remaining literals resolved per that ruling, with the affected pages visually reviewed at desktop/768/480 in both themes (or visual-regression coverage standing in for the human pass)
-- [ ] `declaration-property-value-allowed-list` for `font-size` flipped from `warning` to `error` in `.stylelintrc.json` in the same change that clears the last literal
-- [ ] `@media print` font-sizes remain exempt — `pt` units are correct for paper
-
-#### Technical Context
-
-- **Why this is deferred and not swept** (operator directive 2026-07-28): unlike the color sweep that shipped alongside it, these are **not** same-value substitutions. Snapping a size changes rendered type, risking line-wrap points, control heights and table fit — and the repo has **no visual-regression coverage** to catch a mistake. The 95 literals that were byte-equal to an existing token were already tokenized; what remains is precisely the set needing human judgement.
-- **Promotion trigger** (both required): the type-scale ruling exists, AND per-page visual review is affordable for the pages being changed.
-- Largest clusters: `0.7rem` ×16, `0.85rem` ×11, `2.5rem` ×9, `0.6rem` ×9, `9px` ×9, `0.9rem` ×8, `0.8rem` ×7, `10px` ×6.
-- Current scale for reference: `--text-2xs` 0.65rem · `--text-xs` 0.75rem · `--text-sm` 0.875rem · `--text-base` 1rem · `--text-lg` 1.1rem · `--text-xl` 1.25rem · `--text-2xl` 1.5rem · `--text-3xl` 2rem.
 
 ---
 

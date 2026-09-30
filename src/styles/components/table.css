@@ -42,7 +42,7 @@ Brutalist Bench Table
 
 .brutal-bench-table__label {
   display: inline-block;
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;

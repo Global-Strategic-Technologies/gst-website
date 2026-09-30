@@ -120,7 +120,7 @@ Brutalist Project Card
   color: var(--bg-dark);
   border: 2px solid var(--color-primary);
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-weight: 700;
   font-family: var(--font-family-mono);
   text-transform: uppercase;

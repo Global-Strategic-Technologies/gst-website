@@ -437,7 +437,7 @@ Brutalist Rec Card
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -464,7 +464,7 @@ Brutalist Rec Card
   flex-shrink: 0;
   padding: 1px var(--spacing-sm);
   margin-right: var(--spacing-xs);
-  font-size: 0.6rem;
+  font-size: var(--text-3xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -889,7 +889,7 @@ Brutalist Gateway Card (Library/Tools index pages)
    under an h2 section heading carries an h3), so the style cannot pin one. */
 .brutal-gateway-card h2,
 .brutal-gateway-card h3 {
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
   font-family: var(--font-family-mono);
   font-weight: 700;
   color: var(--text-primary);
@@ -934,7 +934,7 @@ Brutalist Gateway Card (Library/Tools index pages)
 }
 
 .brutal-gateway-card__badge {
-  font-size: 0.7rem;
+  font-size: var(--text-size-compact);
   font-family: var(--font-family-mono);
   font-weight: 700;
   text-transform: uppercase;
@@ -999,7 +999,7 @@ Brutalist Gateway Card (Library/Tools index pages)
 
   .brutal-gateway-card h2,
   .brutal-gateway-card h3 {
-    font-size: 1.15rem;
+    font-size: var(--text-lg);
   }
 
   /* Below 768 each bullet wraps to three lines, which makes the 0.5rem gap

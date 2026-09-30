@@ -28,7 +28,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
-| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors **and on-scale spacing literals** are an **error**; off-scale font sizes warn — see § stylelint configuration notes) |
+| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors, on-scale spacing literals **and any font-size that is not a token** are an **error** — see § stylelint configuration notes) |
 | Format all files                       | `npm run format`                                                             |
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
@@ -507,7 +507,7 @@ Two rules enforce the "no hardcoded values" convention from [STYLES_GUIDE.md](..
 | Rule                                                | Properties                                                     | Severity    | Effect                                                              |
 | --------------------------------------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------- |
 | `scale-unlimited/declaration-strict-value`           | `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`      | **error**   | A hardcoded color fails `lint:css`, the pre-commit hook, and CI      |
-| `declaration-property-value-allowed-list`            | `font-size`                                                     | **warning** | Off-scale font sizes are reported but do not fail the build (BL-094) |
+| `declaration-property-value-allowed-list`            | `font-size`                                                     | **error**   | A font-size that is not a `var()` token, a `pt` print size or an `em` fails `lint:css` (ADR-0043) |
 | `declaration-property-value-disallowed-list`         | `padding`, `margin`, `gap`, `inset`, `top`/`right`/`bottom`/`left`, `outline-offset` and their longhands | **error**   | A rem or px spacing literal that has an exact token fails `lint:css` (ADR-0029; px since BL-151) |
 
 Configuration notes — each of these is load-bearing, do not "simplify" them:
@@ -518,12 +518,14 @@ Configuration notes — each of these is load-bearing, do not "simplify" them:
 - `box-shadow`/`text-shadow` are not expandable shorthands, so they are listed explicitly; the numeric-length and `inset` entries in `ignoreValues` let their geometry through while the color slot is still checked.
 - **Custom property declarations are never checked.** `--my-token: #c44040` is always allowed — that is how tokens are defined, and how the documented exceptions below stay legal.
 - **The spacing rule is a DIFFERENT rule on purpose, and this is the one thing not to "simplify".** Adding `padding`/`margin`/`gap` to `scale-unlimited/declaration-strict-value` is the obvious move and a **silent no-op**: that rule's `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit, so `padding: 1.5rem` is ignored by construction. `declaration-property-value-disallowed-list` is a core rule with no `ignoreValues` of its own, which is how it evades the trap instead of fighting it. It lists the ten on-scale rem values longest-first (so `1.5rem` cannot match as `1` plus a failed `rem`), with a leading `(?!.*calc\()` that preserves ADR-0028's ruling that a value inside `calc()` is a derived constant, and a `(?<![\w.-])` lookbehind so `21rem`, `12.5rem` and `-0.25rem` do not match. Its property list mirrors `spacing-token-floor.test.ts`'s `SPACING_PROPS` exactly — divergence would mean `top: 1rem` failing one instrument and passing the other. Since BL-151 it carries a **second pattern**, `(4|8|12|16|20|24|28|32|40|48)px`, with the same `calc()` exclusion and lookbehind (so `104px`, `0.4px` and `-4px` do not match); `1px`–`3px` stay legal as the micro-spacing exception because the scale's floor is 4px. `tests/integration/spacing-lint-rule.test.ts` proves both patterns fire by mutation, asserts each block holds exactly two, and binds both value lists to `variables.css`; **off-scale** spacing values are governed by `spacing-token-floor.test.ts`'s residual table, not by lint.
-- `font-size` uses the core allow-list rule rather than the strict-value plugin because the two cannot carry different severities under one rule key. `clamp(var(--a), 2vw, var(--b))` passes; `clamp(1rem, 2vw, 2rem)` warns.
+- `font-size` uses the core allow-list rule rather than the strict-value plugin. It was first split out because the two could not carry different severities under one rule key (font-size was a warning until ADR-0043). It stays split because the plugin's `ignoreValues` admits any bare number-plus-unit, the same trap the spacing rule avoids. `clamp(var(--a), 2vw, var(--b))` passes; `clamp(1rem, 2vw, 2rem)` fails. The list admits `/^[0-9.]+pt$/` (print sheets) and `/^[0-9.]+em$/` (sizes that follow their parent); the leading `[0-9.]+` is what keeps a `rem` literal out of the `em` pattern. `tests/integration/font-size-lint-rule.test.ts` proves the rule fires, by mutation, in all three sources, and `font-size-token-floor.test.ts` covers what an allow-list cannot: `pt` outside `@media print`, a size/colour token crossed between `font-size` and a colour property, and a `rem`/`px` literal hidden beside a token (`calc(var(--x) + 2px)`, a `var()` fallback) or in the `font` shorthand, all of which the unanchored `/var[(]/` lets through (ADR-0043).
 
-**Documented exceptions** (both are deliberate, and both are recorded in STYLES_GUIDE.md):
+**Documented exceptions** (all deliberate, and all recorded in STYLES_GUIDE.md or ADR-0043):
 
 1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme, so the token system is meaningless there. Wrapped in `/* stylelint-disable scale-unlimited/declaration-strict-value -- … */` with a justification.
 2. **R/G/B slider affordances** in `SwatchControlStyles.astro` — a red/green/blue channel control must stay red/green/blue regardless of palette. Declared once as component-local custom properties (which the rule does not check) rather than repeated inline.
+3. **Print font sizes are `pt`**, and only in print — paper has physical units. The allow-list admits `pt` everywhere, so the floor test fails one outside `@media print` (ADR-0043 § 4).
+4. **`em` font sizes** stay relative where they must follow their parent: inline `code` at `0.9em`, disclosure glyphs at `0.6em` (ADR-0043 § 5).
 
 #### `no-invalid-position-declaration` — re-enabled for `.astro` (2026-09-27)
 
@@ -877,6 +879,7 @@ This runs [.claude/hooks/install.mjs](../../../.claude/hooks/install.mjs), which
 
 - **"Design Review Gate: … EDITED since it was reviewed"** — expected after revising a plan; send the revised plan back to `plan-reviewer`.
 - **"Implementation Review Gate: … new commits exist since the review"** — expected after adding commits; re-run `code-reviewer` on the final state.
+- **plan-reviewer approves but writes no marker** — the harness's plan-mode restriction (edit only the plan file) reaches the subagents too, so a reviewer run while plan mode is active may report APPROVE and decline to write `.claude/tasks/plan-review.json`, leaving ExitPlanMode blocked. Hand-writing the APPROVE is forbidden. Either the user leaves plan mode and the reviewer is re-run to write the marker, or the user waives (`USER_WAIVED` with their quoted words and the reviewer's verdict cited). Seen 2026-09-30 on BL-094.
 - **Gate blocks something it shouldn't** — inspect the marker (`.claude/tasks/*.json`), fix or delete it, re-run the reviewer. Markers are gitignored runtime state in `.claude/tasks/` (the directory is kept by a tracked `.gitkeep`); deleting them is always safe (the next review recreates them).
 - **Gates not firing at all** — `npm run setup:claude-hooks` hasn't been run on this machine, or `settings.local.json` was replaced; re-run the installer.
 

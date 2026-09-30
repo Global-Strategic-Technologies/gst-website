@@ -1185,7 +1185,10 @@ Colors must use CSS variables so dark theme works automatically.
 }
 ```
 
-Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [BL-094](../development/BACKLOG.md#bl-094-off-scale-font-size-literals--type-scale-ruling--sweep-deferred), the authoritative record. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
+Every font size is a token. `lint:css` fails anything else as an **error**, with two exceptions: `pt` inside `@media print` (paper has physical units; 1px = 0.75pt) and `em` for a size that must follow its parent. The rulings, the token list and the naming rule are in [ADR-0043](../adr/0043-type-scale-enforcement.md) and [TYPOGRAPHY_REFERENCE.md § Type-scale ruling](TYPOGRAPHY_REFERENCE.md#type-scale-ruling).
+
+- **Need a size the scale lacks?** Add a token, don't write a literal. T-shirt names are the ladder; a size between steps, or owned by one component, is `--text-size-*`. Never a bare role name like `--text-title`: the `--text-` prefix also holds the colour tokens, and `font-size-token-floor.test.ts` fails a crossed reference.
+- **Moving an existing size to a different token changes rendered type.** It needs rendered evidence before and after ([ADR-0028](../adr/0028-extended-spacing-scale.md)), not arithmetic. Swapping a literal for a token with the same value does not.
 
 ### 2. Duplicate Dark Theme Selectors
 

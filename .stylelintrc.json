@@ -75,10 +75,20 @@
     ],
     "declaration-property-value-allowed-list": [
       {
-        "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
+        "font-size": [
+          "/var[(]/",
+          "inherit",
+          "initial",
+          "unset",
+          "revert",
+          "smaller",
+          "larger",
+          "/^[0-9.]+pt$/",
+          "/^[0-9.]+em$/"
+        ]
       },
       {
-        "severity": "warning"
+        "severity": "error"
       }
     ],
     "declaration-property-value-disallowed-list": [
@@ -180,10 +190,20 @@
         ],
         "declaration-property-value-allowed-list": [
           {
-            "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
+            "font-size": [
+              "/var[(]/",
+              "inherit",
+              "initial",
+              "unset",
+              "revert",
+              "smaller",
+              "larger",
+              "/^[0-9.]+pt$/",
+              "/^[0-9.]+em$/"
+            ]
           },
           {
-            "severity": "warning"
+            "severity": "error"
           }
         ],
         "declaration-property-value-disallowed-list": [

@@ -128,12 +128,16 @@
 
 .toc__sublist a {
   font-family: var(--font-family-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   text-transform: none;
   letter-spacing: normal;
   color: var(--text-secondary);
   text-decoration: none;
   display: block;
+  /* WCAG 2.5.8: at --text-xs a one-line entry is 22px tall, under the AA
+     target size (axe target-size, ADR-0043 snap). The floor, not the text,
+     sets the height. */
+  min-height: var(--touch-target-min-aa);
   padding: 2px var(--spacing-xs);
   border-left: 2px solid transparent;
   transition:

@@ -43,7 +43,7 @@ const SRC_DIR = join(REPO_ROOT, 'src');
 /**
  * Spacing properties. `outline-offset` is in deliberately (it is spacing-adjacent
  * and `FooterLinks.astro` uses it on-scale); `font-size` is out by TYPE, and that
- * boundary belongs to BL-094's type-scale ruling, not here.
+ * boundary belongs to the font-size rule (ADR-0043), not here.
  */
 // Mirrors the stylelint rule's property key EXACTLY, in the same order — a
 // spacing-lint-rule.test.ts case compares the two as ordered lists, so a

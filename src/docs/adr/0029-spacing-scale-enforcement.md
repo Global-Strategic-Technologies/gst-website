@@ -206,3 +206,7 @@ value-identical tokens that were already published.
 Inside `calc()`, the guard additionally sees six px constants — `cards.css` (`10px`, `14px`),
 `filter.css` (`3px`), `lang-switch.css` (`6px`), tech debt calc (`18px`), `JobCard.astro` (`14px`) —
 exempt by the same ruling as the rem pair.
+
+## Note 2026-09-30 — font-size is now enforced too
+
+§ 3 and § Consequences say BL-094 stays deferred and that `font-size` is excluded from both instruments by type. BL-094 closed on 2026-09-30 under [ADR-0043](0043-type-scale-enforcement.md). `font-size` is still outside THESE two instruments; it has its own pair, `font-size-lint-rule.test.ts` and `font-size-token-floor.test.ts`, the second of which scans inline `style=` attributes, the blind spot recorded here.

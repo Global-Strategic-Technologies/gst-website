@@ -24,8 +24,9 @@ Use the classes below on real elements.
 <span className="brutal-data-sm">1,204 units</span>
 ```
 
-Prefer these classes over raw `font-size`. If you must set one, use the `--text-*` scale
-(`--text-2xs` … `--text-3xl`) — never a pixel value.
+Prefer these classes over raw `font-size`. If you must set one, use a size token: the ladder
+(`--text-3xs` … `--text-6xl`) or a `--text-size-*` step — never a pixel value, and never a
+`--text-*` colour token such as `--text-muted`.
 
 The system ships **one** family and pins it: `--font-family-mono` is `'GST Mono'` — a
 self-hosted subset of Geist Mono Variable — and `--font-family` points at the same token,

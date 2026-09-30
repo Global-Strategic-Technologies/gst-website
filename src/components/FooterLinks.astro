@@ -117,7 +117,7 @@ const links = linksProp ?? PRODUCTION_LINKS;
 
            available(w) = w − 32 − 53.6 − 16 − 8
              32   = .container's 2 × 1rem gutters at this tier (global.css)
-             53.6 = the ThemeToggle: ThemeToggleButton's font-size: 5rem × the
+             53.6 = the ThemeToggle: ThemeToggleButton's font-size (--text-size-toggle-glyph, 5rem) × the
                     icon's width: 0.67em. The button declares no width, so its
                     box IS the icon — a DeltaIcon, so this is independent of
                     theme, palette and font.

@@ -207,21 +207,35 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 
 ## Typography
 
-| Variable                 | Value                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `--font-family`          | `var(--font-family-mono)`                                                          |
-| `--font-family-mono`     | `'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace` |
-| `--font-weight-normal`   | `400`                                                                              |
-| `--font-weight-semibold` | `600`                                                                              |
-| `--font-weight-bold`     | `700`                                                                              |
-| `--text-2xs`             | `0.65rem` (10.4px)                                                                 |
-| `--text-xs`              | `0.75rem` (12px)                                                                   |
-| `--text-sm`              | `0.875rem` (14px)                                                                  |
-| `--text-base`            | `1rem` (16px)                                                                      |
-| `--text-lg`              | `1.1rem` (17.6px)                                                                  |
-| `--text-xl`              | `1.25rem` (20px)                                                                   |
-| `--text-2xl`             | `1.5rem` (24px)                                                                    |
-| `--text-3xl`             | `2rem` (32px)                                                                      |
+| Variable                   | Value                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `--font-family`            | `var(--font-family-mono)`                                                          |
+| `--font-family-mono`       | `'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace` |
+| `--font-weight-normal`     | `400`                                                                              |
+| `--font-weight-semibold`   | `600`                                                                              |
+| `--font-weight-bold`       | `700`                                                                              |
+| `--text-3xs`               | `0.6rem` (9.6px)                                                                   |
+| `--text-2xs`               | `0.65rem` (10.4px)                                                                 |
+| `--text-xs`                | `0.75rem` (12px)                                                                   |
+| `--text-sm`                | `0.875rem` (14px)                                                                  |
+| `--text-base`              | `1rem` (16px)                                                                      |
+| `--text-lg`                | `1.1rem` (17.6px)                                                                  |
+| `--text-xl`                | `1.25rem` (20px)                                                                   |
+| `--text-2xl`               | `1.5rem` (24px)                                                                    |
+| `--text-3xl`               | `2rem` (32px)                                                                      |
+| `--text-4xl`               | `2.5rem` (40px)                                                                    |
+| `--text-5xl`               | `3rem` (48px)                                                                      |
+| `--text-6xl`               | `3.5rem` (56px)                                                                    |
+| `--text-size-compact`      | `0.7rem` (11.2px) — between steps: controls, chips, map and filter labels          |
+| `--text-size-heading-md`   | `1.35rem` (21.6px) — between steps: `.brutal-heading-md`                           |
+| `--text-size-title`        | `1.75rem` (28px) — between steps: modal, legal and CTA titles                      |
+| `--text-size-hero`         | `6rem` (96px) — one-off: Hero `h1` (not for reuse)                                 |
+| `--text-size-hero-sm`      | `2.25rem` (36px) — one-off: Hero `h1` at ≤480 (not for reuse)                      |
+| `--text-size-kpi-hero`     | `4.5rem` (72px) — one-off: TechPar hero KPI (not for reuse)                        |
+| `--text-size-toggle-glyph` | `5rem` (80px) — one-off: ThemeToggleButton glyph (not for reuse)                   |
+| `--text-size-legal-title`  | `2.75rem` (44px) — one-off: legal page `h1` at ≥480 (not for reuse)                |
+
+Size tokens and the `--text-primary/-secondary/-muted` colour tokens share the `--text-` prefix. The ladder uses t-shirt names; every other size token is `--text-size-*`. `tests/integration/font-size-token-floor.test.ts` fails a `font-size` that names a colour token or a `color` that names a size token. Rulings: [ADR-0043](../adr/0043-type-scale-enforcement.md).
 
 ## Transitions
 
