@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Seventeen cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Eighteen cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -72,6 +72,10 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Measured, not inherited:** 129 findings in 27 files, not the stanza's 150. The ruling, the naming rule, the tie-break and the rendered evidence are in [ADR-0043](../adr/0043-type-scale-enforcement.md); the working rules are in [TYPOGRAPHY_REFERENCE.md § Type-scale ruling](../styles/TYPOGRAPHY_REFERENCE.md#type-scale-ruling).
 >   - **The rule is an error**, proven by mutation in `font-size-lint-rule.test.ts`. `font-size-token-floor.test.ts` covers what an allow-list cannot: `pt` outside print, and a size/colour token crossed through the shared `--text-` prefix, scanning inline `style=` too.
 >   - **Design sync:** the local re-sync steps passed; the claude.ai/design upload needs the operator's authenticated session.
+> - **2026-09-30**: 1 stanza (BL-102, how the regulatory map is exposed to assistive tech) closed and pruned the day the operator ruled. Last pre-prune revision: `932c625a`.
+>   - **Ruling: a navigable map, not a single image.** The stanza framed it as an open choice, but the map was already half navigable: every region with regulations was a `role="button"` with `tabindex="0"` and an Enter/Space handler. The single-image model would have removed keyboard access that worked. Active regions are now named buttons; every other path is `aria-hidden` with no role or name, so assistive tech gets the regions that do something rather than about 110 inert labels. `#mapSvg` is `role="group"`, not `role="img"`.
+>   - **Found on the way:** filters and search rewrote the `--active` class but never the role or tab stop. A region filtered out stayed a focusable button that did nothing, and one activated only by search or a filter could not be reached by keyboard. One `syncRegionA11y` in `src/scripts/regulatory-map/index.ts` now derives role, tab stop, name and `aria-hidden` from the class after every rewrite.
+>   - **Proven by mutation:** with the `#mapSvg` exclusion removed from `accessibility.test.ts` (and the scan waiting for a region button, not bare geometry), the `master` code reproduces exactly `aria-prohibited-attr` (110) and `nested-interactive` (1). The new BL-102 block in `regulatory-map.test.ts` opens a country by keyboard via its accessible name and checks the active/hidden invariant before and after a filter; it fails when the filter path's sync call is removed.
 >
 > **One closed stanza is deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -493,29 +497,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 ---
 
 ## CSS and Design System
-
-### BL-102: Regulatory map — how is the map exposed to assistive tech?
-
-**Source**: surfaced 2026-08-03 the moment `/hub/tools/regulatory-map/` joined the axe sweep (BL-096 AC3) | **Effort**: Small to change, gated on one design call | **Status**: Open — needs the ruling first
-
-**As a** screen-reader user of the regulatory map, **I want** the map to expose either its countries or itself, unambiguously **so that** I am not handed 110 labels that may or may not be announced.
-
-**Two findings, one question.** Both are `serious`, both are excluded (not baselined) in `accessibility.test.ts` with a pointer here:
-
-- **`aria-prohibited-attr`, 110 nodes.** Every `.country-path` carries **both** `role="presentation"` and `aria-label="<country>"`. A global ARIA attribute suppresses the presentation role, so it is genuinely ambiguous whether 110 country names are announced or silent — the markup asks for both.
-- **`nested-interactive`, 1 node.** `#mapSvg` is `role="img"` — "treat this as a single image" — while holding focusable descendants.
-
-**The call to make**: is the map a single image with a text alternative (drop the per-path `aria-label`s, keep the SVG's `role="img"`, and rely on the search + compliance panel for country access), or a navigable structure (drop `role="presentation"`, give the paths real roles, and accept 110 nodes in the a11y tree)? Both are defensible; they produce opposite experiences, and neither should be picked inside a route addition.
-
-**Why excluded rather than baselined**: the 110 tracks the number of country paths in the topojson, so a baseline would be a data-derived number that breaks the day the map data changes — the fixture-count trap: a pinned count that mirrors data (not behaviour) fails on every data refresh, which nearly shipped on the radar feed under BL-095.
-
-#### Acceptance Criteria
-
-- [ ] A ruling on which model the map presents, recorded here
-- [ ] `aria-prohibited-attr` and `nested-interactive` are zero on the route with `#mapSvg` back in scope
-- [ ] The `#mapSvg` exclusion is removed from `accessibility.test.ts`, not merely lowered
-
----
 
 ### BL-020: Design System Package Extraction
 
