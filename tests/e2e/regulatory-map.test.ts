@@ -171,6 +171,17 @@ test.describe('Regulatory Map E2E', () => {
       await expect(page.locator('#mapSvg [role="button"]')).not.toHaveCount(activeBefore);
       await expectRegionA11yInvariant(page);
     });
+
+    test('should expose only active regions after a search', async ({ page }) => {
+      await waitForSubnationalReady(page);
+      const activeBefore = await page.locator('#mapSvg [role="button"]').count();
+
+      // Search rewrites the map's classes on its own path (updateMapForSearch).
+      await page.locator('#regulationSearchInput').fill('LGPD');
+      await expect(page.locator('#mapSvg [role="button"]')).not.toHaveCount(activeBefore);
+      await expect(page.getByRole('button', { name: 'Brazil', exact: true })).toBeVisible();
+      await expectRegionA11yInvariant(page);
+    });
   });
 
   test.describe('3. Map Interaction — US State Selection', () => {
