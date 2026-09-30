@@ -161,6 +161,12 @@ count and clipping. It found:
   legibility and one uniform tie-break over density.
 - **Headings that now wrap less.** Several library and gateway-card headings drop a line, such as
   "Desde código" and "LAYER 4: ORGANIZATIONAL ARCHITECTURE" at 480.
+- **A target-size failure that only CI caught.** Snapping `.toc__sublist a` from 0.8rem to
+  `--text-xs` made a one-line entry 22px tall, under the WCAG 2.5.8 AA target of 24px. axe's
+  `target-size` rule flagged 14 of them on `/brand` in every palette and theme state. Neither the
+  computed-size diff nor the geometry review checks target size, which is a reason to keep the E2E
+  axe suite in the loop for any snap that shrinks an interactive element. The fix gives the link a
+  floor, `min-height: var(--touch-target-min-aa)`, so the text size no longer sets the height.
 - **A ≤480 `h3` step-down that collapses.** On business-architectures, `.arch-subheading` (1.05rem)
   and its 0.95rem override at ≤480 both snapped to `--text-base`, so that `h3` is now the same size
   as the `h2`. The `h2` keeps its uppercase, bordered treatment. The override, now identical to its
