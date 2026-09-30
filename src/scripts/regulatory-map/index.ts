@@ -195,6 +195,36 @@ let activeSearchTerm = '';
 let searchResults: RegIndexEntry[] = [];
 let activeResultIndex = -1;
 
+/**
+ * The map is a navigable group of its ACTIVE regions, never a single image (BL-102
+ * ruling): a region with regulations under the current filter/search is a named
+ * keyboard button; every other path is hidden from assistive tech. Derived from the
+ * `--active` class, so call it after anything rewrites a path's classes.
+ */
+function syncRegionA11y(el: SVGPathElement): void {
+  const active =
+    el.classList.contains('country-path--active') || el.classList.contains('state-path--active');
+  if (active) {
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', el.dataset.name ?? '');
+    el.removeAttribute('aria-hidden');
+  } else {
+    el.removeAttribute('role');
+    el.removeAttribute('tabindex');
+    el.removeAttribute('aria-label');
+    el.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function syncAllRegionA11y(): void {
+  select('#mapSvg')
+    .selectAll<SVGPathElement, unknown>('path.country-path, path.state-path')
+    .each(function () {
+      syncRegionA11y(this);
+    });
+}
+
 function clearRegionHighlights(): void {
   select('#mapSvg')
     .selectAll('.country-path--highlighted')
@@ -367,11 +397,11 @@ g.selectAll('path')
   .attr('class', 'country-path')
   .attr('data-id', (d) => d.id as string)
   .attr('data-alpha3', (d) => numericToAlpha3[d.id as string] ?? '')
-  .attr('aria-label', (d) => {
+  .attr('data-name', (d) => {
     const alpha3 = numericToAlpha3[d.id as string];
     return alpha3ToName[alpha3] ?? '';
   })
-  .attr('role', 'presentation')
+  .attr('aria-hidden', 'true')
   .on('click', function (event: MouseEvent) {
     if (this.classList.contains('country-path--active')) handleCountryClick(event);
   })
@@ -413,11 +443,11 @@ async function loadSubnationalData(): Promise<void> {
     .attr('d', (d) => pathGenerator(d) ?? '')
     .attr('class', 'state-path')
     .attr('data-state-code', (d) => fipsToStateCode[d.id as string] ?? '')
-    .attr('aria-label', (d) => {
+    .attr('data-name', (d) => {
       const code = fipsToStateCode[d.id as string];
       return code ? (stateCodeToName[code] ?? '') : '';
     })
-    .attr('role', 'presentation')
+    .attr('aria-hidden', 'true')
     .on('click', function (event: MouseEvent) {
       if (this.classList.contains('state-path--active')) handleStateClick(event);
     })
@@ -441,11 +471,11 @@ async function loadSubnationalData(): Promise<void> {
     .attr('d', (d) => pathGenerator(d) ?? '')
     .attr('class', 'state-path')
     .attr('data-state-code', (d) => d.properties?.iso_3166_2 ?? '')
-    .attr('aria-label', (d) => {
+    .attr('data-name', (d) => {
       const code = d.properties?.iso_3166_2 ?? '';
       return provinceCodeToName[code] ?? '';
     })
-    .attr('role', 'presentation')
+    .attr('aria-hidden', 'true')
     .on('click', function (event: MouseEvent) {
       if (this.classList.contains('state-path--active')) handleStateClick(event);
     })
@@ -493,8 +523,7 @@ function applySubnationalHighlighting(): void {
     const code = this.getAttribute('data-state-code') ?? '';
     if (code && filteredMap[code]) {
       this.classList.add('state-path--active');
-      this.setAttribute('role', 'button');
-      this.setAttribute('tabindex', '0');
+      syncRegionA11y(this);
     }
   });
 }
@@ -503,7 +532,7 @@ function applySubnationalHighlighting(): void {
 loadSubnationalData();
 
 // --- Phase B: apply regulation data from the fetched reg-index ---
-// Apply --active class, role="button", and tabindex to country paths with regulations.
+// Apply --active class (and, via syncRegionA11y, the button role) to country paths with regulations.
 // Subnational paths (US states, Canadian provinces) are handled by applySubnationalHighlighting()
 // after deferred loading completes.
 if (Object.keys(regionMap).length > 0) {
@@ -512,8 +541,7 @@ if (Object.keys(regionMap).length > 0) {
     if (alpha3 === 'USA' || alpha3 === 'CAN') return;
     if (alpha3 && regionMap[alpha3]) {
       this.classList.add('country-path--active');
-      this.setAttribute('role', 'button');
-      this.setAttribute('tabindex', '0');
+      syncRegionA11y(this);
     }
   });
 }
@@ -775,6 +803,8 @@ function updateMapHighlighting(): void {
       const hasRegs = code && filteredMap[code];
       return `state-path${hasRegs ? ' state-path--active' : ''}`;
     });
+
+  syncAllRegionA11y();
 }
 
 document.getElementById('regulation-filter-chips')?.addEventListener('click', (e) => {
@@ -885,6 +915,8 @@ function updateMapForSearch(results: RegIndexEntry[], query: string): void {
       const code = el.dataset.stateCode ?? '';
       return `state-path${matchingRegions.has(code) ? ' state-path--active' : ''}`;
     });
+
+  syncAllRegionA11y();
 }
 
 async function selectSearchResult(regId: string): Promise<void> {
