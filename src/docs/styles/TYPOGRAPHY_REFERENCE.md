@@ -8,12 +8,12 @@ All 11 semantic text utility classes defined in `src/styles/typography.css`. Dar
 
 Monospace, uppercase, bold. Used for all headings in the brutalist design system.
 
-| Class                | Size               | Weight     | Transform | Spacing  | Line Height | Color            |
-| -------------------- | ------------------ | ---------- | --------- | -------- | ----------- | ---------------- |
-| `.brutal-heading-xl` | `2.5rem` (40px)    | Bold (700) | UPPERCASE | `0.04em` | 1.1         | `--text-primary` |
-| `.brutal-heading-lg` | `2rem` (32px)      | Bold (700) | UPPERCASE | `0.04em` | 1.15        | `--text-primary` |
-| `.brutal-heading-md` | `1.35rem` (21.6px) | Bold (700) | UPPERCASE | `0.06em` | 1.2         | `--text-primary` |
-| `.brutal-heading-sm` | `1.1rem` (17.6px)  | Bold (700) | UPPERCASE | `0.06em` | 1.25        | `--text-primary` |
+| Class                | Size                                           | Weight     | Transform | Spacing  | Line Height | Color            |
+| -------------------- | ---------------------------------------------- | ---------- | --------- | -------- | ----------- | ---------------- |
+| `.brutal-heading-xl` | `var(--text-4xl)` 2.5rem (40px)                | Bold (700) | UPPERCASE | `0.04em` | 1.1         | `--text-primary` |
+| `.brutal-heading-lg` | `2rem` (32px)                                  | Bold (700) | UPPERCASE | `0.04em` | 1.15        | `--text-primary` |
+| `.brutal-heading-md` | `var(--text-size-heading-md)` 1.35rem (21.6px) | Bold (700) | UPPERCASE | `0.06em` | 1.2         | `--text-primary` |
+| `.brutal-heading-sm` | `1.1rem` (17.6px)                              | Bold (700) | UPPERCASE | `0.06em` | 1.25        | `--text-primary` |
 
 ## Brutalist Body Text
 
@@ -50,6 +50,7 @@ Monospace, bold, primary-colored. Purpose-built for numeric readouts (KPIs, perc
 The `--text-*` CSS custom properties defined in `variables.css`:
 
 ```
+--text-3xs    0.6rem    (9.6px)    Micro badges, footer fine print
 --text-2xs    0.65rem   (10.4px)   Micro labels, fine print
 --text-xs     0.75rem   (12px)     Labels, captions, badges
 --text-sm     0.875rem  (14px)     Secondary text, metadata
@@ -58,9 +59,43 @@ The `--text-*` CSS custom properties defined in `variables.css`:
 --text-xl     1.25rem   (20px)     Section headings, data display
 --text-2xl    1.5rem    (24px)     Page sub-headings
 --text-3xl    2rem      (32px)     Page-level headings
+--text-4xl    2.5rem    (40px)     Display headings (.brutal-heading-xl, CTA h2)
+--text-5xl    3rem      (48px)     Display, large
+--text-6xl    3.5rem    (56px)     Display, largest shared step
+
+Between ladder steps (role-named):
+--text-size-compact     0.7rem   (11.2px)  Controls, chips, map and filter labels
+--text-size-heading-md  1.35rem  (21.6px)  .brutal-heading-md
+--text-size-title       1.75rem  (28px)    Modal, legal and CTA titles
+
+One-offs, each owned by one component (not for reuse):
+--text-size-hero        6rem     (96px)    Hero h1
+--text-size-hero-sm     2.25rem  (36px)    Hero h1 at ≤480
+--text-size-kpi-hero    4.5rem   (72px)    TechPar hero KPI
+--text-size-toggle-glyph 5rem    (80px)    Theme-toggle glyph
+--text-size-legal-title 2.75rem  (44px)    Legal page h1 at ≥480
 ```
 
-Utility classes reference these tokens where possible. Brutalist heading sizes (`2.5rem`, `1.35rem`) are intentionally outside the scale for display-level typography.
+Utility classes reference these tokens. Every `font-size` in `src/` is a token; see the ruling below.
+
+## Type-scale ruling
+
+Recorded 2026-09-30 in [ADR-0043](../adr/0043-type-scale-enforcement.md), which has the full
+reasoning and the rendered evidence.
+
+- **Every `font-size` is a token.** stylelint's allow-list is an **error**. It admits `var()`, the
+  CSS-wide keywords, `pt` and `em`.
+- **Naming.** T-shirt names form the ladder. A size between two steps, or owned by one component, is
+  role-named `--text-size-*`. Never give a size token a bare role name such as `--text-title`: the
+  `--text-*` prefix also holds the colour tokens, and `font-size-token-floor.test.ts` fails a
+  `font-size` that names a colour token or a `color` that names a size token.
+- **Print is written in `pt`**, and only there: the floor test fails a `pt` font-size outside
+  `@media print`. Convert with 1px = 0.75pt.
+- **`em` is for sizes that must follow their parent**, such as inline `code` or a disclosure glyph.
+- **Need a new size?** Add a token under the naming rule, a `VARIABLES_REFERENCE.md` row, and a
+  `/brand` specimen in `BrandTypography.astro` if it is a ladder or in-between step. Adding a token is
+  a claude.ai/design re-sync trigger.
+- **Snapping an existing size moves pixels.** It needs rendered evidence (ADR-0028), not arithmetic.
 
 ---
 

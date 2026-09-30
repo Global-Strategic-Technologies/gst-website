@@ -67,3 +67,7 @@ and added the lint rule (via a different rule, which is how it evades the `ignor
 above). The count stands as the historical figure; do not edit it. Every other consequence, the
 accepted-residual table, and the value-identity argument that made a sweep this size reviewable all
 remain in force, and ADR-0029 rests on them.
+
+## Note 2026-09-30 — the type-scale sweep this ADR contrasted itself with has shipped
+
+§ 5 and § _Why this was safe, where the type-scale sweep is not_ describe BL-094 as deferred. It closed on 2026-09-30 under [ADR-0043](0043-type-scale-enforcement.md): every `font-size` is now a token and the lint rule is an error. The snaps it made were shown in rendered evidence before and after, which is the test this ADR set. The `--text-xl` / `--spacing-1_25` note in § 5 still holds: they share a value and move for different reasons.

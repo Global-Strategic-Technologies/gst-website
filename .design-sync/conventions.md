@@ -68,7 +68,8 @@ Two rules cover almost everything:
 - **Borders** — `--border-light`, `--border-hairline`, `--border-dark`, `--border-dark-subtle/-default/-prominent`
 - **Accents** — `--accent-light-bg` (+ `-hover`), `--accent-dark-bg`, `--accent-tint-bg`, `--accent-subtle-bg`, `--accent-wash-bg`, `--accent-faint-bg`, `--accent-border-light/-medium`
 - **Spacing** — `--spacing-xs` … `--spacing-3xl` (plus the extended steps `--spacing-1_25`, `--spacing-1_75`, `--spacing-2_5xl`), `--gap-tight/-normal/-wide/-extra-wide`
-- **Type scale** — `--text-2xs` … `--text-3xl`, `--font-weight-normal/-semibold/-bold`, `--font-family`, `--font-family-mono`
+- **Type sizes** — ladder `--text-3xs` … `--text-6xl`; between steps `--text-size-compact` (controls, chips), `--text-size-heading-md`, `--text-size-title`. Component-owned, never reuse: `--text-size-hero`, `--text-size-hero-sm`, `--text-size-kpi-hero`, `--text-size-toggle-glyph`, `--text-size-legal-title`. `--text-primary/-secondary/-muted` are colours, never sizes
+- **Type** — `--font-weight-normal/-semibold/-bold`, `--font-family`, `--font-family-mono`
 - **Motion** — `--transition-fast`, `--transition-normal`, `--transition-slow`
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`
 - **Layering** — `--z-negative`, `--z-base`, `--z-raised`, `--z-sticky`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-modal-overlay`, `--z-skip-nav`
