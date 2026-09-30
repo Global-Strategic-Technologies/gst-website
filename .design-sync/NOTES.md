@@ -405,12 +405,13 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
     **The chrome cards are different**: their scaffold is ours, and the class sits on the
     card's own root `<html>` — both reasons answered — so seven ship as dark twins, verified
     by `extract-chrome.mjs --check` (`--bg-light` → `#0a0a0a`).
-- **The palettes are VERIFIED (by measurement) through palette 5; palette 6 (2026-09-25) is verified at its first re-sync.** Run `node .design-sync/palette-probe.mjs`
+- **The palettes are VERIFIED (by measurement), all seven.** Run `node .design-sync/palette-probe.mjs`
   — it applies every `html.palette-N` to a real card and checks `--color-primary` plus a painted
-  element (`.brutal-progress-bar__fill`). Result 2026-08-16: palette-0 (the default) leaves
-  the primary at `#05cd99` as designed; 1–5 re-point both the token and the fill
-  (`#1e40af`, `#7c3aed`, `#b45309`, `#059669`, `#166534`). Same root-only constraint as dark
-  theme applies — the class must sit on `<html>`.
+  element (`.brutal-progress-bar__fill`). Result 2026-09-30 (palette 6's first sync):
+  palette-0 (the default) leaves the primary at `#05cd99` as designed; 1–6 re-point both the
+  token and the fill (`#8e8e8e`, `#ff2424`, `#5a8af2`, `#ff6a00`, `#c145ff`, `#1fd65f`). The
+  palettes have been re-coloured since the first probe, so read the values off the probe, not
+  here. Same root-only constraint as dark theme applies — the class must sit on `<html>`.
 - **Specimen misuse remains the standing risk.** Every `.prompt.md` says not to import the
   specimen, but the converter's auto-generated first line still says
   "Use via `window.GST.<Name>`". If designs start showing gallery rows, that line is why —
@@ -434,15 +435,26 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   (`.ds-sync/storybook/SKILL.md` "Writes — everything, always"; `lib/remote-diff.mjs` says
   `components` is not a write scope). Order: sentinel → text files → woff2 → sentinel re-arm →
   `_ds_sync.json` last.
+- **A script-gated CSS rule blanks a chrome card, and the size floors cannot see it.** Found
+  2026-09-30: the TOC CLS fix (2026-09-26) made `toc.css` hide `.toc__list` until the TOC script
+  sets `data-toc-ready`. `neutralise()` strips every script, so the TableOfContents card went
+  out as a heading over an empty box. It still passed `--check`, because the heading alone
+  clears the 8px and 5000-byte floors. The remote had carried it that way since then.
+  `neutralise()` now settles `nav.toc` into its post-script desktop state (`data-toc-ready`
+  set, `is-collapsed` removed). `--check` also fails any card with a `visibility: hidden` link.
+  That is mutation-proven: without the fix, TableOfContents fails with 6 hidden links and the
+  other 18 cards have none. **When a component gains a "hidden until JS marks it ready" gate,
+  its card needs the same settle step here.** `conventions.md` tells the agent the TOC version.
 - **Probe scope and baselines, so runs compare like with like.** `extract-chrome --check`
   covers all 19 cards. `dark-probe` and `palette-probe` check **one card**
   (`DataSpecimen.html`). A clean run reads: previews 10/10, chrome 19/19 with dark twins dark,
-  `font-probe` 600.00px on both surfaces (549.81px generic control), `dark-probe` 4/7, all six
+  `font-probe` 600.00px on both surfaces (549.81px generic control), `dark-probe` 4/7, all seven
   palettes as expected. The three dark-probe values that don't switch are expected:
   `--border-light` and `--color-primary` are deliberately theme-invariant, and `_bodyBg` is
   pinned by the converter's card scaffold. **Run the probes from the repo root**; they resolve
   `ds-bundle/...` against `process.cwd()`.
-- **`conventions.md` is about 530 characters under guard 5's 28,000 ceiling** (27,467 on
-  2026-09-16). Measure it the way the guard does, as the JS string length
+- **`conventions.md` is about 60 characters under guard 5's 28,000 ceiling** (27,936 on
+  2026-09-30).
+  The next addition WILL have to move something into a shipped guideline doc first. Measure it the way the guard does, as the JS string length
   (`readFileSync(…, 'utf-8').length`), not with `wc -c`: bytes over-count and made earlier
   notes report about 200. Any substantive addition has to displace something.
