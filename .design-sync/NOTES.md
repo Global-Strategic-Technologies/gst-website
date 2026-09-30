@@ -409,9 +409,9 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   — it applies every `html.palette-N` to a real card and checks `--color-primary` plus a painted
   element (`.brutal-progress-bar__fill`). Result 2026-09-30 (palette 6's first sync):
   palette-0 (the default) leaves the primary at `#05cd99` as designed; 1–6 re-point both the
-  token and the fill (`#8e8e8e`, `#ff2424`, `#5a8af2`, `#ff6a00`, `#c145ff`, `#1fd65f`). The
-  palettes have been re-coloured since the first probe, so read the values off the probe, not
-  here. Same root-only constraint as dark theme applies — the class must sit on `<html>`.
+  token and the fill. The expected values are each palette's light `--altN-color-primary` in
+  `palettes.css`; they have changed since the first probe, which is why none are copied here.
+  Same root-only constraint as dark theme applies — the class must sit on `<html>`.
 - **Specimen misuse remains the standing risk.** Every `.prompt.md` says not to import the
   specimen, but the converter's auto-generated first line still says
   "Use via `window.GST.<Name>`". If designs start showing gallery rows, that line is why —
@@ -454,7 +454,6 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   pinned by the converter's card scaffold. **Run the probes from the repo root**; they resolve
   `ds-bundle/...` against `process.cwd()`.
 - **`conventions.md` is about 60 characters under guard 5's 28,000 ceiling** (27,936 on
-  2026-09-30).
-  The next addition WILL have to move something into a shipped guideline doc first. Measure it the way the guard does, as the JS string length
+  2026-09-30), so the next addition must first move something into a shipped guideline doc. Measure it the way the guard does, as the JS string length
   (`readFileSync(…, 'utf-8').length`), not with `wc -c`: bytes over-count and made earlier
   notes report about 200. Any substantive addition has to displace something.
