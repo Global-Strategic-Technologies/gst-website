@@ -879,6 +879,7 @@ This runs [.claude/hooks/install.mjs](../../../.claude/hooks/install.mjs), which
 
 - **"Design Review Gate: … EDITED since it was reviewed"** — expected after revising a plan; send the revised plan back to `plan-reviewer`.
 - **"Implementation Review Gate: … new commits exist since the review"** — expected after adding commits; re-run `code-reviewer` on the final state.
+- **plan-reviewer approves but writes no marker** — the harness's plan-mode restriction (edit only the plan file) reaches the subagents too, so a reviewer run while plan mode is active may report APPROVE and decline to write `.claude/tasks/plan-review.json`, leaving ExitPlanMode blocked. Hand-writing the APPROVE is forbidden. Either the user leaves plan mode and the reviewer is re-run to write the marker, or the user waives (`USER_WAIVED` with their quoted words and the reviewer's verdict cited). Seen 2026-09-30 on BL-094.
 - **Gate blocks something it shouldn't** — inspect the marker (`.claude/tasks/*.json`), fix or delete it, re-run the reviewer. Markers are gitignored runtime state in `.claude/tasks/` (the directory is kept by a tracked `.gitkeep`); deleting them is always safe (the next review recreates them).
 - **Gates not firing at all** — `npm run setup:claude-hooks` hasn't been run on this machine, or `settings.local.json` was replaced; re-run the installer.
 
