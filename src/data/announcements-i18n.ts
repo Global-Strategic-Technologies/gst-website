@@ -11,10 +11,10 @@
  * `<id>.ariaLabel` and `<id>.cardBadge`. The English catalog mirrors the
  * registry and `tests/unit/announcements.test.ts` holds the two equal, so the
  * registry stays the single source for English. Hrefs go through
- * `localizedHrefWithFragment` (shared with the localized sash E2E), so `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a
- * Tier A destination and stays English for anything else. `routes` is
- * structure, not copy, and is untouched. For English the entry is
- * returned as-is.
+ * `localizedHrefWithFragment` (shared with the localized sash E2E), so
+ * `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a Tier A destination and
+ * stays English for anything else. `routes` is structure, not copy, and is
+ * untouched. For English the entry is returned as-is.
  *
  * Copy budget: the sash's band is a fixed chord, so a translation must fit the
  * same ~34 characters across the under-band fields (Sash.astro's docblock).
