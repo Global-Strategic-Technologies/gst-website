@@ -93,6 +93,18 @@ export function localizedHref(path: string, locale: Locale): string {
   return `/${locale.path}${normalizeRoutePath(routePath)}`;
 }
 
+/**
+ * `localizedHref` for a path that may carry a `#fragment`: the path part is
+ * localized and the fragment is carried over verbatim (`/hub/mcp/#what-it-does`
+ * → `/es/hub/mcp/#what-it-does`). Shared by the announcement overlay and the
+ * spec that checks it, so the two cannot drift.
+ */
+export function localizedHrefWithFragment(href: string, locale: Locale): string {
+  const hashAt = href.indexOf('#');
+  if (hashAt === -1) return localizedHref(href, locale);
+  return localizedHref(href.slice(0, hashAt), locale) + href.slice(hashAt);
+}
+
 /** The locale's home: `/` for English, `/es/` for Spanish. */
 export function localeHome(locale: Locale): string {
   return isDefaultLocale(locale) ? '/' : `/${locale.path}/`;

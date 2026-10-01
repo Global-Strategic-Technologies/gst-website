@@ -22,8 +22,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
 import { readFileSync } from 'node:fs';
 import { getActiveAnnouncement } from '../../src/data/announcements';
-import { nonDefaultLocales, type Locale } from '../../src/i18n/locales';
-import { localizedHref } from '../../src/i18n/routes';
+import { nonDefaultLocales } from '../../src/i18n/locales';
+import { localizedHrefWithFragment } from '../../src/i18n/routes';
 
 const SWITCH = '.site-header nav ul > li.lang-switch';
 const TRIGGER = `${SWITCH} button[aria-haspopup="menu"]`;
@@ -357,16 +357,11 @@ test.describe('announcement sash in other locales', () => {
   // every locale with catalog copy; the ink must still fit the corner box, and
   // its links must point at the localized pages. Expectations come from the
   // registry, the locale registry and the locale catalogs, so a different
-  // announcement going live needs no edit here. Hrefs are localized the way
-  // announcements-i18n.ts does it: `localizedHref` on the path (English-only
-  // destinations stay English), fragment carried over.
+  // announcement going live needs no edit here. Hrefs go through the same
+  // `localizedHrefWithFragment` the overlay uses (English-only destinations
+  // stay English, fragments carried over).
   const MIN_INK_MARGIN = 4;
   const live = getActiveAnnouncement('/');
-  const localize = (href: string, locale: Locale) => {
-    const hashAt = href.indexOf('#');
-    if (hashAt === -1) return localizedHref(href, locale);
-    return localizedHref(href.slice(0, hashAt), locale) + href.slice(hashAt);
-  };
 
   for (const locale of nonDefaultLocales()) {
     const path = `/${locale.path}/`;
@@ -394,13 +389,16 @@ test.describe('announcement sash in other locales', () => {
       }
       await expect(corner.locator('a.brutal-sash')).toHaveAttribute(
         'href',
-        localize(entry.href, locale)
+        localizedHrefWithFragment(entry.href, locale)
       );
       const linked = (entry.subtext ?? []).filter((f) => f.href !== undefined);
       const fields = corner.locator('.brutal-sash-under a');
       await expect(fields).toHaveCount(linked.length);
       for (const [i, field] of linked.entries()) {
-        await expect(fields.nth(i)).toHaveAttribute('href', localize(field.href!, locale));
+        await expect(fields.nth(i)).toHaveAttribute(
+          'href',
+          localizedHrefWithFragment(field.href!, locale)
+        );
       }
 
       // Same ink-containment measurement as announcement-sash.test.ts.

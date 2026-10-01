@@ -11,7 +11,7 @@
  * `<id>.ariaLabel` and `<id>.cardBadge`. The English catalog mirrors the
  * registry and `tests/unit/announcements.test.ts` holds the two equal, so the
  * registry stays the single source for English. Hrefs go through
- * `localizedHref`, so `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a
+ * `localizedHrefWithFragment` (shared with the localized sash E2E), so `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a
  * Tier A destination and stays English for anything else. `routes` is
  * structure, not copy, and is untouched. For English the entry is
  * returned as-is.
@@ -23,14 +23,8 @@
  */
 import type { Announcement } from './announcements';
 import { isDefaultLocale, type Locale } from '../i18n/locales';
-import { localizedHref } from '../i18n/routes';
+import { localizedHrefWithFragment } from '../i18n/routes';
 import { catalogFor } from '../i18n/t';
-
-function localizeHref(href: string, locale: Locale): string {
-  const hashAt = href.indexOf('#');
-  if (hashAt === -1) return localizedHref(href, locale);
-  return localizedHref(href.slice(0, hashAt), locale) + href.slice(hashAt);
-}
 
 export function localizeAnnouncement(entry: Announcement, locale: Locale): Announcement {
   if (isDefaultLocale(locale)) return entry;
@@ -43,12 +37,12 @@ export function localizeAnnouncement(entry: Announcement, locale: Locale): Annou
     badge: pick('badge', entry.badge),
     detail: pick('detail', entry.detail),
     ariaLabel: pick('ariaLabel', entry.ariaLabel),
-    href: localizeHref(entry.href, locale),
+    href: localizedHrefWithFragment(entry.href, locale),
     subtext: entry.subtext?.map((field, index) => ({
       ...field,
       text: pick(`subtext.${index + 1}`, field.text) as string,
       ariaLabel: pick(`subtext.${index + 1}.ariaLabel`, field.ariaLabel),
-      href: field.href === undefined ? undefined : localizeHref(field.href, locale),
+      href: field.href === undefined ? undefined : localizedHrefWithFragment(field.href, locale),
     })),
   };
 }
