@@ -11,14 +11,14 @@
  *   - every sash form's copy and ribbon geometry fit the corner box, on the
  *     live page sash and on the /brand specimens.
  *
- * Route selection and the `until` window are unit-tested against the registry in
- * `tests/unit/announcements.test.ts`; nothing here re-asserts them, and nothing
- * here pins the announcement's copy. Retirement is the designed outcome, not a
+ * Route selection is unit-tested against the registry in
+ * `tests/unit/announcements.test.ts`; nothing here re-asserts it, and nothing
+ * here pins the announcement's copy. Retirement (deleting the registry entry —
+ * there is no date window since 2026-10-01) is the designed outcome, not a
  * failure, so the page-context suite ('Announcement sash') reads the registry
- * itself and skips when no announcement is live on SASH_ROUTE — otherwise every
- * assertion in it would turn a required check red on a calendar date, with no
- * code change and nothing to fix. The unit suite skips the same way
- * (`describe.skipIf`).
+ * itself and skips when no announcement is live on SASH_ROUTE — otherwise
+ * retiring a sash would turn a required check red with nothing to fix. The
+ * unit suite skips the same way (`describe.skipIf`).
  *
  * The second suite, 'Sash specimens (/brand)', has NO registry skip. The /brand
  * gallery renders every sash form from fixed props, so its ink fit and ribbon
@@ -70,8 +70,8 @@ const pageSash = (page: Page) => page.locator('.brutal-sash-corner:not(.brutal-s
 
 /**
  * The pages are built from the registry, so with no live entry there is no sash
- * to assert anything about. Evaluated here in Node against the same clock the
- * dev server builds with.
+ * to assert anything about. Evaluated here in Node against the same registry
+ * the dev server builds from.
  */
 const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
 

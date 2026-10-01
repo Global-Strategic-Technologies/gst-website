@@ -20,6 +20,10 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
+import { readFileSync } from 'node:fs';
+import { getActiveAnnouncement } from '../../src/data/announcements';
+import { nonDefaultLocales } from '../../src/i18n/locales';
+import { localizedHrefWithFragment } from '../../src/i18n/routes';
 
 const SWITCH = '.site-header nav ul > li.lang-switch';
 const TRIGGER = `${SWITCH} button[aria-haspopup="menu"]`;
@@ -351,26 +355,51 @@ test.describe('announcement sash in other locales', () => {
   // Reported 2026-09-05: switching to ES made the "New GST MCP" banner vanish,
   // because the sash was rendered on the English page only. It now renders in
   // every locale with catalog copy; the ink must still fit the corner box, and
-  // its links must point at the localized MCP page.
+  // its links must point at the localized pages. Expectations come from the
+  // registry, the locale registry and the locale catalogs, so a different
+  // announcement going live needs no edit here. Hrefs go through the same
+  // `localizedHrefWithFragment` the overlay uses (English-only destinations
+  // stay English, fragments carried over).
   const MIN_INK_MARGIN = 4;
+  const live = getActiveAnnouncement('/');
 
-  for (const [path, badge, mcp] of [
-    ['/es/', 'Nuevo', '/es/hub/mcp/'],
-    ['/pt/', 'Novo', '/pt/hub/mcp/'],
-  ] as const) {
+  for (const locale of nonDefaultLocales()) {
+    const path = `/${locale.path}/`;
     test(`${path} carries the sash, localized, with its copy inside the corner`, async ({
       page,
     }) => {
+      // Retiring the sash (deleting its registry entry) must not turn a required
+      // check red — the same rule announcement-sash.test.ts documents. Skipped
+      // per test, not on the describe: the header and footer rows below run
+      // regardless.
+      test.skip(live === null, 'no announcement is live on / — nothing renders');
+      const entry = live!;
+      const catalog = JSON.parse(
+        readFileSync(`src/i18n/${locale.code}/announcements.json`, 'utf8')
+      ) as Record<string, string>;
       await presetLang(page, 'en');
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(path);
       const corner = page.locator('body > .brutal-sash-corner');
       await expect(corner).toHaveCount(1);
-      await expect(corner.locator('.brutal-sash__badge')).toHaveText(badge);
-      await expect(corner.locator('a.brutal-sash')).toHaveAttribute('href', mcp);
+      if (entry.badge !== undefined) {
+        await expect(corner.locator('.brutal-sash__badge')).toHaveText(
+          catalog[`${entry.id}.badge`]
+        );
+      }
+      await expect(corner.locator('a.brutal-sash')).toHaveAttribute(
+        'href',
+        localizedHrefWithFragment(entry.href, locale)
+      );
+      const linked = (entry.subtext ?? []).filter((f) => f.href !== undefined);
       const fields = corner.locator('.brutal-sash-under a');
-      await expect(fields).toHaveCount(2);
-      await expect(fields.first()).toHaveAttribute('href', `${mcp}#what-it-does`);
+      await expect(fields).toHaveCount(linked.length);
+      for (const [i, field] of linked.entries()) {
+        await expect(fields.nth(i)).toHaveAttribute(
+          'href',
+          localizedHrefWithFragment(field.href!, locale)
+        );
+      }
 
       // Same ink-containment measurement as announcement-sash.test.ts.
       const margins = await corner.evaluate((el) => {

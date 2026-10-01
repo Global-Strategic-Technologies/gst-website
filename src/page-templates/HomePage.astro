@@ -34,7 +34,7 @@ interface Props {
 const { locale } = Astro.props;
 const { t } = useTranslations(locale, 'home');
 
-// Null unless an announcement's window is open and lists this route — see
+// Null unless an announcement lists this route — see
 // src/data/announcements.ts. Nothing renders when it is null, and the nav's
 // corner reservation switches itself off via :has(). Matched on the
 // locale-free path (`/es/` → `/`), rendered in the page locale.

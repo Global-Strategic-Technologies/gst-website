@@ -26,6 +26,7 @@ import {
   alternatesFor,
   localeHome,
   localizedHref,
+  localizedHrefWithFragment,
   routeParam,
 } from '../../src/i18n/routes';
 import { sitemapFilter } from '../../src/utils/sitemap-filter';
@@ -155,6 +156,22 @@ describe('localizedHref — prefixes registry routes only', () => {
     expect(localeHome(en)).toBe('/');
     expect(localeHome(es)).toBe('/es/');
     expect(localeHome(ptBR)).toBe('/pt/');
+  });
+});
+
+describe('localizedHrefWithFragment — localizes the path, keeps the fragment', () => {
+  it('prefixes a Tier A path and carries the fragment over verbatim', () => {
+    expect(localizedHrefWithFragment('/hub/mcp/#what-it-does', es)).toBe(
+      '/es/hub/mcp/#what-it-does'
+    );
+    expect(localizedHrefWithFragment('/hub/mcp/trial/', ptBR)).toBe('/pt/hub/mcp/trial/');
+  });
+
+  it('leaves English-only destinations and the default locale unprefixed', () => {
+    expect(localizedHrefWithFragment('/hub/mcp/get-started/#quick-start', es)).toBe(
+      '/hub/mcp/get-started/#quick-start'
+    );
+    expect(localizedHrefWithFragment('/hub/mcp/#what-it-does', en)).toBe('/hub/mcp/#what-it-does');
   });
 });
 

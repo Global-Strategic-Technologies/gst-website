@@ -775,8 +775,9 @@ Since BL-153 the Tier A pages and the chrome render in Spanish and Brazilian Por
 
 - Never size a text container to the English string. Anything with `white-space: nowrap`, a fixed `width`, or a width budget derived from a character count (the footer's is documented in [FooterLinks.astro](../../components/FooterLinks.astro)) must be re-derived against the **longest** live locale, and the widest page for that check is `/es/services/`.
 - Let long words break rather than overflow: `overflow-wrap: anywhere` on prose containers is preferable to `hyphens: auto`, because `hyphens` needs the correct `lang` (which `<html lang>` now supplies) and the mono face has no hyphenation-friendly metrics.
-- The nav row is the tightest budget on the site. Header labels are 4–8 characters in every locale by design (`Servicios`, `Serviços`, `Sobre`, `Nosotros`); do not pick a longer translation to fix a nuance — pick a shorter word.
-- Verify every localized surface at desktop / 768px / 480px in light and dark, exactly as for a new component; the draft→live checklist in LOCALIZATION.md requires it.
+- The nav row is the tightest budget on the site. Header labels are at most 9 characters in every locale by design (`Servicios`, `Serviços`, `Sobre`, `Equipo`); do not pick a longer translation to fix a nuance — pick a shorter word.
+- **A heading never truncates.** Let it wrap (`text-wrap: balance` for a short one) rather than `nowrap` + `text-overflow: ellipsis`: the trial page's h1 did that and rendered "EXPERIMENTE O SERVIDOR GST MCP POR 3…" in Portuguese — the offer cut mid-claim. An ellipsis is acceptable only where nothing is lost: chrome whose full text is repeated on the page (the breadcrumb's current crumb, which the h1 names in full — accepted for es/pt at 360px), a collapsed preview with an expand control, or a dense data row.
+- Verify every localized surface at desktop / 768px / 480px / 360px in light and dark, exactly as for a new component; the draft→live checklist in LOCALIZATION.md requires it. 360px is where the trial h1 clipped in every locale, English included, while 480px looked fine.
 
 ### Touch Targets
 
