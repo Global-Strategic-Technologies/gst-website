@@ -349,4 +349,34 @@ test.describe('MCP trial signup — localized', () => {
       page.locator('[data-flow-block="m2m"] a.cta-button[href="/es/hub/mcp/from-code/"]')
     ).toBeVisible();
   });
+
+  // BL-153 text expansion. The title is 33 characters in English and up to 41
+  // translated; the hand-off's nowrap/ellipsis cut it to "…POR 3…" in pt at
+  // 480px and clipped every locale at 360px. It now wraps where it must and
+  // holds one line where it fits.
+  for (const route of [ROUTE, '/es/hub/mcp/trial/', '/pt/hub/mcp/trial/']) {
+    test(`${route}: the heading never truncates, and is one line from 768px up`, async ({
+      page,
+    }) => {
+      const h1 = page.locator('#trial-title');
+      for (const width of [360, 480, 768, 1280]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(route);
+        // The page's scoped rule zeroes the UA h1 margin-top — proof it applied
+        // before anything is measured (TEST_BEST_PRACTICES #25).
+        await expect.poll(() => h1.evaluate((el) => getComputedStyle(el).marginTop)).toBe('0px');
+        await page.evaluate(() => document.fonts.ready);
+        const m = await h1.evaluate((el) => ({
+          scroll: el.scrollWidth,
+          client: el.clientWidth,
+          height: el.getBoundingClientRect().height,
+          line: parseFloat(getComputedStyle(el).lineHeight),
+        }));
+        expect(m.scroll, `${route} at ${width}px: clipped`).toBeLessThanOrEqual(m.client);
+        if (width >= 768) {
+          expect(m.height, `${route} at ${width}px: one line`).toBeLessThan(2 * m.line);
+        }
+      }
+    });
+  }
 });

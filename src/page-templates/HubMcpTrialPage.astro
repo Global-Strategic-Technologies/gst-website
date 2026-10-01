@@ -541,12 +541,14 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
     margin: 0 auto;
   }
 
-  /* Never wraps. */
+  /* One line wherever it fits; below that it wraps, balanced, rather than
+     truncating. The hand-off's "never wraps" ellipsis cut the offer itself —
+     "…POR 3…" in pt at 480px, and every locale at 360px — because translated
+     titles run up to 24% longer than the English one (BL-153). A heading never
+     truncates: STYLES_GUIDE § Text expansion. */
   .trial-title {
     margin: 0 0 var(--spacing-xl);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-wrap: balance;
     font-size: clamp(var(--text-lg), 3.2vw, var(--text-3xl));
   }
 
@@ -587,12 +589,11 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
     padding: var(--spacing-sm) 0 0;
   }
 
+  /* Wraps rather than ellipsizing: a label is not repeated elsewhere, so a
+     truncated one loses its meaning (STYLES_GUIDE § Text expansion). */
   .facts dt {
     color: var(--text-primary);
     margin: 0 0 var(--spacing-xs);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .facts dd {
