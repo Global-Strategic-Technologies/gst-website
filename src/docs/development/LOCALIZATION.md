@@ -73,7 +73,7 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 - [ ] Native-speaker review of every namespace recorded (who, when) in the PR
 - [ ] `npm run i18n:check` clean (no stale sidecars)
-- [ ] Longest strings checked at desktop / 768px / 480px in light and dark (`/es/services/` is the widest page)
+- [ ] Longest strings checked at desktop / 768px / 480px / 360px in light and dark (`/es/services/` is the widest page), per [STYLES_GUIDE § Text expansion](../styles/STYLES_GUIDE.md#text-expansion-localized-copy) — including any state a page hides until a visitor acts
 - [ ] `PUBLIC_I18N_LIVE_LOCALES=<code> npm run build`: hreflang + `x-default` appear on English pages, `dist/client/sitemap-0.xml` lists the locale's URLs with `xhtml:link` alternates
 - [ ] Flip `status: 'live'` in the registry; commit; Search Console verifies the locale indexes with no hreflang errors before it is announced (BL-152)
 
