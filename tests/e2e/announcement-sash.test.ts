@@ -17,8 +17,8 @@
  * there is no date window since 2026-10-01) is the designed outcome, not a
  * failure, so the page-context suite ('Announcement sash') reads the registry
  * itself and skips when no announcement is live on SASH_ROUTE — otherwise
- * retiring a sash would turn a required check red with nothing to fix. The unit suite skips the same way
- * (`describe.skipIf`).
+ * retiring a sash would turn a required check red with nothing to fix. The
+ * unit suite skips the same way (`describe.skipIf`).
  *
  * The second suite, 'Sash specimens (/brand)', has NO registry skip. The /brand
  * gallery renders every sash form from fixed props, so its ink fit and ribbon

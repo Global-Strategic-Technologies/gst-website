@@ -6,8 +6,9 @@
  * there is no date window (removed 2026-10-01 by operator decision).
  *
  * The behaviour tests drive off the registry rather than hard-coding today's
- * entry, so retiring `mcp-launch` by deleting it does NOT fail this suite — silent retirement is the designed outcome, and a guard
- * that failed CI the day the sash disappeared would be arguing with the design.
+ * entry, so retiring `mcp-launch` by deleting it does NOT fail this suite —
+ * silent retirement is the designed outcome, and a guard that failed CI the
+ * day the sash disappeared would be arguing with the design.
  * `describe.skipIf` covers the empty-registry state for the same reason.
  */
 import { ANNOUNCEMENTS, getActiveAnnouncement } from '@/data/announcements';

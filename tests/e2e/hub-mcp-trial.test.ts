@@ -353,7 +353,7 @@ test.describe('MCP trial signup — localized', () => {
   // BL-153 text expansion. The title is 33 characters in English and up to 41
   // translated; the hand-off's nowrap/ellipsis cut it to "…POR 3…" in pt at
   // 480px and clipped every locale at 360px. It now wraps where it must and
-  // holds one line where it fits.
+  // holds one line where it fits. The fact labels lost the same ellipsis.
   for (const route of [ROUTE, '/es/hub/mcp/trial/', '/pt/hub/mcp/trial/']) {
     test(`${route}: the heading never truncates, and is one line from 768px up`, async ({
       page,
@@ -362,10 +362,19 @@ test.describe('MCP trial signup — localized', () => {
       for (const width of [360, 480, 768, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(route);
-        // The page's scoped rule zeroes the UA h1 margin-top — proof it applied
-        // before anything is measured (TEST_BEST_PRACTICES #25).
-        await expect.poll(() => h1.evaluate((el) => getComputedStyle(el).marginTop)).toBe('0px');
+        // Only the page's scoped .trial-title rule sets a margin-bottom
+        // (global.css zeroes every margin), so a non-zero one proves the page's
+        // styles applied before anything is measured (TEST_BEST_PRACTICES #28).
+        await expect
+          .poll(() => h1.evaluate((el) => getComputedStyle(el).marginBottom))
+          .not.toBe('0px');
         await page.evaluate(() => document.fonts.ready);
+        const clippedLabels = await page
+          .locator('.facts dt')
+          .evaluateAll((els) =>
+            els.filter((el) => el.scrollWidth > el.clientWidth).map((el) => el.textContent)
+          );
+        expect(clippedLabels, `${route} at ${width}px: fact labels`).toEqual([]);
         const m = await h1.evaluate((el) => ({
           scroll: el.scrollWidth,
           client: el.clientWidth,

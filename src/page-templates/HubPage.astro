@@ -30,7 +30,7 @@ const common = useTranslations(locale, 'common');
 const isEnglish = isDefaultLocale(locale);
 const mcpHref = localizedHref('/hub/mcp/', locale);
 
-// Null unless an announcement's window is open and lists this route — see
+// Null unless an announcement lists this route — see
 // src/data/announcements.ts. It gates BOTH sashes on this page, so the page
 // sash and the card sash retire together. Matched on the locale-free path,
 // rendered in the page locale.
