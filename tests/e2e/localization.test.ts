@@ -20,6 +20,7 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
+import { getActiveAnnouncement } from '../../src/data/announcements';
 
 const SWITCH = '.site-header nav ul > li.lang-switch';
 const TRIGGER = `${SWITCH} button[aria-haspopup="menu"]`;
@@ -361,6 +362,14 @@ test.describe('announcement sash in other locales', () => {
     test(`${path} carries the sash, localized, with its copy inside the corner`, async ({
       page,
     }) => {
+      // Retiring the sash (deleting its registry entry) must not turn a required
+      // check red — the same rule announcement-sash.test.ts documents. Skipped
+      // per test, not on the describe: the header and footer rows below run
+      // regardless.
+      test.skip(
+        getActiveAnnouncement('/') === null,
+        'no announcement is live on / — nothing renders'
+      );
       await presetLang(page, 'en');
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(path);

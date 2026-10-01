@@ -12,8 +12,8 @@
  * registry and `tests/unit/announcements.test.ts` holds the two equal, so the
  * registry stays the single source for English. Hrefs go through
  * `localizedHref`, so `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a
- * Tier A destination and stays English for anything else. `routes` and `until`
- * are structure, not copy, and are untouched. For English the entry is
+ * Tier A destination and stays English for anything else. `routes` is
+ * structure, not copy, and is untouched. For English the entry is
  * returned as-is.
  *
  * Copy budget: the sash's band is a fixed chord, so a translation must fit the
