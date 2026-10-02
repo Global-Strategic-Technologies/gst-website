@@ -139,6 +139,21 @@ describe('extract-irl-markdown.mjs — round-trip from generator', () => {
     expect(markdown).toContain('> Canonical reference: https://example.test/canonical');
   });
 
+  it('emits a `> Target:` line, the one gst_irl_sweep reads the target from', () => {
+    const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {});
+    const { markdown } = extractIrlMarkdownFromRows(rows);
+    expect(markdown.split('\n')).toContain('> Target: Acme Co');
+  });
+
+  it('omits `> Target:` when the workbook names no target, rather than emitting the H1 placeholder', () => {
+    const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {}).filter(
+      (row) => String(row[0] ?? '').trim() !== 'Target'
+    );
+    const { markdown } = extractIrlMarkdownFromRows(rows);
+    expect(markdown.split('\n')[0]).toBe('# Information Request List — IRL (filled)');
+    expect(markdown).not.toContain('> Target:');
+  });
+
   it('round-trips every bullet row with the partner response and status appended', () => {
     const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {
       '0-01': { response: 'Acme, Inc. (Delaware C-corp)', status: 'CLOSED' },
