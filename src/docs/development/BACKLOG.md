@@ -1046,7 +1046,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 - [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
 - [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
-- [~] UAT-09 (the nine prompts) — 🟡 09.0–09.8 executed against production in cycles 2 and 4; **09.9 not run** — see below
+- [~] UAT-09 (the `gst_*` prompts) — 🟡 09.0–09.8 executed against production in cycles 2 and 4, 09.9 in cycle 5 (see below); **09.10–09.12 not run** (authored 2026-08-20 and 2026-08-25; 09.11/09.12 gate the [BL-143](#bl-143-trust-the-operator-irl-ingestion-rebuild-gst_irl_sweep) removal PR)
 - [x] **A production cycle** — ✅ **complete (cycle 4, 2026-08-12, `0.48.2`)**. All eight tool families plus prompts, resources and the IRL chain now carry `Env: prod` run-log rows; the parity guard derives the README's status table from them
 - [x] **UAT-09.8 re-run against `0.0.5`** — ✅ Pass. The caveat lands immediately after the "Open in Hub" footer with nothing between them, carrying all four required elements. The unit assertion proved the instruction was in the body; this proves the model follows it
 - [x] **UAT-04.2** (TechPar deep-dive) — ✅ Pass, first execution in any environment. R&D re-based from the three sub-costs (`rdOpEx` ignored, not averaged), zone moved `ahead` → `healthy`, and the deepdive-only ratios populated where quick mode returns null
@@ -1057,7 +1057,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 - [x] The five undocumented IRL/dossier tools gain an input contract — ✅ one family contract at [`tools/irl-pipeline/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-pipeline/CONTRACT.md), picked up automatically by `contract-parity.test.ts`
 - [x] Registry updated — ✅ row added to [`tools/README.md`](../../../mcp-server/src/docs/tools/README.md)
-- [ ] `USAGE.md` for the IRL/dossier family — the only tool family shipping without one; UAT-07 carries the worked examples meanwhile, and the gap is flagged in the registry Status column so it is visible where authors look
+- [x] `USAGE.md` for the IRL/dossier family — ✅ [`irl-pipeline/USAGE.md`](../../../mcp-server/src/docs/tools/irl-pipeline/USAGE.md), written around the path that survives BL-143 (`list_irl_requests` → the generator → `gst_irl_sweep` / `gst_irl_extract`); the three provenance tools get a pointer-only legacy section for the removal PR to delete
 
 **Family coverage** (one document each; the coverage matrix tracks them and CI fails if a registered capability has no row) — **complete 2026-08-11; no `pending` rows remain in the matrix**
 

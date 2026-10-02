@@ -312,8 +312,7 @@ The counters fail **quiet** by design (a counter fault must not fail a tool call
 
 - Tool wrappers: [`generate-information-request-list-xlsx.ts`](../../../tools/generate-information-request-list-xlsx.ts) · [`list-irl-requests.ts`](../../../tools/list-irl-requests.ts) · [`prepare-irl-body.ts`](../../../tools/prepare-irl-body.ts) · [`validate-irl-provenance.ts`](../../../tools/validate-irl-provenance.ts) · [`compose-dossier-envelope.ts`](../../../tools/compose-dossier-envelope.ts)
 - Prompt reference: [`prompts/irl-ingestion.md`](../../prompts/irl-ingestion.md)
+- Walkthrough: [`USAGE.md`](./USAGE.md)
 - Acceptance walkthrough: [`testing/uat/UAT-07-irl-pipeline.md`](../../testing/uat/UAT-07-irl-pipeline.md)
 - Operator runbooks: [`OPERATOR_RUNBOOK.md`](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) · [`IRL_PARTNER_PASTE_RUNBOOK.md`](../../../../../src/docs/development/IRL_PARTNER_PASTE_RUNBOOK.md)
 - Live generator: <https://globalstrategic.tech/hub/tools/information-request-list-generator/>
-
-> **`USAGE.md` is not yet authored for this family** — the acceptance walkthrough above carries the worked examples in the meantime. Every other tool family ships both files; this one is the exception, recorded in the [registry Status column](../README.md#the-contracts-registry) and tracked under BL-119.
