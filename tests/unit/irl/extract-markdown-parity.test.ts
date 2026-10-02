@@ -166,12 +166,14 @@ describe('IRL extractor — the shape the page renders', () => {
     expect(lines[0]).toBe('# Information Request List — Acme Co (filled)');
   });
 
-  it('emits all three preamble quote lines when the workbook carries them', () => {
+  it('emits all four preamble quote lines when the workbook carries them', () => {
     const quotes = lines.filter((l) => l.startsWith('> '));
     // The context is the generator's DISPLAY label ('Value Creation'), not the
     // `value-creation` enum slug that was passed in — the workbook is written
     // for a human to read, and the extractor passes the cell through verbatim.
+    // `> Target:` is the line gst_irl_sweep reads the target from.
     expect(quotes).toEqual([
+      '> Target: Acme Co',
       '> Engagement context: Value Creation',
       '> Generated: 2026-05-23',
       '> Canonical reference: https://example.test/canonical',

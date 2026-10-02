@@ -33,6 +33,7 @@
  *
  *   # Information Request List — <Target> (filled)
  *
+ *   > Target: <Target>
  *   > Engagement context: <ctx>
  *   > Generated: <date>
  *   > Canonical reference: <url>
@@ -250,7 +251,14 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
   // before pasting. This is a strict superset of what the model emits in
   // reconstruction mode and does NOT affect downstream verification
   // (metadata lines are non-citation content).
+  //
+  // `> Target:` repeats the H1's target on its own line because that line is
+  // what `gst_irl_sweep` reads the target from (`irl-sweep.ts`, target-name
+  // inference); without it the sweep falls back to row 0-01, which is absent
+  // when section 00 was excluded. Omitted when no target is known, rather than
+  // emitting the H1's 'IRL' placeholder as a target.
   const metaLines = [];
+  if (metadata.target) metaLines.push(`> Target: ${metadata.target}`);
   if (metadata.engagementContext)
     metaLines.push(`> Engagement context: ${metadata.engagementContext}`);
   if (metadata.generated) metaLines.push(`> Generated: ${metadata.generated}`);
