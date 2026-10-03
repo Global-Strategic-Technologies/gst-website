@@ -1531,9 +1531,10 @@ function accessHref(tier?: string) {
 
   /* Three tier columns have to agree, and the bundle styles `td:last-child`
      alone (right-aligned). Left-aligned so the numbers hang off the same edge
-     as the tier names above them. The border restates the bundle's rule in the
-     paired form: the shared one is a bare `--border-light`, which is dark ink
-     at 10% and all but disappears in dark theme. */
+     as the tier names above them. The border is deliberately the paired form,
+     so the rules stay visible in dark theme: a three-column comparison reads
+     better ruled. The shared bench table's near-invisible dark rules are the
+     intended look elsewhere (BL-093, operator ruling 2026-10-03). */
   .mcp-tier-table tbody td {
     font-family: var(--font-family-mono);
     font-weight: var(--font-weight-bold);
