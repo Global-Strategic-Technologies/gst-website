@@ -803,16 +803,16 @@ _(This paragraph previously read "dev-only **moderate** advisories are tolerated
 
 **Current production state** (re-measured 2026-10-05 after the `fast-uri` / `ip-address` override bumps and the `http-cache-semantics` / `brace-expansion` lockfile bumps): **zero vulnerabilities** on the enforced gate (`--omit=dev`).
 
-The **full tree, dev included, carries 22 dev-only advisories** (20 high, 2 moderate). They are re-measured as of 2026-10-05 and come from **four root advisories in three chains**. Each is tolerated under the policy above with a named reachability argument:
+The **full tree, dev included, carries 22 dev-only advisories** (20 high, 2 moderate). They are re-measured as of 2026-10-05 and come from **four root packages in three chains**. Each is tolerated under the policy above with a named reachability argument:
 
 - **`@lhci/cli`: 10 entries, all high.** Two advisories:
   - `extract-zip`'s symlink path traversal, reached through `@lhci/utils → lighthouse → puppeteer-core → @puppeteer/browsers`.
-  - `basic-ftp`, `GHSA-c475-qrg2-pj4r`, which is new 2026-10. It is reached through `proxy-agent → pac-proxy-agent → get-uri`.
+  - `basic-ftp`, `GHSA-c475-qrg2-pj4r`, published 2026-10-01. It is reached through `proxy-agent → pac-proxy-agent → get-uri`.
 
   **Reachability:** Lighthouse CI runs only in the CI performance job. The archive it extracts is the Chrome build puppeteer fetches from Google's CDN, not attacker-supplied input. The FTP client is only reachable through a PAC or proxy URL, and the job configures neither.
 
   **No non-destructive fix:** npm's only offer is an `@lhci/cli` downgrade across a semver-major. That is the same shape as the `tmp`/`uuid` situation the override list below describes for lhci.
-- **`stylelint`: 9 entries, all high.** One advisory, `braces`, `GHSA-vfj7-8cjw-p6xm`, which is new 2026-10. It is reached through `fast-glob` / `globby` → `micromatch`, and every stylelint config package inherits the finding.
+- **`stylelint`: 9 entries, all high.** One advisory, `braces`, `GHSA-vfj7-8cjw-p6xm`, published 2026-09-18. It is reached through `fast-glob` / `globby` → `micromatch`, and every stylelint config package inherits the finding.
 
   **Reachability:** stylelint expands only the repo's own glob patterns (the `lint:css` script and lint-staged), on a developer machine or the CI runner.
 
@@ -821,7 +821,7 @@ The **full tree, dev included, carries 22 dev-only advisories** (20 high, 2 mode
 
   **Reachability:** miniflare is the local Worker simulator, used by `wrangler dev` and the `unstable_dev` test suites. The deployed Worker runs on Cloudflare's runtime, not miniflare.
 
-  **Exit:** a `wrangler` bump to `>=4.147.0`, which is in range for `mcp-server`'s `^4.136.1` and ships `miniflare` with `undici@7.29.1`. That is a Worker test-runtime change, so it lands as an ordinary dependency PR rather than as an audit lockfile tweak. Dependabot's dev-dependencies group carries it.
+  **Exit:** a `wrangler` bump to `>=4.143.1`, the first release whose `miniflare` (`5.20260926.1-alpha`) ships `undici@7.29.1`. It is in range for `mcp-server`'s `^4.136.1`. That is a Worker test-runtime change, so it lands as an ordinary dependency PR rather than as an audit lockfile tweak. Dependabot's dev-dependencies group, PR #553, already carries `wrangler 4.136.1 → 4.147.0`.
 
 `@sentry/cli`'s separate `undici` node also fell into a new range (`<6.28.1`). It was bumped `6.28.0 → 6.29.0` on 2026-10-05, in range for `^6.22.0`, so it is clean again.
 
