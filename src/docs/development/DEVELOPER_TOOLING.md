@@ -803,13 +803,16 @@ _(This paragraph previously read "dev-only **moderate** advisories are tolerated
 
 **Current production state** (re-measured 2026-10-09 after the `@modelcontextprotocol/client` / `@modelcontextprotocol/sdk` / `sharp` overrides and the `proxy-addr` / `smol-toml` / `source-map-js` lockfile bumps): **zero vulnerabilities** on the enforced gate (`--omit=dev`).
 
-The **full tree, dev included, carries 22 dev-only advisories** (20 high, 2 moderate). They are re-measured as of 2026-10-05 and come from **four root packages in three chains**. Each is tolerated under the policy above with a named reachability argument:
+The **full tree, dev included, carries 25 dev-only advisories** (20 high, 5 moderate). They are re-measured as of 2026-10-09 and come from **four root packages in three chains**. Each is tolerated under the policy above with a named reachability argument:
 
-- **`@lhci/cli`: 10 entries, all high.** Two advisories:
+- **`@lhci/cli`: 13 entries, 10 high and 3 moderate.** Three advisories:
   - `extract-zip`'s symlink path traversal, reached through `@lhci/utils → lighthouse → puppeteer-core → @puppeteer/browsers`.
   - `basic-ftp`, `GHSA-c475-qrg2-pj4r`, published 2026-10-01. It is reached through `proxy-agent → pac-proxy-agent → get-uri`.
+  - `sprintf-js@1.0.3`, unbounded-precision DoS, `GHSA-hp3w-g68c-fv3c` (moderate, vulnerable `<=1.1.3`, so no fixed release exists). It is reached through `@lhci/utils → js-yaml@3 → argparse`, and `argparse` and `js-yaml` inherit the finding.
 
-  **Reachability:** Lighthouse CI runs only in the CI performance job. The archive it extracts is the Chrome build puppeteer fetches from Google's CDN, not attacker-supplied input. The FTP client is only reachable through a PAC or proxy URL, and the job configures neither.
+  **Reachability:** Lighthouse CI runs only in the CI performance job. The archive it extracts is the Chrome build puppeteer fetches from Google's CDN, not attacker-supplied input. The FTP client is only reachable through a PAC or proxy URL, and the job configures neither. `argparse` serves only `js-yaml`'s command-line binary, which nothing runs (the repo's `lighthouserc*.cjs` configs are not YAML); its format strings are its own help text.
+
+  `compression`'s `GHSA-vc2v-76pw-4v95` (high, through lhci's `express@4` server) appeared on the same date, but `1.8.2` is in range for lhci's `^1.7.4`, so it was taken as a lockfile bump on 2026-10-09 and is no longer a finding.
 
   **No non-destructive fix:** npm's only offer is an `@lhci/cli` downgrade across a semver-major. That is the same shape as the `tmp`/`uuid` situation the override list below describes for lhci.
 - **`stylelint`: 9 entries, all high.** One advisory, `braces`, `GHSA-vfj7-8cjw-p6xm`, published 2026-09-18. It is reached through `fast-glob` / `globby` → `micromatch`, and every stylelint config package inherits the finding.
@@ -831,7 +834,7 @@ The `wrangler → miniflare → undici` chain this section tracked from 2026-08-
 
 > **Superseded 2026-08-22 (BL-137).** This blockquote used to read "Do not merge [#419](https://github.com/Global-Strategic-Technologies/gst-website/pull/419), or any Dependabot PR raising `wrangler` past `4.121.0`", because such a PR would drag `@cloudflare/workers-types` into the range the held pins excluded. **That instruction is now wrong in both halves**: the pins are lifted, wrangler is on `^4.125.0`, and `workers-types` global shadowing no longer breaks anything (see [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md)). Wrangler Dependabot PRs are ordinary reviews again.
 
-_(This paragraph read "3 dev-only advisories … all one chain" from 2026-08-04 until 2026-08-17, when it was measured again and found to be describing a third of the tree; it then read "9 … in two chains" until 2026-08-21, when the wrangler chain cleared. Re-measured 2026-08-22 on the unpinned wrangler: still 6, still one chain; and again 2026-09-03 on wrangler `4.127.1`: still 6, still the one `extract-zip` chain. On 2026-10-05 it was found reading "6 … in one chain" against a real 22 in three chains: new `basic-ftp`, `braces` and `undici` advisories had landed unmeasured. Dev-only advisories fail nothing, so this paragraph only ever matches reality when someone re-measures it — do that before citing it.)_
+_(This paragraph read "3 dev-only advisories … all one chain" from 2026-08-04 until 2026-08-17, when it was measured again and found to be describing a third of the tree; it then read "9 … in two chains" until 2026-08-21, when the wrangler chain cleared. Re-measured 2026-08-22 on the unpinned wrangler: still 6, still one chain; and again 2026-09-03 on wrangler `4.127.1`: still 6, still the one `extract-zip` chain. On 2026-10-05 it was found reading "6 … in one chain" against a real 22 in three chains: new `basic-ftp`, `braces` and `undici` advisories had landed unmeasured. On 2026-10-09 it read 22 against a real 26; the `compression` bump took that to 25. Dev-only advisories fail nothing, so this paragraph only ever matches reality when someone re-measures it — do that before citing it.)_
 
 History, most recent first:
 
