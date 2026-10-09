@@ -356,7 +356,7 @@ Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Err
 
 The Worker captures `auth.failed` events to Sentry via `captureMessage('auth.failed bearer-rejected', 'warning', ...)` — wired in commit `62d155a`. Filter on **message** rather than tag because the captureMessage call puts the event-id information in the message string. The 50/10min threshold is intentionally high: 5-6 auth failures is one user fat-fingering a token; 50 in 10 min is probing or runaway-agent territory.
 
-> **SDK v11 regrouping (expected once).** v11 defaults `attachStacktrace` to `true`, so `auth.failed bearer-rejected` events now carry a synthetic stack trace and Sentry groups them by stack rather than by message. Expect **one new issue** (and one new-issue email) after the first v11 deploy; the burst rule keeps firing correctly because it filters on the message and there is a single call site.
+> **SDK v11 regrouping (expected once).** v11 defaults `attachStacktrace` to `true`, so `auth.failed bearer-rejected` events now carry a synthetic stack trace and Sentry groups them by stack rather than by message. Expect **one new issue** after the first v11 deploy (it emails only through MCP Alert 1, and only if that rule was saved without the optional level filter, since `auth.failed` is warning-level); the burst rule keeps firing correctly because it filters on the message and there is a single call site.
 
 ##### Alert 3 — Inoreader budget breach (Errors → Issues)
 
