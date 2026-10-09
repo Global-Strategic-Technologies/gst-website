@@ -17,7 +17,8 @@ vi.mock('@sentry/cloudflare', () => ({
   withSentry: vi.fn(),
 }));
 
-import { captureMessage, tagRequest } from '../../src/observability/sentry';
+import type { Env } from '../../src/env';
+import { captureMessage, sentryOptions, tagRequest } from '../../src/observability/sentry';
 
 beforeEach(() => {
   sentryCaptureMessage.mockReset();
@@ -126,5 +127,31 @@ describe('tagRequest', () => {
     tagRequest(undefined, '/sitemap.xml');
     expect(sentrySetTag).toHaveBeenCalledWith('keyOwner', 'unauthenticated');
     expect(sentrySetTag).toHaveBeenCalledWith('path', '/sitemap.xml');
+  });
+});
+
+// SDK v11 collects request/response bodies (tool inputs/outputs), user info
+// and cookies when `dataCollection` is unset, and a key dropped from the
+// baseline falls back to that permissive default — so every field is pinned.
+describe('sentryOptions', () => {
+  it('skips Sentry when no DSN is bound', () => {
+    expect(sentryOptions({} as Env)).toBeUndefined();
+  });
+
+  it('pins the restrictive v10 data-collection baseline', () => {
+    const deny = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+    expect(
+      sentryOptions({ SENTRY_DSN: 'https://k@o1.ingest.sentry.io/1' } as Env)?.dataCollection
+    ).toEqual({
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { request: { deny }, response: { deny } },
+      httpBodies: [],
+      urlQueryParams: { deny },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      graphQL: { document: false, variables: false },
+    });
   });
 });

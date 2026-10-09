@@ -280,7 +280,7 @@ Key files:
 The same discipline as the website's Sentry setup applies, with two MCP-specific reinforcements:
 
 1. **Bearer tokens never reach Sentry.** The safe-logger's auto-redaction belt (Authorization / Cookie / X-API-Key) is plumbed through. `withSentry`'s built-in request-data scrubbing catches any header values it sees; we never `console.log(request.headers)` (ESLint blocks raw `console.*` in `mcp-server/src/worker.ts` + `src/auth/**` — see [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md))
-2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) is NOT included in Sentry events by default. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
+2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) and the response body (the tool output) are NOT included in Sentry events. Since SDK v11 that is no longer the SDK's default: an unset `dataCollection` captures request/response bodies, user info, cookies and headers, so `sentryOptions` passes the explicit restrictive baseline `DATA_COLLECTION` (`httpBodies: []`, `userInfo: false`, `cookies: false`, …), pinned field-by-field in `mcp-server/tests/unit/sentry.test.ts`. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
 
 ### Sample rate
 
