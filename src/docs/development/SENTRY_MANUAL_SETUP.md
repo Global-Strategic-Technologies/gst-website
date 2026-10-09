@@ -284,7 +284,7 @@ The same discipline as the website's Sentry setup applies, with two MCP-specific
 
 ### Sample rate
 
-The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [the observability stack](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) tunes this against measured baselines from the BL-032 soak week.
+The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [the observability stack](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) tunes this against measured baselines from the BL-032 soak week. Since SDK v11 the sampled spans are **streamed** by default (span streaming replaced legacy transactions); they pass through the same `dataCollection` filtering, and the Worker uses no `beforeSendSpan` hook, so nothing here needs to change.
 
 ### Alert rules
 
@@ -355,6 +355,8 @@ Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Err
 - **Section 5**: Name = `Bearer auth failure burst`. Save.
 
 The Worker captures `auth.failed` events to Sentry via `captureMessage('auth.failed bearer-rejected', 'warning', ...)` — wired in commit `62d155a`. Filter on **message** rather than tag because the captureMessage call puts the event-id information in the message string. The 50/10min threshold is intentionally high: 5-6 auth failures is one user fat-fingering a token; 50 in 10 min is probing or runaway-agent territory.
+
+> **SDK v11 regrouping (expected once).** v11 defaults `attachStacktrace` to `true`, so `auth.failed bearer-rejected` events now carry a synthetic stack trace and Sentry groups them by stack rather than by message. Expect **one new issue** (and one new-issue email) after the first v11 deploy; the burst rule keeps firing correctly because it filters on the message and there is a single call site.
 
 ##### Alert 3 — Inoreader budget breach (Errors → Issues)
 
