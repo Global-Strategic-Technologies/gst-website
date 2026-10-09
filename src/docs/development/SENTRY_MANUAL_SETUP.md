@@ -280,11 +280,11 @@ Key files:
 The same discipline as the website's Sentry setup applies, with two MCP-specific reinforcements:
 
 1. **Bearer tokens never reach Sentry.** The safe-logger's auto-redaction belt (Authorization / Cookie / X-API-Key) is plumbed through. `withSentry`'s built-in request-data scrubbing catches any header values it sees; we never `console.log(request.headers)` (ESLint blocks raw `console.*` in `mcp-server/src/worker.ts` + `src/auth/**` — see [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md))
-2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) is NOT included in Sentry events by default. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
+2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) and the response body (the tool output) are NOT included in Sentry events. Since SDK v11 that is no longer the SDK's default: an unset `dataCollection` captures request/response bodies, user info, cookies and headers, so `sentryOptions` passes the explicit restrictive baseline `DATA_COLLECTION` (`httpBodies: []`, `userInfo: false`, `cookies: false`, …), pinned field-by-field in `mcp-server/tests/unit/sentry.test.ts`. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
 
 ### Sample rate
 
-The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [the observability stack](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) tunes this against measured baselines from the BL-032 soak week.
+The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [the observability stack](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) tunes this against measured baselines from the BL-032 soak week. Since SDK v11 the sampled spans are **streamed** by default (span streaming replaced legacy transactions); they pass through the same `dataCollection` filtering, and the Worker uses no `beforeSendSpan` hook, so nothing here needs to change.
 
 ### Alert rules
 
@@ -355,6 +355,8 @@ Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Err
 - **Section 5**: Name = `Bearer auth failure burst`. Save.
 
 The Worker captures `auth.failed` events to Sentry via `captureMessage('auth.failed bearer-rejected', 'warning', ...)` — wired in commit `62d155a`. Filter on **message** rather than tag because the captureMessage call puts the event-id information in the message string. The 50/10min threshold is intentionally high: 5-6 auth failures is one user fat-fingering a token; 50 in 10 min is probing or runaway-agent territory.
+
+> **SDK v11 regrouping (expected once).** v11 defaults `attachStacktrace` to `true`, so `auth.failed bearer-rejected` events now carry a synthetic stack trace and Sentry groups them by stack rather than by message. Expect **one new issue** after the first v11 deploy (it emails only through MCP Alert 1, and only if that rule was saved without the optional level filter, since `auth.failed` is warning-level); the burst rule keeps firing correctly because it filters on the message and there is a single call site.
 
 ##### Alert 3 — Inoreader budget breach (Errors → Issues)
 
