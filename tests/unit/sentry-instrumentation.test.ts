@@ -27,13 +27,19 @@ describe('Sentry Client Config (privacy-first policy)', () => {
   // pass the shared restrictive baseline (see sentry.data-collection.ts).
   it('should not send PII', async () => {
     const { dataCollection } = await import('../../sentry.data-collection');
-    expect(dataCollection).toMatchObject({
+    // toEqual, not toMatchObject: a key dropped from the baseline falls back
+    // to v11's permissive default, so every field is pinned.
+    const deny = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+    expect(dataCollection).toEqual({
       userInfo: false,
       cookies: false,
+      httpHeaders: { request: { deny }, response: { deny } },
       httpBodies: [],
+      urlQueryParams: { deny },
+      genAI: { inputs: false, outputs: false },
       databaseQueryData: false,
       queues: false,
-      genAI: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
     });
     for (const file of ['sentry.client.config.ts', 'sentry.server.config.ts']) {
       const src = readSrc(file);

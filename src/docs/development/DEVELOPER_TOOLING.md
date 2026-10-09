@@ -715,7 +715,7 @@ Evaluated 2026-04-13:
 
 - **Pure error capture** (`captureException`, `captureMessage`): Classified as **legitimate interest** under GDPR — diagnostic data for maintaining service reliability. No consent required.
 - **Error-only replay** (`replaysOnErrorSampleRate: 1.0`): Records DOM state only when an error occurs. Arguably still legitimate interest since it is diagnostic, not behavioral tracking. No session replay for general browsing.
-- **No PII**: the shared `dataCollection` baseline (`sentry.data-collection.ts`) disables user info (including inferred IP addresses), cookies, request/response bodies and query data, and denylists IP-bearing headers. SDK v11 replaced `sendDefaultPii` with `dataCollection` and made an **unset** value collect all of these, so the baseline must stay explicit on every `Sentry.init` — `tests/unit/sentry-instrumentation.test.ts` checks both.
+- **No PII**: the shared `dataCollection` baseline (`sentry.data-collection.ts`) disables user info (including inferred IP addresses), cookies, request/response bodies and database query data, and denylists IP-bearing headers and URL query params. SDK v11 replaced `sendDefaultPii` with `dataCollection` and made an **unset** value collect all of these, so the baseline must stay explicit on every `Sentry.init` — `tests/unit/sentry-instrumentation.test.ts` checks both.
 - **Decision**: Keep current configuration as legitimate interest. Re-evaluate when [BL-001 (cookie consent)](./BACKLOG.md#bl-001-cookie-consent-and-gdpr-compliance) ships a cookie consent banner — at that point, consider gating replay behind analytics consent while keeping error capture ungated.
 
 ---
