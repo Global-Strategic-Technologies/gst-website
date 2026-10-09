@@ -191,13 +191,13 @@ Sentry can automatically create GitHub issues from alerts. Configure via Sentry 
 
 Sentry's current configuration runs under **legitimate interest** basis (GDPR Article 6(1)(f)) and does **not** require explicit consent gating. Rationale:
 
-| Config Property            | Value  | Privacy Impact                             |
-| -------------------------- | ------ | ------------------------------------------ |
-| `sendDefaultPii`           | false  | No IP addresses, usernames, or emails      |
-| `tracesSampleRate`         | 0      | No performance/transaction tracking        |
-| `replaysSessionSampleRate` | 0      | No session replay of normal browsing       |
-| `replaysOnErrorSampleRate` | 1.0    | Replay captured ONLY when an error occurs  |
-| `beforeSend` filter        | active | Drops browser noise (ResizeObserver, etc.) |
+| Config Property            | Value        | Privacy Impact                                                                                      |
+| -------------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| `dataCollection`           | v10 baseline | No IP addresses, users, cookies or bodies (`sentry.data-collection.ts`; v11 collects them if unset) |
+| `tracesSampleRate`         | 0            | No performance/transaction tracking                                                                 |
+| `replaysSessionSampleRate` | 0            | No session replay of normal browsing                                                                |
+| `replaysOnErrorSampleRate` | 1.0          | Replay captured ONLY when an error occurs                                                           |
+| `beforeSend` filter        | active       | Drops browser noise (ResizeObserver, etc.)                                                          |
 
 Error monitoring is a recognized legitimate interest for website operators. The data collected is:
 

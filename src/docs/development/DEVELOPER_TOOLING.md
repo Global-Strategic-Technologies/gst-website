@@ -666,7 +666,7 @@ The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides
 | `sentry.server.config.ts` | Server-side init — SSR error capture (Radar page)    |
 | `astro.config.mjs`        | Integration registration + source map upload config  |
 
-**Key settings**: No PII (`sendDefaultPii: false`), no performance tracing (`tracesSampleRate: 0`), error-only replay (`replaysOnErrorSampleRate: 1.0`), disabled in development (`enabled: import.meta.env.PROD`). DSN is imported from `astro:env/client` (declared in env schema).
+**Key settings**: No PII (the restrictive `dataCollection` baseline in `sentry.data-collection.ts`, passed to both inits), no performance tracing (`tracesSampleRate: 0`), error-only replay (`replaysOnErrorSampleRate: 1.0`), disabled in development (`enabled: import.meta.env.PROD`). DSN is imported from `astro:env/client` (declared in env schema).
 
 **Environment variables**:
 
@@ -715,7 +715,7 @@ Evaluated 2026-04-13:
 
 - **Pure error capture** (`captureException`, `captureMessage`): Classified as **legitimate interest** under GDPR — diagnostic data for maintaining service reliability. No consent required.
 - **Error-only replay** (`replaysOnErrorSampleRate: 1.0`): Records DOM state only when an error occurs. Arguably still legitimate interest since it is diagnostic, not behavioral tracking. No session replay for general browsing.
-- **No PII**: `sendDefaultPii: false` prevents automatic collection of user identifiers, IP addresses, or cookies.
+- **No PII**: the shared `dataCollection` baseline (`sentry.data-collection.ts`) disables user info (including inferred IP addresses), cookies, request/response bodies and query data, and denylists IP-bearing headers. SDK v11 replaced `sendDefaultPii` with `dataCollection` and made an **unset** value collect all of these, so the baseline must stay explicit on every `Sentry.init` — `tests/unit/sentry-instrumentation.test.ts` checks both.
 - **Decision**: Keep current configuration as legitimate interest. Re-evaluate when [BL-001 (cookie consent)](./BACKLOG.md#bl-001-cookie-consent-and-gdpr-compliance) ships a cookie consent banner — at that point, consider gating replay behind analytics consent while keeping error capture ungated.
 
 ---

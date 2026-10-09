@@ -23,8 +23,23 @@ describe('Sentry Client Config (privacy-first policy)', () => {
     expect(config).toContain('enabled: import.meta.env.PROD');
   });
 
-  it('should not send PII', () => {
-    expect(config).toContain('sendDefaultPii: false');
+  // SDK v11 collects PII when `dataCollection` is unset, so both inits must
+  // pass the shared restrictive baseline (see sentry.data-collection.ts).
+  it('should not send PII', async () => {
+    const { dataCollection } = await import('../../sentry.data-collection');
+    expect(dataCollection).toMatchObject({
+      userInfo: false,
+      cookies: false,
+      httpBodies: [],
+      databaseQueryData: false,
+      queues: false,
+      genAI: { inputs: false, outputs: false },
+    });
+    for (const file of ['sentry.client.config.ts', 'sentry.server.config.ts']) {
+      const src = readSrc(file);
+      expect(src).toContain("import { dataCollection } from './sentry.data-collection'");
+      expect(src).toMatch(/^\s+dataCollection,$/m);
+    }
   });
 
   it('should disable performance tracing', () => {
