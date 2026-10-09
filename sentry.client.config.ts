@@ -1,8 +1,10 @@
 import * as Sentry from '@sentry/astro';
 import { PUBLIC_SENTRY_DSN } from 'astro:env/client';
+import { dataCollection } from './sentry.data-collection';
 
 // Consent gating evaluation (Phase 9 item #16):
-// Sentry runs under legitimate-interest basis — error monitoring with no PII,
+// Sentry runs under legitimate-interest basis — error monitoring with no PII
+// (pinned in sentry.data-collection.ts — v11 collects PII when left unset),
 // no session replay of non-error sessions, no performance tracing. This is
 // generally accepted under GDPR without explicit consent. When the cookie
 // consent banner ships (BUSINESS_ENABLEMENT_V1 Initiative 1), evaluate whether
@@ -12,7 +14,7 @@ Sentry.init({
   dsn: PUBLIC_SENTRY_DSN,
   environment: import.meta.env.MODE,
   enabled: import.meta.env.PROD,
-  sendDefaultPii: false,
+  dataCollection,
   tracesSampleRate: 0,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,

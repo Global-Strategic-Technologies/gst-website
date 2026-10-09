@@ -191,13 +191,13 @@ Sentry can automatically create GitHub issues from alerts. Configure via Sentry 
 
 Sentry's current configuration runs under **legitimate interest** basis (GDPR Article 6(1)(f)) and does **not** require explicit consent gating. Rationale:
 
-| Config Property            | Value  | Privacy Impact                             |
-| -------------------------- | ------ | ------------------------------------------ |
-| `sendDefaultPii`           | false  | No IP addresses, usernames, or emails      |
-| `tracesSampleRate`         | 0      | No performance/transaction tracking        |
-| `replaysSessionSampleRate` | 0      | No session replay of normal browsing       |
-| `replaysOnErrorSampleRate` | 1.0    | Replay captured ONLY when an error occurs  |
-| `beforeSend` filter        | active | Drops browser noise (ResizeObserver, etc.) |
+| Config Property            | Value        | Privacy Impact                                                                                      |
+| -------------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| `dataCollection`           | v10 baseline | No IP addresses, users, cookies or bodies (`sentry.data-collection.ts`; v11 collects them if unset) |
+| `tracesSampleRate`         | 0            | No performance/transaction tracking                                                                 |
+| `replaysSessionSampleRate` | 0            | No session replay of normal browsing                                                                |
+| `replaysOnErrorSampleRate` | 1.0          | Replay captured ONLY when an error occurs                                                           |
+| `beforeSend` filter        | active       | Drops browser noise (ResizeObserver, etc.)                                                          |
 
 Error monitoring is a recognized legitimate interest for website operators. The data collected is:
 
@@ -277,7 +277,7 @@ Key files:
 
 ### Privacy / what NOT to log
 
-The same discipline as the website's `@sentry/node` setup applies, with two MCP-specific reinforcements:
+The same discipline as the website's Sentry setup applies, with two MCP-specific reinforcements:
 
 1. **Bearer tokens never reach Sentry.** The safe-logger's auto-redaction belt (Authorization / Cookie / X-API-Key) is plumbed through. `withSentry`'s built-in request-data scrubbing catches any header values it sees; we never `console.log(request.headers)` (ESLint blocks raw `console.*` in `mcp-server/src/worker.ts` + `src/auth/**` — see [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md))
 2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) is NOT included in Sentry events by default. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
