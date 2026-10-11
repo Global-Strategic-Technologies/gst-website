@@ -121,8 +121,18 @@ export async function handleAdminOauthClients(
         // The library validates what it stores and throws on a bad
         // registration (a redirect URI that is neither https nor loopback
         // http, an unsupported auth method). That is the operator's input:
-        // answer 400 with the library's reason rather than a 500.
-        return json({ error: 'bad-request', message: (e as Error).message }, 400);
+        // answer 400 with the library's reason rather than a 500. Its
+        // validation runs before its KV write, so a storage failure lands
+        // here too — hence the log line, which keeps that case visible.
+        const message = (e as Error).message;
+        safeLog({
+          event: 'admin.oauth.client-rejected',
+          keyOwner: 'ADMIN',
+          reason: message,
+          success: false,
+          errorCode: 'bad-request',
+        });
+        return json({ error: 'bad-request', message }, 400);
       }
       safeLog({
         event: 'admin.oauth.client-created',

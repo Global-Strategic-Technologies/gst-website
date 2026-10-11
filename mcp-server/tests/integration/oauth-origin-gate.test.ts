@@ -89,14 +89,14 @@ function bearer(token: string): RequestInit {
   return { method: 'POST', body: '{}', headers: { Authorization: `Bearer ${token}` } };
 }
 
-/** An M2M token exactly as `/token` on the public origin would mint it. */
-async function m2mToken(): Promise<string> {
+/** An M2M token exactly as `/token` on `origin` would mint it. */
+async function m2mToken(origin: string = PUBLIC): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return signM2mToken(
     {
-      iss: PUBLIC,
+      iss: origin,
       sub: 'm2m_abc',
-      aud: `${PUBLIC}/mcp`,
+      aud: `${origin}/mcp`,
       scope: 'tool:*',
       keyOwner: 'M2M:ACME',
       exp: now + 3600,
@@ -157,6 +157,18 @@ describe('token credentials', () => {
     expect(res.status).toBe(401);
     expect(res.headers.get('WWW-Authenticate')).toBe('Bearer realm="gst-mcp"');
   });
+
+  it.each(OFF_ORIGIN)(
+    'a token whose audience names the off-origin host is refused too: %s',
+    async (_label, origin, e) => {
+      // The token the alias / cleartext origin would have minted for itself
+      // before ADR-0044: correctly signed, audience equal to the request
+      // origin. Only the origin gate stands between it and the pipeline —
+      // the audience check alone would pass it.
+      const res = await call(origin, '/mcp', e, bearer(await m2mToken(origin)));
+      expect(res.status).toBe(401);
+    }
+  );
 
   it('an unknown bearer on /mcp is offered to the provider on the public origin', async () => {
     const res = await call(PUBLIC, '/mcp', env, bearer('opaque-oauth-token'));

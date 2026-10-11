@@ -83,10 +83,13 @@ let cached: { origin: string; provider: ReturnType<typeof buildProvider> } | und
 
 /**
  * The provider for this deployment, built on first use from
- * `PUBLIC_ORIGIN`. One instance per isolate: the library stores its helpers
- * on `env.OAUTH_PROVIDER` once, bound to the provider that created them, so
- * a second instance with a different resource would be handed the first
- * one's helpers. Returns `null` when the origin is unbound — callers gate on
+ * `PUBLIC_ORIGIN`. A deployment has one origin, so an isolate builds one
+ * instance — which matters: the library stores its helpers on
+ * `env.OAUTH_PROVIDER` once, bound to the provider that created them, so
+ * two live instances with different resources would share the first one's
+ * helpers. (The rebuild-on-change below only ever fires in the test suite,
+ * where one process hands the Worker differently configured `env` objects.)
+ * Returns `null` when the origin is unbound — callers gate on
  * `isCanonicalOrigin` first, which is false in that case.
  */
 export function getOAuthProvider(env: { PUBLIC_ORIGIN?: string }) {

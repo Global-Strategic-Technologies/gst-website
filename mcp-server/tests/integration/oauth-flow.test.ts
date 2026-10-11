@@ -212,6 +212,23 @@ describe('authorization-code + PKCE end-to-end', () => {
     expect(mcpRes.status).not.toBe(403);
   });
 
+  it('introspection reports the library-issued token active (unwrapToken under 1.x)', async () => {
+    const res = await worker.fetch('/oauth/introspect', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: accessToken }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.active).toBe(true);
+    expect(body.client_id).toBe(clientId);
+    expect(body.sub).toBe('RP');
+    expect(body.scope).toContain('tool:*');
+  });
+
   it('the OAuth access token is not accepted on /radar/snapshot', async () => {
     // ADR-0044: `/radar/snapshot` is a machine endpoint (static keys, M2M),
     // not an OAuth resource — the grant even carries `resource:radar:read`,

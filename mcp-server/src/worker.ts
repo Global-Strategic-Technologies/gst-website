@@ -503,6 +503,18 @@ export const handler: ExportedHandler<Env> = {
     if (isOAuthSurfacePath(url.pathname)) {
       const provider = isCanonicalOrigin(url, env) ? getOAuthProvider(env) : null;
       if (!provider) {
+        // Off-origin is expected traffic (alias host, scanners) and stays
+        // quiet. An UNBOUND origin is a deployment mistake that would
+        // otherwise look like "OAuth just 404s" — say so in the logs.
+        if (!env.PUBLIC_ORIGIN) {
+          safeLog({
+            event: 'oauth.surface.disabled',
+            path: url.pathname,
+            reason: 'PUBLIC_ORIGIN unbound',
+            success: false,
+            errorCode: 'misconfigured',
+          });
+        }
         return withCors(new Response('Not Found', { status: 404 }), origin);
       }
       // client_credentials intercept — the library's grant model has no
