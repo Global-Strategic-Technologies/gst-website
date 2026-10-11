@@ -138,6 +138,15 @@ describe('sentryOptions', () => {
     expect(sentryOptions({} as Env)).toBeUndefined();
   });
 
+  it('files events under the deployment environment (staging must not read as production)', () => {
+    const dsn = 'https://k@o1.ingest.sentry.io/1';
+    for (const name of ['staging', 'production']) {
+      expect(sentryOptions({ SENTRY_DSN: dsn, ENV_NAME: name } as Env)?.environment).toBe(name);
+    }
+    // Unbound (local runs): omitted, never the literal string "undefined".
+    expect(sentryOptions({ SENTRY_DSN: dsn } as Env)).not.toHaveProperty('environment');
+  });
+
   it('pins the restrictive v10 data-collection baseline', () => {
     const deny = ['forwarded', '-ip', 'remote-', 'via', '-user'];
     expect(

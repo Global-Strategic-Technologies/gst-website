@@ -188,6 +188,9 @@ export async function postSentryEvent(
   if (event.extra && Object.keys(event.extra).length > 0) eventBody.extra = event.extra;
   if (event.fingerprint && event.fingerprint.length > 0) eventBody.fingerprint = event.fingerprint;
   if (env.SENTRY_RELEASE) eventBody.release = env.SENTRY_RELEASE;
+  // Same field `sentry.ts` sets on SDK events: one DSN serves both
+  // environments, and Sentry files an event without it under "production".
+  if (env.ENV_NAME) eventBody.environment = env.ENV_NAME;
 
   const envelope = [
     JSON.stringify({ event_id: eventId, sent_at: sentAt }),
