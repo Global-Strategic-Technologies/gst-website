@@ -196,9 +196,11 @@ describe('client_credentials — private_key_jwt (RFC 7523)', () => {
   const now = () => Math.floor(Date.now() / 1000);
   // The assertion audience must name THIS AS — the Worker checks it
   // against the request origin, which under unstable_dev is the
-  // wrangler.toml staging route hostname (NOT the local dev address;
-  // verified empirically — miniflare applies the custom-domain route).
-  const devOrigin = () => 'http://mcp-staging.globalstrategic.tech';
+  // wrangler.toml staging route hostname over https (NOT the local dev
+  // address: miniflare applies the custom-domain route, and `[dev]
+  // upstream_protocol` sets the scheme). It equals the staging
+  // PUBLIC_ORIGIN, the only origin `/token` answers on (ADR-0044).
+  const devOrigin = () => 'https://mcp-staging.globalstrategic.tech';
 
   it('issues a token from a valid client assertion (no secret on the wire)', async () => {
     const assertion = await mintAssertion({

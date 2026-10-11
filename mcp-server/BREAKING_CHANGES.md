@@ -35,6 +35,38 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.68.0 — 2026-10-11 — one OAuth resource (`<origin>/mcp`) on one configured origin; `@cloudflare/workers-oauth-provider` 0.10.3 → 1.2.3
+
+**Breaking at the OAuth edge of the remote (Worker) transport; nothing changes for static-key callers or for stdio.** No tool, prompt, or Resource URI is added, renamed, or removed, so **the manifest hash is unchanged** — this is a transport change of the kind the header says that guard will not catch. Design and rejected options: [ADR-0044](../src/docs/adr/0044-mcp-oauth-canonical-resource-and-public-origin.md).
+
+**What forced it.** Library 1.x requires one canonical protected resource, binds every token to it, and refuses an API route outside it. The Worker advertised three resources on one host and inferred its issuer from each request.
+
+**Changed**
+
+- **Protected-resource metadata moved.** The RFC 9728 document is served at **`/.well-known/oauth-protected-resource/mcp`** only and names `resource: <origin>/mcp`. The root path `/.well-known/oauth-protected-resource` (200 before, naming the bare origin) and `/.well-known/oauth-protected-resource/radar/snapshot` are now **404**.
+- **`/radar/snapshot` no longer accepts an OAuth access token** — 401 with the bare challenge. Static `MCP_KEY_*` keys and `mcp_m2m_*` tokens are unchanged there, which is every caller it has (the website uses `MCP_KEY_WEBSITE_RADAR`).
+- **The OAuth surface answers on the configured public origin only** (`PUBLIC_ORIGIN`, a new `[vars]` entry per environment). `/authorize`, `/token`, `/.well-known/oauth-*`, `/admin/oauth/*` and `/oauth/introspect` are **404** on `status.mcp.globalstrategic.tech` and over cleartext `http://`. OAuth access tokens and M2M tokens are honoured on that origin only; static keys are origin-agnostic, as before.
+- **`resource` is enforced on the authorization-code flow.** An authorization or token request that names a `resource` other than `<origin>/mcp` (the bare origin included) is refused. Omitting it still works and binds the token to `<origin>/mcp`.
+- **401 challenge on `/mcp`.** The pointer is now `resource_metadata="<origin>/.well-known/oauth-protected-resource/mcp"`, and it rides **every** 401 for `/mcp`, including a request with no bearer (which previously got the bare `Bearer realm="gst-mcp"`). `error="invalid_token"` is still added only when a bearer was presented. `/radar/snapshot` 401s no longer carry a pointer. The JSON body is unchanged everywhere.
+- **`POST /admin/oauth/clients`** answers **400** `bad-request` for a registration the library refuses (a redirect URI that is neither `https` nor loopback `http`), instead of storing it.
+
+**Additive, from the library**
+
+- The authorization redirect carries **`iss`** (RFC 9207).
+- AS metadata gains `protected_resources`; token responses gain `resource`.
+- A client's registered grant types are enforced at `/token`, and `redirect_uri` at the code exchange must equal the one in the authorization request.
+- Redirect URIs must be `https`, or `http` on a loopback host, at authorization time as well as at registration.
+
+**Client impact**
+
+- **Static-key clients (every team key, the website, `mcp-remote`)**: none.
+- **M2M clients**: none on the public origin. The `client_credentials` branch is ours, not the library's, and still accepts `resource=<origin>/mcp` or the bare origin.
+- **OAuth clients (Claude connectors)**: discovery follows the pointer on the 401, which every `/mcp` 401 now carries. Production held no stored grant, token or registered client when this was built (KV listing, 2026-10-11), so there was no session to migrate.
+
+**Rollback stays safe.** `rollback-mcp.yml` to the previous Worker version; no KV migration either way. A grant issued by 1.2.3 and then read by 0.10.3 after a rollback may need one re-consent.
+
+---
+
 ## 0.67.0 — 2026-09-27 — radar is an explicit scope; `tools/call` enforces tool scopes (BL-166)
 
 **Breaking for one narrow client shape (below); wire-compatible for every other client.** No tool, prompt, or Resource URI is added, renamed, or removed, and no input or output schema changes shape. No prompt moved and the `gst_radar_brief_today` template bytes are unchanged, so **the manifest hash is unchanged** and no prompt version is bumped. Design and rejected options: [ADR-0041](../src/docs/adr/0041-radar-is-an-explicit-scope.md).
@@ -721,7 +753,7 @@ Per-client rate-limit tiers (`free-pilot` / `paid` / `enterprise` / `internal`) 
 
 ## 0.40.0 — 2026-07-24 — BL-033 Slice 2 — OAuth 2.1 embedded authorization server + M2M client_credentials (new routes, new KV binding, new secret, additive 401 header)
 
-**Theme**: the Worker becomes its own OAuth 2.1 authorization server (`@cloudflare/workers-oauth-provider`, exact-pinned 0.8.2, mounted as a sub-router) with dual cheap-first validation — static `MCP_KEY_*` keys are byte-identical and NOT deprecated. Decision record: `src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md` (website tree). Unlocks Claude's native Connectors UI (the `mcp-remote` bridge becomes a legacy path, still supported).
+**Theme**: the Worker becomes its own OAuth 2.1 authorization server (`@cloudflare/workers-oauth-provider`, exact-pinned 0.8.2 at the time — 1.2.3 since 0.68.0 — mounted as a sub-router) with dual cheap-first validation — static `MCP_KEY_*` keys are byte-identical and NOT deprecated. Decision record: `src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md` (website tree). Unlocks Claude's native Connectors UI (the `mcp-remote` bridge becomes a legacy path, still supported).
 
 **New public surface** (routes are not manifest-hash inputs; no tool/prompt/resource change — manifest hash unchanged):
 

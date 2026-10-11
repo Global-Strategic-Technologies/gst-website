@@ -17,8 +17,8 @@
  * function returns the same answer wherever it is called from.
  *
  * Keeping it out of `worker.ts` also keeps its unit test off the Worker graph,
- * and off the `unstable_dev` harness, where `url.hostname` is localhost and the
- * host distinction under test would not exist.
+ * and off the `unstable_dev` harness, which pins `url.hostname` to the one
+ * staging route, so the host distinction under test would not exist.
  */
 
 /** The docs alias host, and the canonical page it stands in for. */

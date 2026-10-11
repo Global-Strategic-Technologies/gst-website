@@ -72,7 +72,8 @@ import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { handleAuthenticated } from './pipeline/handle-authenticated';
 import { consumeAuditBatch, type AuditEntry } from './audit/_index';
-import { oauthProvider } from './oauth/provider';
+import { getOAuthProvider } from './oauth/provider';
+import { isCanonicalOrigin } from './oauth/public-origin';
 import { handleClientCredentialsToken, M2M_TOKEN_PREFIX, verifyM2mToken } from './oauth/m2m-token';
 import type { Env } from './env';
 
@@ -113,10 +114,26 @@ export type { Env } from './env';
  *                          isn't consulted for `/health` requests).
  */
 function isRoutedPath(pathname: string): boolean {
-  if (pathname === '/mcp' || pathname.startsWith('/mcp/')) return true;
+  if (isOAuthResourcePath(pathname)) return true;
   if (pathname === '/radar/snapshot') return true;
   return false;
 }
+
+/**
+ * ADR-0044 — the one OAuth protected resource: `/mcp` and its sub-paths,
+ * matching the provider's `apiRoute` (oauth/provider.ts). `/radar/snapshot`
+ * is routed but is not an OAuth resource.
+ */
+function isOAuthResourcePath(pathname: string): boolean {
+  return pathname === '/mcp' || pathname.startsWith('/mcp/');
+}
+
+/**
+ * RFC 9728 metadata document for that resource — the well-known prefix
+ * inserted ahead of the resource path. The library serves exactly this
+ * path and 404s everything else under the prefix.
+ */
+const PROTECTED_RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource/mcp';
 
 /**
  * BL-033 Slice 2 — OAuth surface paths delegated to the embedded
@@ -475,9 +492,21 @@ export const handler: ExportedHandler<Env> = {
     //      of delegation (library has no such grant — see oauth/m2m-token).
     //      Responses re-wrap with OUR CORS policy: browser-based clients
     //      (claude.ai) must POST /token cross-origin.
+    //
+    //      ADR-0044: the surface exists on the configured public origin
+    //      ONLY. On an alias hostname (`status.mcp.…`), over cleartext
+    //      `http`, or with `PUBLIC_ORIGIN` unbound, these paths are 404 —
+    //      no issuer, no metadata, no token minted for an origin that is
+    //      not the deployment's. Every origin read further down this branch
+    //      (M2M issuer/audience, introspection, the consent re-parse) is
+    //      therefore the public origin by construction.
     if (isOAuthSurfacePath(url.pathname)) {
+      const provider = isCanonicalOrigin(url, env) ? getOAuthProvider(env) : null;
+      if (!provider) {
+        return withCors(new Response('Not Found', { status: 404 }), origin);
+      }
       // client_credentials intercept — the library's grant model has no
-      // such grant (verified v0.8.2, still true at 0.10.3); oauth/m2m-token.ts issues the
+      // such grant (re-verified at 1.2.3); oauth/m2m-token.ts issues the
       // self-contained `mcp_m2m_*` JWTs. Body is read from a clone so
       // other grants reach the provider with the stream intact.
       if (url.pathname === '/token' && request.method === 'POST') {
@@ -486,7 +515,7 @@ export const handler: ExportedHandler<Env> = {
           return withCors(await handleClientCredentialsToken(request, env), origin);
         }
       }
-      const resp = await oauthProvider.fetch(request, env as never, ctx);
+      const resp = await provider.fetch(request, env as never, ctx);
       return withCors(resp, origin);
     }
 
@@ -556,6 +585,9 @@ export const handler: ExportedHandler<Env> = {
     //        match; that's an operator config error, not an OAuth token.)
     //    (3) M2M `mcp_m2m_*` JWT verification slots between (1) and (2)
     //        in the M2M phase.
+    //    Token credentials — (2) and (3) — are honoured on the configured
+    //    public origin only (ADR-0044); static keys are origin-agnostic,
+    //    as before. Off-origin, a token falls straight to the 401.
     //    auth.failed telemetry fires ONLY after every path has failed —
     //    a valid OAuth token must never be logged as an auth failure.
     const auth = authenticate(request, env);
@@ -565,7 +597,9 @@ export const handler: ExportedHandler<Env> = {
       //    RL + CORS headers (pipeline/handle-authenticated.ts).
       return handleAuthenticated(request, env, ctx, auth);
     }
-    if (auth.reason === 'invalid-token') {
+    const onPublicOrigin = isCanonicalOrigin(url, env);
+    const isMcpPath = isOAuthResourcePath(url.pathname);
+    if (auth.reason === 'invalid-token' && onPublicOrigin) {
       // (2) M2M self-contained JWT — zero-I/O local HMAC verify; the
       //     `mcp_m2m_` prefix is ours, so a failed verify falls straight
       //     through to the 401 (never to the provider).
@@ -573,15 +607,19 @@ export const handler: ExportedHandler<Env> = {
       if (rawBearer.startsWith(M2M_TOKEN_PREFIX)) {
         const m2mAuth = await verifyM2mToken(rawBearer, env, url.origin);
         if (m2mAuth) return handleAuthenticated(request, env, ctx, m2mAuth);
-      } else {
-        const oauthResp = await oauthProvider.fetch(request, env as never, ctx);
+      } else if (isMcpPath) {
+        // Only `/mcp` is an OAuth resource. `/radar/snapshot` is not one of
+        // the provider's API routes, so delegating it would land in the
+        // provider's default handler and answer 404 for a wrong bearer
+        // instead of our 401.
+        const oauthResp = await getOAuthProvider(env)?.fetch(request, env as never, ctx);
         // Anything but a 401 means the provider recognized the token and
         // the api-handler already ran the full pipeline; a 401 falls
         // through to OUR challenge shape below (legacy JSON body +
         // RFC 9728 resource_metadata pointer). CORS-wrap on the way out —
-        // a provider error response (e.g. audience mismatch) still needs
-        // our allow-origin headers for browser-based clients.
-        if (oauthResp.status !== 401) return withCors(oauthResp, origin);
+        // a provider error response still needs our allow-origin headers
+        // for browser-based clients.
+        if (oauthResp && oauthResp.status !== 401) return withCors(oauthResp, origin);
       }
     }
     {
@@ -617,9 +655,14 @@ export const handler: ExportedHandler<Env> = {
           'auth.failed'
         );
       }
-      // `url.origin` powers the RFC 9728 resource_metadata pointer on
-      // token-present failures (see authFailureResponse).
-      return withCors(authFailureResponse(auth, url.origin), origin);
+      // The RFC 9728 resource_metadata pointer goes on every 401 for the
+      // OAuth resource (`/mcp` at the public origin) and nowhere else —
+      // see authFailureResponse.
+      const resourceMetadataUrl =
+        onPublicOrigin && isMcpPath
+          ? `${url.origin}${PROTECTED_RESOURCE_METADATA_PATH}`
+          : undefined;
+      return withCors(authFailureResponse(auth, resourceMetadataUrl), origin);
     }
   },
 };

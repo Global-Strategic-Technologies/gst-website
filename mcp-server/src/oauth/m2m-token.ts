@@ -2,7 +2,10 @@
  * M2M token branch (BL-033 Slice 2) — `POST /token` with
  * `grant_type=client_credentials`, intercepted in worker.ts BEFORE
  * provider delegation (the library's grant model has no
- * client_credentials — verified against v0.8.2; see ADR-0008).
+ * client_credentials — re-verified at 1.2.3; see ADR-0008). The `/token`
+ * path answers on the configured public origin only (worker.ts, ADR-0044),
+ * so the request origin read below IS that origin: issuer and audience are
+ * never derived from an alias hostname or a cleartext request.
  *
  * Client authentication, two modes:
  *   - `private_key_jwt` (RFC 7523 client assertion; preferred per the

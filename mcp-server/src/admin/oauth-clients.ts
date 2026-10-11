@@ -110,11 +110,20 @@ export async function handleAdminOauthClients(
           400
         );
       }
-      const client = await env.OAUTH_PROVIDER.createClient({
-        clientName: body.clientName,
-        redirectUris: body.redirectUris,
-        tokenEndpointAuthMethod: body.tokenEndpointAuthMethod ?? 'client_secret_basic',
-      });
+      let client;
+      try {
+        client = await env.OAUTH_PROVIDER.createClient({
+          clientName: body.clientName,
+          redirectUris: body.redirectUris,
+          tokenEndpointAuthMethod: body.tokenEndpointAuthMethod ?? 'client_secret_basic',
+        });
+      } catch (e) {
+        // The library validates what it stores and throws on a bad
+        // registration (a redirect URI that is neither https nor loopback
+        // http, an unsupported auth method). That is the operator's input:
+        // answer 400 with the library's reason rather than a 500.
+        return json({ error: 'bad-request', message: (e as Error).message }, 400);
+      }
       safeLog({
         event: 'admin.oauth.client-created',
         keyOwner: 'ADMIN',

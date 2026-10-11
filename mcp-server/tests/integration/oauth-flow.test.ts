@@ -46,6 +46,9 @@ function unescapeHtmlAttr(s: string): string {
     .replace(/&#39;/g, "'");
 }
 
+/** The harness origin — wrangler.toml `[env.staging.vars] PUBLIC_ORIGIN`. */
+const PUBLIC_ORIGIN = 'https://mcp-staging.globalstrategic.tech';
+
 beforeAll(async () => {
   worker = await unstable_dev('src/worker.ts', {
     config: 'wrangler.toml',
@@ -152,6 +155,9 @@ describe('authorization-code + PKCE end-to-end', () => {
     const code = redirectUrl.searchParams.get('code');
     expect(code).toBeTruthy();
     expect(redirectUrl.searchParams.get('state')).toBe('flow-test-state');
+    // RFC 9207: the redirect names the issuer (library 1.x; advertised as
+    // `authorization_response_iss_parameter_supported`).
+    expect(redirectUrl.searchParams.get('iss')).toBe(PUBLIC_ORIGIN);
 
     // --- POST /token: exchange with PKCE verifier ---------------------
     const tokenRes = await worker.fetch('/token', {
@@ -173,7 +179,11 @@ describe('authorization-code + PKCE end-to-end', () => {
       token_type: string;
       expires_in: number;
       scope?: string;
+      resource?: string;
     };
+    // ADR-0044: every token is bound to the one canonical resource, even
+    // though this client sent no `resource` parameter.
+    expect(tokens.resource).toBe(`${PUBLIC_ORIGIN}/mcp`);
     expect(tokens.access_token).toBeTruthy();
     expect(tokens.refresh_token).toBeTruthy();
     expect(tokens.token_type.toLowerCase()).toBe('bearer');
@@ -200,6 +210,18 @@ describe('authorization-code + PKCE end-to-end', () => {
     });
     expect(mcpRes.status).not.toBe(401);
     expect(mcpRes.status).not.toBe(403);
+  });
+
+  it('the OAuth access token is not accepted on /radar/snapshot', async () => {
+    // ADR-0044: `/radar/snapshot` is a machine endpoint (static keys, M2M),
+    // not an OAuth resource — the grant even carries `resource:radar:read`,
+    // which stays meaningful for MCP `resources/read` on `/mcp`.
+    const res = await worker.fetch('/radar/snapshot', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(res.status).toBe(401);
+    expect(res.headers.get('www-authenticate')).toBe('Bearer realm="gst-mcp"');
+    expect(((await res.json()) as { error: string }).error).toBe('unauthorized');
   });
 
   it('rotates the refresh token', async () => {
@@ -359,5 +381,65 @@ describe('authorization-code + PKCE end-to-end', () => {
       redirect: 'manual',
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('library 1.x policy at our surface', () => {
+  it('refuses an authorization request that names another resource', async () => {
+    for (const resource of [PUBLIC_ORIGIN, `${PUBLIC_ORIGIN}/radar/snapshot`]) {
+      const res = await worker.fetch(
+        `/authorize?${new URLSearchParams({
+          response_type: 'code',
+          client_id: clientId,
+          redirect_uri: REDIRECT_URI,
+          scope: 'tool:*',
+          state: 's',
+          code_challenge: codeChallenge,
+          code_challenge_method: 'S256',
+          resource,
+        })}`,
+        { redirect: 'manual' }
+      );
+      // No consent form for a token that could never be used here.
+      expect(res.status, resource).toBeGreaterThanOrEqual(400);
+      expect(await res.text()).not.toContain('name="nonce"');
+    }
+  });
+
+  it('accepts the canonical resource when the client names it', async () => {
+    const res = await worker.fetch(
+      `/authorize?${new URLSearchParams({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: REDIRECT_URI,
+        scope: 'tool:*',
+        state: 's',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        resource: `${PUBLIC_ORIGIN}/mcp`,
+      })}`
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('name="nonce"');
+  });
+
+  it('admin client registration reports a refused redirect URI as 400', async () => {
+    // The library throws on a redirect URI that is neither https nor
+    // loopback http; that is the operator's input, not a server fault.
+    const res = await worker.fetch('/admin/oauth/clients', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientName: 'Cleartext Redirect',
+        redirectUris: ['http://client.example/callback'],
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; message: string };
+    expect(body.error).toBe('bad-request');
+    expect(body.message).toMatch(/https/i);
   });
 });

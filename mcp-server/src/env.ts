@@ -159,6 +159,13 @@ export interface Env {
   // for local runs but flags the gap in case env binding is forgotten.
   ENV_NAME?: string;
 
+  // The Worker's public origin (e.g. `https://mcp.globalstrategic.tech`),
+  // bound per `[env.<name>.vars]` block in `wrangler.toml` (ADR-0044). The
+  // OAuth surface — issuer, the `<origin>/mcp` protected resource, the M2M
+  // audience — exists on this origin only; see `oauth/public-origin.ts`.
+  // Unbound ⇒ the OAuth surface is off (404) and only static keys authenticate.
+  PUBLIC_ORIGIN?: string;
+
   // Sentry release identifier — injected by `scripts/deploy.mjs` via
   // `wrangler deploy --var SENTRY_RELEASE:<sha>`. Tells Sentry which
   // uploaded source-map bundle matches the running Worker so stack traces

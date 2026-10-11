@@ -51,7 +51,7 @@ describe('trialTokenExchange', () => {
     });
   });
 
-  it('refresh_token: clamps the access TTL and NEVER returns refreshTokenTTL (400 in 0.10.3)', () => {
+  it('refresh_token: clamps the access TTL and never returns refreshTokenTTL (ignored on refresh in 1.x)', () => {
     const props = { ...roster, expiresAt: at(1800) };
     const out = trialTokenExchange({ grantType: 'refresh_token', props }, NOW);
     expect(out).toEqual({ accessTokenTTL: 1800 });
