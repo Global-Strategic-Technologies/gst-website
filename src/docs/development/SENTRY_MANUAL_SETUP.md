@@ -255,7 +255,7 @@ npx wrangler secret put SENTRY_DSN --env staging
 npx wrangler secret put SENTRY_DSN --env production
 ```
 
-> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is configured via Sentry environment tags inside the Worker, not separate DSNs.
+> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is the Sentry `environment` field, which the Worker sets from the `ENV_NAME` var (`staging` / `production`, `wrangler.toml`) on SDK events (`sentryOptions` in `src/observability/sentry.ts`) and on cron-posted events (`postSentryEvent` in `src/observability/sentry-envelope.ts`) — not separate DSNs. **Until 2026-10-11 the field was not set at all**, so every staging event was filed under `production`; an `auth.failed` alert from a staging deploy check that day read as a production alert. Events before that date cannot be told apart by environment — use the request URL host. Sentry Crons check-ins are not environment-tagged (both environments still report under the default).
 
 ### How it's wired
 

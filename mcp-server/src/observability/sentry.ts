@@ -82,6 +82,13 @@ export function sentryOptions(env: Env): CloudflareOptions | undefined {
     // dev`), omit the field rather than send a placeholder — Sentry treats
     // an undefined release differently from a wrong one.
     ...(env.SENTRY_RELEASE ? { release: env.SENTRY_RELEASE } : {}),
+    // Staging and production share one DSN, and Sentry files an event with
+    // no `environment` under "production" — so without this a staging
+    // event (an auth probe during a deploy check, say) reads as a
+    // production alert. `ENV_NAME` is bound per environment in
+    // wrangler.toml; omitted when unbound, same reasoning as `release`.
+    // `sentry-envelope.ts` sets the same field on cron-posted events.
+    ...(env.ENV_NAME ? { environment: env.ENV_NAME } : {}),
     // Phase 5 baseline. BL-032.75 tunes against measured production rates.
     tracesSampleRate: 0.1,
     // No tool inputs/outputs, IPs or cookies — see the header comment.
