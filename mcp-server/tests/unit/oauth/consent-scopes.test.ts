@@ -77,29 +77,34 @@ describe('authFailureResponse — RFC 9728 challenge', () => {
     return result;
   }
 
-  it('token-present failure with origin advertises resource_metadata + invalid_token', () => {
-    const resp = authFailureResponse(failureFor('Bearer wrong-token'), 'https://mcp.test');
-    const challenge = resp.headers.get('WWW-Authenticate') ?? '';
-    expect(challenge).toContain('error="invalid_token"');
-    expect(challenge).toContain(
-      'resource_metadata="https://mcp.test/.well-known/oauth-protected-resource"'
+  const PRM = 'https://mcp.test/.well-known/oauth-protected-resource/mcp';
+
+  it('token-present failure advertises resource_metadata + invalid_token', () => {
+    const resp = authFailureResponse(failureFor('Bearer wrong-token'), PRM);
+    expect(resp.headers.get('WWW-Authenticate')).toBe(
+      `Bearer realm="gst-mcp", error="invalid_token", resource_metadata="${PRM}"`
     );
     expect(resp.status).toBe(401);
   });
 
-  it('probe-class failures keep the bare challenge (no discovery bytes for scanners)', () => {
-    const resp = authFailureResponse(failureFor(null), 'https://mcp.test');
-    const challenge = resp.headers.get('WWW-Authenticate') ?? '';
-    expect(challenge).toBe('Bearer realm="gst-mcp"');
+  it('a missing bearer gets the pointer without an error code (ADR-0044)', () => {
+    // First contact carries no bearer; nothing is "invalid", but the client
+    // still needs to be told where the metadata document is.
+    const resp = authFailureResponse(failureFor(null), PRM);
+    expect(resp.headers.get('WWW-Authenticate')).toBe(
+      `Bearer realm="gst-mcp", resource_metadata="${PRM}"`
+    );
   });
 
-  it('without an origin the legacy header shape is unchanged (existing callers)', () => {
-    const resp = authFailureResponse(failureFor('Bearer wrong-token'));
-    expect(resp.headers.get('WWW-Authenticate')).toBe('Bearer realm="gst-mcp"');
+  it('without a metadata URL the challenge is bare (non-OAuth routes and origins)', () => {
+    for (const header of ['Bearer wrong-token', null]) {
+      const resp = authFailureResponse(failureFor(header));
+      expect(resp.headers.get('WWW-Authenticate')).toBe('Bearer realm="gst-mcp"');
+    }
   });
 
   it('the JSON body contract is unchanged in all shapes', async () => {
-    const resp = authFailureResponse(failureFor('Bearer wrong-token'), 'https://mcp.test');
+    const resp = authFailureResponse(failureFor('Bearer wrong-token'), PRM);
     expect(await resp.json()).toEqual({
       error: 'unauthorized',
       message: 'Invalid Bearer token',

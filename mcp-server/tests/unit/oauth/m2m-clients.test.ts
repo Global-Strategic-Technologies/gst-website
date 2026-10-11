@@ -82,6 +82,19 @@ describe('rotateM2mSecret (BL-155 Slice 2 — re-issue on the same record)', () 
   });
 });
 
+describe('createM2mClient — client id shape', () => {
+  it('never contains a colon', async () => {
+    // A trial's client id becomes the OAuth `userId` at the consent page
+    // (`consent-identity.ts`), and the provider library refuses a userId
+    // containing `:` — it is the separator inside its tokens and KV keys.
+    const { kv } = mockKv({ pageSize: 10 });
+    for (let i = 0; i < 50; i++) {
+      const { record } = await createM2mClient(kv, { name: 'trial', allowedScopes: ['tool:*'] });
+      expect(record.clientId).toMatch(/^m2m_[A-Za-z0-9_-]{22}$/);
+    }
+  });
+});
+
 describe('splitClientCredential (BL-155 Slice 2b — shared first-colon split)', () => {
   it('splits on the first colon only, preserving colons inside the secret', () => {
     expect(splitClientCredential('m2m_abc:se:cr:et')).toEqual({

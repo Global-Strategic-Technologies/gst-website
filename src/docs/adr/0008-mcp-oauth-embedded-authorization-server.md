@@ -1,6 +1,6 @@
 # ADR-0008: OAuth 2.1 as an embedded authorization server on the MCP Worker
 
-- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below; the rejected credential-recovery paths were added to it at BL-155's closure, 2026-09-27, and a dated line records [ADR-0041](0041-radar-is-an-explicit-scope.md)'s tool-scope gate)
+- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below; the rejected credential-recovery paths were added to it at BL-155's closure, 2026-09-27, and a dated line records [ADR-0041](0041-radar-is-an-explicit-scope.md)'s tool-scope gate); **extended 2026-10-11** by [ADR-0044](0044-mcp-oauth-canonical-resource-and-public-origin.md) — one OAuth resource on one configured origin, library 1.2.3
 - **Source initiative**: BL-033 Slice 2 (external-pilot auth; the BL-033 stanza in [`../development/BACKLOG.md`](../development/BACKLOG.md) remains the open initiative tracker — this slice closes its Authentication & authorization AC block)
 
 ## Context
@@ -11,7 +11,7 @@ Three hard constraints shaped the decision: (1) three static-token consumers (we
 
 ## Decision
 
-The Worker becomes its **own OAuth 2.1 authorization server** via `@cloudflare/workers-oauth-provider` (pinned exact at 0.8.2), mounted as a **sub-router** from `worker.ts` — never `export default`-wrapped — with dual cheap-first validation on API routes: static `MCP_KEY_*` scan (constant-time, zero I/O, byte-identical legacy path) → `mcp_m2m_*` local JWT verify → provider token validation. `auth.failed` telemetry fires only after every path fails.
+The Worker becomes its **own OAuth 2.1 authorization server** via `@cloudflare/workers-oauth-provider` (pinned exact at 0.8.2 at the time; 1.2.3 since [ADR-0044](0044-mcp-oauth-canonical-resource-and-public-origin.md)), mounted as a **sub-router** from `worker.ts` — never `export default`-wrapped — with dual cheap-first validation on API routes: static `MCP_KEY_*` scan (constant-time, zero I/O, byte-identical legacy path) → `mcp_m2m_*` local JWT verify → provider token validation. `auth.failed` telemetry fires only after every path fails.
 
 Load-bearing choices:
 
@@ -27,10 +27,10 @@ Load-bearing choices:
 
 ## Consequences
 
-- **Surfaces added**: `/authorize` (consent), `/token` (library grants + our client_credentials branch), `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource`, `/oauth/introspect` (RFC 7662, admin-gated, with the M2M revocation cross-check), `/admin/oauth/clients*` + `/admin/oauth/m2m-clients*`. 401s on token-present failures now carry the RFC 9728 `resource_metadata` pointer.
+- **Surfaces added**: `/authorize` (consent), `/token` (library grants + our client_credentials branch), `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource`, `/oauth/introspect` (RFC 7662, admin-gated, with the M2M revocation cross-check), `/admin/oauth/clients*` + `/admin/oauth/m2m-clients*`. 401s on token-present failures now carry the RFC 9728 `resource_metadata` pointer. _(2026-10-11, [ADR-0044](0044-mcp-oauth-canonical-resource-and-public-origin.md): the protected-resource document is at `/.well-known/oauth-protected-resource/mcp` only, the whole surface answers on the configured public origin only, and the pointer rides every 401 for `/mcp`, bearer or not.)_
 - **New infrastructure**: `OAUTH_KV` namespaces (staging + production), `OAUTH_M2M_SIGNING_KEY` secret, the `global_fetch_strictly_public` compatibility flag (SSRF defense for CIMD's fetch of client-supplied metadata URLs — the flag's purpose, not an incidental toggle).
 - **Accepted trade-offs**: the library's refresh rotation briefly holds two valid refresh tokens (documented upstream compromise); M2M revocation is client-record deletion (blocks re-issuance; ≤1h token residual — introspection reports revoked-inactive; emergency = rotate the signing key, killing all M2M tokens); `completeAuthorization` revokes prior grants per user+client (re-consent replaces old tokens — pinned by integration test); the consent nonce non-atomicity above; introspection of library tokens depends on the pinned library version's `unwrapToken` helper.
-- **Operational notes**: a newly onboarded `OAUTH:<user>` / `M2M:<name>` keyOwner has no trailing 7-day mean, so its first busy hour above the traffic-spike floor can fire the ticket alert once — expected onboarding behavior (AUTH.md runbook). Under `unstable_dev`, the Worker's request origin is the wrangler.toml route hostname, not the local address (matters for audience-bound tests).
+- **Operational notes**: a newly onboarded `OAUTH:<user>` / `M2M:<name>` keyOwner has no trailing 7-day mean, so its first busy hour above the traffic-spike floor can fire the ticket alert once — expected onboarding behavior (AUTH.md runbook). Under `unstable_dev`, the Worker's request origin is the wrangler.toml route hostname, not the local address (matters for audience-bound tests) — over `https` since ADR-0044's `[dev] upstream_protocol`, so it equals the staging `PUBLIC_ORIGIN`.
 - **Code/docs that carry this decision**: `mcp-server/src/oauth/*`, `mcp-server/src/pipeline/handle-authenticated.ts`, `mcp-server/src/admin/oauth-clients.ts`, `ARCHITECTURE.md` § Auth, `operations/AUTH.md` (runbooks), `operations/REMOTE_CLIENT_SETUP.md` (native Connectors path), integration suites `tests/integration/oauth-*.test.ts`.
 
 ## Amendment — 2026-09-07 (BL-155): self-serve provisioning is permitted for a bounded trial tier

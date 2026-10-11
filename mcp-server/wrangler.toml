@@ -35,6 +35,20 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 # missing so the chain doesn't break when the token isn't bound.
 upload_source_maps = true
 
+# Local dev + the `unstable_dev` test harness only (never read on deploy).
+# With `--env staging` wrangler infers the upstream host from the staging
+# route; this makes the Worker see that host over https, as it does when
+# deployed, instead of http — so `url.origin` equals the staging
+# PUBLIC_ORIGIN (ADR-0044) and the OAuth library's https-only resource rule
+# holds under test and under `npm run dev:worker`.
+#
+# There is deliberately NO top-level `[vars] PUBLIC_ORIGIN`: plain
+# `wrangler dev` (no --env) has no route to infer a host from, so the OAuth
+# surface is off there (404) and only static keys authenticate. Use
+# `npm run dev:worker` to exercise OAuth locally.
+[dev]
+upstream_protocol = "https"
+
 # ---------------------------------------------------------------------------
 # Analytics Engine — typed-metric emission (BL-032.75 Phase 1)
 # ---------------------------------------------------------------------------
@@ -170,6 +184,11 @@ routes = [
 # non-sensitive routing metadata.
 [env.staging.vars]
 ENV_NAME = "staging"
+# The Worker's public origin (ADR-0044) — the one origin the OAuth surface
+# answers on and every token credential is honoured on; see
+# src/oauth/public-origin.ts. Per environment: wrangler does not inherit
+# vars into named environments, and unbound means the OAuth surface is off.
+PUBLIC_ORIGIN = "https://mcp-staging.globalstrategic.tech"
 # BL-155 Slice 2 — hostnames a Turnstile siteverify response must name for
 # the trial mint to accept it (exact, or `.suffix`). Staging accepts the
 # website's hosts, localhost, and any Vercel preview so the signup page can
@@ -257,6 +276,9 @@ routes = [
 # Environment discriminator — see staging block for rationale.
 [env.production.vars]
 ENV_NAME = "production"
+# ADR-0044 — see the staging block. The status/docs alias hostnames above
+# are deliberately NOT OAuth origins.
+PUBLIC_ORIGIN = "https://mcp.globalstrategic.tech"
 # BL-155 Slice 2 — see the staging block. Production accepts only the
 # website's own hosts; no TRIAL_EXTRA_ORIGINS here by design.
 TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech"

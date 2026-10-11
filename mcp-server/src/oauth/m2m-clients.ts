@@ -6,7 +6,7 @@
  * Records live in OAUTH_KV under `mcp:oauth:m2m-client:<client_id>` —
  * the same substrate as the library's own auth-code clients, but a
  * separate namespace because the library's grant model has no
- * client_credentials concept (verified against v0.8.2) and must never
+ * client_credentials concept (re-verified at 1.2.3) and must never
  * see these records.
  *
  * Secrets: 32-byte random base64url, shown ONCE at creation; only the

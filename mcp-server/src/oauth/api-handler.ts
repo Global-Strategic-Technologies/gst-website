@@ -1,11 +1,12 @@
 /**
  * OAuth API handler (BL-033 Slice 2) — invoked by workers-oauth-provider
- * AFTER it has validated an access token on an `apiRoute` path
- * (`/mcp`, `/radar/snapshot`). The decrypted grant `props` arrive on
- * `ctx.props`; this adapter rebuilds the `AuthSuccess` contract and
- * hands off to the shared post-auth pipeline, so OAuth callers get
- * byte-identical downstream behavior (rate limits keyed on
- * `OAUTH:<user>`, AE attribution, scope gating) to static-key callers.
+ * AFTER it has validated an access token on its one `apiRoute`, `/mcp`
+ * (`/radar/snapshot` is not an OAuth resource — ADR-0044). The decrypted
+ * grant `props` arrive on `ctx.props`; this adapter rebuilds the
+ * `AuthSuccess` contract and hands off to the shared post-auth pipeline,
+ * so OAuth callers get byte-identical downstream behavior (rate limits
+ * keyed on `OAUTH:<user>`, AE attribution, scope gating) to static-key
+ * callers.
  *
  * BL-155 Slice 2b: a KV-backed consent grant (trial credential pasted at
  * the consent page) additionally carries `tier`, `expiresAt` and

@@ -143,7 +143,7 @@ _(This section previously read "Why no E2E or integration tests yet" and describ
 The integration suite covers three bands:
 
 - **Protocol round-trips** — an in-process server + client pair exercising tool / resource / prompt discovery and JSON-RPC responses (`protocol-roundtrip`, `prompts-args-shape`, `resource-uri-stability`).
-- **Worker boot** — real `unstable_dev` Workers asserting the HTTP edge: auth, CORS, rate limiting, OAuth flows, the radar snapshot endpoint, and protocol-era behaviour (`protocol-era-worker`).
+- **Worker boot** — real `unstable_dev` Workers asserting the HTTP edge: auth, CORS, rate limiting, OAuth flows, the radar snapshot endpoint, and protocol-era behaviour (`protocol-era-worker`). They boot `env: 'staging'`, so the Worker sees the request origin `https://mcp-staging.globalstrategic.tech` (the staging route, over https via `[dev] upstream_protocol` in `wrangler.toml`) — equal to the staging `PUBLIC_ORIGIN`, which is what lets the OAuth surface answer under test. The harness pins that one origin and rewrites it inside response headers, so off-origin behaviour and full header strings are pinned in the node pool instead (`oauth-origin-gate.test.ts`).
 - **Contract guards** — manifest-hash stability and CONTRACT.md/USAGE.md parity, which fail on registry drift rather than on behaviour.
 
 There is still no browser E2E here; the website workspace owns that (Playwright), and this package has no browser surface.

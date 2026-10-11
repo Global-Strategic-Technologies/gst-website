@@ -256,15 +256,20 @@ function resolveKeyScopes(env: Record<string, unknown>, keyName: string): ScopeR
 /**
  * Build a `Response` from an `AuthFailure` envelope.
  *
- * BL-033 Slice 2: when the caller supplies the request origin AND a
- * bearer was actually presented (`invalid-token` / `malformed-scopes`),
- * the challenge advertises the OAuth discovery path per RFC 9728 —
- * `error="invalid_token"` + `resource_metadata` pointing at the
- * protected-resource metadata document — so OAuth-capable clients
- * auto-discover the login flow from the 401 itself. Probe-class
- * failures (`missing-header` / `empty-token` / `bad-scheme`) keep the
- * bare challenge: no bearer was sent, so there is nothing "invalid",
- * and scanner noise gets no extra bytes. The JSON body is unchanged
+ * ADR-0044: when the caller supplies `resourceMetadataUrl`, the challenge
+ * advertises the OAuth discovery path per RFC 9728 — a `resource_metadata`
+ * pointer at the protected-resource metadata document — so OAuth-capable
+ * clients discover the login flow from the 401 itself. worker.ts supplies
+ * it for EVERY 401 on `/mcp` at the public origin, including the no-bearer
+ * case: a client's first request carries no bearer, and the document lives
+ * at exactly one path, so the pointer is what makes discovery deterministic
+ * rather than a matter of which well-known URL a client happens to probe.
+ * `error="invalid_token"` is added only when a bearer was actually
+ * presented (`invalid-token` / `malformed-scopes`) — with no bearer there
+ * is nothing "invalid".
+ *
+ * Every other 401 (`/radar/snapshot`, alias hostnames, cleartext requests)
+ * passes no URL and keeps the bare challenge. The JSON body is unchanged
  * either way (legacy contract, asserted by tests/integration/auth.test.ts).
  */
 const TOKEN_PRESENT_REASONS: ReadonlySet<AuthFailureReason> = new Set([
@@ -272,14 +277,13 @@ const TOKEN_PRESENT_REASONS: ReadonlySet<AuthFailureReason> = new Set([
   'malformed-scopes',
 ]);
 
-export function authFailureResponse(failure: AuthFailure, requestOrigin?: string): Response {
+export function authFailureResponse(failure: AuthFailure, resourceMetadataUrl?: string): Response {
   let headers: Record<string, string> = { ...failure.headers };
-  if (requestOrigin && TOKEN_PRESENT_REASONS.has(failure.reason)) {
+  if (resourceMetadataUrl) {
+    const error = TOKEN_PRESENT_REASONS.has(failure.reason) ? ', error="invalid_token"' : '';
     headers = {
       ...headers,
-      'WWW-Authenticate':
-        `Bearer realm="gst-mcp", error="invalid_token", ` +
-        `resource_metadata="${requestOrigin}/.well-known/oauth-protected-resource"`,
+      'WWW-Authenticate': `Bearer realm="gst-mcp"${error}, resource_metadata="${resourceMetadataUrl}"`,
     };
   }
   return new Response(failure.bodyText, {

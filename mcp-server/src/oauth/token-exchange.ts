@@ -7,28 +7,34 @@
  * the trial would never end.
  *
  * How the binding works (verified against the installed
- * `@cloudflare/workers-oauth-provider` 0.10.3, `dist/oauth-provider.js`):
+ * `@cloudflare/workers-oauth-provider` 1.2.3, `dist/oauth-provider.js`):
  *   - On the `authorization_code` exchange the callback returns
  *     `refreshTokenTTL` = seconds until `expiresAt`. The library honours it
- *     there (`:1939`, `:1964`) — the GRANT record itself expires — and then
- *     refuses any refresh of a lapsed grant at `:2016-2019`, BEFORE this
- *     callback runs. That library check is the enforcement; there is no
- *     "throw past expiry" belt here because it would be unreachable, and
- *     importing `OAuthError` would drag `cloudflare:workers` into the unit
- *     test graph.
+ *     there (`:3593-3598`, `:3628-3633`) — the GRANT record itself expires —
+ *     and then refuses any refresh of a grant with under 60 s left at
+ *     `:3699`, BEFORE this callback runs. That library check is the
+ *     enforcement; there is no "throw past expiry" belt here because it
+ *     would be unreachable, and importing `OAuthError` would drag
+ *     `cloudflare:workers` into the unit test graph. (Since 1.1 a callback
+ *     that throws `OAuthError('invalid_grant')` also REVOKES the grant —
+ *     one more reason not to throw from here.)
  *   - `accessTokenTTL` is clamped to the remaining lifetime on BOTH grant
- *     types. The library clamps it on refresh (`:2077-2082`) but NOT on the
+ *     types. The library clamps it on refresh (`:3779-3782`) but NOT on the
  *     auth-code exchange, where the provider-level 3600 applies unclamped —
  *     so a consent at T+71h30m would otherwise hold a token past the trial.
  *     The refresh-side clamp duplicates the library's; kept so both branches
  *     read the same and the unit test pins one rule.
- *   - `refreshTokenTTL` is NEVER returned on a refresh exchange — in 0.10.3
- *     that is a hard `invalid_request` 400 (`:2056`), despite the d.ts
- *     comment saying it is ignored.
- *   - The 60 s floor matches the library's own minimum token TTL (`:2853`).
- *     In a trial's final minute the library's refresh clamp may then refuse
- *     with `invalid_request` rather than `invalid_grant` — cosmetic, noted
- *     in AUTH.md.
+ *   - `refreshTokenTTL` is returned on the code exchange ONLY. On a refresh
+ *     1.x ignores it (0.10.3 answered a hard 400), and a refresh never
+ *     extends a grant unless `refreshTokenIdleTTL` is set, which it is not —
+ *     so there is nothing for it to say there.
+ *   - Both TTLs are integers of at least 60: the library rejects anything
+ *     else with `invalid_request` (`isValidAccessTokenTTL`, `:5143`; the
+ *     floor is KV's minimum expiration, `:5073`). `Math.ceil` and the 60 s
+ *     floor below keep every return value inside that.
+ *   - In a trial's final minute a refresh is therefore refused as
+ *     `invalid_grant` ("Refresh token has expired", `:3699`) and the client
+ *     starts a new authorization — noted in AUTH.md.
  *
  * The hard stop for an access token that outlives `expiresAt` anyway is
  * `api-handler.ts`, which refuses a validated token whose props are past

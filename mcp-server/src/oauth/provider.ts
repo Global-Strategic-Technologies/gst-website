@@ -4,61 +4,97 @@
  * `export default`-wrapped: the hand-rolled pre-auth pipeline — health,
  * status, admin, route allowlist, withSentry wrap — keeps routing
  * control, and static-key traffic never passes through library response
- * shaping). Architecture decision + rejected alternatives: ADR-0008.
+ * shaping). Architecture decision + rejected alternatives: ADR-0008;
+ * the canonical resource and single-origin rule: ADR-0044.
+ *
+ * ONE protected resource, `<PUBLIC_ORIGIN>/mcp` — the same value the M2M
+ * path uses as its audience (`canonicalAudience`). The library (1.x) binds
+ * every token to it, refuses an `apiRoute` outside it, and compares a
+ * token's audience against the request URL, which is why worker.ts only
+ * delegates requests that arrived on the configured origin.
  *
  * What the library serves on delegated routes:
- *   /token                                    — issuance/refresh (PKCE S256 only)
- *   /.well-known/oauth-authorization-server   — RFC 8414 AS metadata
- *   /.well-known/oauth-protected-resource     — RFC 9728 PRM
- *   /authorize + /admin/oauth/clients*        — routed to our defaultHandler
- *                                               with env.OAUTH_PROVIDER injected
- *   /mcp, /radar/snapshot (valid token only)  — routed to our apiHandler
- *                                               with grant props on ctx.props
+ *   /token                                      — issuance/refresh (PKCE S256 only)
+ *   /.well-known/oauth-authorization-server     — RFC 8414 AS metadata
+ *   /.well-known/oauth-protected-resource/mcp   — RFC 9728 PRM; every other
+ *                                                 path under that prefix is 404
+ *   /authorize + /admin/oauth/clients*          — routed to our defaultHandler
+ *                                                 with env.OAUTH_PROVIDER injected
+ *   /mcp (valid token only)                     — routed to our apiHandler
+ *                                                 with grant props on ctx.props
+ *
+ * `/radar/snapshot` is NOT an OAuth resource: it is a machine endpoint
+ * served to static keys and M2M tokens only (ADR-0044).
  *
  * grant_type=client_credentials is NOT supported by the library
- * (verified against v0.8.2 types, re-verified at 0.10.3) — worker.ts
- * intercepts that grant before delegation and routes it to
- * oauth/m2m-token.ts.
+ * (re-verified at 1.2.3) — worker.ts intercepts that grant before
+ * delegation and routes it to oauth/m2m-token.ts.
  *
  * `tokenExchangeCallback` (BL-155 Slice 2b) runs on every auth-code and
  * refresh exchange; non-time-boxed grants exit it untouched. See
- * oauth/token-exchange.ts for the verified 0.10.3 semantics it relies on.
+ * oauth/token-exchange.ts for the verified 1.2.3 semantics it relies on.
  *
  * DCR (RFC 7591) is disabled by omitting `clientRegistrationEndpoint`
  * — clients are pre-registered via the admin endpoints (createClient)
  * or arrive as CIMD clients (client_id = HTTPS metadata-document URL;
  * requires the global_fetch_strictly_public compat flag, see
  * wrangler.toml).
+ *
+ * PKCE is S256-only and there is no implicit grant: since 1.2 that is the
+ * library's only mode (the options that could loosen it were removed).
  */
 
 import { OAuthProvider } from '@cloudflare/workers-oauth-provider';
 import { SCOPES_SUPPORTED } from '../auth/scopes';
 import { oauthApiHandler } from './api-handler';
 import { oauthDefaultHandler } from './default-handler';
+import { canonicalAudience } from './m2m-token';
+import { publicOrigin } from './public-origin';
 import { trialTokenExchange } from './token-exchange';
 
 // Declared in `auth/scopes.ts` (provider-free, so admin code and node-pool
 // tests can import it); re-exported here for existing importers.
 export { SCOPES_SUPPORTED };
 
-export const oauthProvider = new OAuthProvider({
-  apiRoute: ['/mcp', '/radar/snapshot'],
-  // Type casts: the library's handler generics default to Cloudflare.Env;
-  // our handlers are typed against the worker's own Env interface.
-  apiHandler: oauthApiHandler as never,
-  defaultHandler: oauthDefaultHandler as never,
-  authorizeEndpoint: '/authorize',
-  tokenEndpoint: '/token',
-  // No clientRegistrationEndpoint → DCR disabled (BL-033 AC:243; the
-  // MCP spec has demoted DCR to MAY — pre-registration + CIMD instead).
-  accessTokenTTL: 3600, // 1h — BL-033 AC:246 (also the library default; pinned explicitly)
-  // BL-155: binds a time-boxed consent grant to its record's expiresAt
-  // (refresh TTL at code exchange, access TTL clamp on both). Returns
-  // `undefined` — "no change" — for every grant without one.
-  tokenExchangeCallback: (options) => trialTokenExchange(options),
-  scopesSupported: [...SCOPES_SUPPORTED],
-  // OAuth 2.1 / MCP spec: S256 only — plain PKCE offers no cryptographic
-  // protection and every known MCP client sends S256.
-  allowPlainPKCE: false,
-  clientIdMetadataDocumentEnabled: true,
-});
+function buildProvider(origin: string) {
+  return new OAuthProvider({
+    apiRoute: ['/mcp'],
+    // Type casts: the library's handler generics default to Cloudflare.Env;
+    // our handlers are typed against the worker's own Env interface.
+    apiHandler: oauthApiHandler as never,
+    defaultHandler: oauthDefaultHandler as never,
+    authorizeEndpoint: '/authorize',
+    tokenEndpoint: '/token',
+    // The canonical protected resource — the RFC 8707 audience of every token.
+    resourceMetadata: { resource: canonicalAudience(origin) },
+    // No clientRegistrationEndpoint → DCR disabled (BL-033 AC:243; the
+    // MCP spec has demoted DCR to MAY — pre-registration + CIMD instead).
+    accessTokenTTL: 3600, // 1h — BL-033 AC:246 (also the library default; pinned explicitly)
+    // BL-155: binds a time-boxed consent grant to its record's expiresAt
+    // (refresh TTL at code exchange, access TTL clamp on both). Returns
+    // `undefined` — "no change" — for every grant without one.
+    tokenExchangeCallback: (options) => trialTokenExchange(options),
+    scopesSupported: [...SCOPES_SUPPORTED],
+    clientIdMetadataDocumentEnabled: true,
+  });
+}
+
+let cached: { origin: string; provider: ReturnType<typeof buildProvider> } | undefined;
+
+/**
+ * The provider for this deployment, built on first use from
+ * `PUBLIC_ORIGIN`. A deployment has one origin, so an isolate builds one
+ * instance — which matters: the library stores its helpers on
+ * `env.OAUTH_PROVIDER` once, bound to the provider that created them, so
+ * two live instances with different resources would share the first one's
+ * helpers. (The rebuild-on-change below only ever fires in the test suite,
+ * where one process hands the Worker differently configured `env` objects.)
+ * Returns `null` when the origin is unbound — callers gate on
+ * `isCanonicalOrigin` first, which is false in that case.
+ */
+export function getOAuthProvider(env: { PUBLIC_ORIGIN?: string }) {
+  const origin = publicOrigin(env);
+  if (origin === null) return null;
+  if (cached?.origin !== origin) cached = { origin, provider: buildProvider(origin) };
+  return cached.provider;
+}
