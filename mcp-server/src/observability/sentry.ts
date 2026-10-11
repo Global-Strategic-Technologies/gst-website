@@ -30,11 +30,39 @@
  * tokens. The auto-instrumentation that comes with `withSentry` already
  * scrubs Authorization headers from request data; we add `keyOwner` as a
  * tag instead.
+ *
+ * **Data collection (SDK v11)**: v11 replaced `sendDefaultPii` with
+ * `dataCollection`, and an UNSET `dataCollection` collects request and
+ * response bodies, user info (incl. inferred IP), cookies and headers by
+ * default. On this Worker a request body is the caller's tool input and a
+ * response body is the tool output, so `DATA_COLLECTION` below pins the v10
+ * baseline explicitly (the migration guide's "keep the v10 default"
+ * block — the same one the website passes in `sentry.data-collection.ts`).
+ * The SDK's built-in sensitive-key snippets (`auth`, `bearer`, `token`,
+ * `key`, `cookie`, …) are applied on top of any `deny` list, so
+ * Authorization / X-API-Key stay filtered either way.
  */
 
 import * as Sentry from '@sentry/cloudflare';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import type { Env } from '../env';
+
+const PII_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user'];
+
+export const DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: {
+    request: { deny: PII_HEADER_DENYLIST },
+    response: { deny: PII_HEADER_DENYLIST },
+  },
+  httpBodies: [],
+  urlQueryParams: { deny: PII_HEADER_DENYLIST },
+  genAI: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  graphQL: { document: false, variables: false },
+} satisfies CloudflareOptions['dataCollection'];
 
 /**
  * Sentry options callback used by `withSentry`. Returns undefined when
@@ -56,6 +84,8 @@ export function sentryOptions(env: Env): CloudflareOptions | undefined {
     ...(env.SENTRY_RELEASE ? { release: env.SENTRY_RELEASE } : {}),
     // Phase 5 baseline. BL-032.75 tunes against measured production rates.
     tracesSampleRate: 0.1,
+    // No tool inputs/outputs, IPs or cookies — see the header comment.
+    dataCollection: DATA_COLLECTION,
     // Apply tags to every event; per-request tags get layered on top via
     // tagRequest() inside the handler.
     initialScope: {
