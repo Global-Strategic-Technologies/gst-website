@@ -183,6 +183,7 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'Base_Ai_Cf_Deepseek_Ai_Deepseek_V4_Pro_0813',
   'Base_Ai_Cf_Google_Gemma_3_12B_It',
   'Base_Ai_Cf_Google_Gemma_4_26B_A4B_IT',
+  'Base_Ai_Cf_Google_Gemma_4_26B_A4B_It',
   'Base_Ai_Cf_Leonardo_Lucid_Origin',
   'Base_Ai_Cf_Leonardo_Phoenix_1_0',
   'Base_Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct',
@@ -196,6 +197,7 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'Base_Ai_Cf_Moonshotai_Kimi_K2_6',
   'Base_Ai_Cf_Moonshotai_Kimi_K2_7_Code',
   'Base_Ai_Cf_Nvidia_Nemotron_3_120B_A12B',
+  'Base_Ai_Cf_Nvidia_Nemotron_Speech_Streaming_En_0_6B',
   'Base_Ai_Cf_Openai_Gpt_Oss_120B',
   'Base_Ai_Cf_Openai_Gpt_Oss_20B',
   'Base_Ai_Cf_Openai_Whisper',
@@ -211,6 +213,7 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'Base_Ai_Cf_Unum_Uform_Gen2_Qwen_500M',
   'Base_Ai_Cf_Zai_Org_Glm_4_7_Flash',
   'Base_Ai_Cf_Zai_Org_Glm_5_2',
+  'Base_Ai_Cf_Zai_Org_Glm_5_3',
   'Base_Ai_Cf_Zai_Org_Glm_5_3_Flash',
   'Blob',
   'Body',
@@ -355,6 +358,7 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
  */
 const DECLARED_MODULES: ReadonlySet<string> = new Set([
   'assets:*',
+  'cloudflare:durable-objects',
   'cloudflare:email',
   'cloudflare:node',
   'cloudflare:pipelines',
