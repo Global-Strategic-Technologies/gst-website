@@ -132,6 +132,21 @@ describe('postSentryEvent', () => {
     expect(payload.release).toBe('abc1234');
   });
 
+  it('files the event under the deployment environment, and omits it when unbound', async () => {
+    // One DSN serves staging and production; an event with no
+    // `environment` is filed under "production" by Sentry.
+    await postSentryEvent({ ...env, ENV_NAME: 'staging' } as unknown as Env, {
+      level: 'info',
+      message: 'hi',
+    });
+    const tagged = JSON.parse((fetchSpy.mock.calls[0]![1].body as string).split('\n')[2]);
+    expect(tagged.environment).toBe('staging');
+
+    await postSentryEvent(env, { level: 'info', message: 'hi' });
+    const untagged = JSON.parse((fetchSpy.mock.calls[1]![1].body as string).split('\n')[2]);
+    expect(untagged).not.toHaveProperty('environment');
+  });
+
   it('does NOT POST when SENTRY_DSN is unbound', async () => {
     await postSentryEvent({} as Env, { level: 'info', message: 'hi' });
     expect(fetchSpy).not.toHaveBeenCalled();

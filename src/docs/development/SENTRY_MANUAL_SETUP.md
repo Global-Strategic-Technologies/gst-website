@@ -255,7 +255,7 @@ npx wrangler secret put SENTRY_DSN --env staging
 npx wrangler secret put SENTRY_DSN --env production
 ```
 
-> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is configured via Sentry environment tags inside the Worker, not separate DSNs.
+> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is the Sentry `environment` field, which the Worker sets from the `ENV_NAME` var (`staging` / `production`, `wrangler.toml`) on SDK events (`sentryOptions` in `src/observability/sentry.ts`) and on cron-posted events (`postSentryEvent` in `src/observability/sentry-envelope.ts`) — not separate DSNs. **Until 2026-10-11 the field was not set at all**, so every staging event was filed under `production`; an `auth.failed` alert from a staging deploy check that day read as a production alert. Events before that date cannot be told apart by environment — use the request URL host. Sentry Crons check-ins carry no environment; only production runs cron triggers, so the default (`production`) is already correct for them.
 
 ### How it's wired
 
@@ -338,7 +338,7 @@ Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Err
 
 ##### Alert 1 — MCP unhandled exception (Errors → Issues)
 
-- **Section 1 — Environment + project**: All Environments, gst-mcp-server
+- **Section 1 — Environment + project**: All Environments, gst-mcp-server. Alerts 1 and 2 were set up on All Environments, so a staging exception or a staging `auth.failed` burst still notifies — since 2026-10-11 the event is at least labelled `staging` rather than `production`. Scope the rule to `production` in the dashboard if staging should not notify at all.
 - **Section 2 — Set conditions**:
   - **WHEN** an event is captured by Sentry and **any** of the following happens → leave default `A new issue is created`
   - **IF** all/any filters match → can leave empty (every issue Sentry sees from `withSentry` is already an unhandled error). If you want to be explicit, add `The event's level equals error or fatal` with the **any** combinator (NOT **all** — `level=fatal AND level=error` is unsatisfiable since level is single-valued)
