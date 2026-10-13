@@ -17,12 +17,11 @@
  * worker.ts → oauth/* → worker.ts.
  */
 
-// Narrowed from `agents/mcp` (BL-106): that barrel carries the whole Durable
-// Object / RPC / event-store surface including the now-`@deprecated`,
-// feature-frozen `McpAgent`. `agents/mcp/server` exports only the stateless
-// handler and is the target Cloudflare's own deprecation notice names.
+// The SDK's own handler, called directly (ADR-0045). Until 0.69.0 this came
+// from Cloudflare's `agents/mcp/server`, a wrapper over this same function
+// whose exact peer pin on the SDK meant the two could only move together.
 import type { ExecutionContext } from '@cloudflare/workers-types';
-import { createMcpHandler } from 'agents/mcp/server';
+import { createMcpHandler } from '@modelcontextprotocol/server';
 import { createServer } from '../server';
 import type { AuthSuccess } from '../auth/bearer';
 import { withCors } from '../auth/cors';
@@ -55,6 +54,12 @@ import { FYI_FETCH_COUNT } from '../content/radar-transform';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { Env } from '../env';
+
+/** The one path MCP is served on. */
+const MCP_PATH = '/mcp';
+
+/** Request-body ceiling handed to the SDK handler — see its call site. */
+const MAX_REQUEST_BODY_BYTES = 100 * 1024 * 1024;
 
 /** BL-166 — the refusal text for a batch carrying a `tools/call`. */
 export const BATCHED_TOOL_CALL_MESSAGE = 'JSON-RPC batches may not contain tools/call';
@@ -464,36 +469,36 @@ export async function handleAuthenticated(
       // telemetry rather than inference, that no caller is opening with
       // `initialize`. The `era` discriminator below is what makes that
       // checkable.
+      //
+      // One property of this lane to know before adding a tool that asks
+      // the client something: a server-to-client REQUEST (elicitation,
+      // sampling, roots) cannot be answered here — a stateless POST has no
+      // channel back — and the SDK's fallback does not reliably fail it
+      // fast: a sampling or roots request is left waiting for the request
+      // timeout. Nothing issues one today (logging notifications are not
+      // requests). See ADR-0045.
       legacy: 'stateless',
 
-      // `cors.ts` owns origin policy exclusively — these two options are what
-      // make that true, and both are load-bearing:
-      //
-      //  - `allowedOriginHostnames: '*'` disables the handler's OWN origin
-      //    gate. Without it the accepted set defaults to the localhost trio
-      //    (localhost / 127.0.0.1 / [::1]); `mcp.globalstrategic.tech` is
-      //    neither localhost nor *.workers.dev, so EVERY request carrying
-      //    `Origin: https://claude.ai` would be answered 403 — precisely the
-      //    browser-client case the allowlist exists to serve. The legacy
-      //    handler had no such gate, so this would have been a new failure
-      //    mode introduced by the migration rather than a pre-existing one.
-      //  - `corsOptions: false` stops the handler emitting its own CORS
-      //    headers, which default to `Access-Control-Allow-Origin: *`.
-      //    `withCors` only overwrites that for allowlisted origins, so
-      //    no-Origin and disallowed-origin responses were shipping the
-      //    wildcard that ARCHITECTURE.md § CORS (Q5) calls deliberately
-      //    forbidden. Pre-existing defect, closed here.
-      //
-      // Consequence worth knowing: after this the handler performs no origin
-      // or host gating at all (host validation also no-ops on a custom
-      // domain). `src/auth/cors.ts` is the single origin authority.
-      allowedOriginHostnames: '*',
-      corsOptions: false,
+      // No origin, host or CORS options appear here because the SDK handler
+      // has none: it is validation-free by design, performs no origin or host
+      // gating and emits no `Access-Control-*` header. `src/auth/cors.ts` is
+      // the single origin authority, applied by `withCors` below. (The
+      // `agents` wrapper this replaced had its own origin gate and wildcard
+      // CORS, both of which had to be switched off — ADR-0045.)
 
-      // Out-of-band handler errors are otherwise invisible: the SDK answers
-      // the client with a bare `-32603 Internal server error` and the reason
-      // never reaches our logs. Route it to safeLog so `wrangler tail` shows
-      // the cause. Reporting only — this never alters the wire response.
+      // The SDK caps request bodies at 4 MiB by default and answers 413
+      // above it, on both lanes. Nothing capped them before 0.69.0, and a
+      // ceiling that false-trips a legitimate large tool call buys nothing
+      // here: `inspectToolCalls` has already read the whole body by this
+      // point. The option must be a finite number, so this is set far above
+      // any real payload rather than switched off.
+      maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
+
+      // Handler errors are otherwise invisible: the SDK answers the client
+      // with a bare `-32603 Internal server error` and the reason never
+      // reaches our logs. It also reports the requests it refuses. Route both
+      // to safeLog so `wrangler tail` shows the cause. Reporting only — this
+      // never alters the wire response.
       onerror: (err: Error) => {
         safeLog({
           event: 'mcp.handler.error',
@@ -504,7 +509,15 @@ export async function handleAuthenticated(
       },
     }
   );
-  const response = await mcp(request, env, ctx);
+  // MCP is served on `/mcp` exactly. The SDK handler matches no path, and
+  // `isRoutedPath` in worker.ts admits `/mcp/*` and any method on
+  // `/radar/snapshot`, so without this an authenticated POST to either would
+  // be answered as MCP. Checked here, not earlier, so the request is still
+  // rate-limited, logged and CORS-wrapped like every other.
+  const response =
+    url.pathname === MCP_PATH
+      ? await mcp.fetch(request)
+      : new Response('Not Found', { status: 404 });
   const durationMs = Date.now() - startedAt;
 
   safeLog({

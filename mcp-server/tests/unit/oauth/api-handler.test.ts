@@ -4,7 +4,7 @@
  * Pins the props → AuthSuccess threading (tier, rateLimitSubject) and the
  * hard stop: a validated token whose grant props are past `expiresAt` is
  * refused before the pipeline runs. The pipeline module is mocked so the
- * `agents/mcp` / Upstash graph never loads in the node pool.
+ * MCP handler / Upstash graph never loads in the node pool.
  */
 
 import type { ExecutionContext } from '@cloudflare/workers-types';

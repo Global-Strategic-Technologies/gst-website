@@ -31,9 +31,10 @@
  * radar tool + radar Resources (Node-only via radar-snapshot.ts — see
  * BL-032 Q12). This Worker entrypoint never touches those.
  *
- * Streamable HTTP transport is provided by Cloudflare's `agents/mcp`
- * package — `createMcpHandler` adapts an `McpServer` instance to the
- * Worker's Web `Request` / `Response` runtime. Default route is `/mcp`.
+ * Streamable HTTP transport is the MCP SDK's own `createMcpHandler`
+ * (ADR-0045) — it adapts a per-request `McpServer` factory to the Worker's
+ * Web `Request` / `Response` runtime. It matches no path itself; the
+ * pipeline serves it on `/mcp` exactly.
  *
  * Request flow (post-Phase-2):
  *   CORS preflight? → 204 with allowed-origin headers
@@ -104,10 +105,11 @@ export type { Env } from './env';
  * doesn't return true here gets a 404 before the auth path runs (see the
  * fetch handler step 3 comment for rationale + Sentry-noise impact).
  *
- *   - `/mcp`             — exact + sub-paths: `agents/mcp`'s
- *                          `createMcpHandler` serves the JSON-RPC endpoint
- *                          at `/mcp` and may use sub-paths for session
- *                          resume. Prefix match keeps that surface intact.
+ *   - `/mcp`             — exact + sub-paths, because that is the OAuth
+ *                          resource (ADR-0044). Only `/mcp` itself serves
+ *                          MCP: an authenticated request to a sub-path
+ *                          gets the pipeline's 404, an unauthenticated
+ *                          one the same 401 challenge as `/mcp`.
  *   - `/radar/snapshot`  — exact: single GET endpoint, no sub-paths.
  *   - `/health`          — handled before this check; included here only
  *                          for documentation completeness (the predicate
@@ -576,9 +578,9 @@ export const handler: ExportedHandler<Env> = {
     //    quota burn. Cloudflare's edge already filters most scanner
     //    traffic; this catches what gets through.
     //
-    //    The /mcp path is matched by prefix because the underlying
-    //    `agents/mcp` handler may serve sub-paths (e.g. session resume).
-    //    /radar/snapshot is exact-match because it's a single endpoint.
+    //    The /mcp path is matched by prefix because the OAuth resource is
+    //    (see `isRoutedPath`); /radar/snapshot is exact-match because it's
+    //    a single endpoint.
     if (!isRoutedPath(url.pathname)) {
       // No safeLog for 404s either — high-volume, low-signal. If we ever
       // need to investigate scanner traffic, Cloudflare's request-log

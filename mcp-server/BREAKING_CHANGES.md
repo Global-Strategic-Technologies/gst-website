@@ -35,6 +35,38 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.69.0 — 2026-10-13 — the Worker serves MCP through the SDK's `createMcpHandler` directly; `agents` removed; `@modelcontextprotocol/server` 2.0.0 → 2.3.1
+
+**Two new refusals on the remote (Worker) transport — one on the modern lane, one on the legacy lane; nothing changes for stdio.** `serveStdio`'s signature is unchanged. No tool, prompt, or Resource URI is added, renamed, or removed, so **the manifest hash is unchanged** — this is a transport change of the kind the header says that guard will not catch. Both protocol eras are still served (`legacy: 'stateless'`, as since 0.44.1). Design and rejected options: [ADR-0045](../src/docs/adr/0045-mcp-served-by-the-sdk-handler-agents-removed.md).
+
+**What forced it.** Cloudflare's `agents` package, which wrapped the SDK handler, declares `@modelcontextprotocol/server` as an exact peer (`2.0.0`), so bumping the SDK (Dependabot PR #535) installed two copies and failed `tsc`. The Worker now imports `createMcpHandler` from `@modelcontextprotocol/server` and `agents` is no longer a dependency.
+
+**Changed**
+
+- **A modern request without the `MCP-Protocol-Version` header is refused** (SDK 2.1.0). A request whose body carries the modern `_meta` envelope claim but omits the header is answered **HTTP 400, JSON-RPC `-32020`**. It was served before. 2025-era requests — `initialize`, and calls with no envelope — still classify as legacy and are served as before, so this is not the 0.44.0 failure path.
+- **A JSON-RPC batch of more than 100 messages is refused** (SDK 2.1.0) with **HTTP 400, `-32600`**. Batch arrays are served on the legacy lane, so this is a legacy-lane refusal. (A batch carrying any `tools/call` was already refused, since 0.67.0.)
+- **Legacy lane, two edge cases.** A factory throw now echoes the request `id` in its `-32603` body (was `id: null`). An already-aborted legacy request no longer gets a 499; the modern lane still returns 499.
+
+**Deliberately not changed**
+
+- **Request body size.** SDK 2.1.0 and later refuse a body over 4 MiB with 413, on both lanes. That default is **not** adopted: `maxRequestBodySize` is set to 100 MiB — far above any real payload; the SDK requires a finite value. Nothing capped bodies before, so there is effectively no change for clients.
+- **Path, origin and CORS behaviour.** `/mcp` is still the only path that serves MCP: an authenticated request to `/mcp/<anything>`, or a non-GET to `/radar/snapshot`, is still 404 — the check moved from the wrapper into our pipeline. As before, the pipeline's gates and rate limiter run first, so such a request can be refused by one of them before it reaches the 404. `src/auth/cors.ts` is still the only origin policy; the SDK handler has none of its own.
+- **Error reporting.** A handler throw is still HTTP 500, `-32603`, and still logged as `mcp.handler.error`.
+
+**Client impact**
+
+- **stdio clients**: none.
+- **2025-era remote clients** (the `initialize` path Claude Desktop uses): none unless they send a batch of more than 100 messages, which is now refused; otherwise only the two legacy edge cases above.
+- **Modern-era remote clients**: none if they send `MCP-Protocol-Version`. One that sends the envelope without the header now gets the 400 above. Before the production approval, query persisted Worker logs for `mcp.request` with `era: modern`, by `keyOwner`, to confirm which modern-lane callers exist.
+
+**After deploy, watch** `mcp.request` lines with status 400 and `era: no-factory-run` (a request the handler refused before dispatch — the missing-header case), and `mcp.handler.error`. An oversized batch is refused after the factory has run, so its line carries `era: legacy` with status 400.
+
+**Dependency note.** `@modelcontextprotocol/server` is MIT through 2.2.0 and Apache-2.0 from 2.3.0. `nodejs_compat` stays in `wrangler.toml`: our own Worker code imports `node:crypto` and `node:process`.
+
+**Rollback stays safe.** `rollback-mcp.yml` to the previous Worker version; no KV or other stored state is involved either way.
+
+---
+
 ## 0.68.0 — 2026-10-11 — one OAuth resource (`<origin>/mcp`) on one configured origin; `@cloudflare/workers-oauth-provider` 0.10.3 → 1.2.3
 
 **Breaking at the OAuth edge of the remote (Worker) transport; nothing changes for static-key callers or for stdio.** No tool, prompt, or Resource URI is added, renamed, or removed, so **the manifest hash is unchanged** — this is a transport change of the kind the header says that guard will not catch. Design and rejected options: [ADR-0044](../src/docs/adr/0044-mcp-oauth-canonical-resource-and-public-origin.md).

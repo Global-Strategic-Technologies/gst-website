@@ -1,6 +1,6 @@
 # ADR-0013: The MCP Worker serves protocol `2026-07-28` only; stdio keeps serving the legacy era
 
-- **Status**: Accepted (2026-08-03, `@gst/mcp-server` 0.44.0); **decision 1 reverted 2026-08-04** (0.44.1 — modern-only broke Claude Desktop in production; both eras are served; see the amendment below)
+- **Status**: Accepted (2026-08-03, `@gst/mcp-server` 0.44.0); **decision 1 reverted 2026-08-04** (0.44.1 — modern-only broke Claude Desktop in production; both eras are served; see the amendment below); **decision 4 superseded 2026-10-13** by [ADR-0045](0045-mcp-served-by-the-sdk-handler-agents-removed.md) (0.69.0 — `agents` is removed; see the second amendment below)
 - **Source initiative**: BL-106 (closed 2026-08-04; design doc archived at [`../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md))
 
 ## Context
@@ -85,3 +85,25 @@ The irony is that this ADR already contains the correct reasoning, applied to th
 ### The standing rule
 
 **Do not set the Worker to `legacy: 'reject'` again without first confirming from `mcp.request.era` telemetry — not from inference about who the clients are — that nothing is opening with `initialize`.** The original revisit trigger ("a client requires `2025-11-25`") was satisfied on day one; it just had no instrument capable of reporting it.
+
+---
+
+## Amendment — 2026-10-13: decision 4 superseded by ADR-0045
+
+**Decision 4 (keep the `agents` dependency) is superseded by [ADR-0045](0045-mcp-served-by-the-sdk-handler-agents-removed.md).** As of `@gst/mcp-server` 0.69.0 the Worker imports `createMcpHandler` from `@modelcontextprotocol/server` directly and `agents` is no longer a dependency. Decisions 2, 3, 5 and 6 stand, as does the 2026-08-04 reversal of decision 1. The body above is left as written; the statements in it that no longer describe the system are listed here.
+
+### What forced it
+
+`agents` declares `@modelcontextprotocol/server` as an exact peer, so the SDK could only move when `agents` moved its pin. Dependabot PR #535 (server 2.0.0 → 2.3.1) installed two SDK copies and failed `tsc`. The repo owner decided on 2026-10-13 to remove the package rather than wait for a release that moved the pin. Of decision 4's three reasons, the third — `agents` as the Durable Objects / Workflows path — is carried forward as ADR-0045's revisit trigger.
+
+### Statements above that no longer hold
+
+- **Decision 3, the mechanism.** `allowedOriginHostnames: '*'` and `corsOptions: false` were options of the `agents` wrapper and are gone. The SDK handler has no origin gate and emits no CORS headers, so there is nothing to disable. The decision itself — `src/auth/cors.ts` is the sole origin authority — is unchanged, and so is the accepted spec deviation recorded under Consequences.
+- **Decision 4**, in full. Its closing sentence named what remained of the wrapper: exact `/mcp` route matching and the `AsyncLocalStorage` auth-context wrapper. The route match is now a check at the dispatch point in `handle-authenticated.ts`; the auth-context wrapper had no reader and was dropped.
+- **Compatibility, the enum attribution.** `'stateless' | 'reject'` is the SDK's own `createMcpHandler` option, not `agents`'. `serveStdio` still takes `'serve' | 'reject'`.
+- **The open question about `getMcpAuthContext`** is closed. The symbol left with the package; nothing in `mcp-server/src` read it.
+- **`nodejs_compat`, the reason.** The flag still cannot be retired, but not because of the `agents` handler's `node:async_hooks` import, which is gone. Our own Worker code imports `node:crypto` and `node:process`.
+- **"`@modelcontextprotocol/sdk@1.30.0` remains in the dependency tree … the `overrides` entry … must stay."** The package left the tree with `agents`. The root `overrides` for it and for `@modelcontextprotocol/client` are removed.
+- **The revisit trigger "`agents` ships the major that removes the v1 path"** is moot. The trigger "the Tasks deferral fires (decision 4's reversibility note)" now points at ADR-0045: it is the trigger to consider re-adopting `agents`.
+
+The construction-time `-32603` edge under Operational edges still holds; it is a property of the factory shape, which did not change.

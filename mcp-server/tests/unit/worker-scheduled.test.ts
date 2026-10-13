@@ -24,9 +24,9 @@
  *   - `ctx.waitUntil` always resolves cleanly (no unhandled rejection)
  */
 
-// `@sentry/cloudflare` + `agents/mcp` use the `cloudflare:workers` URL
-// scheme internally — Node's default ESM loader rejects it. Mock both
-// at the package boundary so importing worker.ts doesn't crash.
+// `@sentry/cloudflare` uses the `cloudflare:workers` URL scheme internally —
+// Node's default ESM loader rejects it. Mock it at the package boundary so
+// importing worker.ts doesn't crash.
 const {
   withSentryMock,
   mockPostCheckIn,
@@ -52,10 +52,6 @@ vi.mock('@sentry/cloudflare', () => ({
   captureMessage: vi.fn(),
   setTag: vi.fn(),
   withSentry: withSentryMock,
-}));
-vi.mock('agents/mcp', () => ({
-  createMcpHandler: () => async () =>
-    new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
 }));
 // workers-oauth-provider imports `cloudflare:workers` (unresolvable in the
 // Node pool); the scheduled handler never touches the OAuth sub-router.

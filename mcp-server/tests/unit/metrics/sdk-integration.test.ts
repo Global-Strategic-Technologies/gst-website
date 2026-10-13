@@ -13,7 +13,7 @@
  * landed. If either the registration or the invocation typechecks fail, the
  * test won't compile — making this both a runtime AND a compile-time check.
  *
- * Lightweight (no Worker runtime, no `agents/mcp` adapter) — focused on the
+ * Lightweight (no Worker runtime, no HTTP handler) — focused on the
  * SDK's own `McpServer` + `Client` types. The bigger end-to-end integration
  * test (Step 7) will exercise the full `createServer` → `Client` round-trip.
  */
