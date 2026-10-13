@@ -1,6 +1,6 @@
 # ADR-0010: Per-client rate-limit tiers carried in the token claim; soft-limit warnings over the SSE notification channel
 
-- **Status**: Accepted 2026-07-26 (0.41.0); **amended 2026-08-04** (BL-106 — the soft-limit channel rides the Logging capability, which SEP-2577 deprecates; see the amendment below)
+- **Status**: Accepted 2026-07-26 (0.41.0); **amended 2026-08-04** (BL-106 — the soft-limit channel rides the Logging capability, which SEP-2577 deprecates; see the amendment below); **re-validated 2026-10-13** (server 0.69.0 — the SSE response-mode claim now holds on the legacy lane only; see the re-validation below)
 - **Source initiative**: BL-033 External Pilot (Phase 3), Slice 5 — the "Rate limiting (per-client, contractual)" AC block ([BACKLOG.md § BL-033](../development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3)). Builds on [ADR-0008](0008-mcp-oauth-embedded-authorization-server.md) (self-contained M2M tokens) and [ADR-0006](0006-inoreader-zone1-budget-protection.md) (Inoreader Zone-1 budget / circuit breaker).
 
 ## Context
@@ -55,3 +55,12 @@ The 80%-consumed soft-limit warning is a `notifications/message`, which requires
 Verified survivable on the SDK v2 path — the compat adapter intercepts only JSON-RPC requests, so notifications pass through unaltered. Two implementation notes from BL-106: the notifier moved from v1's flat `extra.sendNotification` to `ctx.mcpReq.notify`, and locating it by duck-typing would have failed **silently** (the emit is contractually non-throwing), so `with-metrics.ts` now derives its view from the SDK's own `ServerContext` type and a rename is a compile error.
 
 **Revisit trigger** (in addition to those above): SEP-2577's Logging removal moves from deprecated to scheduled — at which point the choice is the `RateLimit-*` headers, an ack'd backpressure channel if the spec defines one by then, or dropping the in-band warning.
+
+## Re-validation — 2026-10-13 (server 0.69.0, [ADR-0045](0045-mcp-served-by-the-sdk-handler-agents-removed.md)): the response mode differs per lane
+
+The transport analysis under decision 2 was verified against the `agents` + `@modelcontextprotocol/sdk` (v1) packages, and cites v1 file paths. Neither package is installed any more: the Worker calls `createMcpHandler` from `@modelcontextprotocol/server` directly. Re-read against the installed `@modelcontextprotocol/server@2.3.1` (`dist/index.mjs`), the statement "every `tools/call` POST is answered with `text/event-stream`" now holds on one lane only:
+
+- **Legacy (2025-era) lane** — still true. The stateless fallback builds a `WebStandardStreamableHTTPServerTransport` with `sessionIdGenerator: undefined` and no `enableJsonResponse`, which defaults to off, so a POST carrying a JSON-RPC request is answered `text/event-stream`. This is the lane Claude Desktop uses.
+- **Modern lane** — no longer true as written. We pass no `responseMode`, so the per-request transport runs in its default `auto` mode: a result with nothing sent before it is answered `application/json`, and the response becomes `text/event-stream` only when a message related to the request is sent before the result. The soft-limit `notifications/message` is such a message — a handler's notifications carry the request's id as `relatedRequestId` — so emitting it is what opens the stream.
+
+The decision is unchanged: the notification has a channel on both lanes, and it stays best-effort with the `RateLimit-*` headers as the guaranteed signal. What changed is that a modern-lane `tools/call` which emits no notification gets a JSON response. This was read from the SDK source, not observed on the wire: the Worker suites read either response shape (`readJsonRpc` in `mcp-server/tests/integration/protocol-era-worker.test.ts` branches on the `Content-Type`) and none asserts which one a lane returns.

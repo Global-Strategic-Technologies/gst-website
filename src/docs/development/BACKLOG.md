@@ -1308,6 +1308,6 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 #### Technical Context
 
-- **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. That is the trigger to reconsider ADR-0013 decision 4 (keeping `agents` as a thin adapter rather than dropping it)
-- **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.0.0` and both features are available today; the only thing missing is someone to use them
+- **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. `agents` was removed in server 0.69.0 (2026-10-13), which superseded ADR-0013 decision 4, so Tasks activating is now the trigger to revisit [ADR-0045](../adr/0045-mcp-served-by-the-sdk-handler-agents-removed.md) — that is, to consider re-adopting `agents` for that surface, which would bring back its exact peer pin on the SDK
+- **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.3.1` (`2.0.0` when this stanza was written, where both features were already available); the only thing missing is someone to use them
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)

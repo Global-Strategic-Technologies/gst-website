@@ -57,7 +57,7 @@ Consequently the three type-position sites were **retyped to `Uint8Array`** (Buf
 
 Two scans, deliberately different in scope. The churny **snapshot** covers `declare …` statements only. The sharp **collision check** against `NODE_GLOBALS_AT_RISK` also scans the ~800 top-level `interface` / `type` declarations the file writes _without_ the keyword — equally global, and excluded from the snapshot only because an 800-name baseline gets regenerated rather than read. That split matters for one name in particular: the `NodeJS.Process` annotations below depend on the `NodeJS` namespace, so a future bare `namespace NodeJS { … }` has to be caught, and the snapshot alone would miss it.
 
-It resolves the package subpath explicitly and asserts the installed version satisfies mcp-server's declared spec, because two copies exist (nested 5.x; root-hoisted 4.x via `agents → partyserver`) and the package ships no `main`/`types`/`exports` for `require.resolve` to work with. Without that, a hoist change would let it validate the v4 tree and pass vacuously.
+It resolves the package subpath explicitly and asserts the installed version satisfies mcp-server's declared spec, because two copies exist (nested 5.x; root-hoisted 4.x via `agents → partyserver`) and the package ships no `main`/`types`/`exports` for `require.resolve` to work with. Without that, a hoist change would let it validate the v4 tree and pass vacuously. _(Re-measured 2026-10-13: `agents` left the tree in server 0.69.0, [ADR-0045](0045-mcp-served-by-the-sdk-handler-agents-removed.md), and `npm ls @cloudflare/workers-types --all` now shows a single `5.x` copy. The explicit resolution is unchanged.)_
 
 ## Consequences
 
