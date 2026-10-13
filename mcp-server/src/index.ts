@@ -29,7 +29,7 @@
  * To go modern-only on either transport later, confirm from the
  * `mcp.request.era` telemetry that nothing is opening with `initialize`
  * FIRST. Note the tokens differ — `serveStdio` takes `'serve' | 'reject'`
- * while the `agents` handler takes `'stateless' | 'reject'`.
+ * while the Worker's `createMcpHandler` takes `'stateless' | 'reject'`.
  */
 
 // Default import — `@types/node/process.d.ts` is `export = process`.

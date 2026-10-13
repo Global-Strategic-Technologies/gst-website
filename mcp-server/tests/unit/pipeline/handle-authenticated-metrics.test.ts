@@ -7,23 +7,27 @@
  * has exactly the observability of no emitter at all, which is the failure
  * this whole change exists to fix. Hence a test that drives the real handler.
  *
- * **Why `agents/mcp/server` is mocked.** `handle-authenticated.ts` had no unit
- * test before this — the only test naming it (`tests/unit/oauth/api-handler`)
- * mocks the module wholesale — and importing it un-mocked under vitest's
- * `environment: 'node'` HANGS (measured: a bare `await import(...)` times out
- * at 5s; with this one mock in place the same import resolves in ~1.5s). The
- * culprit is the `agents/mcp/server` module-scope import, which expects the
- * workerd runtime. Mocking that one dependency is deliberately preferred over
- * an `unstable_dev` worker test: BL-149 tracks `unstable_dev` as the flakiest
- * harness in this suite, and nothing asserted here needs a real Worker — both
- * refusal paths return BEFORE any MCP handler is constructed.
+ * **Why `createMcpHandler` is mocked.** Not to make the module importable —
+ * that was the reason while the handler came from `agents/mcp/server`, whose
+ * module-scope import hung under vitest's `environment: 'node'`. The SDK's
+ * own handler imports cleanly here (measured: this file runs un-mocked in
+ * under 3s). It is mocked so the cases that get PAST the gates stop at a spy
+ * instead of running a real MCP exchange: what this file asserts is which
+ * branch the pipeline took, and the spy is also how the dispatch cases at the
+ * bottom see whether the handler was reached and with what. The wire behaviour
+ * of the real handler is `tests/integration/protocol-era-worker.test.ts`.
+ *
+ * The mock is partial because `src/server.ts` needs the real `McpServer`
+ * from the same package.
  */
 import type { ExecutionContext } from '@cloudflare/workers-types';
 
-// `createMcpHandler` returns the fetch handler itself, not an object wrapping
-// one — the pipeline calls the result directly as `mcp(request, env, ctx)`.
-vi.mock('agents/mcp/server', () => ({
-  createMcpHandler: vi.fn(() => vi.fn(async () => new Response('ok'))),
+// `createMcpHandler` returns an object wrapping the fetch handler, not the
+// handler itself — the pipeline calls `mcp.fetch(request)`.
+const { mcpFetch } = vi.hoisted(() => ({ mcpFetch: vi.fn(async () => new Response('ok')) }));
+vi.mock('@modelcontextprotocol/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@modelcontextprotocol/server')>()),
+  createMcpHandler: vi.fn(() => ({ fetch: mcpFetch })),
 }));
 
 // `vi.mock` is hoisted above every `const`, so the doubles it closes over must
@@ -102,6 +106,7 @@ beforeEach(() => {
   aePoints.length = 0;
   metricsDataset.writeDataPoint.mockClear();
   check.mockReset();
+  mcpFetch.mockClear();
   limiter.mockReset();
   limiter.mockReturnValue({ check });
 });
@@ -390,4 +395,43 @@ describe('scope denial → scope_denial event (BL-159)', () => {
 
     expect(eventsOfType('scope_denial')).toEqual([]);
   });
+});
+
+describe('MCP dispatch → the SDK handler, on /mcp only', () => {
+  const post = (path: string) =>
+    new Request(`https://mcp.test${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+
+  it('hands /mcp to the handler with the request and nothing else', async () => {
+    // The second parameter of the SDK's `fetch` is `{ authInfo, parsedBody }`.
+    // The wrapper this replaced was called as `(request, env, ctx)`; carrying
+    // that shape over would pass `env` into the options slot.
+    check.mockResolvedValue(allowed());
+    const request = post('/mcp');
+
+    const res = await handleAuthenticated(request, env(), ctx(), paidAuth);
+
+    expect(res.status).toBe(200);
+    expect(mcpFetch).toHaveBeenCalledTimes(1);
+    expect(mcpFetch).toHaveBeenCalledWith(request);
+  });
+
+  // The SDK handler matches no path, and worker.ts routes both of these to
+  // the pipeline. They are still rate-limited — the 404 is the dispatch
+  // point's answer, not an early return.
+  it.each(['/mcp/extra', '/radar/snapshot'])(
+    'answers 404 to POST %s without reaching the handler',
+    async (path) => {
+      check.mockResolvedValue(allowed());
+
+      const res = await handleAuthenticated(post(path), env(), ctx(), paidAuth);
+
+      expect(res.status).toBe(404);
+      expect(mcpFetch).not.toHaveBeenCalled();
+      expect(check).toHaveBeenCalledTimes(1);
+    }
+  );
 });

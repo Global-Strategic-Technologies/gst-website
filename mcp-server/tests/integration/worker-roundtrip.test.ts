@@ -12,7 +12,7 @@
  *   - the handler routes /health correctly
  *   - createServer() loads on the Worker runtime without pulling Node-only
  *     modules from `_local-only.ts` (search_radar_cache + radar Resources)
- *   - `agents/mcp`'s createMcpHandler integrates with our McpServer instance
+ *   - the SDK's createMcpHandler integrates with our McpServer factory
  *
  * Full MCP protocol roundtrip (initialize + tools/list + tools/call over
  * Streamable HTTP) is Phase 6 verification — that's where auth + rate-limit

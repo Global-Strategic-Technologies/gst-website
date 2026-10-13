@@ -1,6 +1,6 @@
 {
   "name": "@gst/mcp-server",
-  "version": "0.68.0",
+  "version": "0.69.0",
   "description": "MCP server (local stdio and Cloudflare Worker) exposing the GST Hub surface (diligence, portfolio, ICG, TechPar, Tech Debt, Regulations, Radar) and Library + Regulation + Radar Resources.",
   "type": "module",
   "private": true,
@@ -34,11 +34,10 @@
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
     "@cloudflare/workers-oauth-provider": "1.2.3",
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "2.3.1",
     "@sentry/cloudflare": "^11.4.0",
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.39.0",
-    "agents": "^0.24.0",
     "fflate": "^0.8.3",
     "xlsx-js-style": "^1.2.0",
     "zod": "^4.6.5"

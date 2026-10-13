@@ -8,14 +8,15 @@
  * This file exists because the migration to the SDK v2 stateless handler
  * introduced two failure modes that NOTHING else in the suite would catch:
  *
- *   1. **The origin gate.** The v2 handler runs its own Host/Origin check
- *      before the SDK. Left at its default, the accepted origin set is the
- *      localhost trio — so on any real hostname a request carrying
- *      `Origin: https://claude.ai` is answered 403, killing exactly the
- *      browser-based clients `auth/cors.ts` maintains an allowlist for. We
- *      disable it (`allowedOriginHostnames: '*'`) and let `cors.ts` remain
- *      the single origin authority. The first test below is the guard; it
- *      demonstrably fails if that option is removed.
+ *   1. **A second origin authority.** `auth/cors.ts` maintains the origin
+ *      allowlist, and nothing underneath it may gate origins or emit CORS of
+ *      its own. The `agents` wrapper the Worker used until 0.69.0 did both
+ *      by default — it answered `Origin: https://claude.ai` with 403 on any
+ *      real hostname and shipped `Access-Control-Allow-Origin: *` — and had
+ *      to be configured out of it. The SDK handler called directly now
+ *      (ADR-0045) does neither. The first three tests assert the property on
+ *      the wire, so they hold whatever serves MCP: a browser origin is
+ *      served, the allowlisted origin is echoed, and no wildcard appears.
  *
  *   2. **No proof the handler serves anything.** Before this file, every
  *      Worker-level test asserted auth-layer outcomes only (`not 401`,
@@ -116,8 +117,8 @@ describe('BL-106 — Worker protocol era', () => {
   it('serves a modern tools/list from a browser origin (origin gate is not ours to enforce)', async () => {
     const res = await worker.fetch('/mcp', modernRequest('tools/list', { Origin: BROWSER_ORIGIN }));
 
-    // The guard: without `allowedOriginHostnames: '*'` on the handler, this is
-    // a 403 from the SDK's origin validator long before the MCP layer runs.
+    // The guard: an origin gate anywhere under `cors.ts` answers this 403
+    // long before the MCP layer runs.
     expect(res.status).not.toBe(403);
     expect(res.status).toBe(200);
 
@@ -134,8 +135,8 @@ describe('BL-106 — Worker protocol era', () => {
 
   it('still applies our own CORS allowlist to the response', async () => {
     const res = await worker.fetch('/mcp', modernRequest('tools/list', { Origin: BROWSER_ORIGIN }));
-    // `corsOptions: false` stops the handler emitting its own (wildcard)
-    // headers; `withCors` in the pipeline supplies the allowlisted origin.
+    // The handler emits no CORS headers of its own; `withCors` in the
+    // pipeline supplies the allowlisted origin.
     expect(res.headers.get('access-control-allow-origin')).toBe(BROWSER_ORIGIN);
     expect(res.headers.get('access-control-allow-origin')).not.toBe('*');
   });
@@ -145,7 +146,7 @@ describe('BL-106 — Worker protocol era', () => {
       '/mcp',
       modernRequest('tools/list', { Origin: 'https://evil.example' })
     );
-    // The pre-BL-106 defect: the handler's default CORS shipped `*` here,
+    // The pre-BL-106 defect: a handler-level default CORS shipped `*` here,
     // which `withCors` did not overwrite for non-allowlisted origins.
     expect(res.headers.get('access-control-allow-origin')).not.toBe('*');
   });
@@ -385,6 +386,20 @@ describe('BL-106 — Worker protocol era', () => {
       body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
     });
     expect(res.status).toBe(202);
+  });
+
+  it('refuses a modern request that omits the MCP-Protocol-Version header', async () => {
+    // New with SDK 2.1.0, so new to this Worker in 0.69.0: a body carrying the
+    // modern `_meta` envelope claim must repeat the version in the header, and
+    // is refused when it does not. The 2025-era tests above send neither and
+    // are untouched by this — only a self-declared modern client can trip it.
+    const req = modernRequest('tools/list');
+    const { 'MCP-Protocol-Version': _omitted, ...headers } = req.headers;
+    const res = await worker.fetch('/mcp', { ...req, headers });
+
+    expect(res.status).toBe(400);
+    const body = await readJsonRpc(res);
+    expect((body.error as { code?: number } | undefined)?.code).toBe(-32020);
   });
 
   it('still rejects a request that names an unsupported protocol version', async () => {

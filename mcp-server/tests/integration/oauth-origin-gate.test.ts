@@ -21,10 +21,6 @@ vi.mock('@sentry/cloudflare', () => ({
   setTag: vi.fn(),
   withSentry: (_opts: unknown, handler: unknown) => handler,
 }));
-vi.mock('agents/mcp', () => ({
-  createMcpHandler: () => async () =>
-    new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
-}));
 // The library imports `cloudflare:workers`, which the node pool cannot
 // resolve. The stand-in records every delegated request and answers the way
 // the real provider does for a token it does not recognise.

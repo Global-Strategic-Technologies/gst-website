@@ -13,21 +13,17 @@
  * is real (auth, scope check, CORS, rate-limit-skip-on-no-Upstash).
  */
 
-// Two Cloudflare-runtime modules use the `cloudflare:workers` / `cloudflare:email`
-// URL schemes which the Node ESM loader can't resolve. Mock them so importing
-// worker.ts doesn't crash. Neither real-Sentry nor real-MCP-RPC behavior is
-// under test here — withSentry is a passthrough wrapper, and our endpoint
-// fetches don't go through createMcpHandler.
+// `@sentry/cloudflare` uses the `cloudflare:workers` URL scheme, which the
+// Node ESM loader can't resolve. Mock it so importing worker.ts doesn't crash.
+// Real-Sentry behavior is not under test here — withSentry is a passthrough
+// wrapper. The MCP handler needs no mock: these endpoint fetches return
+// before the pipeline reaches it.
 vi.mock('@sentry/cloudflare', () => ({
   init: vi.fn(),
   captureMessage: vi.fn(),
   captureException: vi.fn(),
   setTag: vi.fn(),
   withSentry: (_opts: unknown, handler: unknown) => handler,
-}));
-vi.mock('agents/mcp', () => ({
-  createMcpHandler: () => async () =>
-    new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
 }));
 // workers-oauth-provider imports `cloudflare:workers`, which the Node
 // vitest pool can't resolve; these tests exercise the static-key path
