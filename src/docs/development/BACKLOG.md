@@ -1200,6 +1200,39 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
+### BL-169: Regulatory map — Canada coverage gaps, a stale C-26 entry and two penalty figures to check
+
+**Source**: feedback from an MCP session, relayed by the operator on 2026-10-13. A client used `search_regulations` for a Canadian baseline and built slides from it. The session reported what the map returned, what it lacked, and what it did not trust | **Effort**: Small for the two corrections (three JSON files); Medium for the additions, which need research per regulation and a modelling decision | **Status**: Open
+
+**As a** deal team using the regulatory map or `search_regulations` for a Canadian target, **I want** the Canadian entries to be current, correct and complete for health and consumer-product targets **so that** I can put the figures on a slide without checking each one first.
+
+**What the session got**: PIPEDA, Law 25, the Alberta and BC privacy acts, PCI DSS and C-8. Canada has five files in `src/data/regulatory-map/`: `CA-PIPEDA`, `CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA` and `CA-CCCS`.
+
+**The feedback, verbatim:**
+
+> Missing: provincial health information acts, Health Canada's device rules and Bill C-36.
+> Out of date: the C-26 entry hasn't been updated since the bill was reintroduced and passed as C-8.
+> To check: its penalty figures for the Alberta and BC privacy acts look high, so I left them off the slides.
+
+**Every claim below is the session's, not yet checked against a primary source.** Check each one first; the item is partly a fact-check.
+
+1. **Out of date: `CA-CCCS.json`.** The entry is named "Canada Critical Cyber Systems Protection Act (Bill C-26)", its summary says "Part of Bill C-26", and its `effectiveDate` is `2025-06-01`. The feedback says the bill was reintroduced and passed as C-8. Confirm the bill number, its current stage and the in-force date on LEGISinfo, then correct the name, the summary and the date together. Re-read the penalties and key requirements against the text as passed, because a reintroduced bill is not guaranteed to match the one it replaced.
+2. **To check: `CA-AB-PIPA.json` and `CA-BC-PIPA.json` penalties.** Both files carry the same sentence: "Fines up to $100,000 CAD for individuals and $500,000 CAD for organizations per offense." Check each figure against the offence section of its own act. Two provinces with identical wording is itself a reason to suspect one was copied from the other. This is the part with a cost today: the client declined to use the figures.
+3. **Missing: provincial health information acts.** Ontario's PHIPA and Alberta's HIA are the obvious candidates, and other provinces have their own. Decide which provinces to cover before writing any. The map already holds sub-national Canadian entries (`CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA`), so the modelling exists.
+4. **Missing: Health Canada's device rules.** Presumably the Medical Devices Regulations under the Food and Drugs Act; confirm that is what a diligence reader needs. Check whether the map holds any medical-device regulation for another jurisdiction (FDA, EU MDR) and which category it sits in. If none does, this is a new kind of entry and the category question in [BL-168](#bl-168-regulatory-map--financial-services-expansion-candidate) applies here too.
+5. **Missing: Bill C-36.** The session did not say which C-36, and bill numbers are reused every session of Parliament (item 1 is a bill that changed number). **Ask the operator which act was meant before researching it.**
+
+**Order**: items 1 and 2 are corrections to published data and do not wait on the rest. Items 3 to 5 are additions and can follow in the same PR or a later one.
+
+#### Technical Context
+
+- **Process**: [REGULATORY_MAP.md](../hub/REGULATORY_MAP.md) for adding and editing regulations.
+- **The data ships in the MCP server too.** `mcp-server/src/content/regulations-data.generated.ts` is generated from these JSON files, and `npm run test:docs` fails when the bundle is stale. Any edit here is therefore an MCP Worker change: run the mcp-server checks as well as the website ones, and expect the production deploy approval on merge.
+- **Counts move with additions.** Tests and docs pin regulation and category counts (`tests/unit/regulatory-map-data.test.ts` among them). Re-measure them after adding files.
+- **Renaming is safe by id.** `CA-CCCS.json` has the id `ca-cccs`, which does not carry the bill number. Changing the display name to C-8 needs no id change, so nothing that references the id breaks.
+
+---
+
 ### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
 
 **Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-extracted-2026-05-31--bl-048-indefinitely-deprioritized). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
