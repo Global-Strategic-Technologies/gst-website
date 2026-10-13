@@ -426,3 +426,53 @@ describe('BL-106 — Worker protocol era', () => {
     expect(String(err?.message ?? '')).toMatch(/protocol|version/i);
   });
 });
+
+// The edges of the handler rather than its protocol behaviour: which paths and
+// methods it answers, and how large a body it reads. These are properties the
+// pipeline must hold whatever serves MCP underneath it, so they are asserted
+// on the wire and not against any handler option.
+describe('Worker MCP handler — path, method and body-size boundary', () => {
+  const legacyHeaders = {
+    Authorization: `Bearer ${TEST_KEY}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+  };
+  const legacyToolsList = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+
+  // `isRoutedPath` in worker.ts admits `/mcp/*` and `/radar/snapshot` on any
+  // method, and the pipeline only short-circuits `GET /radar/snapshot`. An
+  // authenticated POST to either therefore reaches the MCP dispatch point, and
+  // must find nothing there: MCP is served on `/mcp` exactly.
+  it.each(['/mcp/extra', '/radar/snapshot'])(
+    'answers 404 to an authenticated POST %s, not an MCP result',
+    async (path) => {
+      const res = await worker.fetch(path, {
+        method: 'POST',
+        headers: legacyHeaders,
+        body: legacyToolsList,
+      });
+      expect(res.status).toBe(404);
+    }
+  );
+
+  it('answers 405 to an authenticated GET /mcp (stateless: no standalone stream)', async () => {
+    const res = await worker.fetch('/mcp', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${TEST_KEY}`, Accept: 'text/event-stream' },
+    });
+    expect(res.status).toBe(405);
+  });
+
+  it('serves a request whose body is over 4 MiB rather than refusing it as too large', async () => {
+    // Trailing whitespace is valid JSON, so the padding inflates the body
+    // without touching any tool's input schema.
+    const body = legacyToolsList + ' '.repeat(4 * 1024 * 1024 + 1024);
+    const res = await worker.fetch('/mcp', { method: 'POST', headers: legacyHeaders, body });
+
+    expect(res.status).not.toBe(413);
+    expect(res.status).toBe(200);
+    const rpc = await readJsonRpc(res);
+    expect(rpc.error).toBeUndefined();
+    expect(Array.isArray((rpc.result as { tools?: unknown[] })?.tools)).toBe(true);
+  });
+});
