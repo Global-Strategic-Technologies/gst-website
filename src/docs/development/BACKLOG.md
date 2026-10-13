@@ -1206,7 +1206,7 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 **As a** deal team using the regulatory map or `search_regulations` for a Canadian target, **I want** the Canadian entries to be current, correct and complete for health and consumer-product targets **so that** I can put the figures on a slide without checking each one first.
 
-**What the session got**: PIPEDA, Law 25, the Alberta and BC privacy acts, PCI DSS and C-8. Canada has five files in `src/data/regulatory-map/`: `CA-PIPEDA`, `CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA` and `CA-CCCS`.
+**What the session got**: PIPEDA, Law 25, the Alberta and BC privacy acts, PCI DSS and the C-26 entry, which the session called C-8. Canada has five files in `src/data/regulatory-map/`: `CA-PIPEDA`, `CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA` and `CA-CCCS`.
 
 **The feedback, verbatim:**
 
@@ -1227,7 +1227,7 @@ Two things cut the other way and are the reason this is worth doing rather than 
 #### Technical Context
 
 - **Process**: [REGULATORY_MAP.md](../hub/REGULATORY_MAP.md) for adding and editing regulations.
-- **The data ships in the MCP server too.** `mcp-server/src/content/regulations-data.generated.ts` is generated from these JSON files, and `npm run test:docs` fails when the bundle is stale. Any edit here is therefore an MCP Worker change: run the mcp-server checks as well as the website ones, and expect the production deploy approval on merge.
+- **The data ships in the MCP server too.** `mcp-server/src/content/regulations-data.generated.ts` is generated from these JSON files, and `npm run test:docs` fails when the bundle is stale. Any edit here therefore means regenerating the bundle, which touches `mcp-server/**`: run the mcp-server checks as well as the website ones, and expect the production deploy approval on merge.
 - **Counts move with additions.** Tests and docs pin regulation and category counts (`tests/unit/regulatory-map-data.test.ts` among them). Re-measure them after adding files.
 - **Renaming is safe by id.** `CA-CCCS.json` has the id `ca-cccs`, which does not carry the bill number. Changing the display name to C-8 needs no id change, so nothing that references the id breaks.
 
