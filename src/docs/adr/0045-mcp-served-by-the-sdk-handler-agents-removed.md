@@ -16,7 +16,7 @@ ADR-0013 decision 4 kept `agents` for three stated reasons: it is the Cloudflare
 ## Decision
 
 1. **The Worker imports `createMcpHandler` from `@modelcontextprotocol/server` and calls it directly.** `agents` is removed from `mcp-server/package.json`; `@modelcontextprotocol/server` moves from exact `2.0.0` to exact `2.3.1`. The SDK returns an object rather than a callable, so the call is `mcp.fetch(request)` (its second parameter is `{ authInfo, parsedBody }`, never `env`), where the wrapper was called as `mcp(request, env, ctx)`.
-2. **The pipeline owns the exact-path rule.** The SDK handler matches no path. The wrapper answered 404 unless the pathname was exactly `/mcp`, and that was load-bearing: `isRoutedPath` in `mcp-server/src/worker.ts` admits `/mcp/*` and any method on `/radar/snapshot`, and the pipeline only short-circuits `GET /radar/snapshot`. `handle-authenticated.ts` now checks `url.pathname === '/mcp'` at the dispatch point and answers 404 `Not Found` otherwise. It is placed there, not as an early return, so the request is still rate-limited, logged (`mcp.request`) and CORS-wrapped as before.
+2. **The pipeline owns the exact-path rule.** The SDK handler matches no path. The wrapper answered 404 unless the pathname was exactly `/mcp`, and that was load-bearing: `isRoutedPath` in `mcp-server/src/worker.ts` admits `/mcp/*` and any method on `/radar/snapshot`, and the pipeline only short-circuits `GET /radar/snapshot`. `handle-authenticated.ts` now checks `url.pathname === '/mcp'` at the dispatch point and answers 404 `Not Found` otherwise. It is placed there, not as an early return, so the request is still rate-limited, logged (`mcp.request`) and CORS-wrapped as before. The gates ahead of it are unchanged too, so a request to one of those paths can still be refused by a gate before it reaches the 404.
 3. **No origin, host or CORS option is passed, because the SDK handler has none.** It is validation-free by design: no origin or host gating, no `Access-Control-*` headers. `src/auth/cors.ts` remains the single origin authority (ADR-0013 decision 3 stands; only its mechanism is gone — see Consequences).
 4. **`maxRequestBodySize` is set to 100 MiB** (`MAX_REQUEST_BODY_BYTES`). SDK 2.1.0 and later cap request bodies at 4 MiB by default and answer 413 above it, on both lanes. Nothing capped bodies before, and `inspectToolCalls` has already read the whole body before the handler runs. The option must be a finite positive number and cannot be disabled, so the value is far above any real payload.
 5. **`legacy: 'stateless'` is unchanged.** Both protocol eras are still served, and ADR-0013's standing rule about `'reject'` still applies.
@@ -42,7 +42,7 @@ ADR-0013 decision 4 kept `agents` for three stated reasons: it is the Cloudflare
 **Wire changes** (server 0.69.0, remote Worker transport only; listed in `mcp-server/BREAKING_CHANGES.md`). stdio is unaffected — `serveStdio`'s signature is unchanged.
 
 - New refusal (SDK 2.1.0): a request whose body carries the modern `_meta` envelope claim but omits the `MCP-Protocol-Version` header is answered HTTP 400, JSON-RPC `-32020`. It was served before. 2025-era requests (`initialize`, envelope-less calls) still classify as legacy and are not affected, so this does not reopen the 0.44.0 incident path.
-- New refusal (SDK 2.1.0): a JSON-RPC batch of more than 100 messages is answered HTTP 400, `-32600`.
+- New refusal (SDK 2.1.0): a JSON-RPC batch of more than 100 messages is answered HTTP 400, `-32600`. Batch arrays classify as legacy, so this one lands on the legacy lane, after the factory has run.
 - Request bodies: effectively no change for clients (decision 4).
 - Legacy lane: a factory throw now echoes the request `id` (was `id: null`); an already-aborted legacy request no longer gets a 499 (the modern lane still returns 499).
 
@@ -57,7 +57,7 @@ ADR-0013 decision 4 kept `agents` for three stated reasons: it is the Cloudflare
 
 **Rollback**: `rollback-mcp.yml` to the previous Worker version. No stored state is involved either way.
 
-**Before the production approval, and after it.** Before: query persisted Worker logs for `mcp.request` with `era: modern`, by `keyOwner`, to confirm which modern-lane callers exist — they are the only population the new `-32020` refusal can reach. After: watch `mcp.request` with status 400 and `era: no-factory-run`, and `mcp.handler.error`.
+**Before the production approval, and after it.** Before: query persisted Worker logs for `mcp.request` with `era: modern`, by `keyOwner`, to confirm which modern-lane callers exist — they are the only population the new `-32020` refusal can reach. After: watch `mcp.request` with status 400 and `era: no-factory-run` (the missing-header refusal), and `mcp.handler.error`.
 
 **Tests that pin this**: `mcp-server/tests/integration/protocol-era-worker.test.ts` — authenticated POST `/mcp/extra` and POST `/radar/snapshot` are 404; authenticated GET `/mcp` is 405; a body just over 4 MiB is served, not 413; a modern request without `MCP-Protocol-Version` is 400 `-32020`; and the origin / CORS property on the wire (a browser origin is served, an allowlisted origin is echoed, no wildcard). `mcp-server/tests/unit/pipeline/handle-authenticated-metrics.test.ts` asserts the handler is called as `fetch(request)` and is not reached off `/mcp`.
 

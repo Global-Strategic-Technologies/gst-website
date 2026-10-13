@@ -469,6 +469,14 @@ export async function handleAuthenticated(
       // telemetry rather than inference, that no caller is opening with
       // `initialize`. The `era` discriminator below is what makes that
       // checkable.
+      //
+      // One property of this lane to know before adding a tool that asks
+      // the client something: a server-to-client REQUEST (elicitation,
+      // sampling, roots) cannot be answered here — a stateless POST has no
+      // channel back — and the SDK's fallback does not reliably fail it
+      // fast: a sampling or roots request is left waiting for the request
+      // timeout. Nothing issues one today (logging notifications are not
+      // requests). See ADR-0045.
       legacy: 'stateless',
 
       // No origin, host or CORS options appear here because the SDK handler

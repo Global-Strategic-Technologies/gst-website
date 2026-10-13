@@ -398,10 +398,11 @@ describe('scope denial → scope_denial event (BL-159)', () => {
 });
 
 describe('MCP dispatch → the SDK handler, on /mcp only', () => {
+  const ORIGIN = 'https://claude.ai';
   const post = (path: string) =>
     new Request(`https://mcp.test${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
     });
 
@@ -420,18 +421,28 @@ describe('MCP dispatch → the SDK handler, on /mcp only', () => {
   });
 
   // The SDK handler matches no path, and worker.ts routes both of these to
-  // the pipeline. They are still rate-limited — the 404 is the dispatch
-  // point's answer, not an early return.
+  // the pipeline. The 404 is the dispatch point's answer, not an early
+  // return: the request is still rate-limited, logged, and wrapped in the
+  // rate-limit and CORS headers like any other. A bare 404 returned after the
+  // limiter would satisfy the status alone, hence the rest.
   it.each(['/mcp/extra', '/radar/snapshot'])(
-    'answers 404 to POST %s without reaching the handler',
+    'answers 404 to POST %s without reaching the handler, still logged and wrapped',
     async (path) => {
       check.mockResolvedValue(allowed());
+      let res: Response | undefined;
 
-      const res = await handleAuthenticated(post(path), env(), ctx(), paidAuth);
+      const logs = await capturingLogs(async () => {
+        res = await handleAuthenticated(post(path), env(), ctx(), paidAuth);
+      });
 
-      expect(res.status).toBe(404);
+      expect(res!.status).toBe(404);
       expect(mcpFetch).not.toHaveBeenCalled();
       expect(check).toHaveBeenCalledTimes(1);
+      expect(logs).toContainEqual(
+        expect.objectContaining({ event: 'mcp.request', path, status: 404, success: false })
+      );
+      expect(res!.headers.get('RateLimit-Limit')).toBe('60');
+      expect(res!.headers.get('Access-Control-Allow-Origin')).toBe(ORIGIN);
     }
   );
 });
