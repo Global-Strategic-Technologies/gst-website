@@ -1,0 +1,20 @@
+{
+  "id": "ca-ab-hia",
+  "name": "Alberta Health Information Act (HIA)",
+  "regions": [
+    "CA-AB"
+  ],
+  "effectiveDate": "2001-04-25",
+  "summary": "Alberta's health privacy law governing how custodians and their affiliates collect, use, disclose, and protect individually identifying health information in the publicly funded health system. Private-sector organizations that are not custodians remain under Alberta's PIPA.",
+  "category": "industry-compliance",
+  "scope": "Custodians under the Act — including physicians, pharmacists and other designated health professionals, Alberta Health Services, and Alberta Health — plus their affiliates, such as employees, contractors, and information managers that process health information for them.",
+  "keyRequirements": [
+    "Collect, use, and disclose only the health information essential for the intended purpose, at the highest degree of anonymity possible",
+    "Prepare a privacy impact assessment and submit it to the Information and Privacy Commissioner of Alberta before implementing new practices or information systems that collect, use, or disclose health information",
+    "Protect health information with reasonable administrative, technical, and physical safeguards",
+    "Notify the Commissioner, the Minister of Health, and the affected individual as soon as practicable of a loss or unauthorized access or disclosure that poses a risk of harm",
+    "Affiliates must report breaches to their custodian",
+    "Give individuals access to and correction of their health information"
+  ],
+  "penalties": "Offence fines up to $200,000 CAD for individuals and $1,000,000 CAD for any other person. Enforced by the Information and Privacy Commissioner of Alberta."
+}

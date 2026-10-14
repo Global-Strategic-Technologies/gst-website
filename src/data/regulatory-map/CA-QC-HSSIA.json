@@ -1,0 +1,20 @@
+{
+  "id": "ca-qc-hssia",
+  "name": "Quebec Act respecting health and social services information",
+  "regions": [
+    "CA-QC"
+  ],
+  "effectiveDate": "2024-07-01",
+  "summary": "Quebec's dedicated health privacy law, enacted by Bill 3 in 2023, governing health and social services information held by public and private bodies in the health and social services sector. It takes this information out of Quebec's general public- and private-sector privacy laws, including Law 25, and creates its own regime for access, protection, and incident reporting.",
+  "category": "industry-compliance",
+  "scope": "Health and social services bodies in Quebec — public institutions, private clinics and medical offices, pharmacies, laboratories, private seniors' residences, and other designated providers — and the third parties that hold or process their information under contract.",
+  "keyRequirements": [
+    "Collect, use, and communicate health and social services information only as the Act permits, with consent for uses outside the care relationship",
+    "Report confidentiality incidents that present a risk of serious injury to the Minister of Health and Social Services and the Commission d'accès à l'information, and notify affected individuals",
+    "Keep a register of all confidentiality incidents",
+    "Adopt governance rules and security measures for the information, and log access to it",
+    "Give individuals access to their information and let them restrict who can access it",
+    "Contractors holding the information must meet the same protection obligations as the body they serve"
+  ],
+  "penalties": "Penal fines of $1,000–$10,000 CAD for individuals and $3,000–$30,000 CAD for organizations for offences such as failing to report a confidentiality incident, and $5,000–$100,000 CAD for individuals and $15,000–$150,000 CAD for organizations for serious offences such as unauthorized access or communication. Fines double for a second offence and triple thereafter. Enforced by the Commission d'accès à l'information; there are no administrative monetary penalties."
+}

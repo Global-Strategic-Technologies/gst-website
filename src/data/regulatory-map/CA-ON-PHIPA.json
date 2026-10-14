@@ -1,0 +1,21 @@
+{
+  "id": "ca-on-phipa",
+  "name": "Ontario Personal Health Information Protection Act (PHIPA)",
+  "regions": [
+    "CA-ON"
+  ],
+  "effectiveDate": "2004-11-01",
+  "summary": "Ontario's health privacy law governing how health information custodians collect, use, and disclose personal health information, and how their agents and service providers handle it on their behalf. It sits alongside PIPEDA and has been declared substantially similar to it for custodians, so PHIPA rather than PIPEDA governs health information they handle in Ontario.",
+  "category": "industry-compliance",
+  "scope": "Health information custodians in Ontario — physicians, hospitals, clinics, pharmacies, laboratories, long-term care homes, and similar providers — plus their agents and the electronic service providers that handle personal health information for them, including health-tech vendors.",
+  "keyRequirements": [
+    "Obtain consent for the collection, use, and disclosure of personal health information, express or implied within the circle of care",
+    "Take reasonable steps to protect personal health information against theft, loss, and unauthorized use or disclosure",
+    "Notify the affected individual at the first reasonable opportunity of any theft, loss, or unauthorized use or disclosure",
+    "Report prescribed privacy breaches, such as theft, intentional misuse, or a pattern of breaches, to the Information and Privacy Commissioner of Ontario, and file annual breach statistics",
+    "Give individuals access to and correction of their health records",
+    "Designate a contact person and publish a written statement of information practices",
+    "Agents and electronic service providers may use personal health information only as the custodian permits"
+  ],
+  "penalties": "Offence fines up to $200,000 CAD and up to one year imprisonment for individuals, and up to $1,000,000 CAD for organizations. Administrative monetary penalties from the Information and Privacy Commissioner of Ontario of up to $50,000 CAD for individuals and $500,000 CAD for organizations, plus any economic benefit gained from the contravention."
+}

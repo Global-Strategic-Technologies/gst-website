@@ -108,7 +108,7 @@ export function targetQuickLookOrchestratedToolNames(): string[] {
 }
 
 /**
- * The published resource inventory: 4 library + 123 regulations + 6 radar.
+ * The published resource inventory: 4 library + 128 regulations + 6 radar.
  *
  * Derived rather than asserted, and derived HERE rather than in a suite, because
  * both `/hub/mcp/` and `/hub/mcp/docs/` publish these numbers and two private

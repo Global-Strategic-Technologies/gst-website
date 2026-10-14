@@ -2,7 +2,7 @@
  * Generated-bundle freshness guard (origin: `d4ceada6`, 2026-08-28 — no BL id).
  *
  * `mcp-server/src/content/*.generated.ts` embed the website's library articles,
- * the IRL generator source, and all 123 regulation records. They are produced by
+ * the IRL generator source, and all 128 regulation records. They are produced by
  * `mcp-server/scripts/generate-regulations-index.mjs` and committed.
  *
  * THE SILENT FAILURE MODE: a bundle can be committed stale. In `d4ceada6` a
