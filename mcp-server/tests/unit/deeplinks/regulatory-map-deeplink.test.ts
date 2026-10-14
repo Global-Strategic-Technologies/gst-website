@@ -52,9 +52,7 @@ describe('jurisdictionToRegion (page-format normalization)', () => {
   // built directly from it silently fails to select the region on page load.
 
   it('maps lowercase country alpha-2 codes to uppercase alpha-3', () => {
-    expect(jurisdictionToRegion('us')).toBe('USA');
     expect(jurisdictionToRegion('gb')).toBe('GBR');
-    expect(jurisdictionToRegion('ca')).toBe('CAN');
     expect(jurisdictionToRegion('br')).toBe('BRA');
     expect(jurisdictionToRegion('jp')).toBe('JPN');
   });
@@ -69,6 +67,13 @@ describe('jurisdictionToRegion (page-format normalization)', () => {
   it('returns null for aggregate jurisdictions (no single SVG path to select)', () => {
     expect(jurisdictionToRegion('eu')).toBeNull();
     expect(jurisdictionToRegion('global')).toBeNull();
+  });
+
+  it('returns null for us and ca, whose whole-country shapes the page never selects (BL-169)', () => {
+    // The page draws both as states / provinces; `?region=USA` or `CAN`
+    // restored nothing, so a federal framework's deeplink filters by category only.
+    expect(jurisdictionToRegion('us')).toBeNull();
+    expect(jurisdictionToRegion('ca')).toBeNull();
   });
 
   it('returns null for unknown country codes (defensive default)', () => {

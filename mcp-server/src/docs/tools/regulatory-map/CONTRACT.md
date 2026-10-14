@@ -15,7 +15,7 @@ enumParity:
 
 > **Tools**:
 >
-> - `search_regulations` — faceted search across the 123-framework GST Regulatory Map; returns matched frameworks with their resolved Resource URI.
+> - `search_regulations` — faceted search across the 128-framework GST Regulatory Map; returns matched frameworks with their resolved Resource URI.
 > - `list_regulation_facets` — enumerates distinct jurisdictions and categories present in the dataset.
 >
 > Companion to the `gst://regulations/<jurisdiction>/<framework-id>` MCP Resources, which return the full per-framework JSON body.
@@ -23,7 +23,7 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`src/schemas/regulatory-map.ts`](../../../../../src/schemas/regulatory-map.ts) — `RegulationSchema`, `RegulationCategorySchema`, `RegulationSearchInputSchema`, `RegulationFacetsInputSchema`
-> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../../src/data/regulatory-map/) — 123 individual JSON files, one per framework
+> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../../src/data/regulatory-map/) — 128 individual JSON files, one per framework
 > - **Engine / loader**: [`mcp-server/src/content/regulation-loader.ts`](../../../content/regulation-loader.ts) — URI parsing (`SUB_REGION_RE`), slug index, `loadRegulationByUri`
 > - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../../tools/regulations.ts) — search filtering, facet enumeration, `jurisdictionToRegion()` deep-link normalization (V2 fix: lowercase alpha-2 → uppercase alpha-3)
 >
@@ -47,7 +47,7 @@ enumParity:
 | `jurisdiction` | `string \| string[]`        | no       | —       | Exact match against parsed jurisdiction code. Accepts a single string or an array (see below).                                                                                                                                                   |
 | `category`     | `enum(4) \| Array<enum(4)>` | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity`; or an array.                                                                                                                                                     |
 | `query`        | string                      | no       | —       | Free-text match across `id`, `name`, curated `aliases`, and `summary` — see § `query` semantics                                                                                                                                                  |
-| `limit`        | int                         | no       | 20      | Cap on returned matches; max 120. **Note the corpus is 123** — so a single call cannot return the full dataset. Deliberately unchanged in BL-112: raising the max grows an already-large response (see below), and the mirror supplies no bound. |
+| `limit`        | int                         | no       | 20      | Cap on returned matches; max 120. **Note the corpus is 128** — so a single call cannot return the full dataset. Deliberately unchanged in BL-112: raising the max grows an already-large response (see below), and the mirror supplies no bound. |
 
 Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'], category: ['data-privacy']}` returns data-privacy frameworks whose `jurisdiction ∈ {eu, us}`. Empty input (`{}`) returns the first 20 frameworks, useful as a sanity check or browse-mode call.
 
@@ -121,9 +121,16 @@ interface SearchResult {
   jurisdiction: string,         // parsed jurisdiction code
   category: string,             // one of the 4 categories
   effectiveDate: string,        // ISO YYYY-MM-DD
-  summary: string               // 1-3 sentences
+  status?: 'not-in-force',      // BL-169: enacted, no commencement yet — effectiveDate is then the enactment date
+  summary: string,              // 1-3 sentences
+  scope?: string,               // present when the record carries it
+  keyRequirements?: string[],
+  penalties?: string,
+  deeplink: string              // Regulatory Map URL; `us` / `ca` / `eu` / `global` carry the category filter only
 }
 ```
+
+A record with `status: "not-in-force"` is a law that has been enacted but has no commencement date yet — never present it as in effect. `gst_regulatory_exposure_brief` (0.3.0+) carries that rule into its per-jurisdiction breakdown.
 
 Use the `uri` from each match with `resources/read` (or with the `mcp__gst__resources_read` client API) to fetch the full framework body — `keyRequirements[]`, `penalties`, `regions[]`, etc.
 
@@ -137,7 +144,7 @@ Use the `uri` from each match with `resources/read` (or with the `mcp__gst__reso
 {
   jurisdictions: string[],     // sorted, distinct
   categories: string[],        // sorted, the 4 canonical categories
-  totalFrameworks: number      // total count, currently 123
+  totalFrameworks: number      // total count, currently 128
 }
 ```
 

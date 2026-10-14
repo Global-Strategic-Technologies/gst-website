@@ -36,7 +36,7 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 - `categories` is exactly `["ai-governance", "cybersecurity", "data-privacy", "industry-compliance"]` — four, sorted.
 - `jurisdictions` holds **73** codes, including sub-national ones (`us-ca`, `ca-qc`, `us-tx`) alongside national (`eu`, `gb`, `jp`) and the pseudo-jurisdiction `global`.
-- `totalFrameworks` is **123**.
+- `totalFrameworks` is **128**.
 - The UK is `gb`, not `uk`. California is `us-ca`, not `ca` — `ca` is Canada. Guessing either wrong returns zero matches with no error, which is why this case exists.
 
 > **A drift note that used to live here has been retired.** The `search_regulations` description once said "120 frameworks" against a live corpus of 123; production now says 123 and the two agree. `totalFrameworks` remains authoritative if they ever diverge again.
@@ -45,7 +45,7 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 | Symptom                            | Means                  | Do                                                          |
 | ---------------------------------- | ---------------------- | ----------------------------------------------------------- |
-| `totalFrameworks` differs from 123 | The corpus changed     | Not a defect — update this case and UAT-10's resource count |
+| `totalFrameworks` differs from 128 | The corpus changed     | Not a defect — update this case and UAT-10's resource count |
 | Fewer than 4 categories            | Category enum narrowed | Fail — the four are a published surface                     |
 
 **Run log**

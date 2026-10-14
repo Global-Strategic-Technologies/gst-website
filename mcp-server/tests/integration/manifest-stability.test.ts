@@ -273,7 +273,15 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // gst_regulatory_exposure_brief 0.1.0 → 0.2.0; PATCH where only wording or a
 // fact changed — gst_irl_ingestion 0.30.2 → 0.30.3, gst_radar_brief_today
 // 0.0.5 → 0.0.6. No URI moved.
-const EXPECTED_MANIFEST_HASH = '7286e5a349798caf91404e2efee97960e08f6a5a7f8b318af20a8929bcc855af';
+//
+// BL-169 (server 0.70.0, 2026-10-14): FIVE regulation URIs added, 123 → 128 —
+// gst://regulations/ca-on/phipa, gst://regulations/ca-ab/hia,
+// gst://regulations/ca-qc/hssia, gst://regulations/ca/mdr,
+// gst://regulations/ca/ccpsa. ONE prompt bump: gst_regulatory_exposure_brief
+// 0.2.0 → 0.3.0 (MINOR — it now tells the model how to present a
+// `status: "not-in-force"` framework). No URI renamed or removed; ca/cccs
+// keeps its URI under its corrected name.
+const EXPECTED_MANIFEST_HASH = 'dcdb749a373a878fe72449dfefc49ebbc8065728f7b2fb01f52cf3275af230eb';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

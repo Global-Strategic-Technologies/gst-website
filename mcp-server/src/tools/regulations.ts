@@ -44,6 +44,7 @@ Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (o
 Each match includes:
 - \`uri\` (e.g. \`gst://regulations/eu/gdpr\`) — canonical resource URI
 - Summary card: \`id\`, \`name\`, \`jurisdiction\`, \`category\`, \`effectiveDate\`, \`summary\`
+- \`status: "not-in-force"\` (only when present) — the law is enacted but has no commencement date yet, and \`effectiveDate\` is then its enactment date. Never present such a framework as in effect.
 - Richer source-data fields (when present in the underlying framework record): \`scope\` (a one-paragraph who/where applicability statement), \`keyRequirements\` (array of authored bullet-point obligations — use these directly in prose summaries to keep claims grounded), \`penalties\` (statutory penalty band)
 - \`deeplink\` — URL to open the Regulatory Map filtered to that framework's region+category (for PDF / export / share via the website page)
 
@@ -60,6 +61,9 @@ interface SearchResult {
   jurisdiction: string;
   category: string;
   effectiveDate: string;
+  // BL-169: present only on a law enacted but not yet in force; effectiveDate
+  // is then its enactment date.
+  status?: 'not-in-force';
   summary: string;
   // Optional richer fields lifted from the underlying regulation file when
   // present. Exposed so prompts that build per-framework summaries (e.g.
@@ -184,6 +188,9 @@ export function buildRegulatoryMapDeeplink(filters: {
  * provinces (`US-CA`, `CA-QC`, ...). Aggregate jurisdictions (`eu`,
  * `global`) don't correspond to a single SVG path — they return null and
  * the caller drops the `region` param, leaving only the category filter.
+ * `us` and `ca` are treated the same way (BL-169): the page draws those two
+ * countries as states / provinces, and the whole-country `USA` / `CAN`
+ * shapes are never selectable, so `?region=USA` restored nothing.
  *
  * Without this normalization the page's URL-restoration silently fails
  * (selector `path[data-state-code="us-ca"]` doesn't match `US-CA`), which
@@ -200,7 +207,7 @@ export function jurisdictionToRegion(jurisdiction: string): string | null {
   return null;
 }
 
-const AGGREGATE_JURISDICTIONS: ReadonlySet<string> = new Set(['eu', 'global']);
+const AGGREGATE_JURISDICTIONS: ReadonlySet<string> = new Set(['eu', 'global', 'us', 'ca']);
 const SUBNATIONAL_RE = /^[a-z]{2}-[a-z]{2}$/;
 const COUNTRY_ALPHA2_RE = /^[a-z]{2}$/;
 
@@ -208,7 +215,8 @@ const COUNTRY_ALPHA2_RE = /^[a-z]{2}$/;
 // regulation jurisdiction in `src/data/regulatory-map/`. Kept inline (no
 // external lib) because the set is small and stable; if a new regulation
 // adds a previously-unseen country, this map gets one new entry plus a
-// test row in `regulatory-map-deeplink.test.ts`.
+// test row in `regulatory-map-deeplink.test.ts`. `us` and `ca` are absent on
+// purpose: they resolve as aggregates above.
 const COUNTRY_ALPHA2_TO_ALPHA3: Readonly<Record<string, string>> = {
   ae: 'ARE',
   ar: 'ARG',
@@ -216,7 +224,6 @@ const COUNTRY_ALPHA2_TO_ALPHA3: Readonly<Record<string, string>> = {
   bd: 'BGD',
   bh: 'BHR',
   br: 'BRA',
-  ca: 'CAN',
   ch: 'CHE',
   cl: 'CHL',
   cn: 'CHN',
@@ -248,7 +255,6 @@ const COUNTRY_ALPHA2_TO_ALPHA3: Readonly<Record<string, string>> = {
   tr: 'TUR',
   tz: 'TZA',
   ug: 'UGA',
-  us: 'USA',
   uy: 'URY',
   uz: 'UZB',
   vn: 'VNM',
@@ -264,6 +270,7 @@ export function toSearchResult(entry: RegulationEntry): SearchResult {
     jurisdiction: entry.jurisdiction,
     category: d.category,
     effectiveDate: d.effectiveDate,
+    ...(d.status !== undefined ? { status: d.status } : {}),
     summary: d.summary,
     ...(d.scope !== undefined ? { scope: d.scope } : {}),
     ...(d.keyRequirements !== undefined ? { keyRequirements: d.keyRequirements } : {}),

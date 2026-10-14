@@ -209,6 +209,45 @@ describe('findFalsePositiveMapAbsentClaims', () => {
     expect(offenders).toHaveLength(1);
     expect(offenders[0].matchedHub).toMatch(/Colorado/i);
   });
+
+  /**
+   * BL-169 added five Canadian records whose accurate names contain shorter
+   * names other jurisdictions use. The canonical path matches by substring in
+   * both directions, so an UNQUALIFIED claim resolves to the Canadian record.
+   * Accepted rather than renamed: each statute's own title is the name, and a
+   * claim that names no jurisdiction is ambiguous anyway. Qualified forms stay
+   * clear, and those are pinned too so a later rename cannot widen the reach.
+   */
+  it.each([
+    ['Consumer Product Safety Act', /Canada Consumer Product Safety Act/],
+    ['Health Information Act', /Alberta Health Information Act/],
+    ['Health Information Protection Act', /Ontario Personal Health Information Protection Act/],
+  ])(
+    'BL-169: accepted collision — unqualified "%s" resolves to the Canadian record',
+    (name, hub) => {
+      const offenders = findFalsePositiveMapAbsentClaims([
+        { category: 'map-absent', entry: `${name} — absent from the regulatory map` },
+      ]);
+      expect(offenders).toHaveLength(1);
+      expect(offenders[0].matchedHub).toMatch(hub);
+    }
+  );
+
+  it.each([
+    'US Consumer Product Safety Act',
+    'Consumer Product Safety Act (CPSA)',
+    'EU MDR',
+    'Medical Device Regulation (EU) 2017/745',
+    'FDA Medical Device Regulations',
+    'Nova Scotia Personal Health Information Act',
+    'PEI Health Information Act',
+    'Saskatchewan Health Information Protection Act',
+  ])('BL-169: a jurisdiction-qualified "%s" does not resolve to a Canadian record', (name) => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: `${name} — absent from the regulatory map` },
+    ]);
+    expect(offenders).toHaveLength(0);
+  });
 });
 
 describe('runComposeDossierEnvelope — BL-068 false-positive rejection', () => {

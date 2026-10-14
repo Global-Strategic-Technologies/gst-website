@@ -51,10 +51,10 @@ describe('regulation-loader URI taxonomy', () => {
     expect(entry!.frameworkId).toBe('cccs');
   });
 
-  it('produces 123 distinct URIs', () => {
+  it('produces 128 distinct URIs', () => {
     const uris = new Set(REGULATION_ENTRIES.map((e) => e.uri));
     expect(uris.size).toBe(REGULATION_ENTRIES.length);
-    expect(uris.size).toBeGreaterThanOrEqual(123);
+    expect(uris.size).toBeGreaterThanOrEqual(128);
   });
 });
 
@@ -78,6 +78,7 @@ describe('listJurisdictions / listCategories', () => {
     expect(j).toContain('us-ca');
     expect(j).toContain('ca');
     expect(j).toContain('ca-ab');
+    expect(j).toContain('ca-on'); // BL-169: Ontario PHIPA opened the jurisdiction
     expect([...j]).toEqual([...j].sort());
   });
 
@@ -134,6 +135,21 @@ describe('toSearchResult — enriched fields propagate to the wire shape', () =>
     expect('scope' in result).toBe(false);
     expect('keyRequirements' in result).toBe(false);
     expect('penalties' in result).toBe(false);
+  });
+
+  it('BL-169: forwards status on an enacted, not-in-force law and omits it otherwise', () => {
+    const cccs = REGULATION_ENTRIES.find((e) => e.data.id === 'ca-cccs');
+    const gdpr = REGULATION_ENTRIES.find((e) => e.data.id === 'eu-gdpr');
+    expect(toSearchResult(cccs!).status).toBe('not-in-force');
+    expect('status' in toSearchResult(gdpr!)).toBe(false);
+  });
+
+  it('BL-169: a federal Canadian framework deeplinks by category only (no unselectable region=CAN)', () => {
+    const mdr = REGULATION_ENTRIES.find((e) => e.data.id === 'ca-mdr');
+    expect(mdr!.jurisdiction).toBe('ca');
+    const { deeplink } = toSearchResult(mdr!);
+    expect(deeplink).not.toContain('region=');
+    expect(deeplink).toContain('filter=industry-compliance');
   });
 });
 
