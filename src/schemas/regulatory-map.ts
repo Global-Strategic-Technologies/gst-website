@@ -68,6 +68,15 @@ export const RegulationSchema = z.object({
     )
     .min(1),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD format'),
+  status: z
+    .enum(['not-in-force'])
+    .optional()
+    .describe(
+      'BL-169 — set on a law that is enacted but has no commencement date yet. `effectiveDate` then ' +
+        'holds the ENACTMENT date (e.g. Royal Assent), never a date it took effect: the page labels it ' +
+        '"Enacted … · Not yet in force" and the timeline treats it as upcoming. Remove the field and set ' +
+        '`effectiveDate` to the commencement date once the law comes into force.'
+    ),
   summary: z.string().min(1),
   category: RegulationCategorySchema,
   scope: z.string().min(1).optional(),

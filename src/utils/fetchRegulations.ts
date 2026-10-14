@@ -14,6 +14,8 @@ export interface RegulationIndexEntry {
    */
   aliases?: string[];
   effectiveDate: string;
+  /** BL-169: set when enacted but not yet in force; the timeline marks it upcoming. */
+  status?: Regulation['status'];
   category: string;
   regions: string[];
 }
@@ -72,6 +74,7 @@ export function buildRegulationIndex(regulations: Regulation[]): RegulationIndex
     name: r.name,
     aliases: r.aliases,
     effectiveDate: r.effectiveDate,
+    ...(r.status ? { status: r.status } : {}),
     category: r.category,
     regions: r.regions,
   }));

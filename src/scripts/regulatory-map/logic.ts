@@ -27,6 +27,7 @@ export interface RegIndexEntry {
   name: string;
   aliases?: string[];
   effectiveDate: string;
+  status?: 'not-in-force';
   category: string;
   regions: string[];
 }
@@ -92,7 +93,11 @@ export function renderRegulationCard(reg: Regulation): string {
   let html = `
           <div class="brutal-reg-card">
               <h3 class="brutal-reg-card__name">${escapeHtml(reg.name)}</h3>
-              <p class="brutal-reg-card__date">Effective: ${escapeHtml(date)}</p>
+              <p class="brutal-reg-card__date">${
+                reg.status === 'not-in-force'
+                  ? `Enacted: ${escapeHtml(date)} · Not yet in force`
+                  : `Effective: ${escapeHtml(date)}`
+              }</p>
               <p class="brutal-reg-card__summary">${escapeHtml(reg.summary)}</p>`;
 
   if (reg.scope) {
@@ -156,7 +161,8 @@ const TIMELINE_NAME_MAX = 35;
 
 /**
  * The timeline's year groups for regulations already in chronological order.
- * An entry dated after `today` (YYYY-MM-DD) is marked upcoming; names over 35
+ * An entry dated after `today` (YYYY-MM-DD), or enacted but not yet in force
+ * (`status: 'not-in-force'`), is marked upcoming; names over 35
  * characters are cut to 33 plus an ellipsis. Dates are read from the string,
  * never through `Date`, so no time zone can shift them.
  */
@@ -174,7 +180,8 @@ export function renderTimelineGroups(regs: readonly RegIndexEntry[], today: stri
     html += `<span class="brutal-timeline-year">${year}</span>`;
     html += `<div class="brutal-timeline-year-entries">`;
     for (const reg of group) {
-      const isUpcoming = reg.effectiveDate > today;
+      // An enacted law with no commencement date is upcoming however old its enactment date.
+      const isUpcoming = reg.status === 'not-in-force' || reg.effectiveDate > today;
       const catClass = CATEGORY_CSS[reg.category] ?? 'privacy';
       const [y, m] = reg.effectiveDate.split('-');
       const shortDate = `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
