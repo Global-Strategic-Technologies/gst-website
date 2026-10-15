@@ -163,6 +163,16 @@ describe('Regulatory Map Data Validation', () => {
   });
 
   describe('Region Code Integrity', () => {
+    it('never uses the whole-country USA or CAN codes, which the map cannot select (BL-169)', () => {
+      // Both countries are drawn as states / provinces and their country shapes
+      // are excluded from click handling, so a record listing USA or CAN cannot
+      // be opened from the map. A federal law lists the sub-national codes.
+      regulations.forEach((reg, i) => {
+        expect(reg.regions, `File: ${filenames[i]}`).not.toContain('USA');
+        expect(reg.regions, `File: ${filenames[i]}`).not.toContain('CAN');
+      });
+    });
+
     it('should have all alpha-3 country codes in countryCodeMap (except known absent countries)', () => {
       // BHR (Bahrain) and SRB (Serbia) are intentionally included for data completeness
       // but are not in the world-atlas 110m TopoJSON and thus absent from alpha3ToName

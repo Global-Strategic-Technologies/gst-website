@@ -110,6 +110,19 @@ describe('buildRegulationIndex', () => {
     expect(index.regs[0].aliases).toEqual(['Colorado AI Act', 'CAIA', 'SB 24-205']);
   });
 
+  it('carries status into the index only when set (BL-169)', () => {
+    // The timeline reads `status` from this index to mark an enacted, not-in-force
+    // law as upcoming. Its enactment date can already be past, so without this
+    // copy the timeline would draw the law as in effect on a fully green suite.
+    const index = buildRegulationIndex([
+      makeRegulation('ca-cccs', ['CA-ON'], { status: 'not-in-force' }),
+      makeRegulation('gdpr', ['DEU']),
+    ]);
+
+    expect(index.regs[0].status).toBe('not-in-force');
+    expect(index.regs[1]).not.toHaveProperty('status');
+  });
+
   it('should handle multiple regulations per region', () => {
     const regs = [makeRegulation('gdpr', ['DEU']), makeRegulation('bdsg', ['DEU'])];
 
