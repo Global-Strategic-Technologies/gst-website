@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Nineteen cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Twenty cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -77,6 +77,16 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Found on the way:** filters and search rewrote the `--active` class but never the role or tab stop. A region filtered out stayed a focusable button that did nothing, and one activated only by search or a filter could not be reached by keyboard. One `syncRegionA11y` in `src/scripts/regulatory-map/index.ts` now derives role, tab stop, name and `aria-hidden` from the class after every rewrite.
 >   - **Proven by mutation:** with the `#mapSvg` exclusion removed from `accessibility.test.ts` (and the scan waiting for a region button, not bare geometry), the `master` code reproduces exactly `aria-prohibited-attr` (110) and `nested-interactive` (1). The new BL-102 block in `regulatory-map.test.ts` opens a country by keyboard via its accessible name and checks the active/hidden invariant before and after a filter; it fails when the filter path's sync call is removed.
 > - **2026-10-04**: 1 stanza (BL-117, a scheduled MCP deploy-drift detector) closed **won't-fix by operator decision**, not implemented. Last pre-prune revision: `cec5bc6e`. It is recorded here so it is not re-proposed. The detection gap stands: nothing alerts when production's Worker silently falls behind what it should be running (the class behind BL-111's D1 and the 2026-06 month-behind incident). If it is ever reopened, the stanza's design notes are recoverable from that revision. The main one: the baseline must be the last commit touching `deploy-mcp-production.yml`'s paths filter, read from the workflow, never master HEAD. The filter covers website globs too, and a HEAD comparison fires on most merges.
+>
+> - **2026-10-14**: 1 stanza (BL-169, Canada coverage on the regulatory map) closed and pruned the day after it was filed. Last pre-prune revision: `3398b4bf`. Server `0.70.0`.
+>   - **Operator rulings:** all five items in one PR; provincial health acts for Ontario, Alberta and Quebec only; the session's "Bill C-36" is the **Canada Consumer Product Safety Act** (C-36 in the 40th Parliament), chosen from five bills that have carried that number.
+>   - **The client was right about the penalties, and the entries were worse than it said.** Checked against each Act: Alberta PIPA s. 59(2) and BC PIPA s. 56(2) both cap fines at $10,000 / $100,000; we published $100,000 / $500,000, word-for-word identical in both files. BC's record listed a mandatory breach-notification duty the Act has never had (s. 34 requires security arrangements only), and Alberta's listed a privacy-impact-assessment duty that belongs to its Health Information Act (s. 64), not PIPA. BC's "applies to federal political parties" was also overtaken: Bill C-4 (S.C. 2026, c. 2) exempts them from provincial privacy Acts.
+>   - **C-26 → C-8 was right too.** The Critical Cyber Systems Protection Act was enacted by Bill C-8 (S.C. 2026, c. 9), Royal Assent 2026-06-15, and is **not in force**: s. 16 leaves commencement to an order in council, and none appears in Canada Gazette Part II to 7 October 2026. The individual penalty cap fell from $1M to $500,000 in committee. Our `effectiveDate` had been a guessed `2025-06-01`. The name dropped its bill number rather than changing it (aliases carry `Bill C-8` and `Bill C-26`), so the next renumbering cannot stale it, and the id and URI stay.
+>   - **A new schema field, by operator ruling:** `status: "not-in-force"`. Publishing the assent date as "Effective" would have repeated the error being fixed, and the timeline would have drawn the Act as already in effect. The card reads "Enacted: … · Not yet in force", the timeline marks it upcoming, `search_regulations` returns it, and `gst_regulatory_exposure_brief` (0.3.0) tells the model not to present it as in effect.
+>   - **Added:** Ontario PHIPA, Alberta HIA, Quebec's Act respecting health and social services information (filed under `industry-compliance` beside HIPAA; the reason is recorded in [REGULATORY_MAP.md](../hub/REGULATORY_MAP.md)), Health Canada's Medical Devices Regulations, and the CCPSA. 123 → 128 frameworks, 133 → 138 resources, new jurisdiction `ca-on`. Quebec's fine tiers came from the Gazette officielle text of the assented bill and its in-force decree, because LégisQuébec and CanLII refused automated access.
+>   - **Found on the way and fixed:** three records (`CA-CCCS`, `US-NIST-AI-RMF`, `GLOBAL-BASEL3`) listed the whole-country `CAN`/`USA` shapes, which the map never makes clickable, so none of them opened from a province or state; they now list the sub-national codes. And every MCP deeplink for jurisdiction `us` or `ca` carried `?region=USA`/`CAN`, which the page can never select; they now carry the category filter only, as `eu` does. The "add a regulation" section of REGULATORY_MAP.md said no code changes were needed and listed none of the bundle, version, hash, count or i18n steps; it is now the real checklist, and two of its subtotals and a file name were wrong.
+>   - **Accepted, and pinned:** `compose_dossier_envelope` matches framework names by substring both ways, so an unqualified "Consumer Product Safety Act", "Health Information Act" or "Health Information Protection Act" now resolves to the Canadian record. Qualified names do not. Both are pinned in `compose-dossier-envelope-gap-validation.test.ts`, and the tool's removal under BL-143 retires them.
+>   - **Still open:** the current 45-1 Bill C-36, which would amend PIPEDA, is **[BL-170](#bl-170-regulatory-map--track-bill-c-36-45-1-the-pending-pipeda-reform-candidate)**.
 >
 > **One closed stanza is deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -620,6 +630,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - **BL-128** (RUN-AUDIT contract duplicated, won't-fix 2026-08-15): below `debug` the counter fields ship unexplained, and moving the explanation into `emitInstructions` is still the available remedy. Models will keep misreporting `countersScope: run` as a defect. Any rework should reword the RUN-AUDIT fields, never delete them, because operators assert their presence.
 - **BL-130** (`fillRatio` derived rather than asserted, 2026-08-15): the recount against the re-hydrated body (its check 3) was never built, and extract-only is uncovered.
 - BL-130 and BL-131 are already closed, so they no longer need a PR2 disposition.
+- **BL-169** (closed 2026-10-14) pinned three accepted name collisions in `compose-dossier-envelope-gap-validation.test.ts` (unqualified "Consumer Product Safety Act", "Health Information Act" and "Health Information Protection Act" resolve to Canadian records). They test the tool PR2 deletes, so they go with it.
 
 ---
 
@@ -1200,36 +1211,13 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
-### BL-169: Regulatory map — Canada coverage gaps, a stale C-26 entry and two penalty figures to check
+### BL-170: Regulatory map — track Bill C-36 (45-1), the pending PIPEDA reform (candidate)
 
-**Source**: feedback from an MCP session, relayed by the operator on 2026-10-13. A client used `search_regulations` for a Canadian baseline and built slides from it. The session reported what the map returned, what it lacked, and what it did not trust | **Effort**: Small for the two corrections (three JSON files); Medium for the additions, which need research per regulation and a modelling decision | **Status**: Open
+**Source**: BL-169, 2026-10-14. A client building a Canadian privacy baseline named "Bill C-36" as missing; the operator ruled they meant the 2010 Consumer Product Safety Act, which shipped under BL-169. The current Parliament's C-36 is a different bill, and the one a privacy reader will soon need | **Effort**: Small — one record edited, possibly one added | **Status**: Candidate · deferred with a trigger
 
-**As a** deal team using the regulatory map or `search_regulations` for a Canadian target, **I want** the Canadian entries to be current, correct and complete for health and consumer-product targets **so that** I can put the figures on a slide without checking each one first.
+**What it is.** Bill C-36 (45th Parliament, 1st session), _An Act to enact the Protecting Privacy and Consumer Data Act…_, sponsored by the Minister of Artificial Intelligence and Digital Innovation. It amends PIPEDA. First reading was 15 June 2026; as of 14 October 2026 it awaits second reading ([LEGISinfo](https://www.parl.ca/legisinfo/en/bill/45-1/c-36)). `CA-PIPEDA.json` does not mention it, which is correct for a bill.
 
-**What the session got**: PIPEDA, Law 25, the Alberta and BC privacy acts, PCI DSS and the C-26 entry, which the session called C-8. Canada has five files in `src/data/regulatory-map/`: `CA-PIPEDA`, `CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA` and `CA-CCCS`.
-
-**The feedback, verbatim:**
-
-> Missing: provincial health information acts, Health Canada's device rules and Bill C-36.
-> Out of date: the C-26 entry hasn't been updated since the bill was reintroduced and passed as C-8.
-> To check: its penalty figures for the Alberta and BC privacy acts look high, so I left them off the slides.
-
-**Every claim below is the session's, not yet checked against a primary source.** Check each one first; the item is partly a fact-check.
-
-1. **Out of date: `CA-CCCS.json`.** The entry is named "Canada Critical Cyber Systems Protection Act (Bill C-26)", its summary says "Part of Bill C-26", and its `effectiveDate` is `2025-06-01`. The feedback says the bill was reintroduced and passed as C-8. Confirm the bill number, its current stage and the in-force date on LEGISinfo, then correct the name, the summary and the date together. Re-read the penalties and key requirements against the text as passed, because a reintroduced bill is not guaranteed to match the one it replaced.
-2. **To check: `CA-AB-PIPA.json` and `CA-BC-PIPA.json` penalties.** Both files carry the same sentence: "Fines up to $100,000 CAD for individuals and $500,000 CAD for organizations per offense." Check each figure against the offence section of its own act. Two provinces with identical wording is itself a reason to suspect one was copied from the other. This is the part with a cost today: the client declined to use the figures.
-3. **Missing: provincial health information acts.** Ontario's PHIPA and Alberta's HIA are the obvious candidates, and other provinces have their own. Decide which provinces to cover before writing any. The map already holds sub-national Canadian entries (`CA-QC-LAW25`, `CA-AB-PIPA`, `CA-BC-PIPA`), so the modelling exists.
-4. **Missing: Health Canada's device rules.** Presumably the Medical Devices Regulations under the Food and Drugs Act; confirm that is what a diligence reader needs. Check whether the map holds any medical-device regulation for another jurisdiction (FDA, EU MDR) and which category it sits in. If none does, this is a new kind of entry and the category question in [BL-168](#bl-168-regulatory-map--financial-services-expansion-candidate) applies here too.
-5. **Missing: Bill C-36.** The session did not say which C-36, and bill numbers are reused every session of Parliament (item 1 is a bill that changed number). **Ask the operator which act was meant before researching it.**
-
-**Order**: items 1 and 2 are corrections to published data and do not wait on the rest. Items 3 to 5 are additions and can follow in the same PR or a later one.
-
-#### Technical Context
-
-- **Process**: [REGULATORY_MAP.md](../hub/REGULATORY_MAP.md) for adding and editing regulations.
-- **The data ships in the MCP server too.** `mcp-server/src/content/regulations-data.generated.ts` is generated from these JSON files, and `npm run test:docs` fails when the bundle is stale. Any edit here therefore means regenerating the bundle, which touches `mcp-server/**`: run the mcp-server checks as well as the website ones, and expect the production deploy approval on merge.
-- **Counts move with additions.** Tests and docs pin regulation and category counts (`tests/unit/regulatory-map-data.test.ts` among them). Re-measure them after adding files.
-- **Renaming is safe by id.** `CA-CCCS.json` has the id `ca-cccs`, which does not carry the bill number. Changing the display name to C-8 needs no id change, so nothing that references the id breaks.
+**Trigger**: C-36 receives Royal Assent. Then read the Act as passed (a bill can change in committee, as C-8 did), and either amend `CA-PIPEDA.json` or add a record for the new Act. Use `status: "not-in-force"` until it commences. Follow [REGULATORY_MAP.md § Adding a New Regulation](../hub/REGULATORY_MAP.md#adding-a-new-regulation) for everything else an addition touches.
 
 ---
 

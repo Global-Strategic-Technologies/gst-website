@@ -1,0 +1,31 @@
+{
+  "id": "ca-ccpsa",
+  "name": "Canada Consumer Product Safety Act",
+  "aliases": ["CCPSA"],
+  "regions": [
+    "CA-AB",
+    "CA-BC",
+    "CA-MB",
+    "CA-NB",
+    "CA-NL",
+    "CA-NS",
+    "CA-NT",
+    "CA-NU",
+    "CA-ON",
+    "CA-PE",
+    "CA-QC",
+    "CA-SK",
+    "CA-YT"
+  ],
+  "effectiveDate": "2011-06-20",
+  "summary": "Canada's federal consumer product safety law, enacted by Bill C-36 (S.C. 2010, c. 21), governing consumer products that are manufactured, imported, advertised, or sold in Canada. It prohibits products that pose a danger to human health or safety, requires incident reporting and traceability, and lets Health Canada order tests, corrective measures, and recalls. Not to be confused with the Critical Cyber Systems Protection Act (CCSPA).",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Do not manufacture, import, advertise, or sell a consumer product that is a danger to human health or safety, or that is subject to a recall order",
+    "Report incidents, defects, or recalls in another jurisdiction to Health Canada within 2 days of becoming aware of them, and file a written report within 10 days",
+    "Keep documents identifying where products were obtained and to whom they were sold, for 6 years",
+    "Comply with Health Canada orders to test or study a product and to provide the results",
+    "Comply with recall orders and other corrective-measure orders"
+  ],
+  "penalties": "On indictment, fines up to $5,000,000 CAD and up to 2 years imprisonment; on summary conviction, up to $250,000 CAD for a first offence and $500,000 CAD thereafter. Knowing or reckless contraventions carry a fine at the court's discretion and up to 5 years imprisonment. Administrative monetary penalties up to $25,000 CAD per violation for commercial violators. Directors and officers can be personally liable."
+}

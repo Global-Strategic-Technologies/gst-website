@@ -43,8 +43,8 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Compile applicable regulatory frameworks for a target, with summaries pulled from the search-result data + per-framework Regulatory Map URIs.',
-  version: '0.2.0',
-  lastReviewedAt: '2026-09-24',
+  version: '0.3.0',
+  lastReviewedAt: '2026-10-14',
   // `list_regulation_facets` is a conditional recovery call — Step 1 reaches for
   // it only when a jurisdiction id fails to resolve — but the invariant is about
   // what the body CAN direct, not what a given run happens to reach. Omitting it
@@ -74,7 +74,7 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
             '',
             'Step 3. Frame the output as a structured brief with the following sections:',
             '  (1) Header — target product type + jurisdictions + categories assessed.',
-            '  (2) Per-jurisdiction breakdown — for each jurisdiction, list the applicable frameworks with: name, effective date (from `effectiveDate`), and a 1-paragraph summary of the relevant obligations FOR A ' +
+            '  (2) Per-jurisdiction breakdown — for each jurisdiction, list the applicable frameworks with: name, effective date (from `effectiveDate`; when the result carries `status: "not-in-force"`, that date is the enactment date — present the framework as enacted but not yet in force, never as in effect), and a 1-paragraph summary of the relevant obligations FOR A ' +
               args.productType.toUpperCase() +
               ' BUSINESS (built from the search-result `scope` + `keyRequirements` fields where present; tailored to the product type, not a generic restatement of the framework).',
             '  (3) Cross-jurisdictional themes — surface 2-3 patterns that span the supplied jurisdictions (e.g., "all three jurisdictions impose breach-notification windows under 72 hours").',

@@ -1,0 +1,32 @@
+{
+  "id": "ca-mdr",
+  "name": "Health Canada Medical Devices Regulations (SOR/98-282)",
+  "regions": [
+    "CA-AB",
+    "CA-BC",
+    "CA-MB",
+    "CA-NB",
+    "CA-NL",
+    "CA-NS",
+    "CA-NT",
+    "CA-NU",
+    "CA-ON",
+    "CA-PE",
+    "CA-QC",
+    "CA-SK",
+    "CA-YT"
+  ],
+  "effectiveDate": "1998-07-01",
+  "summary": "Canada's federal regulations, made under the Food and Drugs Act, governing the sale, import, and advertising of medical devices, including software as a medical device. Devices are classified by risk from Class I to Class IV, and Health Canada licenses devices and the establishments that import or distribute them, and oversees post-market safety.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Classify each device by risk (Class I lowest to Class IV highest); a device that fits two classes takes the higher",
+    "Hold a medical device licence before importing or selling a Class II, III, or IV device",
+    "Hold a medical device establishment licence to import or distribute devices, unless an exemption applies",
+    "Report incidents involving death or serious deterioration in health within 10 days, and incidents that could cause it if they recurred within 30 days",
+    "Notify the Minister within 24 hours of deciding to recall a device, and report on the recall's results",
+    "Report serious risks identified in foreign actions within 72 hours, and prepare annual or biennial summary reports for Class II to IV devices",
+    "Address cybersecurity in pre-market applications for connected devices, per Health Canada guidance"
+  ],
+  "penalties": "Under the Food and Drugs Act: on indictment, fines up to $5,000,000 CAD and up to 2 years imprisonment; on summary conviction, up to $250,000 CAD and 6 months for a first offence and $500,000 CAD and 18 months thereafter. Knowingly or recklessly causing a serious risk of injury carries a fine at the court's discretion and up to 5 years imprisonment. Each day of a continuing offence is a separate offence."
+}

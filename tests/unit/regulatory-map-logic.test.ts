@@ -124,6 +124,12 @@ describe('regulatory map logic — renderRegulationCard', () => {
     }
   });
 
+  it('labels an enacted, not-in-force law by its enactment date, never as effective (BL-169)', () => {
+    const html = renderRegulationCard({ ...reg, status: 'not-in-force' } as Regulation);
+    expect(html).toContain('Enacted: March 1, 2024 · Not yet in force');
+    expect(html).not.toContain('Effective:');
+  });
+
   it('prints the optional sections when present', () => {
     const html = renderRegulationCard(reg);
     expect(html).toContain('Applies to: Controllers');
@@ -182,6 +188,13 @@ describe('regulatory map logic — renderTimelineGroups', () => {
     const html = renderTimelineGroups(sorted, '2025-01-01');
     expect(html.match(/brutal-timeline-entry--upcoming/g)).toHaveLength(1);
     expect(renderTimelineGroups(sorted, '2026-06-30')).not.toContain('--upcoming');
+  });
+
+  it('marks a not-in-force entry upcoming even when its enactment date has passed (BL-169)', () => {
+    const enacted: RegIndexEntry = { ...REGS[0], status: 'not-in-force' }; // dated 2018
+    expect(renderTimelineGroups([enacted], '2025-01-01')).toContain(
+      'brutal-timeline-entry--upcoming'
+    );
   });
 
   it('reads the month from the string, so no time zone shifts it', () => {

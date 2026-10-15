@@ -1,17 +1,33 @@
 {
   "id": "ca-cccs",
-  "name": "Canada Critical Cyber Systems Protection Act (Bill C-26)",
-  "regions": ["CAN"],
-  "effectiveDate": "2025-06-01",
-  "summary": "Canada's Critical Cyber Systems Protection Act establishes a cybersecurity framework for federally regulated critical infrastructure operators. Part of Bill C-26, it empowers the government to direct operators to protect their cyber systems, mandates incident reporting to the Canadian Centre for Cyber Security, and creates information-sharing mechanisms across sectors.",
+  "name": "Canada Critical Cyber Systems Protection Act",
+  "aliases": ["Bill C-8", "Bill C-26", "CCSPA"],
+  "regions": [
+    "CA-AB",
+    "CA-BC",
+    "CA-MB",
+    "CA-NB",
+    "CA-NL",
+    "CA-NS",
+    "CA-NT",
+    "CA-NU",
+    "CA-ON",
+    "CA-PE",
+    "CA-QC",
+    "CA-SK",
+    "CA-YT"
+  ],
+  "effectiveDate": "2026-06-15",
+  "status": "not-in-force",
+  "summary": "Canada's Critical Cyber Systems Protection Act (CCSPA) establishes a cybersecurity framework for designated operators of federally regulated critical infrastructure. It was enacted by Bill C-8 (S.C. 2026, c. 9), which received Royal Assent on 15 June 2026, after its predecessor Bill C-26 died when Parliament was prorogued in January 2025. The Act comes into force on dates fixed by order of the Governor in Council, and no such order had been made as of October 2026, so it is not yet in force and no operator classes have been designated. Not to be confused with the Canada Consumer Product Safety Act (CCPSA).",
   "category": "cybersecurity",
   "keyRequirements": [
-    "Designated operators must establish and implement cybersecurity programs",
-    "Mandatory reporting of cybersecurity incidents to the Canadian Centre for Cyber Security",
-    "Governor in Council may issue cybersecurity directions to protect critical cyber systems",
-    "Covers federally regulated sectors: telecommunications, finance, energy, and transportation",
-    "Record-keeping obligations for cybersecurity programs and incident reports",
-    "Information sharing with government agencies for threat intelligence coordination"
+    "Designated operators must establish a cybersecurity program within 90 days of designation, file it with their regulator, and review it annually",
+    "Identify and mitigate cybersecurity risks in the supply chain and from third-party products and services",
+    "Report cybersecurity incidents to the Communications Security Establishment within the prescribed period, not exceeding 72 hours, and notify the regulator",
+    "Comply with cybersecurity directions issued by the Governor in Council",
+    "Keep records of the cybersecurity program, incidents, supply-chain mitigation, and directions in Canada",
+    "Covers federally regulated sectors: telecommunications, finance, energy, and transportation"
   ],
-  "penalties": "Administrative monetary penalties up to CAD 15 million per violation for corporations. Criminal offences up to CAD 1 million fine and/or 5 years imprisonment for individuals who obstruct or provide false information. Compliance orders and injunctions."
+  "penalties": "Administrative monetary penalties up to CAD 500,000 per violation for individuals and CAD 15 million for any other person. Offences carry fines at the court's discretion and, for individuals convicted on indictment, up to 5 years imprisonment; each day of a continuing violation is a separate offence. Compliance orders and injunctions."
 }

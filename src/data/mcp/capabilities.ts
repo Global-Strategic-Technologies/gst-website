@@ -312,7 +312,7 @@ export const CAPABILITIES: readonly Capability[] = [
     type: 'Tool',
     usedIn: ['reg'],
     gloss:
-      'Queries 123 regulatory frameworks by jurisdiction, category, and free text. The curated corpus carries current effective dates, scope language, key requirements, and statutory penalty bands.',
+      'Queries 128 regulatory frameworks by jurisdiction, category, and free text. The curated corpus carries current effective dates, scope language, key requirements, and statutory penalty bands.',
     args: [
       {
         name: 'jurisdiction',
@@ -1298,8 +1298,8 @@ export const CAPABILITIES: readonly Capability[] = [
     group: 'Resources',
     type: 'Resource family',
     usedIn: ['reg'],
-    count: 123,
-    gloss: '123 framework documents, one per regulatory framework, each readable in full.',
+    count: 128,
+    gloss: '128 framework documents, one per regulatory framework, each readable in full.',
     uri: 'gst://regulations/<jurisdiction>/<framework>',
     returns: [
       'One document per framework: requirements, penalties, effective dates.',
@@ -1387,7 +1387,7 @@ export interface JobStep {
   /**
    * Resource steps only: the ONE document under the family this step means.
    *
-   * The registry documents three resource FAMILIES, not 133 documents, so a
+   * The registry documents three resource FAMILIES, not 138 documents, so a
    * resource step can only link to its family's contract. Without this field
    * two steps that mean different articles render the same identifier and the
    * same anchor: `Review the architecture` and `Handover an assessment` both

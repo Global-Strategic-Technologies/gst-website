@@ -5,16 +5,15 @@
     "CA-BC"
   ],
   "effectiveDate": "2004-01-01",
-  "summary": "British Columbia's private-sector privacy legislation, deemed substantially similar to PIPEDA. It governs how private-sector organizations in BC collect, use, and disclose personal information, including employee personal information. Uniquely among Canadian provinces, BC PIPA also applies to provincial and federal political parties.",
+  "summary": "British Columbia's private-sector privacy legislation, deemed substantially similar to PIPEDA. It governs how private-sector organizations in BC collect, use, and disclose personal information, including employee personal information, and it covers BC provincial political parties. Federal political parties are exempt from provincial privacy laws under a 2026 amendment to the Canada Elections Act. Unlike PIPEDA and Alberta's PIPA, it imposes no mandatory breach-notification duty.",
   "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent appropriate to the sensitivity of the personal information",
     "Collect personal information only for purposes a reasonable person would consider appropriate",
     "Allow individuals to access and request correction of their personal information",
-    "Implement reasonable security measures to protect personal information",
-    "Designate a privacy officer responsible for the organization's compliance",
-    "Mandatory breach notification to the Office of the Information and Privacy Commissioner for BC",
-    "Coverage extends to employee personal information and political party data"
+    "Make reasonable security arrangements to protect personal information against unauthorized access, use, disclosure, or loss",
+    "Designate a person responsible for the organization's compliance and make their title and contact information available",
+    "Collect, use, and disclose employee personal information only as reasonable to establish, manage, or end the employment relationship, with notice to the employee"
   ],
-  "penalties": "Fines up to $100,000 CAD for individuals and $500,000 CAD for organizations per offense. Enforced by the Office of the Information and Privacy Commissioner for British Columbia. No private right of action."
+  "penalties": "Fines up to $10,000 CAD for individuals and $100,000 CAD for organizations per offense. Enforced by the Office of the Information and Privacy Commissioner for British Columbia. No private right of action."
 }

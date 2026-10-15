@@ -119,7 +119,7 @@ test.describe('MCP documentation — page shape', () => {
     const counts = page.locator('.mdoc-counts__link');
     await expect(counts).toHaveCount(3);
     await expect(counts.nth(0)).toHaveText('16 tools');
-    await expect(counts.nth(1)).toHaveText('133 resources');
+    await expect(counts.nth(1)).toHaveText('138 resources');
     await expect(counts.nth(2)).toHaveText('12 prompts');
   });
 

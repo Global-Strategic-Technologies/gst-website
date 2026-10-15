@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 123 regulation files (Zod-validated at build time)
+│     *.json                      ← 128 regulation files (Zod-validated at build time)
 │
 ├── public/data/
 │     world-110m.json             ← World country boundaries (fetched at runtime)
@@ -28,7 +28,8 @@ User (Map UI)
 │     canada-provinces.json       ← Canadian province boundaries (fetched at runtime)
 │
 ├── src/pages/data/
-│     regulations.json.ts         ← Prerendered API endpoint for regulation data
+│     reg-index.json.ts           ← Prerendered lightweight index (map coloring, timeline, search)
+│     regulations/[id].json.ts    ← Prerendered per-regulation detail, fetched on click
 │
 ├── src/pages/hub/tools/regulatory-map/
 │     index.astro                 ← Route entry: markup, scoped styles
@@ -95,6 +96,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
   "aliases": ["Optional: common short forms, e.g. 'UK GDPR'"],
   "regions": ["AUT", "BEL", "BGR", ...],
   "effectiveDate": "2018-05-25",
+  "status": "Optional: \"not-in-force\" — see below",
   "summary": "Description of the regulation...",
   "category": "data-privacy",
   "scope": "Optional: who this regulation applies to",
@@ -112,7 +114,8 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `name` | string | Required, full regulation name |
 | `aliases` | string[] | Optional, common short forms. Searched by this page and by `search_regulations`; also used by `compose_dossier_envelope` to recognise a framework the map already covers. Must be unique across the corpus |
 | `regions` | string[] | ISO 3166-1 alpha-3 (countries), ISO 3166-2 (US-XX, CA-XX) |
-| `effectiveDate` | string | ISO 8601 date format |
+| `effectiveDate` | string | ISO 8601 date format. The date the law took (or takes) effect — except when `status` is set |
+| `status` | enum | Optional: `not-in-force` — the law is **enacted but has no commencement date yet**. `effectiveDate` then holds the enactment date (e.g. Royal Assent); the card reads "Enacted: … · Not yet in force", the timeline marks it upcoming, and `search_regulations` returns the field. Remove it and set the commencement date once the law comes into force (BL-169) |
 | `summary` | string | Required, regulation description |
 | `category` | enum | Required: `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity` |
 | `scope` | string | Optional, describes who the regulation applies to |
@@ -126,6 +129,8 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `XXX` (alpha-3) | `DEU`, `BRA`, `JPN` | Country-level regulations |
 | `US-XX` | `US-CA`, `US-TX`, `US-VA` | US state-level regulations |
 | `CA-XX` | `CA-QC`, `CA-AB`, `CA-BC` | Canadian provincial regulations |
+
+**Never put `USA` or `CAN` in `regions`.** Those two countries are drawn as states and provinces, and their whole-country shapes are excluded from click handling (see [Country Suppression](#country-suppression)), so a record listing only `USA`/`CAN` cannot be opened from the map. A federal law lists every sub-national code instead — the 51 `US-XX` codes (as `US-HIPAA.json` does) or the 13 `CA-XX` codes (as `CA-PIPEDA.json` does).
 
 ---
 
@@ -144,7 +149,7 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 | `EU-GDPR.json` | General Data Protection Regulation | 27 EU member states |
 | `CA-PIPEDA.json` | Personal Information Protection and Electronic Documents Act | All Canadian provinces |
 
-#### US State Privacy Laws (24)
+#### US State Privacy Laws (23)
 
 | File | State | Law |
 |------|-------|-----|
@@ -243,7 +248,7 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 | `KZ-PDP.json` | Kazakhstan | PDP Law |
 | `UZ-PDP.json` | Uzbekistan | PDP Law |
 
-#### Other (3)
+#### Other (4)
 
 | File | Country | Law | Note |
 |------|---------|-----|------|
@@ -331,7 +336,7 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 
 | File | Country | Law | Effective |
 |------|---------|-----|-----------|
-| `CA-CCCS.json` | Canada | Critical Cyber Systems Protection Act | 2025-06-01 |
+| `CA-CCCS.json` | Canada | Critical Cyber Systems Protection Act (enacted by Bill C-8) | 2026-06-15 — enacted, **not yet in force** (`status`) |
 | `BR-CNCS.json` | Brazil | National Cybersecurity Policy | 2024-01-01 |
 | `IN-CERT.json` | India | CERT-In Cybersecurity Directions | 2022-06-28 |
 
@@ -353,14 +358,14 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 
 ---
 
-### Industry Compliance Regulations (12)
+### Industry Compliance Regulations (17)
 
 #### Global Standards (2)
 
 | File | Regulation | Coverage | Effective |
 |------|-----------|---------|-----------|
 | `GLOBAL-PCI-DSS.json` | Payment Card Industry Data Security Standard (PCI DSS) | ~104 regions (US, Canada, EU, major economies) | 2004-12-15 |
-| `GLOBAL-BASEL3.json` | Basel III International Banking Standards | 37 regions | 2023-01-01 |
+| `GLOBAL-BASEL3.json` | Basel III International Banking Standards | 99 regions (EU, US states, Canadian provinces, major economies) | 2023-01-01 |
 
 #### EU (3)
 
@@ -386,6 +391,18 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 | `AU-AML-CTF.json` | Australia | AML/CTF Act 2006 | 2006-12-12 |
 | `GB-FSMA.json` | United Kingdom | Financial Services and Markets Act 2023 | 2023-06-29 |
 | `SG-PSA.json` | Singapore | Payment Services Act | 2020-01-28 |
+
+#### Canada (5)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `CA-ON-PHIPA.json` | Ontario Personal Health Information Protection Act (PHIPA) | Ontario | 2004-11-01 |
+| `CA-AB-HIA.json` | Alberta Health Information Act (HIA) | Alberta | 2001-04-25 |
+| `CA-QC-HSSIA.json` | Quebec Act respecting health and social services information | Quebec | 2024-07-01 |
+| `CA-MDR.json` | Health Canada Medical Devices Regulations (SOR/98-282) | All Canadian provinces and territories | 1998-07-01 |
+| `CA-CCPSA.json` | Canada Consumer Product Safety Act | All Canadian provinces and territories | 2011-06-20 |
+
+**Why the provincial health acts are `industry-compliance`, not `data-privacy`** (BL-169): they are privacy statutes at heart, but they bind one regulated sector — health custodians and the vendors that serve them — which is the line this category draws, and the map's only other health statute, `US-HIPAA.json`, already sits here. A reader filtering for health obligations finds them side by side. This settles the health case only; the general question of when a sector law earns its own category is BL-168's.
 
 ---
 
@@ -434,14 +451,21 @@ On desktop, the compliance panel has `position: sticky` and its `max-height` is 
 
 ## Adding a New Regulation
 
-1. Create a new JSON file in `src/data/regulatory-map/` following the naming convention: `{COUNTRY_CODE}-{LAW_ABBREVIATION}.json` (e.g., `JP-APPI.json`)
-2. Populate all required fields matching the schema above
-3. Use valid region codes — verify country alpha-3 codes exist in `src/utils/countryCodeMap.ts`, US state codes in `src/utils/fipsToStateCode.ts`, or Canadian province codes in `src/utils/canadianProvinceMap.ts`
-4. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). Aliases must be unique across the corpus; a duplicate guard fails if two entries normalize to the same one — but it runs as the **mcp-server** workspace's `prebuild`/`pretest` hook, so `npm run test:mcp` is what surfaces a collision. The root `npm run build` is `astro build` and will not.
-5. Run `npm run build` — Zod validation will catch schema errors at build time
-6. The map will automatically highlight the new regions and display regulation cards on click
+The JSON file is the only *code* you write, but the corpus is published in several places, so an addition is never just the file.
 
-No code changes are needed to add new country-level regulations — only the JSON file.
+1. **Check every figure against the statute itself** — penalties, dates, in-force status, who it applies to. Keep section numbers and source URLs in the commit message or PR, not in the JSON. BL-169 found two provinces carrying penalties five to ten times too high, word-for-word identical, and a breach-notification duty the Act does not impose; a client had already declined to use them.
+2. **Create the file** in `src/data/regulatory-map/` as `{COUNTRY_CODE}-{LAW_ABBREVIATION}.json` (e.g. `JP-APPI.json`), or `{CC}-{SUB}-{ABBREV}.json` for a state or province (e.g. `CA-ON-PHIPA.json`). Populate the required fields per the schema above.
+3. **Choose the `id` with the MCP jurisdiction rule in mind.** `mcp-server/src/content/regulation-loader.ts` reads an id shaped `us-xx-…` or `ca-xx-…` (two letters in the middle) as a state or province, so a federal id must not take that shape: `ca-mdr` and `ca-ccpsa` are federal; `ca-md-regs` would be misread as a province. The id becomes the Resource URI, so treat it as permanent — correct the `name`, never the `id`.
+4. **Use valid region codes** — alpha-3 in `src/utils/countryCodeMap.ts`, US states in `src/utils/fipsToStateCode.ts`, provinces in `src/utils/canadianProvinceMap.ts`. **Never `USA` or `CAN`** (see [Region Code Formats](#region-code-formats)).
+5. **Enacted but not yet in force?** Set `status: "not-in-force"` and put the enactment date in `effectiveDate`. Never publish a Royal Assent or signature date as the effective date.
+6. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). An alias under 4 characters once normalized is ignored by both MCP matchers. Aliases must be unique across the corpus; a duplicate guard fails if two entries normalize to the same one — but it runs as the **mcp-server** workspace's `prebuild`/`pretest` hook, so `npm run test:mcp` is what surfaces a collision. The root `npm run build` is `astro build` and will not.
+7. **Probe the name against `compose_dossier_envelope`'s matcher.** It matches a model-supplied framework name by normalized substring in *both* directions, so a new long name can swallow a short name another jurisdiction uses (an unqualified "Consumer Product Safety Act" now resolves to the Canadian record). Pin any collision you accept in `mcp-server/tests/unit/schemas/compose-dossier-envelope-gap-validation.test.ts`, with the reason.
+8. **Regenerate the MCP bundle**: `node mcp-server/scripts/generate-regulations-index.mjs`. `npm run test:docs` fails while `mcp-server/src/content/regulations-data.generated.ts` is stale.
+9. **Release the MCP change.** A new file is a new Resource URI, so the manifest hash moves: update `EXPECTED_MANIFEST_HASH` and its ledger in `mcp-server/tests/integration/manifest-stability.test.ts`, add a version entry and the new hash to `mcp-server/BREAKING_CHANGES.md`, and bump the version in `mcp-server/package.json`, `mcp-server/src/version.ts` and the root `package-lock.json` together. Merging triggers the MCP production-deploy approval.
+10. **Move the published counts.** The total, per-category and resource counts are pinned in tests (`tests/unit/regulatory-map-data.test.ts`, `mcp-server/tests/integration/resource-uri-stability.test.ts`, `protocol-roundtrip.test.ts`, and the website's MCP parity tests) and repeated in published copy and docs. The tests fail until they agree; the copy does not, so `git grep -n -w` the old regulation total and the old resource total and update every current-state mention. Historical records (ledgers, ADRs, UAT run logs) keep their numbers.
+11. **Re-stamp the translations** when the count in `tools.regulatory-map.f1` changes: update `src/i18n/{en,es,pt-BR}/hub-tools.json`, then `npm run i18n:stamp`.
+12. **Add the row to the coverage tables above.**
+13. **Validate**: `npx astro check && npm run lint && npm run lint:css && npm run test:run`, then `npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs`.
 
 ### Adding Sub-National Support for a New Country
 
@@ -478,7 +502,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 - **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the client index (fetched at runtime from `/data/reg-index.json`) is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does raw term-wise substring matching with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
 - **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
 - **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
-- **Industry compliance expansion** — 12 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II.
+- **Industry compliance expansion** — 17 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II, and (BL-169) Canada's provincial health acts, Medical Devices Regulations and Consumer Product Safety Act.
 - **Mobile UX** — Bottom sheet panel, two-tap flow with tap bar, quick-zoom region buttons, drag handle, overlay dismiss.
 
 ### Feature Roadmap
@@ -526,7 +550,7 @@ Prioritized list of regulations and jurisdictions for future phases:
 **Tier 5 — Healthcare-Specific Regulations**:
 - Australia: My Health Records Act 2012
 - Japan: Next Generation Medical Infrastructure Act (2018)
-- Canada: provincial health information acts (Ontario PHIPA, Alberta HIA, BC E-Health Act)
+- Canada: the remaining provincial health information acts. Ontario PHIPA, Alberta HIA and Quebec's act shipped under BL-169; the rest (Manitoba, Saskatchewan, the Atlantic provinces, the territories, and BC's public-sector E-Health Act) were left out by operator scope ruling
 
 ---
 

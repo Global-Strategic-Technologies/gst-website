@@ -75,4 +75,14 @@ describe('gst_regulatory_exposure_brief', () => {
     expect(allText).toContain('eu');
     expect(allText).toContain('us-ca');
   });
+
+  it('tells the model never to present a not-in-force framework as in effect (0.3.0, BL-169)', () => {
+    const parsed = regulatoryExposureBriefPrompt.argsSchema.parse(VALID_ARGS);
+    const allText = regulatoryExposureBriefPrompt
+      .build(parsed)
+      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+      .join('\n');
+    expect(allText).toContain('status: "not-in-force"');
+    expect(allText).toContain('never as in effect');
+  });
 });

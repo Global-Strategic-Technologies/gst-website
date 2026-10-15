@@ -12,7 +12,7 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 | Capability           | Kind     | Cases    | Count |
 | -------------------- | -------- | -------- | ----- |
 | `gst://library/`     | resource | UAT-10.2 | 4     |
-| `gst://regulations/` | resource | UAT-10.3 | 123   |
+| `gst://regulations/` | resource | UAT-10.3 | 128   |
 | `gst://radar/`       | resource | UAT-10.4 | 6     |
 
 ---
@@ -28,7 +28,7 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 **Expected result**
 
-- **133** resources total, in three families: **4** library, **123** regulations, **6** radar.
+- **138** resources total, in three families: **4** library, **128** regulations, **6** radar.
 - The regulation count matches `totalFrameworks` from [UAT-02.1](UAT-02-regulatory-map.md). If those two disagree, one of the surfaces is stale.
 - Two mime types only: `text/markdown` (library) and `application/json` (regulations, radar).
 - Every entry carries a `name`, a `description`, and a `uri`.
@@ -38,7 +38,7 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 | Symptom                              | Means                               | Do                                                        |
 | ------------------------------------ | ----------------------------------- | --------------------------------------------------------- |
-| Count differs from 133               | Corpus changed                      | Not a defect — update this case and UAT-02.1 together     |
+| Count differs from 138               | Corpus changed                      | Not a defect — update this case and UAT-02.1 together     |
 | Regulation count ≠ `totalFrameworks` | Tool and resource surfaces disagree | Fail — one of them is lying about the corpus              |
 | No resources listed                  | Client may not support resources    | Blocked, not Fail — confirm the client's capability first |
 

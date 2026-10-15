@@ -541,7 +541,7 @@ const BUDGETS: Record<string, ToolBudget> = {
   list_regulation_facets: {
     args: {},
     budget: { kind: 'absolute', minEnvelopeBytes: 1300, maxEnvelopeBytes: 2000 },
-    note: 'Facet lists over 123 frameworks; grows with distinct jurisdictions, not with framework bodies.',
+    note: 'Facet lists over 128 frameworks; grows with distinct jurisdictions, not with framework bodies.',
   },
   compute_techpar: {
     args: { ...TECHPAR_INPUTS, _audit: buildPartnerSuppliedTechParAudit('quick') },
