@@ -35,7 +35,7 @@
     "@cfworker/json-schema": "^4.1.1",
     "@cloudflare/workers-oauth-provider": "1.2.3",
     "@modelcontextprotocol/server": "2.3.1",
-    "@sentry/cloudflare": "^11.4.0",
+    "@sentry/cloudflare": "^11.7.0",
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.39.0",
     "fflate": "^0.8.3",
