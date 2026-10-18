@@ -2616,6 +2616,96 @@
           "cls": 0
         }
       }
+    },
+    {
+      "timestamp": "2026-10-18T06:58:57.251Z",
+      "commit": "fa459e2e7c4f8077ff4bfad93e3d6259bacd7d63",
+      "pages": {
+        "/": {
+          "performance": 75,
+          "fcp": 4217,
+          "lcp": 4367,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/about": {
+          "performance": 64,
+          "fcp": 4887,
+          "lcp": 6989,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/services": {
+          "performance": 63,
+          "fcp": 5694,
+          "lcp": 6370,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/ma-portfolio": {
+          "performance": 59,
+          "fcp": 7056,
+          "lcp": 7584,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/brand": {
+          "performance": 59,
+          "fcp": 6906,
+          "lcp": 7657,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/hub": {
+          "performance": 64,
+          "fcp": 5597,
+          "lcp": 6198,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/hub/tools/tech-debt-calculator": {
+          "performance": 63,
+          "fcp": 5701,
+          "lcp": 6378,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/hub/tools/diligence-machine": {
+          "performance": 65,
+          "fcp": 5486,
+          "lcp": 5789,
+          "tbt": 5,
+          "cls": 0
+        },
+        "/hub/tools/regulatory-map": {
+          "performance": 61,
+          "fcp": 5690,
+          "lcp": 7866,
+          "tbt": 21,
+          "cls": 0
+        },
+        "/hub/tools/techpar": {
+          "performance": 63,
+          "fcp": 5860,
+          "lcp": 6312,
+          "tbt": 1,
+          "cls": 0
+        },
+        "/hub/radar": {
+          "performance": 62,
+          "fcp": 4890,
+          "lcp": 28716,
+          "tbt": 0,
+          "cls": 0.049
+        },
+        "/hub/library": {
+          "performance": 66,
+          "fcp": 5183,
+          "lcp": 5710,
+          "tbt": 0,
+          "cls": 0
+        }
+      }
     }
   ]
 }
