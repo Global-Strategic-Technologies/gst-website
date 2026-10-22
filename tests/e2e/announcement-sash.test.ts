@@ -248,6 +248,20 @@ test.describe('Announcement sash', () => {
     const band = corner.locator('.brutal-sash');
     await expect(band).toHaveAttribute('href', ANNOUNCED_PAGE);
     await expect(band).toHaveAttribute('aria-label', /open the linked page/);
+    // WCAG 2.5.3 Label in Name: the visible words must appear in the spoken
+    // label. Guards the ' ' separators in Sash.astro — without them the badge
+    // and label concatenate ("NewGST MCP").
+    const words = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const [visible, spoken] = await Promise.all([
+      band.textContent(),
+      band.getAttribute('aria-label'),
+    ]);
+    expect(words(spoken ?? '')).toContain(words(visible ?? ''));
 
     const [cornerZ, headerZ] = await Promise.all([
       corner.evaluate((el) => Number(getComputedStyle(el).zIndex)),
