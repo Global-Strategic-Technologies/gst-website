@@ -157,6 +157,10 @@ export function renderSearchResultRows(results: readonly RegIndexEntry[]): strin
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Entries carry no aria-label: the accessible name is the visible text (name
+// + date), which WCAG 2.5.3 Label in Name requires — a full-name label fails it
+// whenever the visible name is truncated. The full name still reaches AT as the
+// description, via `title`.
 const TIMELINE_NAME_MAX = 35;
 
 /**
@@ -193,7 +197,6 @@ export function renderTimelineGroups(regs: readonly RegIndexEntry[], today: stri
                   <button type="button" class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
                        data-reg-id="${escapeHtml(reg.id)}"
                        aria-pressed="false"
-                       aria-label="${escapeHtml(reg.name)}, ${shortDate}"
                        title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
                       <span class="brutal-timeline-dot brutal-timeline-dot--${catClass}${isUpcoming ? ' brutal-timeline-dot--upcoming' : ''}"></span>
                       <span class="brutal-timeline-entry__name">${escapeHtml(truncName)}</span>

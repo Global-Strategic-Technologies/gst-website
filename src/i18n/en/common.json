@@ -50,7 +50,7 @@
   "hub.updated": "Updated {date}",
   "notice.contentInEnglish": "This page is available in English only.",
   "switcher.label": "Language",
-  "switcher.current": "Language: {name}",
+  "switcher.current": "{short} — Language: {name}",
   "band.ariaLabel": "Language suggestion",
   "band.available": "This site is available in English.",
   "band.view": "View in English",

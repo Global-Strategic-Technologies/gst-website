@@ -173,11 +173,19 @@ const underAriaAttrs = (field: SashSubtextField) =>
     : {};
 ---
 
+{/* The ' ' separators in the link band are for the accessible text only:
+    without them the segments concatenate ("NewGST MCP"), which is not
+    contained in the aria-label and fails WCAG 2.5.3 Label in Name (axe
+    label-content-name-mismatch). .brutal-sash is a flex container, so a
+    whitespace-only run between its items renders nothing — the spacing is
+    still `gap`'s alone. */}
 <div class={cornerClass}>
   {isLink ? (
     <a class="brutal-sash" href={href} aria-label={spokenLabel} {...trackAttrs}>
       {badge && <span class="brutal-sash__badge">{badge}</span>}
+      {badge && ' '}
       <span class="brutal-sash__label">{label}</span>
+      {detail && ' '}
       {detail && <span class="brutal-sash__detail">{detail}</span>}
     </a>
   ) : (

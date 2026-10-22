@@ -201,11 +201,14 @@ describe('regulatory map logic — renderTimelineGroups', () => {
     expect(renderTimelineGroups(sorted, '2025-01-01')).toContain('May 2018</span>');
   });
 
-  it('cuts names over 35 characters to 33 plus an ellipsis, keeping the full name in the label', () => {
+  it('cuts names over 35 characters to 33 plus an ellipsis, keeping the full name in the title', () => {
     const long = { ...REGS[0], name: 'A'.repeat(36) };
     const html = renderTimelineGroups([long], '2025-01-01');
     expect(html).toContain(`>${'A'.repeat(33)}…</span>`);
-    expect(html).toContain(`aria-label="${'A'.repeat(36)}, May 2018"`);
+    expect(html).toContain(`title="${'A'.repeat(36)} — May 2018"`);
+    // WCAG 2.5.3 Label in Name: the visible text IS the accessible name, so no
+    // aria-label may override it (a full-name label fails once truncated).
+    expect(html).not.toContain('aria-label=');
     const exact = renderTimelineGroups([{ ...long, name: 'B'.repeat(35) }], '2025-01-01');
     expect(exact).toContain(`>${'B'.repeat(35)}</span>`);
   });
