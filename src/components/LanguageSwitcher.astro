@@ -65,7 +65,7 @@ const targetFor = (target: Locale) =>
         type="button"
         aria-haspopup="menu"
         aria-expanded="false"
-        aria-label={t('switcher.current', { name: locale.name })}
+        aria-label={t('switcher.current', { short: locale.short, name: locale.name })}
         lang={locale.htmlLang}
       >
         {locale.short}
@@ -74,7 +74,7 @@ const targetFor = (target: Locale) =>
         <a
           class="brutal-segmented__btn lang-switch__fallback"
           href={demo ? '#' : localeHome(locale)}
-          aria-label={t('switcher.current', { name: locale.name })}
+          aria-label={t('switcher.current', { short: locale.short, name: locale.name })}
           lang={locale.htmlLang}
         >
           {locale.short}

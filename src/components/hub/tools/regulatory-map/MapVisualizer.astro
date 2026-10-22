@@ -63,6 +63,8 @@ import '../../../../styles/components/map.css';
     <span class="map-loading-label">Loading map</span>
   </div>
   <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
+  {/* Each label opens with the button's visible text (WCAG 2.5.3 Label in
+      Name) so a voice-control user can say what they see: "click AMR". */}
   <div class="map-quick-zoom" id="mapQuickZoom">
     <button
       type="button"
@@ -76,7 +78,7 @@ import '../../../../styles/components/map.css';
       type="button"
       class="brutal-quick-zoom"
       data-region="americas"
-      aria-label="Zoom to Americas"
+      aria-label="AMR — zoom to Americas"
     >
       AMR
     </button>
@@ -84,7 +86,7 @@ import '../../../../styles/components/map.css';
       type="button"
       class="brutal-quick-zoom"
       data-region="europe"
-      aria-label="Zoom to Europe"
+      aria-label="EUR — zoom to Europe"
     >
       EUR
     </button>
@@ -92,7 +94,7 @@ import '../../../../styles/components/map.css';
       type="button"
       class="brutal-quick-zoom"
       data-region="asia-pacific"
-      aria-label="Zoom to Asia-Pacific"
+      aria-label="APAC — zoom to Asia-Pacific"
     >
       APAC
     </button>
@@ -100,7 +102,7 @@ import '../../../../styles/components/map.css';
       type="button"
       class="brutal-quick-zoom"
       data-region="africa-mideast"
-      aria-label="Zoom to Africa & Middle East"
+      aria-label="MEA — zoom to Africa & Middle East"
     >
       MEA
     </button>
