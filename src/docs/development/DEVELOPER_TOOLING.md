@@ -801,7 +801,7 @@ Two consequences worth stating, since the severity-blind rule is easy to misread
 
 _(This paragraph previously read "dev-only **moderate** advisories are tolerated", which never matched practice — the tree has carried tolerated dev-only highs continuously. Corrected 2026-08-04.)_
 
-**Current production state** (re-measured 2026-10-13 after `agents` and its subtree left the lockfile and the `@modelcontextprotocol/client` / `@modelcontextprotocol/sdk` overrides were removed): **zero vulnerabilities** on the enforced gate (`--omit=dev`).
+**Current production state** (re-measured 2026-10-23): **zero vulnerabilities** on the enforced gate (`--omit=dev`). On 2026-10-22 five advisories against `vite` `8.0.0`–`8.1.5` (two Vite dev-server flaws, three in its bundled `launch-editor`) failed the gate through `astro → vite@8.1.5`. `8.1.6` is inside `astro`'s `^8.0.13` range, so it was taken as a lockfile-only bump (no override). The previous re-measure, 2026-10-13, followed `agents` and its subtree leaving the lockfile and the removal of the `@modelcontextprotocol/client` / `@modelcontextprotocol/sdk` overrides.
 
 The **full tree, dev included, carries 22 dev-only advisories** (19 high, 3 moderate). They are re-measured as of 2026-10-13, after `agents` left the tree — the count and both chains are unchanged from 2026-10-12, when the `wrangler` `4.148.0` bump (PR #557) cleared the third chain — and come from **two chains: `@lhci/cli` (13) and `stylelint` (9)**. Each is tolerated under the policy above with a named reachability argument:
 
