@@ -148,6 +148,8 @@ describe('package.json overrides are honoured by package-lock.json', () => {
       // incremental `--package-lock-only` while a root `undici@8` exists), the
       // parent resolves the root copy instead — above the floor, so the check
       // above passes, but on a major the parent never declared.
+      // Blunt by design: it compares the leading number only, so a 0.x pin
+      // (lhci's `tmp`) would accept a 0.y copy that semver treats as breaking.
       for (const { path, version } of governed) {
         expect(
           version.split('.')[0],
