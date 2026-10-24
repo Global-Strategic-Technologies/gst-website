@@ -336,7 +336,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
 5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
 6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
-7. **Decide the page's tier** ([LOCALIZATION.md § Content tiers](src/docs/development/LOCALIZATION.md)). Tier A (every locale): body in `src/page-templates/`, copy in `src/i18n/<locale>/<ns>.json`, one row in `TIER_A_ROUTES` + one in the template registry. English-only: an ordinary page under `src/pages/`, linked from localized pages with the English-only notice
+7. **Decide the page's tier** ([LOCALIZATION.md § Content tiers](src/docs/development/LOCALIZATION.md)). Tier A (every locale) or Tier B (a hub tool, localized after launch): body in `src/page-templates/`, copy in `src/i18n/<locale>/<ns>.json`, one row in `TIER_A_ROUTES` / `TIER_B_ROUTES` + one in the template registry (a tool script gets its strings from a JSON island — LOCALIZATION.md § Tool scripts). English-only: an ordinary page under `src/pages/`, linked from localized pages with the English-only notice
 
 ### Working with Palettes
 
