@@ -143,6 +143,17 @@ describe('package.json overrides are honoured by package-lock.json', () => {
         .filter((c): c is { path: string; version: string } => c !== null);
       expect(governed.length, `${child} under ${parent}: not in the lockfile`).toBeGreaterThan(0);
       expectAtOrAboveFloor(governed, floor);
+      // A scoped override patches inside the parent's pinned major. If npm
+      // DROPS the nested copy (it does, for `miniflare → undici`, on an
+      // incremental `--package-lock-only` while a root `undici@8` exists), the
+      // parent resolves the root copy instead — above the floor, so the check
+      // above passes, but on a major the parent never declared.
+      for (const { path, version } of governed) {
+        expect(
+          version.split('.')[0],
+          `${path} resolves ${version}, outside the ${floor} override's major`
+        ).toBe(floor.split('.')[0]);
+      }
     }
   });
 });
