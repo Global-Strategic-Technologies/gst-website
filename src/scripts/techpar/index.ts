@@ -27,7 +27,7 @@ import {
   sumDeep,
   formatWithCommas,
   syncArrChips,
-  updateChipCurrencies,
+  applyCurrency,
   syncInfraPeriodUI,
   updateInfraAnnotation,
   checkSanity,
@@ -38,6 +38,7 @@ import {
   syncRadioGroup,
 } from './dom';
 import { renderAnalysis, renderTrajectory } from './chart';
+import { parseCurrencyParam } from '../../i18n/currency';
 
 // ─── Dependency injection helpers ─────────────────────────
 // Several dom.ts functions need updateAll/renderTrajectory/goTab but can't
@@ -277,12 +278,7 @@ $$('[data-mode]').forEach((btn) => {
 // Currency selector
 $$('[data-currency]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    syncRadioGroup('[data-currency]', btn);
-    tp.currencySymbol = (btn as HTMLElement).dataset.currency || '$';
-    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
-      pre.textContent = tp.currencySymbol;
-    });
-    updateChipCurrencies();
+    applyCurrency(parseCurrencyParam((btn as HTMLElement).dataset.currency));
     updateAll();
   });
 });

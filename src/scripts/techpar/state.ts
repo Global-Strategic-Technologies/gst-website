@@ -7,6 +7,7 @@
 import type { Chart } from 'chart.js';
 import type { TechParInputs, TechParResult, HistoricalPoint } from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
+import { DEFAULT_CURRENCY, type Currency } from '../../i18n/currency';
 
 // ─── Shared mutable state ─────────────────────────────────
 export interface SavedScenario {
@@ -31,7 +32,7 @@ export const tp = {
   trajChart: null as Chart | null,
   baselineResult: null as TechParResult | null,
   baselineInputs: null as TechParInputs | null,
-  currencySymbol: '$',
+  currency: DEFAULT_CURRENCY as Currency,
   infraPeriod: 'monthly' as 'monthly' | 'annual',
   industry: 'saas' as Industry,
   historicalPoints: [] as HistoricalPoint[],

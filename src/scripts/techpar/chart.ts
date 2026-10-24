@@ -26,6 +26,7 @@ import {
   getStyle,
   chartFontFamily,
   fmtD,
+  currencySymbol,
   buildInputs,
   renderScenarios,
 } from './dom';
@@ -684,7 +685,7 @@ export async function renderTrajectory(r: TechParResult) {
             max: maxY,
             title: {
               display: true,
-              text: `Monthly spend (${tp.currencySymbol})`,
+              text: `Monthly spend (${currencySymbol()})`,
               color: txtMuted,
               font: { size: 10 },
             },

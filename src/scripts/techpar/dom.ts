@@ -16,6 +16,9 @@ import {
 } from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
 import { LS_KEY } from './state';
+import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, parseCurrencyParam } from '../../i18n/currency';
+import type { Currency } from '../../i18n/currency';
+import { escapeHtml } from '../../utils/escape-html';
 
 // ─── DOM query helpers ────────────────────────────────────
 export const $$ = (sel: string) => document.querySelectorAll(sel);
@@ -62,9 +65,28 @@ export function chartFontFamily(): string {
 /** Named so the guard can find it in one place instead of at four call sites. */
 const CHART_FONT_FALLBACK = "'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace";
 
+/** The symbol for the selected display currency (allowlisted — see i18n/currency). */
+export function currencySymbol(): string {
+  return CURRENCY_SYMBOL[tp.currency];
+}
+
 /** Currency-aware formatDollars wrapper */
 export function fmtD(n: number): string {
-  return formatDollars(n, tp.currencySymbol);
+  return formatDollars(n, currencySymbol());
+}
+
+/** Select a display currency and repaint everything that shows its symbol. */
+export function applyCurrency(code: Currency): void {
+  tp.currency = code;
+  $$('[data-currency]').forEach((b) => {
+    const isActive = (b as HTMLElement).dataset.currency === code;
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
+  });
+  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
+    pre.textContent = currencySymbol();
+  });
+  updateChipCurrencies();
 }
 
 // ─── Tab navigation ───────────────────────────────────────
@@ -299,19 +321,11 @@ export function resetAll(deps: {
   tp.baselineResult = null;
   tp.baselineInputs = null;
   tp.scenarios = [];
-  tp.currencySymbol = '$';
   const baseBar = g('baseline-bar');
   if (baseBar) baseBar.style.display = 'none';
   const setBtn = document.querySelector('[data-action="set-baseline"]') as HTMLElement | null;
   if (setBtn) setBtn.style.display = '';
-  $$('[data-currency]').forEach((b) => {
-    const isActive = (b as HTMLElement).dataset.currency === '$';
-    b.classList.toggle('tp-seg__btn--active', isActive);
-    b.setAttribute('aria-checked', String(isActive));
-  });
-  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
-    pre.textContent = '$';
-  });
+  applyCurrency(DEFAULT_CURRENCY);
 
   tp.historicalPoints = [];
   deps.renderHistRows();
@@ -386,19 +400,19 @@ export function renderHistRows(updateAll: () => void) {
     <div class="tp-hist-row" data-hist-row="${i}">
         <div class="tp-hist-field tp-hist-field--label">
             <span class="tp-hist-field__lbl">Year</span>
-            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
+            <input data-hist-label="${i}" value="${escapeHtml(pt.label)}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">ARR / Revenue</span>
             <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
+                <span class="brutal-field__prefix">${currencySymbol()}</span>
                 <input type="number" data-hist-arr="${i}" value="${pt.arr || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">Total annual tech spend</span>
             <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
+                <span class="brutal-field__prefix">${currencySymbol()}</span>
                 <input type="number" data-hist-tech="${i}" value="${pt.totalTechSpend || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
@@ -482,7 +496,7 @@ export function updateChipCurrencies() {
     .querySelectorAll<HTMLButtonElement>('.tp-arr-chip[data-arr-val], [data-preset-for]')
     .forEach((chip) => {
       const txt = chip.textContent || '';
-      const updated = txt.replace(/^[CA]?\$|^€|^£/, tp.currencySymbol);
+      const updated = txt.replace(/^[CAR]?\$|^€|^£/, currencySymbol());
       if (updated !== txt) chip.textContent = updated;
     });
 }
@@ -625,7 +639,9 @@ export function syncUrlState() {
     // so that hydration doesn't double-convert on reload.
     const rawInfra = getInput('infra');
     if (rawInfra) params.set('h', String(rawInfra));
-    if (tp.currencySymbol !== '$') params.set('u', tp.currencySymbol);
+    // Always written, as a code: a missing `u` means USD (every pre-codes link
+    // and saved state did), so omitting the default would be ambiguous.
+    params.set('u', tp.currency);
     if (tp.infraPeriod !== 'monthly') params.set('b', tp.infraPeriod);
     if (tp.industry !== 'saas') params.set('n', tp.industry);
     const url = `${window.location.pathname}?${params.toString()}`;
@@ -660,19 +676,9 @@ export function hydrateFromUrl() {
 
   const state = deserializeFromParams(params);
 
-  const u = params.get('u');
-  if (u) {
-    tp.currencySymbol = u;
-    $$('[data-currency]').forEach((b) => {
-      const isActive = (b as HTMLElement).dataset.currency === u;
-      b.classList.toggle('tp-seg__btn--active', isActive);
-      b.setAttribute('aria-checked', String(isActive));
-    });
-    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
-      pre.textContent = tp.currencySymbol;
-    });
-    updateChipCurrencies();
-  }
+  // Allowlisted: `u` is painted into the page, so only a known code (or a
+  // pre-codes legacy symbol) is accepted; anything else is USD.
+  applyCurrency(parseCurrencyParam(params.get('u')));
 
   const b = params.get('b');
   if (b === 'annual') {
