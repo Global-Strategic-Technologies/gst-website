@@ -2,7 +2,7 @@
  * TechPar UI — DOM helpers, formatting, tab navigation, input validation,
  * and UI-sync utilities.
  */
-import { formatDollars, formatPercent, zoneColorVar, zoneLabel } from '../../utils/techpar-engine';
+import { formatPercent, zoneColorVar, zoneLabel } from '../../utils/techpar-engine';
 import type { TechParInputs, TechParResult, Stage } from '../../utils/techpar-engine';
 import { STAGES } from '../../data/techpar/stages';
 import { tp, MAX_HISTORICAL, MAX_SCENARIOS } from './state';
@@ -16,7 +16,13 @@ import {
 } from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
 import { LS_KEY } from './state';
-import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, parseCurrencyParam } from '../../i18n/currency';
+import {
+  CURRENCY_SYMBOL,
+  DEFAULT_CURRENCY,
+  formatMoneyChip,
+  formatMoneyShort,
+  parseCurrencyParam,
+} from '../../i18n/currency';
 import type { Currency } from '../../i18n/currency';
 import { escapeHtml } from '../../utils/escape-html';
 
@@ -70,9 +76,14 @@ export function currencySymbol(): string {
   return CURRENCY_SYMBOL[tp.currency];
 }
 
-/** Currency-aware formatDollars wrapper */
+/** The page's language tag (`en`, `es`, `pt-BR`), for number formatting. */
+export function pageLang(): string {
+  return document.documentElement.lang || 'en';
+}
+
+/** Short money in the selected display currency and the page's number format. */
 export function fmtD(n: number): string {
-  return formatDollars(n, currencySymbol());
+  return formatMoneyShort(n, tp.currency, pageLang());
 }
 
 /** Select a display currency and repaint everything that shows its symbol. */
@@ -131,7 +142,8 @@ export function copySummary(btn: HTMLButtonElement) {
     inputs,
     result,
     window.location.href,
-    validHist.length ? validHist : undefined
+    validHist.length ? validHist : undefined,
+    { money: fmtD }
   );
   copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied' });
 }
@@ -491,14 +503,14 @@ export function paintCostChips(inputName: string): void {
 }
 
 // ─── Config display sync ──────────────────────────────────
+/** Repaint every money chip's label from its value in the selected currency.
+ *  Money chips carry `data-money` (ARR chips and the cost presets); exit-multiple
+ *  and FTE chips do not, so they are never touched. */
 export function updateChipCurrencies() {
-  document
-    .querySelectorAll<HTMLButtonElement>('.tp-arr-chip[data-arr-val], [data-preset-for]')
-    .forEach((chip) => {
-      const txt = chip.textContent || '';
-      const updated = txt.replace(/^[CAR]?\$|^€|^£/, currencySymbol());
-      if (updated !== txt) chip.textContent = updated;
-    });
+  document.querySelectorAll<HTMLElement>('[data-money]').forEach((chip) => {
+    const value = Number(chip.dataset.arrVal ?? chip.dataset.presetVal);
+    if (value > 0) chip.textContent = formatMoneyChip(value, tp.currency);
+  });
 }
 
 export function syncInfraPeriodUI() {

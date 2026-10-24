@@ -66,7 +66,7 @@ describe('TechPar hydration paints nothing it was not allowed to', () => {
   }
 
   it('a malicious ?u= falls back to USD and injects no element', () => {
-    load(`s=series-b&a=10000000&u=${encodeURIComponent(PAYLOAD)}`);
+    load(`s=series_bc&a=10000000&u=${encodeURIComponent(PAYLOAD)}`);
     expect(tp.currency).toBe('USD');
     renderHistRows(() => {});
     expect(document.querySelector('img')).toBeNull();
@@ -74,7 +74,7 @@ describe('TechPar hydration paints nothing it was not allowed to', () => {
   });
 
   it('a legacy ?u=€ link still opens in EUR', () => {
-    load('s=series-b&a=10000000&u=%E2%82%AC');
+    load('s=series_bc&a=10000000&u=%E2%82%AC');
     expect(tp.currency).toBe('EUR');
     expect(document.querySelector('.brutal-field__prefix')?.textContent).toBe('€');
     expect(
@@ -84,13 +84,13 @@ describe('TechPar hydration paints nothing it was not allowed to', () => {
 
   it('a missing ?u= means USD', () => {
     tp.currency = 'EUR';
-    load('s=series-b&a=10000000');
+    load('s=series_bc&a=10000000');
     expect(tp.currency).toBe('USD');
   });
 
   it('a malicious historical-year label is escaped, not parsed', () => {
     const label = `"><img src=x onerror="window.__pwned=1">`;
-    load(`s=series-b&a=10000000&y1a=5000000&y1t=900000&y1l=${encodeURIComponent(label)}`);
+    load(`s=series_bc&a=10000000&y1a=5000000&y1t=900000&y1l=${encodeURIComponent(label)}`);
     expect(tp.historicalPoints.length).toBe(1);
     renderHistRows(() => {});
     expect(document.querySelector('img')).toBeNull();
@@ -99,7 +99,7 @@ describe('TechPar hydration paints nothing it was not allowed to', () => {
   });
 
   it('serializes the currency as a code even when it is the default', () => {
-    tp.stageKey = 'series-b';
+    tp.stageKey = 'series_bc';
     tp.currency = 'USD';
     document.body.insertAdjacentHTML('beforeend', '<input data-input="arr" value="10000000">');
     syncUrlState();

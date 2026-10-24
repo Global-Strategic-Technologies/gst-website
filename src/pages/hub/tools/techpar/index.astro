@@ -349,6 +349,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               </button>
               <button
                 class="tp-seg__btn"
+                data-currency="BRL"
+                type="button"
+                role="radio"
+                aria-checked="false"
+              >
+                BRL
+              </button>
+              <button
+                class="tp-seg__btn"
                 data-currency="CAD"
                 type="button"
                 role="radio"
@@ -381,6 +390,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
+                  data-money
                   data-arr-val="10000000"
                   type="button"
                 >
@@ -389,6 +399,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
+                  data-money
                   data-arr-val="25000000"
                   type="button"
                 >
@@ -397,6 +408,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
+                  data-money
                   data-arr-val="50000000"
                   type="button"
                 >
@@ -405,6 +417,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
+                  data-money
                   data-arr-val="100000000"
                   type="button"
                 >
@@ -413,6 +426,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 <button
                   class="tp-arr-chip"
                   aria-pressed="false"
+                  data-money
                   data-arr-val="250000000"
                   type="button"
                 >
@@ -657,6 +671,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   so the visible chip group sits above the input in both modes.
                   syncInfraPeriodUI() toggles by data attribute, not DOM order. */}
               <PresetInput
+                money
                 inputName="infra"
                 chipsOnly
                 chipGroupAttr="data-infra-chips-annual"
@@ -670,6 +685,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 ]}
               />
               <PresetInput
+                money
                 inputName="infra"
                 inputId="tp-infra"
                 presets={[
@@ -713,6 +729,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 Annual fully-loaded cost
               </label>
               <PresetInput
+                money
                 inputName="infraPers"
                 inputId="tp-infra-pers"
                 presets={[
@@ -751,6 +768,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   Annual fully-loaded cost
                 </label>
                 <PresetInput
+                  money
                   inputName="rdOpEx"
                   inputId="tp-rd-opex"
                   presets={[
@@ -784,6 +802,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   Engineering headcount
                 </label>
                 <PresetInput
+                  money
                   inputName="rdEng"
                   inputId="tp-rd-eng"
                   presets={[
@@ -808,6 +827,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   Product headcount
                 </label>
                 <PresetInput
+                  money
                   inputName="rdProd"
                   inputId="tp-rd-prod"
                   presets={[
@@ -831,6 +851,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                   Tooling and subscriptions
                 </label>
                 <PresetInput
+                  money
                   inputName="rdTool"
                   inputId="tp-rd-tool"
                   presets={[
@@ -894,6 +915,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                 Annual capitalized software development
               </label>
               <PresetInput
+                money
                 inputName="rdCapEx"
                 inputId="tp-rd-capex"
                 presets={[

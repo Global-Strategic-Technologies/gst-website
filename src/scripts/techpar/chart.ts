@@ -11,6 +11,7 @@ import {
   zoneLabel,
   kpiClass,
   formatPercent,
+  CATEGORY_LABELS,
 } from '../../utils/techpar-engine';
 import type { TechParInputs, TechParResult, StageConfig } from '../../utils/techpar-engine';
 import { SIGNAL_COPY } from '../../data/techpar/signal-copy';
@@ -295,7 +296,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     // Deep Dive prompt
     const ddPrompt = g('deepdive-prompt');
     if (ddPrompt) {
-      const rdCat = r.categories.find((c) => c.label === 'R&D OpEx');
+      const rdCat = r.categories.find((c) => c.label === CATEGORY_LABELS.rdOpEx);
       const showPrompt =
         tp.mode === 'quick' && rdCat && (rdCat.zone === 'elevated' || rdCat.zone === 'critical');
       if (showPrompt) {
@@ -348,7 +349,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     // Cross-link
     const crossLink = g('cross-link');
     if (crossLink) {
-      const rdCat = r.categories.find((c) => c.label === 'R&D OpEx');
+      const rdCat = r.categories.find((c) => c.label === CATEGORY_LABELS.rdOpEx);
       if (
         rdCat &&
         (rdCat.zone === 'elevated' || rdCat.zone === 'critical' || rdCat.zone === 'above')
