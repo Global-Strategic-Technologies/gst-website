@@ -23,6 +23,9 @@
  */
 import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 import { escapeHtml } from '../utils/escape-html';
+import { interpolate, type Params } from './interpolate';
+
+export { interpolate };
 
 import enCommon from './en/common.json';
 import enAbout from './en/about.json';
@@ -35,6 +38,7 @@ import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
+import enTechpar from './en/techpar.json';
 import enTerms from './en/terms.json';
 
 /** The English catalogs, one static import per namespace: they ARE the types. */
@@ -51,11 +55,12 @@ export const EN = {
   'hub-mcp-from-code': enHubMcpFromCode,
   privacy: enPrivacy,
   terms: enTerms,
+  techpar: enTechpar,
 } as const;
 
 export type Namespace = keyof typeof EN;
 export type Key<N extends Namespace> = keyof (typeof EN)[N] & string;
-export type Params = Record<string, string | number>;
+export type { Params };
 
 type Catalog = Record<string, string>;
 
@@ -82,13 +87,6 @@ export function catalogFor(localeCode: string, ns: Namespace): Catalog | undefin
 /** Locale codes that have at least one catalog on disk (used by the guard). */
 export function catalogLocaleCodes(): string[] {
   return [...new Set(Object.keys(CATALOGS).map((k) => k.split('/')[0]))];
-}
-
-export function interpolate(template: string, params?: Params): string {
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
-    name in params ? String(params[name]) : whole
-  );
 }
 
 export interface Translator<N extends Namespace> {

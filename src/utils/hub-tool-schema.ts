@@ -59,6 +59,12 @@ export interface HubToolSchemaInput {
   datePublished: string;
   /** Last significant update, `YYYY-MM-DD`. See the doc for what counts. */
   dateModified: string;
+  /**
+   * BCP 47 language of the page (`es`, `pt-BR`). Only localized tools pass it
+   * (BL-153 Slice 4); omitted, the key is not emitted, so the English-only
+   * tools' JSON-LD stays byte-identical.
+   */
+  inLanguage?: string;
 }
 
 /** Build the `WebApplication` JSON-LD object for one hub tool page. */
@@ -75,6 +81,7 @@ export function hubToolSchema(tool: HubToolSchemaInput) {
     datePublished: tool.datePublished,
     dateModified: tool.dateModified,
     featureList: tool.featureList,
+    ...(tool.inLanguage ? { inLanguage: tool.inLanguage } : {}),
     author: { ...AUTHOR, knowsAbout: tool.knowsAbout },
   };
 }

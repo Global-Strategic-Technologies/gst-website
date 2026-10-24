@@ -63,33 +63,9 @@ export const StageConfigSchema = z.object({
 /** Map of stage key → stage config. The shape of `STAGES` in stages.ts. */
 export const StagesMapSchema = z.record(StageSchema, StageConfigSchema);
 
-// ─── recommendations.ts ──────────────────────────────────────────────────────
-
-/** Per-stage, per-zone array of recommendation strings. */
-export const TechParRecommendationsSchema = z.record(
-  StageSchema,
-  z.record(ZoneSchema, z.array(z.string().min(1)))
-);
-
-// ─── signal-copy.ts ──────────────────────────────────────────────────────────
-
-export const SignalCopySchema = z.object({
-  headline: z.string().min(1),
-  body: z.string().min(1),
-});
-
-export const SignalCopyMapSchema = z.record(StageSchema, z.record(ZoneSchema, SignalCopySchema));
-
-// ─── industry-notes.ts ───────────────────────────────────────────────────────
-
-export const IndustryNoteSchema = z.object({
-  label: z.string().min(1),
-  // `note` is empty string for the default `saas` entry, so allow empty.
-  note: z.string(),
-  disclaimer: z.string().min(1),
-});
-
-export const IndustryNotesMapSchema = z.record(IndustrySchema, IndustryNoteSchema);
+// Signal-card copy, recommendations and industry notes are display prose: they
+// live in the page catalog (`signal.*`, `rec.*`, `industry.*`) so they can be
+// translated, and the catalog parity guard checks their shape.
 
 // ─── Inferred types ──────────────────────────────────────────────────────────
 
@@ -98,8 +74,6 @@ export type Frame = z.infer<typeof FrameSchema>;
 export type Zone = z.infer<typeof ZoneSchema>;
 export type Industry = z.infer<typeof IndustrySchema>;
 export type StageConfig = z.infer<typeof StageConfigSchema>;
-export type SignalCopy = z.infer<typeof SignalCopySchema>;
-export type IndustryNote = z.infer<typeof IndustryNoteSchema>;
 
 // ─── MCP tool input ──────────────────────────────────────────────────────────
 //

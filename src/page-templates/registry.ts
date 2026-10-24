@@ -1,10 +1,10 @@
 /**
  * Template map for the non-default-locale catch-all
- * (`src/pages/[locale]/[...route].astro`): Tier A route id → page template.
+ * (`src/pages/[locale]/[...route].astro`): localized route id → page template.
  *
  * Lives in its own module because Astro's `getStaticPaths` runs in isolation
  * and can see imports but not frontmatter locals. Every entry here must be a
- * `TIER_A_ROUTES` id (`src/i18n/routes.ts`); `tests/unit/i18n-locale.test.ts`
+ * `LOCALIZED_ROUTES` id (`src/i18n/routes.ts`); `tests/unit/i18n-locale.test.ts`
  * checks the two stay aligned.
  *
  * The English route files (`src/pages/about.astro`, …) render these same
@@ -16,6 +16,7 @@ import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
 import HubMcpPage from './HubMcpPage.astro';
 import HubMcpTrialPage from './HubMcpTrialPage.astro';
 import HubPage from './HubPage.astro';
+import HubTechParPage from './HubTechParPage.astro';
 import HubToolsPage from './HubToolsPage.astro';
 import PrivacyPage from './PrivacyPage.astro';
 import ServicesPage from './ServicesPage.astro';
@@ -32,6 +33,7 @@ export const TEMPLATES = {
   'hub-mcp-from-code': HubMcpFromCodePage,
   privacy: PrivacyPage,
   terms: TermsPage,
+  techpar: HubTechParPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

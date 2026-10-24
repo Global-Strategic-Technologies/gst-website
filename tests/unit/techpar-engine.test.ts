@@ -23,7 +23,9 @@ import {
 } from '../../src/utils/techpar-engine';
 import type { TechParInputs, StageConfig, Zone } from '../../src/utils/techpar-engine';
 import { STAGES, STAGE_KEYS } from '../../src/data/techpar/stages';
-import { SIGNAL_COPY } from '../../src/data/techpar/signal-copy';
+import TECHPAR_EN from '../../src/i18n/en/techpar.json';
+
+const CATALOG = TECHPAR_EN as Record<string, string>;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -324,14 +326,24 @@ describe('formatPercent()', () => {
 // ─── Data integrity ──────────────────────────────────────────────────────────
 
 describe('Data integrity', () => {
-  it('all 30 stage/zone combinations have defined copy in signal-copy.ts', () => {
+  it('all 30 stage/zone combinations have a headline, a body and 2+ recommendations in the catalog', () => {
     const allZones: Zone[] = ['underinvest', 'ahead', 'healthy', 'above', 'elevated', 'critical'];
     for (const stageKey of STAGE_KEYS) {
       for (const zone of allZones) {
-        const copy = SIGNAL_COPY[stageKey]?.[zone];
-        expect(copy, `Missing copy for ${stageKey}/${zone}`).toBeDefined();
-        expect(copy.headline, `Empty headline for ${stageKey}/${zone}`).toBeTruthy();
-        expect(copy.body, `Empty body for ${stageKey}/${zone}`).toBeTruthy();
+        const base = `signal.${stageKey}.${zone}`;
+        expect(
+          CATALOG[`${base}.headline`],
+          `Missing headline for ${stageKey}/${zone}`
+        ).toBeTruthy();
+        expect(CATALOG[`${base}.body`], `Missing body for ${stageKey}/${zone}`).toBeTruthy();
+        expect(
+          CATALOG[`rec.${stageKey}.${zone}.1`],
+          `Missing rec 1 for ${stageKey}/${zone}`
+        ).toBeTruthy();
+        expect(
+          CATALOG[`rec.${stageKey}.${zone}.2`],
+          `Missing rec 2 for ${stageKey}/${zone}`
+        ).toBeTruthy();
       }
     }
   });

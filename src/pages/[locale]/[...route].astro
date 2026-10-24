@@ -2,9 +2,9 @@
 /**
  * Every non-English page on the site comes from this one route (BL-153,
  * ADR-0030). `getStaticPaths` is the cross product of the non-default locales
- * and the Tier A routes that have a template, so adding a page to every locale
- * is one `TIER_A_ROUTES` entry plus one `TEMPLATES` entry — no per-route
- * `[locale]/about.astro` files.
+ * and the localized routes (Tier A and Tier B) that have a template, so adding
+ * a page to every locale is one route-registry entry plus one `TEMPLATES`
+ * entry — no per-route `[locale]/about.astro` files.
  *
  * `Astro.currentLocale` here is the locale CODE (`pt-BR`), not the URL segment
  * (`pt`) — verified in the Phase 0 spike. The template receives the
@@ -12,12 +12,12 @@
  * wrapper (`src/pages/about.astro`) does.
  */
 import { nonDefaultLocales } from '../../i18n/locales';
-import { TIER_A_ROUTES, routeParam } from '../../i18n/routes';
+import { LOCALIZED_ROUTES, routeParam } from '../../i18n/routes';
 import { TEMPLATES, type TemplateId } from '../../page-templates/registry';
 
 export function getStaticPaths() {
   return nonDefaultLocales().flatMap((locale) =>
-    TIER_A_ROUTES.filter((route) => route.id in TEMPLATES).map((route) => ({
+    LOCALIZED_ROUTES.filter((route) => route.id in TEMPLATES).map((route) => ({
       params: { locale: locale.path, route: routeParam(route) },
       props: { localeCode: locale.code, templateId: route.id as TemplateId },
     }))

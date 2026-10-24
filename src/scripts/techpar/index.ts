@@ -39,6 +39,7 @@ import {
 } from './dom';
 import { renderAnalysis, renderTrajectory } from './chart';
 import { parseCurrencyParam } from '../../i18n/currency';
+import { s } from './strings';
 
 // ─── Dependency injection helpers ─────────────────────────
 // Several dom.ts functions need updateAll/renderTrajectory/goTab but can't
@@ -83,11 +84,11 @@ function updateAll() {
     if (r) {
       analysisHint.textContent = '';
     } else if (!tp.stageKey) {
-      analysisHint.textContent = 'Select a company stage on the Profile tab';
+      analysisHint.textContent = s('js.analysis.hint.noStage');
     } else if (!inputs || !inputs.arr) {
-      analysisHint.textContent = 'Enter ARR on the Profile tab';
+      analysisHint.textContent = s('js.analysis.hint.noArr');
     } else {
-      analysisHint.textContent = 'Enter infrastructure spend above';
+      analysisHint.textContent = s('js.analysis.hint.noInfra');
     }
   }
 
@@ -99,40 +100,33 @@ function updateAll() {
       '[data-analysis-empty-cta]'
     ) as HTMLButtonElement | null;
     if (missingStage || missingArr) {
-      const msg = missingStage
-        ? 'Select a company stage on the Profile\ntab to compute TechPar.'
-        : 'Enter your ARR on the Profile tab\nto compute TechPar.';
+      const msg = missingStage ? s('js.analysis.empty.noStage') : s('js.analysis.empty.noArr');
       if (emptyMsg) emptyMsg.textContent = msg;
       if (emptyCta) {
         emptyCta.dataset.action = 'go-profile';
-        emptyCta.textContent = 'Go to profile →';
+        emptyCta.textContent = s('js.cta.goProfile');
       }
     } else {
-      if (emptyMsg)
-        emptyMsg.textContent = 'Enter infrastructure spend on the\nCosts tab to compute TechPar.';
+      if (emptyMsg) emptyMsg.textContent = s('js.analysis.empty.noInfra');
       if (emptyCta) {
         emptyCta.dataset.action = 'go-costs';
-        emptyCta.textContent = 'Go to costs →';
+        emptyCta.textContent = s('js.cta.goCosts');
       }
     }
     const trajMsg = document.querySelector('[data-traj-empty-msg]');
     const trajCta = document.querySelector('[data-traj-empty-cta]') as HTMLButtonElement | null;
     if (missingStage || missingArr) {
-      const msg = missingStage
-        ? 'Select a company stage on the Profile\ntab to generate trajectory.'
-        : 'Enter your ARR on the Profile tab\nto generate trajectory.';
+      const msg = missingStage ? s('js.traj.empty.noStage') : s('js.traj.empty.noArr');
       if (trajMsg) trajMsg.textContent = msg;
       if (trajCta) {
         trajCta.dataset.action = 'go-profile';
-        trajCta.textContent = 'Go to profile →';
+        trajCta.textContent = s('js.cta.goProfile');
       }
     } else {
-      if (trajMsg)
-        trajMsg.textContent =
-          'Enter infrastructure spend on the\nCosts tab to generate trajectory.';
+      if (trajMsg) trajMsg.textContent = s('js.traj.empty.noInfra');
       if (trajCta) {
         trajCta.dataset.action = 'go-costs';
-        trajCta.textContent = 'Go to costs →';
+        trajCta.textContent = s('js.cta.goCosts');
       }
     }
     g('analysis-empty')?.classList.remove('tp-empty--hidden');
@@ -307,7 +301,7 @@ document.querySelector('[data-hist-add]')?.addEventListener('click', () => {
   if (tp.historicalPoints.length >= MAX_HISTORICAL) return;
   const nextYearBack = tp.historicalPoints.length + 1;
   tp.historicalPoints.unshift({
-    label: `FY${new Date().getFullYear() - nextYearBack}`,
+    label: s('js.hist.fyLabel', { year: new Date().getFullYear() - nextYearBack }),
     arr: 0,
     totalTechSpend: 0,
   });

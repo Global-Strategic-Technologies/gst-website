@@ -8,16 +8,14 @@ import {
   zoneColorVar,
   zoneInkVar,
   zoneBgVar,
-  zoneLabel,
   kpiClass,
-  formatPercent,
   CATEGORY_LABELS,
 } from '../../utils/techpar-engine';
-import type { TechParInputs, TechParResult, StageConfig } from '../../utils/techpar-engine';
-import { SIGNAL_COPY } from '../../data/techpar/signal-copy';
-import { INDUSTRY_NOTES } from '../../data/techpar/industry-notes';
-import { RECOMMENDATIONS } from '../../data/techpar/recommendations';
+import type { TechParResult, StageConfig } from '../../utils/techpar-engine';
 import { tp } from './state';
+import { s as str, sHtml, hasString } from './strings';
+import { trajLabelKind } from './logic';
+import { escapeHtml } from '../../utils/escape-html';
 import { trackEvent } from '../../utils/analytics';
 import * as Sentry from '@sentry/browser';
 import {
@@ -27,10 +25,37 @@ import {
   getStyle,
   chartFontFamily,
   fmtD,
+  fmtPct,
+  fmtNum,
+  fmtPlain,
+  pageLang,
+  zoneName,
+  stageLabel,
+  categoryName,
   currencySymbol,
   buildInputs,
   renderScenarios,
 } from './dom';
+
+/** Signed delta (`+1.2pp`, `-0.4pp`) in the page's number format. */
+function signedDelta(d: number, unit: 'pp' | ''): string {
+  const value = (d > 0 ? '+' : '') + fmtNum(d, 1);
+  return unit === 'pp' ? str('js.delta.pp', { value }) : value;
+}
+
+/** Recommendations for a stage × zone: `rec.<stage>.<zone>.1`, `.2`, … */
+function recommendations(stage: string, zone: string): string[] {
+  const out: string[] = [];
+  for (let n = 1; hasString(`rec.${stage}.${zone}.${n}`); n++) {
+    out.push(str(`rec.${stage}.${zone}.${n}`));
+  }
+  return out;
+}
+
+/** Fill a catalog sentence whose `{slot}` is an element built in code. */
+function withSlot(key: string, slot: string, html: string): string {
+  return sHtml(key).replace(`{${slot}}`, html);
+}
 
 // Lazy-load Chart.js — only downloaded when the trajectory tab is first activated.
 // This removes ~180 KB from the initial TechPar bundle.
@@ -70,13 +95,12 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     // Hero number
     const heroNum = g('hero-num');
     if (heroNum) {
-      let heroText = formatPercent(r.totalTechPct);
+      let heroText = fmtPct(r.totalTechPct);
       if (tp.baselineResult) {
         const delta = r.totalTechPct - tp.baselineResult.totalTechPct;
         if (Math.abs(delta) >= 0.05) {
-          const sign = delta > 0 ? '+' : '';
           const cls = delta <= 0 ? 'tp-delta--improve' : 'tp-delta--worsen';
-          heroText += ` <span class="tp-delta ${cls}">${sign}${delta.toFixed(1)}pp</span>`;
+          heroText += ` <span class="tp-delta ${cls}">${escapeHtml(signedDelta(delta, 'pp'))}</span>`;
         }
       }
       heroNum.innerHTML = heroText;
@@ -86,14 +110,14 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     // Basis label
     const heroBasis = g('hero-basis');
     if (heroBasis) {
-      heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
+      heroBasis.textContent = str(isGAAP ? 'js.basis.gaap' : 'js.basis.cash');
       heroBasis.style.color = isGAAP ? getStyle('--color-warning-ink') : '';
     }
 
     // Zone pill
     const pillContainer = g('hero-zone-pill');
     if (pillContainer) {
-      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneInk}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
+      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneInk}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${escapeHtml(zoneName(r.zone))}</div>`;
     }
 
     // Benchmark bar
@@ -106,9 +130,9 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     }
     const mid = (s.zones.lo + s.zones.hi) / 2;
     const benchMid = g('bench-mid');
-    if (benchMid) benchMid.textContent = `\u25BC ${mid.toFixed(0)}% midpoint`;
+    if (benchMid) benchMid.textContent = str('js.bench.midpoint', { mid: fmtNum(mid, 0) });
     const benchMax = g('bench-max');
-    if (benchMax) benchMax.textContent = maxB.toFixed(0) + '%';
+    if (benchMax) benchMax.textContent = fmtPct(maxB, 0);
 
     // Benchmark table
     const ratio = r.totalTechPct;
@@ -124,7 +148,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       if (isStage) {
         firstTd.insertAdjacentHTML(
           'beforeend',
-          ' <span class="brutal-bench-table__label brutal-bench-table__label--stage">Your stage</span>'
+          ` <span class="brutal-bench-table__label brutal-bench-table__label--stage">${sHtml('js.bench.yourStage')}</span>`
         );
       }
 
@@ -134,20 +158,21 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
           ratioMatched = true;
           firstTd.insertAdjacentHTML(
             'beforeend',
-            ' <span class="brutal-bench-table__label brutal-bench-table__label--score">Your ratio</span>'
+            ` <span class="brutal-bench-table__label brutal-bench-table__label--score">${sHtml('js.bench.yourRatio')}</span>`
           );
         }
       }
     });
 
     // Industry context
-    const industryData = INDUSTRY_NOTES[tp.industry];
     const industryDisc = g('industry-disc');
-    if (industryDisc) industryDisc.textContent = industryData.disclaimer;
+    if (industryDisc) industryDisc.textContent = str(`industry.${tp.industry}.disclaimer`);
     const industryNote = g('industry-note');
     if (industryNote) {
-      if (tp.industry !== 'saas' && industryData.note) {
-        industryNote.textContent = industryData.note;
+      // SaaS has no note (its catalog entry is absent, not empty).
+      const noteKey = `industry.${tp.industry}.note`;
+      if (tp.industry !== 'saas' && hasString(noteKey)) {
+        industryNote.textContent = str(noteKey);
         industryNote.style.display = 'block';
       } else {
         industryNote.style.display = 'none';
@@ -155,21 +180,21 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     }
 
     // Signal card
-    const copy = SIGNAL_COPY[tp.stageKey as TechParInputs['stage']]?.[r.zone];
+    const sigKey = `signal.${tp.stageKey}.${r.zone}`;
     const sigStage = g('sig-stage');
-    if (sigStage) sigStage.textContent = s.label;
+    if (sigStage) sigStage.textContent = stageLabel(s.key);
     const sigZone = g('sig-zone');
     if (sigZone) {
-      sigZone.textContent = zoneLabel(r.zone);
+      sigZone.textContent = zoneName(r.zone);
       sigZone.style.color = zoneInk;
     }
     const sigHead = g('sig-head');
     if (sigHead) {
-      sigHead.textContent = copy?.headline || '';
+      sigHead.textContent = hasString(`${sigKey}.headline`) ? str(`${sigKey}.headline`) : '';
       sigHead.style.color = zoneInk;
     }
     const sigBody = g('sig-body');
-    if (sigBody) sigBody.textContent = copy?.body || '';
+    if (sigBody) sigBody.textContent = hasString(`${sigKey}.body`) ? str(`${sigKey}.body`) : '';
     const sigMets = g('sig-mets');
     const sigDiv = g('sig-div');
     const metricsHtml = buildMetrics(r, zoneInk, s);
@@ -181,9 +206,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     const recsList = g('recs-list');
     if (recsContainer && recsList) {
       const actionableZone = r.zone !== 'healthy' && r.zone !== 'ahead';
-      const recs = actionableZone
-        ? RECOMMENDATIONS[tp.stageKey as TechParInputs['stage']]?.[r.zone]
-        : null;
+      const recs = actionableZone ? recommendations(String(tp.stageKey), r.zone) : null;
       if (recs?.length) {
         recsList.innerHTML = recs.map((rec) => `<li>${rec}</li>`).join('');
         recsContainer.style.display = 'block';
@@ -200,24 +223,25 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       const deltaHtml = (
         current: number,
         baseline: number | null | undefined,
-        unit: string = 'pp'
+        unit: 'pp' | '' = 'pp'
       ) => {
         if (!br || baseline === null || baseline === undefined) return '';
         const d = current - baseline;
         if (Math.abs(d) < 0.05) return '';
-        const sign = d > 0 ? '+' : '';
         const cls = d <= 0 ? 'tp-delta--improve' : 'tp-delta--worsen';
-        return ` <span class="tp-delta ${cls}">${sign}${d.toFixed(1)}${unit}</span>`;
+        return ` <span class="tp-delta ${cls}">${escapeHtml(signedDelta(d, unit))}</span>`;
       };
       const kc = (l: string, v: string, sub: string, cls: string = '', delta: string = '') =>
         `<div class="tp-kpi-cell"><div class="tp-kpi-lbl">${l}</div><div class="tp-kpi-val${cls ? ' tp-kpi-val--' + cls : ''}">${v}${delta}</div>${sub ? `<div class="tp-kpi-sub">${sub}</div>` : ''}</div>`;
+      const bench = (range: readonly [number, number]) =>
+        sHtml('js.kpi.bench', { lo: range[0], hi: range[1] });
 
       const costDelta = br ? deltaHtml(r.total, br.total, '') : '';
-      cells += `<div class="tp-kpi-cell tp-kpi-cell--highlight"><div class="tp-kpi-lbl">Annual tech cost</div><div class="tp-kpi-val">${fmtD(r.total)}${costDelta}</div><div class="tp-kpi-sub">${isGAAP ? 'GAAP' : 'cash basis'}</div></div>`;
+      cells += `<div class="tp-kpi-cell tp-kpi-cell--highlight"><div class="tp-kpi-lbl">${sHtml('js.kpi.annualCost')}</div><div class="tp-kpi-val">${fmtD(r.total)}${costDelta}</div><div class="tp-kpi-sub">${sHtml(isGAAP ? 'js.kpi.sub.gaap' : 'js.kpi.sub.cash')}</div></div>`;
       cells += kc(
-        'Infra hosting',
-        formatPercent(r.kpis.infraHostingPct),
-        `bench ${s.benchmarks.infraHosting[0]}\u2013${s.benchmarks.infraHosting[1]}%`,
+        sHtml('category.infraHosting'),
+        fmtPct(r.kpis.infraHostingPct),
+        bench(s.benchmarks.infraHosting),
         kpiClass(
           r.kpis.infraHostingPct,
           s.benchmarks.infraHosting[0],
@@ -227,9 +251,9 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       );
       if (r.kpis.infraPersonnelPct !== null)
         cells += kc(
-          'Infra personnel',
-          formatPercent(r.kpis.infraPersonnelPct),
-          `bench ${s.benchmarks.infraPersonnel[0]}\u2013${s.benchmarks.infraPersonnel[1]}%`,
+          sHtml('category.infraPersonnel'),
+          fmtPct(r.kpis.infraPersonnelPct),
+          bench(s.benchmarks.infraPersonnel),
           kpiClass(
             r.kpis.infraPersonnelPct,
             s.benchmarks.infraPersonnel[0],
@@ -239,53 +263,53 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         );
       if (r.kpis.rdOpExPct !== null)
         cells += kc(
-          'R&D OpEx',
-          formatPercent(r.kpis.rdOpExPct),
-          `bench ${s.benchmarks.rdOpEx[0]}\u2013${s.benchmarks.rdOpEx[1]}%`,
+          sHtml('category.rdOpEx'),
+          fmtPct(r.kpis.rdOpExPct),
+          bench(s.benchmarks.rdOpEx),
           kpiClass(r.kpis.rdOpExPct, s.benchmarks.rdOpEx[0], s.benchmarks.rdOpEx[1]),
           deltaHtml(r.kpis.rdOpExPct, br?.kpis.rdOpExPct)
         );
       if (r.kpis.rdCapExPct !== null)
         cells += kc(
-          'R&D CapEx % rev',
-          formatPercent(r.kpis.rdCapExPct),
-          'capitalized dev',
+          sHtml('js.kpi.rdCapExPct'),
+          fmtPct(r.kpis.rdCapExPct),
+          sHtml('js.kpi.sub.capitalized'),
           '',
           deltaHtml(r.kpis.rdCapExPct, br?.kpis.rdCapExPct)
         );
       if (r.kpis.rdCapExOfRD !== null)
         cells += kc(
-          'CapEx of total R&D',
-          formatPercent(r.kpis.rdCapExOfRD),
-          `bench ${s.benchmarks.rdCapExOfRD[0]}\u2013${s.benchmarks.rdCapExOfRD[1]}%`,
+          sHtml('js.kpi.rdCapExOfRD'),
+          fmtPct(r.kpis.rdCapExOfRD),
+          bench(s.benchmarks.rdCapExOfRD),
           '',
           deltaHtml(r.kpis.rdCapExOfRD, br?.kpis.rdCapExOfRD)
         );
       cells += kc(
-        'Blended infra',
-        formatPercent(r.kpis.blendedInfra),
-        'hosting + personnel',
+        sHtml('js.kpi.blendedInfra'),
+        fmtPct(r.kpis.blendedInfra),
+        sHtml('js.kpi.sub.blended'),
         '',
         deltaHtml(r.kpis.blendedInfra, br?.kpis.blendedInfra)
       );
       if (r.kpis.revenuePerEngineer !== null)
         cells += kc(
-          'Revenue / engineer',
+          sHtml('js.kpi.revPerEng'),
           fmtD(r.kpis.revenuePerEngineer),
-          'ARR per engineering FTE'
+          sHtml('js.kpi.sub.revPerEng')
         );
       if (r.kpis.engPctOfRD !== null)
         cells += kc(
-          'Engineering % R&D',
-          formatPercent(r.kpis.engPctOfRD),
+          sHtml('js.kpi.engPctOfRD'),
+          fmtPct(r.kpis.engPctOfRD),
           '',
           '',
           deltaHtml(r.kpis.engPctOfRD, br?.kpis.engPctOfRD)
         );
       if (r.kpis.prodPctOfRD !== null)
         cells += kc(
-          'Product % R&D',
-          formatPercent(r.kpis.prodPctOfRD),
+          sHtml('js.kpi.prodPctOfRD'),
+          fmtPct(r.kpis.prodPctOfRD),
           '',
           '',
           deltaHtml(r.kpis.prodPctOfRD, br?.kpis.prodPctOfRD)
@@ -301,7 +325,11 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         tp.mode === 'quick' && rdCat && (rdCat.zone === 'elevated' || rdCat.zone === 'critical');
       if (showPrompt) {
         ddPrompt.style.display = 'block';
-        ddPrompt.innerHTML = `R&D spend is ${zoneLabel(rdCat.zone).toLowerCase()}. <button class="tp-deepdive-prompt__btn" type="button">Switch to Deep Dive mode</button> to break down engineering, product, and tooling costs.`;
+        ddPrompt.innerHTML = withSlot(
+          `js.deepdive.prompt.${rdCat.zone}`,
+          'button',
+          `<button class="tp-deepdive-prompt__btn" type="button">${sHtml('js.deepdive.button')}</button>`
+        );
         ddPrompt.querySelector('.tp-deepdive-prompt__btn')?.addEventListener('click', () => {
           const deepBtn = document.querySelector('[data-mode="deepdive"]') as HTMLElement | null;
           if (deepBtn) deepBtn.click();
@@ -328,10 +356,10 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
           const bw = cat.benchmarkHi > 0 ? ((cat.benchmarkHi - cat.benchmarkLo) / maxV) * 100 : 0;
           bHtml += `<div class="tp-cat-row">
                     <div class="tp-cat-meta">
-                        <div class="tp-cat-name"><span class="tp-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${catCol}"></span>${cat.label}</div>
+                        <div class="tp-cat-name"><span class="tp-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${catCol}"></span>${categoryName(cat.label)}</div>
                         <div style="display:flex;align-items:baseline;gap:var(--spacing-sm)">
-                            <span class="tp-cat-pct" style="color:${catCol}">${formatPercent(pct)}</span>
-                            ${cat.benchmarkHi > 0 ? `<span class="tp-cat-bench">bench ${cat.benchmarkLo}\u2013${cat.benchmarkHi}%</span>` : ''}
+                            <span class="tp-cat-pct" style="color:${catCol}">${fmtPct(pct)}</span>
+                            ${cat.benchmarkHi > 0 ? `<span class="tp-cat-bench">${sHtml('js.kpi.bench', { lo: cat.benchmarkLo, hi: cat.benchmarkHi })}</span>` : ''}
                         </div>
                     </div>
                     <div class="tp-cat-track">
@@ -355,7 +383,11 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         (rdCat.zone === 'elevated' || rdCat.zone === 'critical' || rdCat.zone === 'above')
       ) {
         crossLink.style.display = 'block';
-        crossLink.innerHTML = `R&D spend is ${zoneLabel(rdCat.zone).toLowerCase()}. <a href="/hub/tools/tech-debt-calculator/">Explore the Tech Debt Calculator</a> to understand the structural drivers.`;
+        crossLink.innerHTML = withSlot(
+          `js.crossLink.${rdCat.zone}`,
+          'link',
+          `<a href="/hub/tools/tech-debt-calculator/" hreflang="en">${sHtml('js.crossLink.link')}</a>`
+        );
       } else {
         crossLink.style.display = 'none';
         crossLink.innerHTML = '';
@@ -369,14 +401,19 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       const isUnder = r.zone === 'underinvest';
       if (isOver && r.stageConfig.key !== 'seed') {
         const exitMult = getInput('exitMult') || 12;
-        const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
         const annualDrag = (buildInputs()!.arr * (r.totalTechPct - s.zones.hi)) / 100;
         const exitDrag = annualDrag * exitMult;
-        ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${fmtD(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${fmtD(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
+        ctxBlock.innerHTML = sHtml('js.ctx.over', {
+          excess: fmtPct(r.totalTechPct - s.zones.hi),
+          ceiling: s.zones.hi,
+          annualDrag: fmtD(annualDrag),
+          multiple: fmtPlain(exitMult),
+          exitDrag: fmtD(exitDrag),
+        });
       } else if (isUnder) {
         const floorPct = s.zones.lo;
         const annualGap = (buildInputs()!.arr * (floorPct - r.totalTechPct)) / 100;
-        ctxBlock.innerHTML = `Spend is <strong style="color:var(--text-light-primary)">${fmtD(annualGap)}</strong> per year below the ${floorPct}% benchmark floor. This gap often reflects deferred investment in engineering capacity or infrastructure that surfaces later as reliability issues, slower product velocity, or a higher cost to remediate at scale.`;
+        ctxBlock.innerHTML = sHtml('js.ctx.under', { gap: fmtD(annualGap), floor: floorPct });
       } else {
         ctxBlock.innerHTML = '';
       }
@@ -391,24 +428,25 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
 export function buildMetrics(r: TechParResult, col: string, s: StageConfig): string {
   let h = '';
   if (r.zone === 'underinvest') {
-    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Investment to healthy floor: 36 months</div>
+    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">${sHtml('js.metrics.underinvest')}</div>
             <div class="tp-sig-mval" style="color:${col}">${fmtD(r.gap.underinvestGap)}</div></div>`;
   } else if (r.zone === 'ahead') {
-    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Annual advantage vs ${s.zones.hi}% ceiling</div>
+    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">${sHtml('js.metrics.advantage', { ceiling: s.zones.hi })}</div>
             <div class="tp-sig-mval" style="color:${col}">${fmtD(r.gap.annualAdvantage)}</div></div>`;
   } else if (r.zone !== 'healthy') {
-    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Annual excess above ${s.zones.hi}% ceiling</div>
+    h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">${sHtml('js.metrics.excess', { ceiling: s.zones.hi })}</div>
             <div class="tp-sig-mval" style="color:${col}">${fmtD(r.gap.annualExcess)}</div></div>`;
-    h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Cumulative excess: 36-month hold</div>
+    h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">${sHtml('js.metrics.cumulative')}</div>
             <div class="tp-sig-mval" style="color:${col}">${fmtD(r.gap.cumulative36)}</div></div>`;
     if (s.frame === 'dollars') {
       const exitMult = getInput('exitMult') || 12;
-      h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Hold-period exit impact at ${exitMult}&times;</div>
+      h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">${sHtml('js.metrics.exitImpact', { multiple: fmtPlain(exitMult) })}</div>
                 <div class="tp-sig-mval" style="color:var(--color-primary)">${fmtD(r.gap.exitValue)}</div>
-                <div class="tp-sig-msub">cumulative drag over 36-month hold</div></div>`;
+                <div class="tp-sig-msub">${sHtml('js.metrics.exitSub')}</div></div>`;
     } else {
+      // One whole sentence per convergence stage, so translations can agree.
       h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid var(--border-light)">
-                <div class="tp-sig-note">At ${s.label}, trajectory matters more than the current number. The key question is whether this ratio declines as revenue scales.</div></div>`;
+                <div class="tp-sig-note">${sHtml(`js.metrics.trajNote.${s.key}`)}</div></div>`;
     }
   }
   return h;
@@ -426,10 +464,9 @@ export async function renderTrajectory(r: TechParResult) {
       const isUnder = r.zone === 'underinvest' || r.zone === 'ahead';
       note.className =
         'tp-traj-note' + (s.frame === 'convergence' ? ' tp-traj-note--convergence' : '');
-      const baseNote = isUnder && s.noteUnder ? s.noteUnder : s.note;
-      note.textContent =
-        baseNote +
-        ' This projection assumes a constant technology cost ratio. Actual trajectory depends on optimization and scaling decisions.';
+      const baseNote =
+        isUnder && s.noteUnder ? str(`stage.${s.key}.noteUnder`) : str(`stage.${s.key}.note`);
+      note.textContent = baseNote + ' ' + str('js.traj.projectionNote');
     }
 
     const inputs = buildInputs();
@@ -442,7 +479,15 @@ export async function renderTrajectory(r: TechParResult) {
       : null;
     const histLen = hist ? hist.labels.length : 0;
 
-    const labels = hist ? [...hist.labels, ...traj.labels] : traj.labels;
+    // The engine's forward labels are English ('Now', 'M6', …); translate at
+    // render. Historical labels are the user's own and pass through.
+    const trajLabels = traj.labels.map((l) => {
+      const kind = trajLabelKind(l);
+      if (kind.kind === 'now') return str('js.traj.now');
+      if (kind.kind === 'month') return str('js.traj.month', { m: kind.m });
+      return l;
+    });
+    const labels = hist ? [...hist.labels, ...trajLabels] : trajLabels;
     const spend = hist ? [...hist.spend, ...traj.spend] : traj.spend;
     const bandLoData = hist ? [...hist.bandLo, ...traj.bandLo] : traj.bandLo;
     const bandHiData = hist ? [...hist.bandHi, ...traj.bandHi] : traj.bandHi;
@@ -491,7 +536,7 @@ export async function renderTrajectory(r: TechParResult) {
         fill: false,
       },
       {
-        label: 'Underinvestment floor',
+        label: str('js.chart.underFloor'),
         data: underFloorData,
         borderColor: underBorder,
         borderWidth: 1,
@@ -501,7 +546,7 @@ export async function renderTrajectory(r: TechParResult) {
         tension: 0.3,
       },
       {
-        label: 'Efficiency band',
+        label: str('js.chart.efficiencyBand'),
         data: bandLoData,
         borderColor: aheadBorder,
         borderWidth: 1,
@@ -511,7 +556,7 @@ export async function renderTrajectory(r: TechParResult) {
         tension: 0.3,
       },
       {
-        label: 'Healthy range',
+        label: str('js.chart.healthyRange'),
         data: bandHiData,
         borderColor: bandBorder,
         borderWidth: 1,
@@ -521,7 +566,7 @@ export async function renderTrajectory(r: TechParResult) {
         tension: 0.3,
       },
       {
-        label: 'Caution ceiling',
+        label: str('js.chart.cautionCeiling'),
         data: aboveCeilingData,
         borderColor: aboveBorder,
         borderWidth: 1,
@@ -531,7 +576,7 @@ export async function renderTrajectory(r: TechParResult) {
         tension: 0.3,
       },
       {
-        label: 'Monthly tech spend',
+        label: str('js.chart.monthlySpend'),
         data: spend,
         borderColor: zoneCol,
         borderWidth: 2,
@@ -549,7 +594,7 @@ export async function renderTrajectory(r: TechParResult) {
       const baseTraj = buildTrajectory(tp.baselineInputs, tp.baselineResult.stageConfig);
       const baseZoneCol = getStyle(zoneColorVar(tp.baselineResult.zone));
       datasets.push({
-        label: 'Baseline spend',
+        label: str('js.chart.baselineSpend'),
         data: padForward(baseTraj.spend),
         borderColor: baseZoneCol + '80',
         borderWidth: 2,
@@ -565,7 +610,7 @@ export async function renderTrajectory(r: TechParResult) {
       const scenTraj = buildTrajectory(scenario.inputs, scenario.result.stageConfig);
       const scenCol = getStyle(zoneColorVar(scenario.result.zone));
       datasets.push({
-        label: scenario.name,
+        label: escapeHtml(scenario.name),
         data: padForward(scenTraj.spend),
         borderColor: scenCol + '80',
         borderWidth: 1.5,
@@ -579,7 +624,7 @@ export async function renderTrajectory(r: TechParResult) {
 
     if (s.frame === 'convergence') {
       datasets.push({
-        label: 'Monthly revenue',
+        label: str('js.chart.monthlyRevenue'),
         data: revenueData,
         borderColor: revLineCol,
         borderWidth: 2,
@@ -642,6 +687,7 @@ export async function renderTrajectory(r: TechParResult) {
       data: { labels, datasets },
       plugins: [dotPlugin],
       options: {
+        locale: pageLang(),
         responsive: true,
         maintainAspectRatio: false,
         animation: false as const,
@@ -664,8 +710,13 @@ export async function renderTrajectory(r: TechParResult) {
             },
             filter: (item: TooltipItem<'line'>) => item.dataset.label !== '_z',
             callbacks: {
-              title: (c: TooltipItem<'line'>[]) => `Month ${c[0].dataIndex}`,
-              label: (c: TooltipItem<'line'>) => `${c.dataset.label}: ${fmtD(c.parsed.y ?? 0)}/mo`,
+              title: (c: TooltipItem<'line'>[]) =>
+                str('js.chart.tooltipTitle', { n: c[0].dataIndex }),
+              label: (c: TooltipItem<'line'>) =>
+                str('js.chart.tooltipLabel', {
+                  label: c.dataset.label ?? '',
+                  value: fmtD(c.parsed.y ?? 0),
+                }),
             },
           },
         },
@@ -686,7 +737,7 @@ export async function renderTrajectory(r: TechParResult) {
             max: maxY,
             title: {
               display: true,
-              text: `Monthly spend (${currencySymbol()})`,
+              text: str('js.chart.yAxis', { symbol: currencySymbol() }),
               color: txtMuted,
               font: { size: 10 },
             },
@@ -709,30 +760,30 @@ export async function renderTrajectory(r: TechParResult) {
     const zoneItems = [
       {
         sw: `background:${underFill};border:1px solid ${underBorder}`,
-        l: `Underinvestment zone (<${s.zones.underinvest}%)`,
+        l: sHtml('js.legend.underinvest', { n: s.zones.underinvest }),
       },
       {
         sw: `background:${aheadFill};border:1px solid ${aheadBorder}`,
-        l: `Ahead (${s.zones.underinvest}\u2013${s.zones.lo}%)`,
+        l: sHtml('js.legend.ahead', { lo: s.zones.underinvest, hi: s.zones.lo }),
       },
       {
         sw: `background:${bandFill};border:1px solid ${bandBorder}`,
-        l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)`,
+        l: sHtml('js.legend.healthy', { lo: s.zones.lo, hi: s.zones.hi }),
       },
       {
         sw: `background:${aboveFill};border:1px solid ${aboveBorder}`,
-        l: `Caution zone (>${s.zones.hi}%)`,
+        l: sHtml('js.legend.caution', { hi: s.zones.hi }),
       },
     ];
     const seriesItems: { cls: string; sw: string; l: string }[] = [
-      { cls: 'tp-tleg--line', sw: `border-color:${zoneCol}`, l: 'Monthly tech spend' },
-      { cls: 'tp-tleg--dot', sw: `border-color:${zoneCol}`, l: 'Your position today' },
+      { cls: 'tp-tleg--line', sw: `border-color:${zoneCol}`, l: sHtml('js.chart.monthlySpend') },
+      { cls: 'tp-tleg--dot', sw: `border-color:${zoneCol}`, l: sHtml('js.legend.position') },
     ];
     if (histLen > 0) {
       seriesItems.push({
         cls: 'tp-tleg--dot',
         sw: `border-color:${zoneCol}`,
-        l: 'Historical actuals',
+        l: sHtml('js.legend.historical'),
       });
     }
     if (tp.baselineResult) {
@@ -740,7 +791,7 @@ export async function renderTrajectory(r: TechParResult) {
       seriesItems.push({
         cls: 'tp-tleg--line tp-tleg--dashed',
         sw: `border-color:${baseZoneCol}80`,
-        l: 'Baseline spend',
+        l: sHtml('js.chart.baselineSpend'),
       });
     }
     for (const scenario of tp.scenarios) {
@@ -748,14 +799,14 @@ export async function renderTrajectory(r: TechParResult) {
       seriesItems.push({
         cls: 'tp-tleg--line tp-tleg--dashed',
         sw: `border-color:${scenCol}80`,
-        l: scenario.name,
+        l: escapeHtml(scenario.name),
       });
     }
     if (s.frame === 'convergence') {
       seriesItems.push({
         cls: 'tp-tleg--line tp-tleg--dashed',
         sw: `border-color:${revLineCol}`,
-        l: 'Monthly revenue',
+        l: sHtml('js.chart.monthlyRevenue'),
       });
     }
     const renderItem = (x: { cls?: string; sw: string; l: string }) =>

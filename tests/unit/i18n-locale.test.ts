@@ -22,7 +22,9 @@ import {
   toSitemapI18n,
 } from '../../src/i18n/locales';
 import {
+  LOCALIZED_ROUTES,
   TIER_A_ROUTES,
+  TIER_B_ROUTES,
   alternatesFor,
   localeHome,
   localizedHref,
@@ -128,11 +130,19 @@ describe('localizedHref — prefixes registry routes only', () => {
     expect(localizedHref('/es/about/', en)).toBe('/about/');
   });
 
-  it('returns English-only routes unchanged (Tier B/C stay English)', () => {
+  it('returns English-only routes unchanged (unregistered tools and Tier C stay English)', () => {
     expect(localizedHref('/ma-portfolio/', es)).toBe('/ma-portfolio/');
-    expect(localizedHref('/hub/tools/techpar/', ptBR)).toBe('/hub/tools/techpar/');
+    expect(localizedHref('/hub/tools/tech-debt-calculator/', ptBR)).toBe(
+      '/hub/tools/tech-debt-calculator/'
+    );
     expect(localizedHref('/hub/mcp/get-started/', es)).toBe('/hub/mcp/get-started/');
     expect(localizedHref('/brand/', es)).toBe('/brand/');
+  });
+
+  it('prefixes a Tier B route like a Tier A one', () => {
+    expect(localizedHref('/hub/tools/techpar/', ptBR)).toBe('/pt/hub/tools/techpar/');
+    expect(localizedHref('/hub/tools/techpar/', es)).toBe('/es/hub/tools/techpar/');
+    expect(localizedHref('/hub/tools/techpar/', en)).toBe('/hub/tools/techpar/');
   });
 
   it('never double-prefixes an already localized path', () => {
@@ -177,8 +187,14 @@ describe('localizedHrefWithFragment — localizes the path, keeps the fragment',
 
 describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns a single entry for routes outside the registry', () => {
-    expect(alternatesFor('/hub/tools/techpar/', en)).toEqual([en]);
+    expect(alternatesFor('/hub/tools/tech-debt-calculator/', en)).toEqual([en]);
     expect(alternatesFor('/ma-portfolio/', es)).toEqual([es]);
+  });
+
+  it('advertises every live locale for a Tier B route', () => {
+    expect(alternatesFor('/hub/tools/techpar/', en)).toEqual(
+      LOCALES.filter((l) => l.status === 'live')
+    );
   });
 
   it('returns only the current locale for a draft page', () => {
@@ -240,7 +256,7 @@ describe('config adapters', () => {
 
 describe('route registry ↔ template map', () => {
   it('every route has a stable trailing-slash path and a param', () => {
-    for (const r of TIER_A_ROUTES) {
+    for (const r of LOCALIZED_ROUTES) {
       expect(r.path.startsWith('/')).toBe(true);
       expect(r.path.endsWith('/')).toBe(true);
       const param = routeParam(r);
@@ -249,7 +265,7 @@ describe('route registry ↔ template map', () => {
     }
   });
 
-  it('page-templates/registry.ts has exactly one template per Tier A route', () => {
+  it('page-templates/registry.ts has exactly one template per localized route', () => {
     // `.astro` imports keep registry.ts out of vitest, so match the source.
     // Equality, not subset: a route without a template is a locale that
     // silently lacks a page (the catch-all filters it out), and a template
@@ -258,6 +274,12 @@ describe('route registry ↔ template map', () => {
     const block = /export const TEMPLATES = \{([\s\S]*?)\} as const;/.exec(src);
     expect(block, 'TEMPLATES block not found').toBeTruthy();
     const ids = [...block![1].matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]).sort();
-    expect(ids).toEqual(TIER_A_ROUTES.map((r) => r.id).sort());
+    expect(ids).toEqual(LOCALIZED_ROUTES.map((r) => r.id).sort());
+  });
+
+  it('LOCALIZED_ROUTES is Tier A then Tier B, with no id or path in both', () => {
+    expect(LOCALIZED_ROUTES).toEqual([...TIER_A_ROUTES, ...TIER_B_ROUTES]);
+    expect(new Set(LOCALIZED_ROUTES.map((r) => r.id)).size).toBe(LOCALIZED_ROUTES.length);
+    expect(new Set(LOCALIZED_ROUTES.map((r) => r.path)).size).toBe(LOCALIZED_ROUTES.length);
   });
 });

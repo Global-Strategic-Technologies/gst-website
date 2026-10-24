@@ -252,9 +252,13 @@ describe('MCP marketing page — primitive counts', () => {
 });
 
 describe('MCP marketing page — browser counterpart links', () => {
-  const internalHrefs = [...markup.matchAll(/class="mcp-catalog__try" href="(\/[^"]*)"/g)].map(
-    (m) => m[1]
-  );
+  // A link to a localized page (BL-153 Tier B — TechPar) is written
+  // `href={localizedHref('/path/', locale)}`; English-only targets stay literal.
+  const internalHrefs = [
+    ...markup.matchAll(
+      /class="mcp-catalog__try" href=(?:"(\/[^"]*)"|\{localizedHref\('(\/[^']*)', locale\)\})/g
+    ),
+  ].map((m) => m[1] ?? m[2]);
 
   it('offers a browser counterpart for every tool family', () => {
     expect(internalHrefs.length).toBe(8);

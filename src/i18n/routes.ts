@@ -3,15 +3,19 @@
  * helpers every localized component uses.
  *
  * Tier A (ADR-0030, BL-153) is the set of pages a locale must carry to launch.
- * A page is added to a locale by adding it HERE and giving it a template in
- * `src/page-templates/registry.ts` — the catch-all
- * `src/pages/[locale]/[...route].astro` builds `getStaticPaths` from
- * `nonDefaultLocales() × TIER_A_ROUTES`, so nothing else needs to know a page
- * exists. `tests/unit/i18n-locale.test.ts` holds the two lists to each other.
+ * Tier B is the hub tools, localized one at a time after launch. Both lists
+ * feed `LOCALIZED_ROUTES`, and a page is added to every locale by adding it
+ * HERE and giving it a template in `src/page-templates/registry.ts` — the
+ * catch-all `src/pages/[locale]/[...route].astro` builds `getStaticPaths` from
+ * `nonDefaultLocales() × LOCALIZED_ROUTES`, so nothing else needs to know a
+ * page exists. `tests/unit/i18n-locale.test.ts` holds the two lists to each
+ * other. Because every locale builds every registered route, and the catalog
+ * parity guard requires every namespace in every locale, a NEW locale must
+ * carry the Tier B catalogs too — not only Tier A.
  *
- * Everything not listed (tool pages, guides, the portfolio, brand) is English
- * only. `localizedHref` returns those paths UNCHANGED for every locale, so a
- * Spanish page links to the English tool rather than to a `/es/…` 404.
+ * Everything not listed (the other tools, guides, the portfolio, brand) is
+ * English only. `localizedHref` returns those paths UNCHANGED for every locale,
+ * so a Spanish page links to the English tool rather than to a `/es/…` 404.
  */
 import { DEFAULT_LOCALE, LOCALES, isDefaultLocale, localeFromPath, type Locale } from './locales';
 
@@ -42,6 +46,18 @@ export const TIER_A_ROUTES: readonly RouteEntry[] = [
   { id: 'terms', path: '/terms/' },
 ];
 
+/**
+ * Tier B — hub tools localized after launch (BL-153 Slice 3). Live in every
+ * locale once listed here, machine-translated with native review owed
+ * (LOCALIZATION.md § Draft → live).
+ */
+export const TIER_B_ROUTES: readonly RouteEntry[] = [
+  { id: 'techpar', path: '/hub/tools/techpar/' },
+];
+
+/** Every route that exists in every locale. */
+export const LOCALIZED_ROUTES: readonly RouteEntry[] = [...TIER_A_ROUTES, ...TIER_B_ROUTES];
+
 /** Normalise `/about` and `/about/` to the registry's trailing-slash form. */
 export function normalizeRoutePath(path: string): string {
   if (!path || path === '/') return '/';
@@ -51,7 +67,7 @@ export function normalizeRoutePath(path: string): string {
 
 export function routeFor(path: string): RouteEntry | undefined {
   const normalized = normalizeRoutePath(path);
-  return TIER_A_ROUTES.find((r) => r.path === normalized);
+  return LOCALIZED_ROUTES.find((r) => r.path === normalized);
 }
 
 export function isLocalizedRoute(path: string): boolean {
