@@ -606,9 +606,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
             <h4 class="tool-methodology__heading">Currency</h4>
             <p>
-              Non-USD currencies use static mid-market approximations fixed at tool release, March
-              2026 (EUR 0.92, GBP 0.79, CAD 1.36, AUD 1.53). For valuation work, apply current
-              exchange rates to the USD figure.
+              The currency selector labels amounts; it does not convert them. Enter salaries, ARR
+              and budgets in the currency you select, and every result reads in that currency.
             </p>
 
             <h4 class="tool-methodology__heading">Privacy</h4>
@@ -629,10 +628,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="GBP">GBP</option>
+              <option value="BRL">BRL</option>
               <option value="CAD">CAD</option>
               <option value="AUD">AUD</option>
             </select>
-            <span class="currency-disclaimer" id="currency-disclaimer"></span>
             <button
               id="export-pdf-btn"
               type="button"
@@ -1088,15 +1087,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   .copy-link-btn:hover {
     opacity: 0.75;
     border-color: var(--color-primary);
-  }
-
-  /* ── Currency disclaimer ────────────────────────────────────────────── */
-  .currency-disclaimer {
-    font-size: var(--text-xs);
-    font-family: var(--font-family-mono);
-    color: var(--text-muted);
-    font-style: italic;
-    white-space: nowrap;
   }
 
   /* ── Visibility ───────────────────────────────────────────────────────── */

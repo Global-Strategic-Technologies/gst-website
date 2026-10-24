@@ -506,30 +506,52 @@ test.describe('Tech Debt Calculator', () => {
       expect(cost).not.toContain('€');
     });
 
-    test('EUR annual cost is less than USD annual cost (multiplier < 1)', async ({ page }) => {
+    test('currency labels the amount without converting it', async ({ page }) => {
       await gotoCalc(page);
 
       const usdText = await getMetric(page, 'annual-cost');
-      const usdVal = parseFloat(usdText.replace(/[^0-9.]/g, ''));
-
       await page.locator('#currency-select').selectOption('EUR');
-
       const eurText = await getMetric(page, 'annual-cost');
-      const eurVal = parseFloat(eurText.replace(/[^0-9.]/g, ''));
 
-      expect(eurVal).toBeLessThan(usdVal);
+      expect(eurText).toBe(usdText.replace('$', '€'));
     });
 
-    test('currency does not affect the ?s= URL param', async ({ page }) => {
+    test('currency rides beside ?s= in the URL and survives later input', async ({ page }) => {
       await gotoCalc(page);
 
       await setSlider(page, 'input-team-size', 50);
-      const urlBefore = page.url();
+      const sBefore = new URL(page.url()).searchParams.get('s');
 
       await page.locator('#currency-select').selectOption('GBP');
-      const urlAfter = page.url();
+      let url = new URL(page.url());
+      expect(url.searchParams.get('s')).toBe(sBefore);
+      expect(url.searchParams.get('cur')).toBe('GBP');
 
-      expect(urlAfter).toBe(urlBefore);
+      await setSlider(page, 'input-team-size', 60);
+      url = new URL(page.url());
+      expect(url.searchParams.get('cur')).toBe('GBP');
+    });
+
+    test('a shared link opens in its currency, and a link without one in USD', async ({ page }) => {
+      await gotoCalc(page);
+      await setSlider(page, 'input-team-size', 50);
+      await page.locator('#currency-select').selectOption('BRL');
+      const shared = page.url();
+      const sOnly = `${new URL(shared).pathname}?s=${new URL(shared).searchParams.get('s')}`;
+
+      await page.goto(shared);
+      await expect(page.locator('#currency-select')).toHaveValue('BRL');
+      expect(await getMetric(page, 'annual-cost')).toMatch(/^R\$/);
+
+      await page.goto(sOnly);
+      await expect(page.locator('#currency-select')).toHaveValue('USD');
+      expect(await getMetric(page, 'annual-cost')).toMatch(/^\$/);
+    });
+
+    test('an unknown ?cur= falls back to USD', async ({ page }) => {
+      await page.goto('/hub/tools/tech-debt-calculator/?cur=%3Cimg%20src%3Dx%3E');
+      await expect(page.locator('#currency-select')).toHaveValue('USD');
+      expect(await page.locator('img[src="x"]').count()).toBe(0);
     });
   });
 
@@ -929,17 +951,18 @@ test.describe('Tech Debt Calculator', () => {
       expect(msg).toMatch(/Maximum maintenance burden is 100%/);
     });
 
-    test('typed amounts are read in the selected currency, not as USD', async ({ page }) => {
+    test('typed amounts are read in the selected currency, unconverted', async ({ page }) => {
       await page.locator('#currency-select').selectOption('EUR');
       await typeDirect(page, 'salary', '€140K');
-      // Stored as USD and converted back for display: it must read what was typed
       expect(await page.locator('[data-direct="salary"]').inputValue()).toBe('€140K');
 
-      // A CAD amount under the $1B ceiling (C$1.2B ≈ $882M) must not be clamped
+      // Limits are in the entered units: C$1.2B is over the 1.0B ARR ceiling
       await page.locator('#currency-select').selectOption('CAD');
-      await typeDirect(page, 'arr', 'C$1.2B');
+      await typeDirect(page, 'arr', 'C$900M');
       expect(await isClampMsgVisible(page, 'arr')).toBe(false);
-      expect(await page.locator('[data-direct="arr"]').inputValue()).toBe('C$1.2B');
+      expect(await page.locator('[data-direct="arr"]').inputValue()).toBe('C$900.0M');
+      await typeDirect(page, 'arr', 'C$1.2B');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
     });
   });
 });

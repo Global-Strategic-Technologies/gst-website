@@ -22,13 +22,13 @@ import {
 import type { CalcState, CalcResult } from '../../utils/tech-debt-engine';
 import { trackEvent } from '../../utils/analytics';
 import { copyWithFeedback } from '../../utils/copy-feedback';
+import { formatCurrency, formatShortCurrency, hasNonDefaultAdvanced } from './logic';
 import {
-  CURRENCIES,
-  formatCurrency,
-  formatShortCurrency,
-  hasNonDefaultAdvanced,
-  toUsd,
-} from './logic';
+  CURRENCY_SYMBOL,
+  DEFAULT_CURRENCY,
+  parseCurrencyParam,
+  type Currency,
+} from '../../i18n/currency';
 
 // Analytics: fire tdc_start once per page load on first slider interaction
 let tdcStartFired = false;
@@ -53,8 +53,12 @@ function el(id: string): HTMLElement {
 
 // ─── URL state ────────────────────────────────────────────────────────────────
 
+// The display currency rides beside `s` (never inside it — `s` is the MCP
+// deeplink contract). A link without `cur` means USD: a stored preference would
+// relabel an `s`-only link (MCP deeplinks, older shares) in the reader's
+// currency, so the URL is the only place the choice lives.
 function pushUrlState(state: CalcState): void {
-  const params = new URLSearchParams({ s: encodeState(state) });
+  const params = new URLSearchParams({ s: encodeState(state), cur: currency });
   history.replaceState(null, '', '?' + params.toString());
 }
 
@@ -79,7 +83,7 @@ function showSharedStateNotice(adjustedLabels: string[]): void {
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
 
-let currency = 'USD';
+let currency: Currency = DEFAULT_CURRENCY;
 
 const fmtC = (n: number): string => formatCurrency(n, currency);
 const fmtShortC = (n: number): string => formatShortCurrency(n, currency);
@@ -312,6 +316,7 @@ function initSliders(): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Apply URL-encoded state before initialising sliders so DOM positions match
+  currency = parseCurrencyParam(new URLSearchParams(window.location.search).get('cur'));
   const urlState = readUrlState();
   if (urlState) {
     Object.assign(state, urlState.state);
@@ -417,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (salInput) {
     salInput.addEventListener('input', () => showClampMsg('salary', null));
     salInput.addEventListener('change', () => {
-      const parsed = toUsd(parseShortCurrency(salInput.value), currency);
+      const parsed = parseShortCurrency(salInput.value);
       const { value, reason } = resolveTyped(
         salInput.value,
         parsed,
@@ -501,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (arrInput) {
     arrInput.addEventListener('input', () => showClampMsg('arr', null));
     arrInput.addEventListener('change', () => {
-      const parsed = toUsd(parseShortCurrency(arrInput.value), currency);
+      const parsed = parseShortCurrency(arrInput.value);
       const { value, reason } = resolveTyped(
         arrInput.value,
         parsed,
@@ -522,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (budgetInput) {
     budgetInput.addEventListener('input', () => showClampMsg('budget', null));
     budgetInput.addEventListener('change', () => {
-      const parsed = toUsd(parseShortCurrency(budgetInput.value), currency);
+      const parsed = parseShortCurrency(budgetInput.value);
       const { value, reason } = resolveTyped(
         budgetInput.value,
         parsed,
@@ -607,13 +612,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const currencySelect = document.getElementById('currency-select') as HTMLSelectElement | null;
   if (currencySelect) {
+    currencySelect.value = currency;
     currencySelect.addEventListener('change', () => {
-      currency = currencySelect.value;
+      currency = parseCurrencyParam(currencySelect.value);
       trackEvent({ event: 'tdc_currency_change', category: 'engagement', currency });
-      const disclaimerEl = document.getElementById('currency-disclaimer');
-      if (disclaimerEl) {
-        disclaimerEl.textContent = currency === 'USD' ? '' : 'Approx. rate \u00b7 not live';
-      }
       render();
     });
   }
@@ -639,8 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryBtn.addEventListener('click', () => {
       trackEvent({ event: 'tdc_copy_summary', category: 'engagement' });
       const result = calculate(state);
-      const { symbol, multiplier } = CURRENCIES[currency];
-      const text = buildSummaryText(state, result, symbol, multiplier, window.location.href);
+      const text = buildSummaryText(state, result, CURRENCY_SYMBOL[currency], window.location.href);
       copyWithFeedback(text, summaryBtn);
     });
   }

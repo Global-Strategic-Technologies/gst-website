@@ -384,9 +384,9 @@ describe('fmtShortC', () => {
     expect(fmtShortC(500)).toBe('$500');
   });
 
-  it('applies the symbol and multiplier before choosing the unit', () => {
-    expect(fmtShortC(100_000, '£', 0.79)).toBe('£79K');
-    expect(fmtShortC(1_200, '£', 0.79)).toBe('£948');
+  it('prefixes the given symbol without converting the amount', () => {
+    expect(fmtShortC(100_000, '£')).toBe('£100K');
+    expect(fmtShortC(948, '£')).toBe('£948');
   });
 
   it('round-trips through parseShortCurrency at the K/M and M/B boundaries', () => {
@@ -857,7 +857,7 @@ describe('parseShortCurrency', () => {
   });
 
   it('reads back every fmtShortC output, whatever the symbol', () => {
-    for (const symbol of ['$', '€', '£', 'C$', 'A$']) {
+    for (const symbol of ['$', '€', '£', 'R$', 'C$', 'A$']) {
       expect(parseShortCurrency(fmtShortC(2_500_000, symbol)), symbol).toBe(2_500_000);
     }
   });
