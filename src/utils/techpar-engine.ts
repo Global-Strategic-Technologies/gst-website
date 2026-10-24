@@ -753,6 +753,8 @@ export interface SummaryOptions {
   text?: SummaryText;
   money?: (n: number) => string;
   pct?: (n: number) => string;
+  /** Plain numbers in prose: the growth rate and the exit multiple. */
+  num?: (n: number) => string;
   stageLabel?: string;
   zoneName?: (zone: Zone) => string;
   categoryName?: (label: string) => string;
@@ -774,6 +776,7 @@ export function buildSummaryText(
   const t = options.text ?? SUMMARY_TEXT_EN;
   const money = options.money ?? ((n: number) => formatDollars(n));
   const pct = options.pct ?? ((n: number) => formatPercent(n));
+  const num = options.num ?? ((n: number) => String(n));
   const zoneName = options.zoneName ?? zoneLabel;
   const categoryName = options.categoryName ?? ((label: string) => label);
   const lines: string[] = [];
@@ -785,7 +788,7 @@ export function buildSummaryText(
   lines.push(
     fillSummary(t.arrLine, {
       arr: money(inputs.arr),
-      growth: inputs.growthRate,
+      growth: num(inputs.growthRate),
       basis: inputs.capexView === 'gaap' ? t.basisGaap : t.basisCash,
     })
   );
@@ -842,7 +845,7 @@ export function buildSummaryText(
     );
     lines.push(
       fillSummary(t.exitValue, {
-        multiple: inputs.exitMultiple,
+        multiple: num(inputs.exitMultiple),
         amount: money(result.gap.exitValue),
       })
     );

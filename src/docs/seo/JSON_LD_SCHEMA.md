@@ -469,7 +469,9 @@ The shape the helper emits:
 | `author` | Person | Reid Peryam with tool-specific `knowsAbout` | Yes |
 
 Only `name`, `description`, `featureList`, `knowsAbout`, `datePublished` and `dateModified` are
-per-tool parameters. Everything else is a constant inside the helper.
+per-tool parameters, plus an optional `inLanguage` that a localized (Tier B) tool passes with its page
+language — omitted, the key is not emitted, so English-only tools are unchanged. Everything else is a
+constant inside the helper.
 
 ### Current Tool Schemas
 

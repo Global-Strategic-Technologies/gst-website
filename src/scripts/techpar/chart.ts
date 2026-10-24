@@ -610,7 +610,7 @@ export async function renderTrajectory(r: TechParResult) {
       const scenTraj = buildTrajectory(scenario.inputs, scenario.result.stageConfig);
       const scenCol = getStyle(zoneColorVar(scenario.result.zone));
       datasets.push({
-        label: escapeHtml(scenario.name),
+        label: scenario.name,
         data: padForward(scenTraj.spend),
         borderColor: scenCol + '80',
         borderWidth: 1.5,

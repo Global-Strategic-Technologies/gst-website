@@ -19,7 +19,7 @@ import HubHeader from '../components/hub/HubHeader.astro';
 import DeltaIcon from '../components/DeltaIcon.astro';
 import PresetInput from '../components/techpar/PresetInput.astro';
 import { hubToolSchema } from '../utils/hub-tool-schema';
-import type { Locale } from '../i18n/locales';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
 import { localizedHref } from '../i18n/routes';
 import { useTranslations } from '../i18n/t';
 import { SCRIPT_STRING_KEYS } from '../scripts/techpar/strings';
@@ -55,7 +55,7 @@ const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, 
         name: 'TechPar',
         description: t('jsonld.description'),
         datePublished: '2026-02-01',
-        dateModified: '2026-03-22',
+        dateModified: '2026-10-24',
         inLanguage: locale.htmlLang,
         featureList: [
           t('jsonld.feature1'),
@@ -81,7 +81,9 @@ const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, 
         data-techpar
         class="brutal-tool-shell--fluid"
         data-print-title={t('print.title')}
-        data-print-footer={t('print.footer')}
+        data-print-footer={t('print.footer', {
+          url: `globalstrategic.tech${localizedHref('/hub/tools/techpar/', locale)}`,
+        })}
       >
         <!-- Tab bar -->
         <div class="tool-tab-bar" data-tab-bar role="tablist" aria-label={t('tabs.ariaLabel')}>
@@ -1294,12 +1296,15 @@ const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, 
       </div>
     </div>
   </section>
-  <script
-    is:inline
-    type="application/json"
-    data-techpar-strings
-    set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
-  />
+  {/* English needs no island: strings.ts falls back to the English catalog. */}
+  {!isDefaultLocale(locale) && (
+    <script
+      is:inline
+      type="application/json"
+      data-techpar-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
+    />
+  )}
 </BaseLayout>
 
 <style>

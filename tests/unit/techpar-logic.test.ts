@@ -117,7 +117,8 @@ describe('strings.ts', () => {
     expect(sHtml('js.chart.tooltipLabel', { label: '<b>', value: '$1K' })).toBe(
       '&lt;b&gt;: $1K/mo'
     );
-    expect(sHtml('js.legend.underinvest', { n: 15 })).toBe('Underinvestment zone (<15%)');
+    // The catalog writes markup-significant characters as entities (it is innerHTML)
+    expect(sHtml('js.legend.underinvest', { n: 15 })).toBe('Underinvestment zone (&lt;15%)');
   });
 
   it('unknown keys are absent and render as the key', () => {

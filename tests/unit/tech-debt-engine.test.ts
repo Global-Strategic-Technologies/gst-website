@@ -849,8 +849,9 @@ describe('parseShortCurrency', () => {
     expect(parseShortCurrency('€500K')).toBe(500_000);
   });
 
-  it('reads back the multi-character symbols the display prints (C$, A$)', () => {
+  it('reads back the multi-character symbols the display prints (C$, A$, R$)', () => {
     expect(parseShortCurrency('C$1.2B')).toBe(1_200_000_000);
+    expect(parseShortCurrency('R$1.2M')).toBe(1_200_000);
     expect(parseShortCurrency('A$153K')).toBe(153_000);
     expect(parseShortCurrency('usd 5M')).toBe(5_000_000);
     expect(parseShortCurrency('C$-500K')).toBe(-500_000);

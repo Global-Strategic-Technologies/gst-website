@@ -32,6 +32,7 @@ import {
 import type { Currency } from '../../i18n/currency';
 import { escapeHtml } from '../../utils/escape-html';
 import { s, hasString } from './strings';
+import { formatNumber } from '../../i18n/formatters';
 import {
   categoryKeyOf,
   formatArrInput,
@@ -178,7 +179,10 @@ export function goTab(
 // ─── Copy link ────────────────────────────────────────────
 export function copyLink(btn: HTMLButtonElement) {
   trackEvent({ event: 'tp_copy_link', category: 'tool', page: 'techpar' });
-  copyWithFeedback(window.location.href, btn, { copiedClass: 'brutal-btn--copied' });
+  copyWithFeedback(window.location.href, btn, {
+    copiedClass: 'brutal-btn--copied',
+    label: s('js.copied'),
+  });
 }
 
 // ─── Copy summary ─────────────────────────────────────────
@@ -197,6 +201,8 @@ export function copySummary(btn: HTMLButtonElement) {
     {
       money: fmtD,
       pct: (n: number) => fmtPct(n),
+      num: (n: number) =>
+        formatNumber(n, pageLang(), { maximumFractionDigits: 2, useGrouping: false }),
       text: Object.fromEntries(
         Object.keys(SUMMARY_TEXT_EN).map((k) => [k, s(`summary.${k}`)])
       ) as SummaryText,
@@ -205,7 +211,7 @@ export function copySummary(btn: HTMLButtonElement) {
       categoryName,
     }
   );
-  copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied' });
+  copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied', label: s('js.copied') });
 }
 
 // ─── Export PDF ───────────────────────────────────────────
