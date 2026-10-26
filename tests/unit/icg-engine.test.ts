@@ -7,8 +7,10 @@
  * - getRecommendations(): filtering and sorting
  * - checkFoundationalFlag(): D1/D2 threshold detection
  * - encodeState / decodeState: URL serialisation round-trip
- * (The page-only summary and score context are tested in icg-summary.test.ts.)
  * - Data integrity: question/recommendation cross-references
+ *
+ * The page-only summary and score context live in the page script and are
+ * tested in icg-summary-golden.test.ts.
  */
 
 import {
