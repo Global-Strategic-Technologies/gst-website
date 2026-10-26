@@ -17,18 +17,20 @@ import {
   checkFoundationalFlag,
   encodeState,
   decodeState,
-  buildSummaryText,
   buildExportPayload,
   getQuickWins,
   compareSnapshots,
   buildRadarPoints,
-  contextualizeScore,
   findMatchingRange,
   BENCHMARK_RANGES,
   DEFAULT_STATE,
   MATURITY_THRESHOLDS,
   FOUNDATIONAL_THRESHOLD,
 } from '../../src/utils/icg-engine';
+import {
+  buildSummaryText,
+  contextualizeScore,
+} from '../../src/scripts/infrastructure-cost-governance/logic';
 
 import type { ICGState, DomainScore, ICGSnapshot } from '../../src/utils/icg-engine';
 

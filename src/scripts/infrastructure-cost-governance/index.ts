@@ -6,10 +6,8 @@ import {
   getQuickWins,
   encodeState,
   decodeState,
-  buildSummaryText,
   buildExportPayload,
   compareSnapshots,
-  contextualizeScore,
   findMatchingRange,
 } from '../../utils/icg-engine';
 
@@ -20,7 +18,14 @@ import { DOMAINS, ANSWER_OPTIONS } from '../../data/infrastructure-cost-governan
 import { RECOMMENDATIONS } from '../../data/infrastructure-cost-governance/recommendations';
 import { copyWithFeedback } from '../../utils/copy-feedback';
 import { escapeHtml } from '../../utils/escape-html';
-import { emailHref, gaugeArcSVG, maturityDescription, radarChartSVG } from './logic';
+import {
+  buildSummaryText,
+  contextualizeScore,
+  emailHref,
+  gaugeArcSVG,
+  maturityDescription,
+  radarChartSVG,
+} from './logic';
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
 

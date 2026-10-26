@@ -90,3 +90,12 @@ export function createToolStrings({ en, prefixes, selector }: ToolStringsConfig)
     },
   };
 }
+
+/**
+ * The page's language tag (`en`, `es`, `pt-BR`) — `<html lang>`, which
+ * BaseLayout sets to the locale's `htmlLang`. Tool scripts format numbers,
+ * dates and lists with it, as their templates do for the first paint.
+ */
+export function pageLang(): string {
+  return typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
+}

@@ -64,3 +64,28 @@ export function formatFixed(n: number, locale: IntlTag | undefined, decimals: nu
 export function formatPlain(n: number, locale?: IntlTag): string {
   return formatNumber(n, locale, { maximumFractionDigits: 10, useGrouping: false });
 }
+
+/**
+ * Join names in the language's list style (`a, b y c`; Spanish writes `e`
+ * before an i- sound). English takes the caller's own joiner, so a page keeps
+ * the wording it has always printed.
+ */
+export function formatList(
+  items: string[],
+  locale: IntlTag | undefined,
+  englishJoin: string
+): string {
+  const tag = tagOf(locale);
+  if (tag.startsWith('en') || typeof Intl.ListFormat !== 'function') return items.join(englishJoin);
+  return new Intl.ListFormat(tag, { style: 'long', type: 'conjunction' }).format(items);
+}
+
+/**
+ * The catalog key suffix for a count: `one` or `other`. English, the schema,
+ * has only those two forms, so the other `Intl.PluralRules` categories
+ * (`many` in es and pt-BR for millions; `zero`, `two`, `few` elsewhere) fold
+ * into `other` and every locale carries the same two keys.
+ */
+export function pluralKey(n: number, locale?: IntlTag): 'one' | 'other' {
+  return new Intl.PluralRules(tagOf(locale)).select(n) === 'one' ? 'one' : 'other';
+}

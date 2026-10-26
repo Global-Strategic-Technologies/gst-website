@@ -6,13 +6,11 @@
  * script and routing them through the catalog cannot change a byte of the
  * English page.
  */
+import { calculateResults, getRecommendations, DEFAULT_STATE } from '../../src/utils/icg-engine';
 import {
   buildSummaryText,
-  calculateResults,
   contextualizeScore,
-  getRecommendations,
-  DEFAULT_STATE,
-} from '../../src/utils/icg-engine';
+} from '../../src/scripts/infrastructure-cost-governance/logic';
 import type { ICGState } from '../../src/utils/icg-engine';
 import { DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../src/data/infrastructure-cost-governance/recommendations';

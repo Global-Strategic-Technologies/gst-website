@@ -18,6 +18,7 @@ import { trajLabelKind } from './logic';
 import { escapeHtml } from '../../utils/escape-html';
 import { trackEvent } from '../../utils/analytics';
 import * as Sentry from '@sentry/browser';
+import { pageLang } from '../tool-strings';
 import {
   g,
   $$,
@@ -28,7 +29,6 @@ import {
   fmtPct,
   fmtNum,
   fmtPlain,
-  pageLang,
   zoneName,
   stageLabel,
   categoryName,

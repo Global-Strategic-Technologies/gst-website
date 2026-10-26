@@ -18,8 +18,8 @@
  * parity guard restricts the tags a `tHtml` string may contain.
  *
  * No runtime dependency: this is the ~100 lines BL-153 budgeted for. Plurals
- * are not needed for Tier A copy; add `Intl.PluralRules` here when a Tier B
- * tool needs them (ADR-0030).
+ * are not needed for Tier A copy. Tier B tool scripts, which cannot import this
+ * file, pick a `one`/`other` key with `pluralKey` in `formatters.ts` (ADR-0030).
  */
 import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 import { escapeHtml } from '../utils/escape-html';
