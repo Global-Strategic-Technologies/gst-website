@@ -82,6 +82,17 @@ const TOOL_PAGES = readdirSync(TOOLS_DIR, { withFileTypes: true })
   .map((e) => e.name)
   .sort();
 
+/**
+ * The source that renders a tool page. A localized (Tier B) tool's route file
+ * is a thin wrapper around its page template (LOCALIZATION.md § Add a page to
+ * every locale), and the JSON-LD lives in the template — so follow the import.
+ */
+function toolSource(tool: string): string {
+  const page = read(TOOLS_DIR, tool, 'index.astro');
+  const template = /from '(?:\.\.\/)+page-templates\/([\w-]+\.astro)'/.exec(page);
+  return template ? read(REPO_ROOT, 'src', 'page-templates', template[1]) : page;
+}
+
 describe('hubToolSchema — emitted shape', () => {
   const schema = hubToolSchema({
     name: 'Test Tool',
@@ -90,6 +101,20 @@ describe('hubToolSchema — emitted shape', () => {
     knowsAbout: ['Technical Due Diligence', 'M&A Tech Strategy'],
     datePublished: '2026-01-15',
     dateModified: '2026-07-31',
+  });
+
+  it('emits inLanguage only when a localized tool passes it', () => {
+    expect('inLanguage' in schema).toBe(false);
+    const localized = hubToolSchema({
+      name: 'Test Tool',
+      description: 'A tool for testing',
+      featureList: ['One'],
+      knowsAbout: ['Technical Due Diligence', 'M&A Tech Strategy'],
+      datePublished: '2026-01-01',
+      dateModified: '2026-01-01',
+      inLanguage: 'pt-BR',
+    });
+    expect((localized as Record<string, unknown>).inLanguage).toBe('pt-BR');
   });
 
   it('is a schema.org WebApplication', () => {
@@ -166,7 +191,7 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // Reported separately from the assertion below so "no schema element at
     // all" and "the schema element renders the wrong thing" are distinct
     // failures rather than one opaque miss.
-    expect(ldJsonElements(read(TOOLS_DIR, tool, 'index.astro'))).toHaveLength(1);
+    expect(ldJsonElements(toolSource(tool))).toHaveLength(1);
   });
 
   it.each(TOOL_PAGES)('%s renders that script from the shared helper', (tool) => {
@@ -175,7 +200,7 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // passing a naive `toContain('hubToolSchema')` while emitting no schema,
     // which is precisely the failure this test exists to catch. The call must
     // appear inside THIS element's `set:html`. Attribute order is not assumed.
-    const [element] = ldJsonElements(read(TOOLS_DIR, tool, 'index.astro'));
+    const [element] = ldJsonElements(toolSource(tool));
     expect(element).toMatch(/set:html=\{JSON\.stringify\(\s*hubToolSchema\(/);
   });
 
@@ -184,7 +209,7 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // merely documented. An OMITTED knowsAbout is already a type error — that
     // was the original BL-099 defect — but an empty or truncated one is not,
     // and it degrades the same author-expertise signal just as silently.
-    const knowsAbout = knowsAboutOf(read(TOOLS_DIR, tool, 'index.astro'));
+    const knowsAbout = knowsAboutOf(toolSource(tool));
     expect(knowsAbout, 'knowsAbout array literal not found in the JSON-LD element').not.toBeNull();
     expect(knowsAbout!.length).toBeGreaterThanOrEqual(4);
     expect(knowsAbout!.length).toBeLessThanOrEqual(5);
@@ -203,7 +228,7 @@ describe('the tools listing page is not a tool page', () => {
   // The listing's body moved to the shared page template in BL-153
   // (src/pages/hub/tools/index.astro is now a locale wrapper); the ItemList is
   // emitted from the template, so that is what this reads. The tool-page scan
-  // above is unaffected: tool pages are Tier B and still live under TOOLS_DIR.
+  // above follows a localized tool's wrapper to its template (`toolSource`).
   const listing = () => read(REPO_ROOT, 'src', 'page-templates', 'HubToolsPage.astro');
 
   it('emits ItemList', () => {

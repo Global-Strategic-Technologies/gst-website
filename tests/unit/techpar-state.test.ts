@@ -22,7 +22,7 @@ describe('techpar/state', () => {
   describe('tp initial state', () => {
     it('has expected default values', () => {
       expect(tp.mode).toBe('quick');
-      expect(tp.currencySymbol).toBe('$');
+      expect(tp.currency).toBe('USD');
       expect(tp.infraPeriod).toBe('monthly');
       expect(tp.industry).toBe('saas');
       expect(tp.historicalPoints).toEqual([]);

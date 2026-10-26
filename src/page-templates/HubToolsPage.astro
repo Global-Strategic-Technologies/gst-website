@@ -3,11 +3,12 @@
  * /hub/tools/ in every locale. Rendered by src/pages/hub/tools/index.astro
  * (English) and by src/pages/[locale]/[...route].astro.
  *
- * Every tool page is Tier B (English only), so the cards keep their English
- * hrefs and a non-English page carries one `common.notice.contentInEnglish`
- * line under the header rather than seven identical footnotes. The ItemList
- * JSON-LD keeps the English tool names for the same reason — the items ARE
- * English pages; only the list's own name/description follow the locale.
+ * Tool pages are Tier B: localized one at a time (TIER_B_ROUTES). A card links
+ * to the tool in the page's locale when the tool is localized, and to the
+ * English page (with `hreflang="en"`) when it is not; a non-English page
+ * carries one `notice.someToolsEnglish` line under the header rather than a
+ * footnote per card. The ItemList JSON-LD keeps the English tool names — the
+ * tool name is a brand in every locale — and its URLs follow the cards.
  * `tests/unit/hub-tool-schema.test.ts` reads this file for the ItemList.
  *
  * The dev-only "Planned" cards stay literal: they never ship and exist to
@@ -17,7 +18,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import HubHeader from '../components/hub/HubHeader.astro';
 import DeltaIcon from '../components/DeltaIcon.astro';
 import { isDefaultLocale, type Locale } from '../i18n/locales';
-import { localizedHref } from '../i18n/routes';
+import { isLocalizedRoute, localizedHref } from '../i18n/routes';
 import { useTranslations } from '../i18n/t';
 
 interface Props {
@@ -26,7 +27,6 @@ interface Props {
 
 const { locale } = Astro.props;
 const { t } = useTranslations(locale, 'hub-tools');
-const common = useTranslations(locale, 'common');
 const isDev = import.meta.env.DEV;
 
 const TOOL_IDS = [
@@ -53,7 +53,8 @@ const EN_TOOL_NAMES: Record<(typeof TOOL_IDS)[number], string> = {
 
 const tools = TOOL_IDS.map((id) => ({
   id,
-  href: `/hub/tools/${id}/`,
+  href: localizedHref(`/hub/tools/${id}/`, locale),
+  englishOnly: !isLocalizedRoute(`/hub/tools/${id}/`),
   title: t(`tools.${id}.title`),
   features: ([1, 2, 3] as const).map((n) => t(`tools.${id}.f${n}`)),
 }));
@@ -81,7 +82,7 @@ const tools = TOOL_IDS.map((id) => ({
         '@type': 'ListItem',
         position: index + 1,
         name: EN_TOOL_NAMES[id],
-        url: `https://globalstrategic.tech/hub/tools/${id}/`,
+        url: `https://globalstrategic.tech${localizedHref(`/hub/tools/${id}/`, locale)}`,
       })),
     })}
   />
@@ -89,9 +90,7 @@ const tools = TOOL_IDS.map((id) => ({
     <div class="container">
       <HubHeader title={t('header.title')} subtitle={t('header.subtitle')} locale={locale} />
 
-      {!isDefaultLocale(locale) && (
-        <p class="tools-notice">{common.t('notice.contentInEnglish')}</p>
-      )}
+      {!isDefaultLocale(locale) && <p class="tools-notice">{t('notice.someToolsEnglish')}</p>}
 
       <div class="brutal-gateway-grid">
         {tools.map((tool) => (
@@ -107,7 +106,11 @@ const tools = TOOL_IDS.map((id) => ({
                 </li>
               ))}
             </ul>
-            <a href={tool.href} class="cta-button brutal-gateway-card__cta" hreflang="en">
+            <a
+              href={tool.href}
+              class="cta-button brutal-gateway-card__cta"
+              hreflang={tool.englishOnly ? 'en' : undefined}
+            >
               {t('launch')}
             </a>
           </article>

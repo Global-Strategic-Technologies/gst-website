@@ -469,7 +469,9 @@ The shape the helper emits:
 | `author` | Person | Reid Peryam with tool-specific `knowsAbout` | Yes |
 
 Only `name`, `description`, `featureList`, `knowsAbout`, `datePublished` and `dateModified` are
-per-tool parameters. Everything else is a constant inside the helper.
+per-tool parameters, plus an optional `inLanguage` that a localized (Tier B) tool passes with its page
+language — omitted, the key is not emitted, so English-only tools are unchanged. Everything else is a
+constant inside the helper.
 
 ### Current Tool Schemas
 
@@ -486,7 +488,7 @@ per-tool parameters. Everything else is a constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/techpar/index.astro` |
+| **File** | `src/page-templates/HubTechParPage.astro` (localized; `src/pages/hub/tools/techpar/index.astro` is its English wrapper). Emits `inLanguage` with the page language |
 | **datePublished** | 2026-02-01 |
 | **featureList** | Blended technology cost ratio, Stage-adjusted benchmarking, 36-month trajectory projection, Infrastructure/personnel/R&D breakdown |
 | **knowsAbout** | Technology Cost Benchmarking, SaaS Metrics, Technical Due Diligence, M&A Tech Strategy, Infrastructure Cost Analysis |

@@ -315,14 +315,13 @@ export function parseShortCurrency(input: string): number {
 
 // ─── Currency-aware formatting ───────────────────────────────────────────────
 
-export const fmtShortC = (n: number, symbol: string = '$', multiplier: number = 1): string => {
-  const v = n * multiplier;
+export const fmtShortC = (n: number, symbol: string = '$'): string => {
   // Each threshold sits where the smaller unit would round up to 1000
   // ("1000K", "1000.0M"), so such amounts print in the larger unit instead.
-  if (v >= 999_950_000) return `${symbol}${(v / 1_000_000_000).toFixed(1)}B`;
-  if (v >= 999_500) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${symbol}${(v / 1_000).toFixed(0)}K`;
-  return `${symbol}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v)}`;
+  if (n >= 999_950_000) return `${symbol}${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 999_500) return `${symbol}${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${symbol}${(n / 1_000).toFixed(0)}K`;
+  return `${symbol}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n)}`;
 };
 
 // ─── Burden classification ───────────────────────────────────────────────────
@@ -371,10 +370,9 @@ export function buildSummaryText(
   state: CalcState,
   result: CalcResult,
   symbol: string = '$',
-  multiplier: number = 1,
   url?: string
 ): string {
-  const f = (n: number) => fmtShortC(n, symbol, multiplier);
+  const f = (n: number) => fmtShortC(n, symbol);
   const teamSize = state.teamSize;
   const salary = state.salary;
   const deploy = DEPLOY_OPTIONS[state.deployIdx];

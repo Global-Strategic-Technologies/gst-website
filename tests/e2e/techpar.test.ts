@@ -317,7 +317,7 @@ test.describe('TechPar - Audit fixes', () => {
 
   test('ARR chips update currency symbol when currency changes', async ({ page }) => {
     await gotoTool(page);
-    await page.click('[data-currency="€"]');
+    await page.click('[data-currency="EUR"]');
     const chip = page.locator('[data-arr-val="10000000"]');
     await expect(chip).toContainText('€');
   });

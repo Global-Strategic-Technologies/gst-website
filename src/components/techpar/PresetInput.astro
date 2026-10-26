@@ -48,6 +48,9 @@ interface Props {
   chipGroupAttr?: string;
   containerStyle?: string;
   chipsOnly?: boolean;
+  /** Money presets: chips get `data-money` so the page repaints their label
+   *  in the selected display currency (src/scripts/techpar/dom.ts). */
+  money?: boolean;
 }
 
 const {
@@ -66,6 +69,7 @@ const {
   chipGroupAttr,
   containerStyle,
   chipsOnly = false,
+  money = false,
 } = Astro.props;
 
 // Fallback if a caller omits inputId. All current TechPar callers pass it
@@ -94,6 +98,7 @@ const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true }
         aria-pressed="false"
         data-preset-for={inputName}
         data-preset-val={p.value}
+        data-money={money || undefined}
         type="button"
       >
         {p.label}
@@ -109,6 +114,7 @@ const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true }
           aria-pressed="false"
           data-preset-for={inputName}
           data-preset-val={p.value}
+          data-money={money || undefined}
           type="button"
         >
           {p.label}

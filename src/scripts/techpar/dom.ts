@@ -2,8 +2,14 @@
  * TechPar UI — DOM helpers, formatting, tab navigation, input validation,
  * and UI-sync utilities.
  */
-import { formatDollars, formatPercent, zoneColorVar, zoneLabel } from '../../utils/techpar-engine';
-import type { TechParInputs, TechParResult, Stage } from '../../utils/techpar-engine';
+import { zoneColorVar, SUMMARY_TEXT_EN } from '../../utils/techpar-engine';
+import type {
+  TechParInputs,
+  TechParResult,
+  Stage,
+  Zone,
+  SummaryText,
+} from '../../utils/techpar-engine';
 import { STAGES } from '../../data/techpar/stages';
 import { tp, MAX_HISTORICAL, MAX_SCENARIOS } from './state';
 import { compute } from '../../utils/techpar-engine';
@@ -16,6 +22,25 @@ import {
 } from '../../utils/techpar-engine';
 import type { Industry } from '../../data/techpar/industry-notes';
 import { LS_KEY } from './state';
+import {
+  CURRENCY_SYMBOL,
+  DEFAULT_CURRENCY,
+  formatMoneyChip,
+  formatMoneyShort,
+  parseCurrencyParam,
+} from '../../i18n/currency';
+import type { Currency } from '../../i18n/currency';
+import { escapeHtml } from '../../utils/escape-html';
+import { s, hasString } from './strings';
+import { formatNumber } from '../../i18n/formatters';
+import {
+  categoryKeyOf,
+  formatArrInput,
+  formatFixed,
+  formatPct,
+  formatPlain,
+  parseArrInput,
+} from './logic';
 
 // ─── DOM query helpers ────────────────────────────────────
 export const $$ = (sel: string) => document.querySelectorAll(sel);
@@ -32,6 +57,10 @@ export function syncRadioGroup(selector: string, active: Element): void {
 
 export function getInput(name: string): number {
   const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
+  // ARR is the one text field, shown with locale grouping (`1.000.000` in
+  // es/pt-BR): strip every separator. The rest are type="number", whose
+  // `.value` is always dot-decimal, so they keep parseFloat.
+  if (name === 'arr') return parseArrInput(el?.value);
   const raw = el?.value?.replace(/,/g, '') || '';
   return parseFloat(raw) || 0;
 }
@@ -62,9 +91,65 @@ export function chartFontFamily(): string {
 /** Named so the guard can find it in one place instead of at four call sites. */
 const CHART_FONT_FALLBACK = "'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace";
 
-/** Currency-aware formatDollars wrapper */
+/** The symbol for the selected display currency (allowlisted — see i18n/currency). */
+export function currencySymbol(): string {
+  return CURRENCY_SYMBOL[tp.currency];
+}
+
+/** The page's language tag (`en`, `es`, `pt-BR`), for number formatting. */
+export function pageLang(): string {
+  return document.documentElement.lang || 'en';
+}
+
+/** Short money in the selected display currency and the page's number format. */
 export function fmtD(n: number): string {
-  return formatDollars(n, tp.currencySymbol);
+  return formatMoneyShort(n, tp.currency, pageLang());
+}
+
+/** A percentage in the page's number format (`formatPercent`, localized). */
+export function fmtPct(n: number, decimals = 1): string {
+  return formatPct(n, pageLang(), decimals);
+}
+
+/** A fixed-decimal number (no %) in the page's number format. */
+export function fmtNum(n: number, decimals: number): string {
+  return formatFixed(n, pageLang(), decimals);
+}
+
+/** A plain number such as an exit multiple, in the page's number format. */
+export function fmtPlain(n: number): string {
+  return formatPlain(n, pageLang());
+}
+
+/** Zone display name from the catalog (the engine's `zoneLabel`, translated). */
+export function zoneName(zone: Zone): string {
+  return s(`zone.${zone}`);
+}
+
+/** Stage display name: the island's when it carries one, else STAGES' English. */
+export function stageLabel(key: string): string {
+  const k = `stage.${key}.label`;
+  return hasString(k) ? s(k) : (STAGES[key as Stage]?.label ?? key);
+}
+
+/** Category display name for an engine category label (a `CATEGORY_LABELS` value). */
+export function categoryName(label: string): string {
+  const key = categoryKeyOf(label);
+  return key ? s(`category.${key}`) : label;
+}
+
+/** Select a display currency and repaint everything that shows its symbol. */
+export function applyCurrency(code: Currency): void {
+  tp.currency = code;
+  $$('[data-currency]').forEach((b) => {
+    const isActive = (b as HTMLElement).dataset.currency === code;
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
+  });
+  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
+    pre.textContent = currencySymbol();
+  });
+  updateChipCurrencies();
 }
 
 // ─── Tab navigation ───────────────────────────────────────
@@ -94,7 +179,10 @@ export function goTab(
 // ─── Copy link ────────────────────────────────────────────
 export function copyLink(btn: HTMLButtonElement) {
   trackEvent({ event: 'tp_copy_link', category: 'tool', page: 'techpar' });
-  copyWithFeedback(window.location.href, btn, { copiedClass: 'brutal-btn--copied' });
+  copyWithFeedback(window.location.href, btn, {
+    copiedClass: 'brutal-btn--copied',
+    label: s('js.copied'),
+  });
 }
 
 // ─── Copy summary ─────────────────────────────────────────
@@ -109,9 +197,21 @@ export function copySummary(btn: HTMLButtonElement) {
     inputs,
     result,
     window.location.href,
-    validHist.length ? validHist : undefined
+    validHist.length ? validHist : undefined,
+    {
+      money: fmtD,
+      pct: (n: number) => fmtPct(n),
+      num: (n: number) =>
+        formatNumber(n, pageLang(), { maximumFractionDigits: 2, useGrouping: false }),
+      text: Object.fromEntries(
+        Object.keys(SUMMARY_TEXT_EN).map((k) => [k, s(`summary.${k}`)])
+      ) as SummaryText,
+      stageLabel: stageLabel(inputs.stage),
+      zoneName,
+      categoryName,
+    }
   );
-  copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied' });
+  copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied', label: s('js.copied') });
 }
 
 // ─── Export PDF ───────────────────────────────────────────
@@ -147,7 +247,7 @@ export function setBaseline(updateAll: () => void) {
   tp.baselineResult = result;
   tp.baselineInputs = inputs;
   const barLabel = document.querySelector('.tp-baseline-bar__label');
-  if (barLabel) barLabel.textContent = `Baseline: ${formatPercent(result.totalTechPct)}`;
+  if (barLabel) barLabel.textContent = s('js.baseline.label', { pct: fmtPct(result.totalTechPct) });
   const bar = g('baseline-bar');
   if (bar) bar.style.display = 'flex';
   const setBtn = document.querySelector('[data-action="set-baseline"]') as HTMLElement | null;
@@ -173,14 +273,18 @@ export function saveScenario(updateAll: () => void) {
   if (!result) return;
   trackEvent({ event: 'tp_scenario_save', category: 'tool', page: 'techpar' });
   if (tp.scenarios.length >= MAX_SCENARIOS) tp.scenarios.shift();
-  tp.scenarios.push({ name: `Scenario ${tp.scenarios.length + 1}`, inputs, result });
+  tp.scenarios.push({
+    name: s('js.scenario.name', { n: tp.scenarios.length + 1 }),
+    inputs,
+    result,
+  });
   updateAll();
 }
 
 export function removeScenario(index: number, updateAll: () => void) {
   tp.scenarios.splice(index, 1);
-  tp.scenarios.forEach((s, i) => {
-    s.name = `Scenario ${i + 1}`;
+  tp.scenarios.forEach((sc, i) => {
+    sc.name = s('js.scenario.name', { n: i + 1 });
   });
   updateAll();
 }
@@ -206,9 +310,9 @@ export function renderScenarios(r: TechParResult, updateAll: () => void) {
 
   list.style.display = 'block';
   chips.innerHTML = tp.scenarios
-    .map((s, i) => {
-      const col = getStyle(zoneColorVar(s.result.zone));
-      return `<span class="tp-scenario-chip" style="border-left:3px solid ${col}"><span class="tp-zone-dot" style="background:${col}"></span>${s.name}: ${formatPercent(s.result.totalTechPct)} <span class="tp-scenario-chip__zone" style="color:${col}">${zoneLabel(s.result.zone)}</span><button class="tp-scenario-chip__remove" data-remove-scenario="${i}" type="button">&times;</button></span>`;
+    .map((sc, i) => {
+      const col = getStyle(zoneColorVar(sc.result.zone));
+      return `<span class="tp-scenario-chip" style="border-left:3px solid ${col}"><span class="tp-zone-dot" style="background:${col}"></span>${escapeHtml(sc.name)}: ${fmtPct(sc.result.totalTechPct)} <span class="tp-scenario-chip__zone" style="color:${col}">${escapeHtml(zoneName(sc.result.zone))}</span><button class="tp-scenario-chip__remove" data-remove-scenario="${i}" type="button">&times;</button></span>`;
     })
     .join('');
 
@@ -221,36 +325,36 @@ export function renderScenarios(r: TechParResult, updateAll: () => void) {
   compare.style.display = 'block';
   const rows = [
     {
-      label: 'Total %',
-      current: formatPercent(r.totalTechPct),
-      values: tp.scenarios.map((s) => formatPercent(s.result.totalTechPct)),
+      label: s('js.scenario.row.totalPct'),
+      current: fmtPct(r.totalTechPct),
+      values: tp.scenarios.map((sc) => fmtPct(sc.result.totalTechPct)),
     },
     {
-      label: 'Zone',
-      current: zoneLabel(r.zone),
-      values: tp.scenarios.map((s) => zoneLabel(s.result.zone)),
+      label: s('js.scenario.row.zone'),
+      current: zoneName(r.zone),
+      values: tp.scenarios.map((sc) => zoneName(sc.result.zone)),
     },
     {
-      label: 'Annual cost',
+      label: s('js.scenario.row.annualCost'),
       current: fmtD(r.total),
-      values: tp.scenarios.map((s) => fmtD(s.result.total)),
+      values: tp.scenarios.map((sc) => fmtD(sc.result.total)),
     },
     {
-      label: '36-mo gap',
+      label: s('js.scenario.row.gap36'),
       current: fmtD(r.gap.cumulative36),
-      values: tp.scenarios.map((s) => fmtD(s.result.gap.cumulative36)),
+      values: tp.scenarios.map((sc) => fmtD(sc.result.gap.cumulative36)),
     },
   ];
 
-  let html = '<table><thead><tr><th></th><th>Current</th>';
-  tp.scenarios.forEach((s) => {
-    html += `<th>${s.name}</th>`;
+  let html = `<table><thead><tr><th></th><th>${escapeHtml(s('js.scenario.current'))}</th>`;
+  tp.scenarios.forEach((sc) => {
+    html += `<th>${escapeHtml(sc.name)}</th>`;
   });
   html += '</tr></thead><tbody>';
   rows.forEach((row) => {
-    html += `<tr><td>${row.label}</td><td>${row.current}</td>`;
+    html += `<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.current)}</td>`;
     row.values.forEach((v) => {
-      html += `<td>${v}</td>`;
+      html += `<td>${escapeHtml(v)}</td>`;
     });
     html += '</tr>';
   });
@@ -265,17 +369,17 @@ export function handleReset(btn: HTMLButtonElement, resetAll: () => void) {
       clearTimeout(tp.resetTimeout);
       tp.resetTimeout = null;
     }
-    btn.textContent = 'Reset all inputs';
+    btn.textContent = s('js.reset.idle');
     btn.classList.remove('tp-toolbar__reset--confirming');
     delete btn.dataset.confirming;
     resetAll();
     return;
   }
   btn.dataset.confirming = '1';
-  btn.textContent = 'Click again to reset';
+  btn.textContent = s('js.reset.confirm');
   btn.classList.add('tp-toolbar__reset--confirming');
   tp.resetTimeout = setTimeout(() => {
-    btn.textContent = 'Reset all inputs';
+    btn.textContent = s('js.reset.idle');
     btn.classList.remove('tp-toolbar__reset--confirming');
     delete btn.dataset.confirming;
     tp.resetTimeout = null;
@@ -299,19 +403,11 @@ export function resetAll(deps: {
   tp.baselineResult = null;
   tp.baselineInputs = null;
   tp.scenarios = [];
-  tp.currencySymbol = '$';
   const baseBar = g('baseline-bar');
   if (baseBar) baseBar.style.display = 'none';
   const setBtn = document.querySelector('[data-action="set-baseline"]') as HTMLElement | null;
   if (setBtn) setBtn.style.display = '';
-  $$('[data-currency]').forEach((b) => {
-    const isActive = (b as HTMLElement).dataset.currency === '$';
-    b.classList.toggle('tp-seg__btn--active', isActive);
-    b.setAttribute('aria-checked', String(isActive));
-  });
-  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
-    pre.textContent = '$';
-  });
+  applyCurrency(DEFAULT_CURRENCY);
 
   tp.historicalPoints = [];
   deps.renderHistRows();
@@ -381,28 +477,30 @@ export function renderHistRows(updateAll: () => void) {
 
   container.innerHTML = tp.historicalPoints
     .map((pt, i) => {
-      const yearHint = `FY${new Date().getFullYear() - (tp.historicalPoints.length - i)}`;
+      const yearHint = escapeHtml(
+        s('js.hist.fyLabel', { year: new Date().getFullYear() - (tp.historicalPoints.length - i) })
+      );
       return `
     <div class="tp-hist-row" data-hist-row="${i}">
         <div class="tp-hist-field tp-hist-field--label">
-            <span class="tp-hist-field__lbl">Year</span>
-            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
+            <span class="tp-hist-field__lbl">${escapeHtml(s('js.hist.year'))}</span>
+            <input data-hist-label="${i}" value="${escapeHtml(pt.label)}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
         </div>
         <div class="tp-hist-field">
-            <span class="tp-hist-field__lbl">ARR / Revenue</span>
+            <span class="tp-hist-field__lbl">${escapeHtml(s('js.hist.arr'))}</span>
             <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
+                <span class="brutal-field__prefix">${currencySymbol()}</span>
                 <input type="number" data-hist-arr="${i}" value="${pt.arr || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
         <div class="tp-hist-field">
-            <span class="tp-hist-field__lbl">Total annual tech spend</span>
+            <span class="tp-hist-field__lbl">${escapeHtml(s('js.hist.tech'))}</span>
             <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
+                <span class="brutal-field__prefix">${currencySymbol()}</span>
                 <input type="number" data-hist-tech="${i}" value="${pt.totalTechSpend || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
-        <button class="tp-hist-remove" data-hist-remove="${i}" type="button" title="Remove year">&times;</button>
+        <button class="tp-hist-remove" data-hist-remove="${i}" type="button" title="${escapeHtml(s('js.hist.remove'))}">&times;</button>
     </div>`;
     })
     .join('');
@@ -446,8 +544,9 @@ export function sumDeep(updateAll: () => void) {
 }
 
 // ─── ARR formatting ───────────────────────────────────────
+/** ARR for the `#tp-arr` text field, grouped in the page's number format. */
 export function formatWithCommas(n: number): string {
-  return n.toLocaleString('en-US');
+  return formatArrInput(n, pageLang());
 }
 
 export function syncArrChips() {
@@ -477,14 +576,14 @@ export function paintCostChips(inputName: string): void {
 }
 
 // ─── Config display sync ──────────────────────────────────
+/** Repaint every money chip's label from its value in the selected currency.
+ *  Money chips carry `data-money` (ARR chips and the cost presets); exit-multiple
+ *  and FTE chips do not, so they are never touched. */
 export function updateChipCurrencies() {
-  document
-    .querySelectorAll<HTMLButtonElement>('.tp-arr-chip[data-arr-val], [data-preset-for]')
-    .forEach((chip) => {
-      const txt = chip.textContent || '';
-      const updated = txt.replace(/^[CA]?\$|^€|^£/, tp.currencySymbol);
-      if (updated !== txt) chip.textContent = updated;
-    });
+  document.querySelectorAll<HTMLElement>('[data-money]').forEach((chip) => {
+    const value = Number(chip.dataset.arrVal ?? chip.dataset.presetVal);
+    if (value > 0) chip.textContent = formatMoneyChip(value, tp.currency);
+  });
 }
 
 export function syncInfraPeriodUI() {
@@ -493,14 +592,9 @@ export function syncInfraPeriodUI() {
   const hint = document.querySelector('[data-infra-hint]');
   const monthlyChips = document.querySelector('[data-infra-chips-monthly]') as HTMLElement | null;
   const annualChips = document.querySelector('[data-infra-chips-annual]') as HTMLElement | null;
-  if (label)
-    label.textContent = tp.infraPeriod === 'monthly' ? 'Monthly cloud spend' : 'Annual cloud spend';
-  if (suf) suf.textContent = tp.infraPeriod === 'monthly' ? '/ mo' : '/ yr';
-  if (hint)
-    hint.textContent =
-      tp.infraPeriod === 'monthly'
-        ? 'Cloud, data center, CDN, observability, managed services. Auto-converted to annual.'
-        : 'Cloud, data center, CDN, observability, managed services. Auto-converted to monthly.';
+  if (label) label.textContent = s(`js.infra.label.${tp.infraPeriod}`);
+  if (suf) suf.textContent = s(`js.infra.suffix.${tp.infraPeriod}`);
+  if (hint) hint.textContent = s(`js.infra.hint.${tp.infraPeriod}`);
   if (monthlyChips) monthlyChips.style.display = tp.infraPeriod === 'monthly' ? 'flex' : 'none';
   if (annualChips) annualChips.style.display = tp.infraPeriod === 'annual' ? 'flex' : 'none';
   $$('[data-infra-period]').forEach((b) => {
@@ -518,9 +612,9 @@ export function updateInfraAnnotation() {
   if (annualEl) {
     if (infra > 0) {
       if (tp.infraPeriod === 'monthly') {
-        annualEl.textContent = `= ${fmtD(infra * 12)}/yr`;
+        annualEl.textContent = s('js.infra.perYear', { amount: fmtD(infra * 12) });
       } else {
-        annualEl.textContent = `= ${fmtD(infra / 12)}/mo`;
+        annualEl.textContent = s('js.infra.perMonth', { amount: fmtD(infra / 12) });
       }
       annualEl.style.display = 'block';
     } else {
@@ -531,10 +625,7 @@ export function updateInfraAnnotation() {
     const arr = getInput('arr');
     const annualInfra = tp.infraPeriod === 'monthly' ? infra * 12 : infra;
     if (arr > 0 && infra > 0 && annualInfra > arr * 0.5) {
-      warnEl.textContent =
-        tp.infraPeriod === 'monthly'
-          ? 'This value is monthly. If you entered an annual figure, switch to Annual above.'
-          : 'This value is annual. If you entered a monthly figure, switch to Monthly above.';
+      warnEl.textContent = s(`js.infra.warn.${tp.infraPeriod}`);
       warnEl.style.display = 'block';
     } else {
       warnEl.style.display = 'none';
@@ -571,7 +662,7 @@ export function checkSanity() {
     if (!el) continue;
     const pct = (value / arr) * 100;
     if (value > 0 && pct > totalCeiling) {
-      el.textContent = `This category alone exceeds the total technology benchmark ceiling for ${config.label}. Verify the figure is correct.`;
+      el.textContent = s('js.sanity.warn', { stage: stageLabel(config.key) });
       el.style.display = 'block';
     } else {
       el.style.display = 'none';
@@ -625,7 +716,9 @@ export function syncUrlState() {
     // so that hydration doesn't double-convert on reload.
     const rawInfra = getInput('infra');
     if (rawInfra) params.set('h', String(rawInfra));
-    if (tp.currencySymbol !== '$') params.set('u', tp.currencySymbol);
+    // Always written, as a code: a missing `u` means USD (every pre-codes link
+    // and saved state did), so omitting the default would be ambiguous.
+    params.set('u', tp.currency);
     if (tp.infraPeriod !== 'monthly') params.set('b', tp.infraPeriod);
     if (tp.industry !== 'saas') params.set('n', tp.industry);
     const url = `${window.location.pathname}?${params.toString()}`;
@@ -660,19 +753,9 @@ export function hydrateFromUrl() {
 
   const state = deserializeFromParams(params);
 
-  const u = params.get('u');
-  if (u) {
-    tp.currencySymbol = u;
-    $$('[data-currency]').forEach((b) => {
-      const isActive = (b as HTMLElement).dataset.currency === u;
-      b.classList.toggle('tp-seg__btn--active', isActive);
-      b.setAttribute('aria-checked', String(isActive));
-    });
-    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
-      pre.textContent = tp.currencySymbol;
-    });
-    updateChipCurrencies();
-  }
+  // Allowlisted: `u` is painted into the page, so only a known code (or a
+  // pre-codes legacy symbol) is accepted; anything else is USD.
+  applyCurrency(parseCurrencyParam(params.get('u')));
 
   const b = params.get('b');
   if (b === 'annual') {
@@ -742,7 +825,7 @@ export function hydrateFromUrl() {
 
   if (state.arr) {
     const arrEl = document.getElementById('tp-arr') as HTMLInputElement | null;
-    if (arrEl) arrEl.value = state.arr.toLocaleString('en-US');
+    if (arrEl) arrEl.value = formatWithCommas(state.arr);
   }
 
   setInput('exitMult', state.exitMultiple);
@@ -760,6 +843,12 @@ export function hydrateFromUrl() {
   setInput('rdTool', state.toolingCost);
 
   if (state.historical?.length) {
+    // The engine names an unlabelled year `Y-{n}` in English; show the
+    // catalog's form instead (only when the URL carried no label of its own).
+    state.historical.forEach((pt) => {
+      const m = /^Y-(\d+)$/.exec(pt.label);
+      if (m && !params.get(`y${m[1]}l`)) pt.label = s('js.hist.defaultLabel', { n: m[1] });
+    });
     tp.historicalPoints = state.historical;
     // renderHistRows is called by the orchestrator after hydration
   }

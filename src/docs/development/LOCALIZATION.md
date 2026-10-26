@@ -8,35 +8,39 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 
 ## Files
 
-| Path                                            | What it is                                                                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locales.ts`                           | The registry + `resolveLocale`, `localeFromPath`, `liveLocales`, config adapters. Pure TS — imported by `astro.config.mjs` in Node. |
-| `src/i18n/routes.ts`                            | `TIER_A_ROUTES` (the routes every locale carries), `localizedHref`, `alternatesFor`, `localeHome`.                                  |
-| `src/i18n/t.ts`                                 | `useTranslations(locale, ns)` → `t()` / `tHtml()`, typed from the English catalogs.                                                 |
-| `src/i18n/formatters.ts`                        | `formatDate` / `formatNumber` / `formatCurrency` over `Intl`, by registry locale or bare tag.                                       |
-| `src/i18n/<locale>/<ns>.json`                   | Catalogs: flat dot-keys → strings. `en/` is the schema.                                                                             |
-| `src/i18n/<locale>/<ns>.source.json`            | Sidecars: key → hash of the English string the translation was made from. Written by `npm run i18n:stamp`, checked by `test:docs`.  |
-| `src/page-templates/<Name>Page.astro`           | One body per route, taking `locale`. Rendered by the English route file and by the catch-all.                                       |
-| `src/page-templates/registry.ts`                | Route id → template, for the catch-all.                                                                                             |
-| `src/pages/[locale]/[...route].astro`           | Every non-English page. `getStaticPaths` = non-default locales × Tier A routes with a template.                                     |
-| `scripts/i18n-stamp-sources.mjs`                | The stamping script (`npm run i18n:stamp [locale] [ns]`, `npm run i18n:check`).                                                     |
-| `tests/unit/i18n-locale.test.ts`                | Resolver, path parsing, `localizedHref` rule, alternates/draft behaviour, config adapters, template↔route alignment.                |
-| `tests/integration/i18n-catalog-parity.test.ts` | Key parity, staleness, markup allowlist, no empty strings. Runs in `npm run test:docs`.                                             |
-| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_CO'`… quoted outside `src/i18n/`.                                                                      |
-| `tests/e2e/localization.test.ts`                | Rendered-page contract: `<html lang>`, canonical, `og:locale`, hreflang per status, switcher and band behaviour (see § Testing).    |
+| Path                                            | What it is                                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locales.ts`                           | The registry + `resolveLocale`, `localeFromPath`, `liveLocales`, config adapters. Pure TS — imported by `astro.config.mjs` in Node.                 |
+| `src/i18n/routes.ts`                            | `TIER_A_ROUTES` (the launch set), `TIER_B_ROUTES` (localized hub tools), `LOCALIZED_ROUTES` (both), `localizedHref`, `alternatesFor`, `localeHome`. |
+| `src/i18n/t.ts`                                 | `useTranslations(locale, ns)` → `t()` / `tHtml()`, typed from the English catalogs.                                                                 |
+| `src/i18n/formatters.ts`                        | `formatDate` / `formatNumber` / `formatCurrency` over `Intl`, by registry locale or bare tag.                                                       |
+| `src/i18n/currency.ts`                          | Hub-tool display currencies: the code allowlist, symbols, legacy-symbol map, `formatMoneyShort` (see § Display currency).                           |
+| `src/i18n/interpolate.ts`                       | `{name}` filling, shared by `t()` and the tool scripts without pulling the catalogs into the browser.                                               |
+| `src/i18n/<locale>/<ns>.json`                   | Catalogs: flat dot-keys → strings. `en/` is the schema.                                                                                             |
+| `src/i18n/<locale>/<ns>.source.json`            | Sidecars: key → hash of the English string the translation was made from. Written by `npm run i18n:stamp`, checked by `test:docs`.                  |
+| `src/page-templates/<Name>Page.astro`           | One body per route, taking `locale`. Rendered by the English route file and by the catch-all.                                                       |
+| `src/page-templates/registry.ts`                | Route id → template, for the catch-all.                                                                                                             |
+| `src/pages/[locale]/[...route].astro`           | Every non-English page. `getStaticPaths` = non-default locales × `LOCALIZED_ROUTES` with a template.                                                |
+| `scripts/i18n-stamp-sources.mjs`                | The stamping script (`npm run i18n:stamp [locale] [ns]`, `npm run i18n:check`).                                                                     |
+| `tests/unit/i18n-locale.test.ts`                | Resolver, path parsing, `localizedHref` rule, alternates/draft behaviour, config adapters, template↔route alignment.                                |
+| `tests/integration/i18n-catalog-parity.test.ts` | Key parity, staleness, markup allowlist, no empty strings. Runs in `npm run test:docs`.                                                             |
+| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_CO'`… quoted outside `src/i18n/`.                                                                                      |
+| `tests/e2e/localization.test.ts`                | Rendered-page contract: `<html lang>`, canonical, `og:locale`, hreflang per status, switcher and band behaviour (see § Testing).                    |
 
 ## Content tiers
 
-| Tier | Pages                                                                                                                               | Localized?                                                                               |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| A    | `/`, `/services/`, `/about/`, `/hub/`, `/hub/tools/`, `/hub/mcp/`, `/hub/mcp/trial/`, `/hub/mcp/from-code/`, `/privacy/`, `/terms/` | Yes — a locale launches with all of them or not at all (`TIER_A_ROUTES`)                 |
-| B    | Hub tool UIs (`/hub/tools/<tool>/`)                                                                                                 | Not yet; `formatters.ts` is ready for them. Currency control is BL-153's follow-up       |
-| C    | MCP media guides (`get-started`, `using`, `advanced-operations`, `docs`), portfolio, library, radar, brand                          | English only. Linked from localized pages with the `common.notice.contentInEnglish` line |
-| —    | `/404`, `/500`                                                                                                                      | English chrome + trilingual hint (Vercel serves one static error page)                   |
+| Tier | Pages                                                                                                                                                   | Localized?                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A    | `/`, `/services/`, `/about/`, `/hub/`, `/hub/tools/`, `/hub/mcp/`, `/hub/mcp/trial/`, `/hub/mcp/from-code/`, `/privacy/`, `/terms/`                     | Yes — a locale launches with all of them or not at all (`TIER_A_ROUTES`)                 |
+| B    | Hub tool UIs (`/hub/tools/<tool>/`) — **TechPar live** (2026-10-24); the other tools one PR each                                                        | Per tool, as it is listed in `TIER_B_ROUTES`; English-only until then                    |
+| C    | MCP media guides (`get-started`, `using`, `advanced-operations`, `docs`), portfolio entries and library articles (their chrome is Tier B), radar, brand | English only. Linked from localized pages with the `common.notice.contentInEnglish` line |
+| —    | `/404`, `/500`                                                                                                                                          | English chrome + trilingual hint (Vercel serves one static error page)                   |
 
 **The `/hub/mcp/` asymmetry is deliberate.** The two self-serve surfaces, the trial signup (BL-155) and the from-code guide it links to (BL-156), are Tier A because strangers arrive at them from any locale with nobody to talk to. The four guides beside them stay English-only because a roster pilot is onboarded by a human who speaks to them, and because three of the four carry recorded media that would need re-recording per locale. It reads as an oversight from either side; do not "fix" it in either direction without an operator decision.
 
-`localizedHref(path, locale)` encodes the tiers: it prefixes Tier A paths and returns everything else unchanged.
+`localizedHref(path, locale)` encodes the tiers: it prefixes `LOCALIZED_ROUTES` paths (Tier A and the registered Tier B tools) and returns everything else unchanged.
+
+**A new locale carries Tier B too.** The catch-all builds every locale × `LOCALIZED_ROUTES`, and the parity guard requires every namespace in every locale, so adding a locale means translating the registered Tier B tools' namespaces as well as Tier A ([ADR-0030 § Amendment 2026-10-24](../adr/0030-website-locale-model.md#amendment--2026-10-24-bl-153-slice-3-tier-b-routes-and-the-display-currency)).
 
 ## How to…
 
@@ -56,9 +60,10 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 1. Move the body into `src/page-templates/<Name>Page.astro` with `interface Props { locale: Locale }`; it renders `BaseLayout` itself.
 2. Make the root route file a wrapper: `<XPage locale={DEFAULT_LOCALE} />` (keep the file where it is — tests scan by path).
-3. Add `{ id, path }` to `TIER_A_ROUTES` and `id: XPage` to `TEMPLATES` in `registry.ts`.
+3. Add `{ id, path }` to `TIER_A_ROUTES` (a launch page) or `TIER_B_ROUTES` (a hub tool), and `id: XPage` to `TEMPLATES` in `registry.ts`.
 4. Pass `locale` to any chrome component that takes it (`Hero`, `CTASection`, `PrintReportHeader`, …).
 5. `npm run build`; confirm `dist/client/<path>/index.html` exists for each non-default locale.
+6. A tool page with a client script: see § Tool scripts.
 
 ### Add a locale
 
@@ -71,11 +76,25 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 > `es` and `pt-BR` were set live on 2026-09-05 by operator decision before this checklist was run, so the switcher and band ship at once. The first two items below are still owed for both; treat the catalogs as first-pass translations until they are done.
 
-- [ ] Native-speaker review of every namespace recorded (who, when) in the PR
+- [ ] Native-speaker review of every namespace recorded (who, when) in the PR. **Owed**: every Tier A namespace (since 2026-09-05) and `techpar` (Tier B, published machine-translated 2026-10-24 by operator decision; its es and pt-BR sidecars are stamped against the English they were translated from, not against a review)
 - [ ] `npm run i18n:check` clean (no stale sidecars)
 - [ ] Longest strings checked at desktop / 768px / 480px / 360px in light and dark (`/es/services/` is the widest page), per [STYLES_GUIDE § Text expansion](../styles/STYLES_GUIDE.md#text-expansion-localized-copy) — including any state a page hides until a visitor acts
 - [ ] `PUBLIC_I18N_LIVE_LOCALES=<code> npm run build`: hreflang + `x-default` appear on English pages, `dist/client/sitemap-0.xml` lists the locale's URLs with `xhtml:link` alternates
 - [ ] Flip `status: 'live'` in the registry; commit; Search Console verifies the locale indexes with no hreflang errors before it is announced (BL-152)
+
+## Tool scripts
+
+A hub tool renders much of its text from a client script. The page hands that script its strings in one JSON island, and the script never imports `t.ts` (its eager glob would put every catalog of every locale in the browser bundle). TechPar is the reference:
+
+- The template builds the island from the catalog: `<script type="application/json" data-techpar-strings set:html={…}>`, escaping `<` exactly as `HubMcpTrialPage.astro` does.
+- `src/scripts/<tool>/strings.ts` parses it lazily and exposes `s(key, params)` / `sHtml(key, params)` (params escaped), filling `{name}` with `src/i18n/interpolate.ts`. When no island exists — a unit test importing the script under jsdom — it falls back to the English catalog, so tests and the English page render the same text.
+- Content only the script reads moves into the catalog. Content the engine or the MCP server also emits stays English in code and is translated at render **by key** (TechPar's stage labels, zone names and category names; the MCP's output is English by contract). A unit test pins the English catalog to the code for those keys.
+- A sentence built by splicing a translated fragment into prose (`'Your ratio is ' + zone.toLowerCase()`) does not survive translation: key the whole sentence per case instead.
+- Analytics payloads stay English and dot-decimal.
+
+## Display currency
+
+Hub-tool currency is a **display unit, never a conversion**, and defaults to **USD in every locale** — the visitor states the currency their numbers are in ([ADR-0030 § 10 and the 2026-10-24 amendment](../adr/0030-website-locale-model.md)). `src/i18n/currency.ts` holds the code list (`USD EUR GBP BRL CAD AUD`) and is the only way a currency is read from a URL or storage: `parseCurrencyParam` accepts a code or a pre-codes legacy symbol and returns USD for anything else, because the value is painted into the page. A tool persists the choice per tool and always writes it as a code (TechPar: `u` in its URL and saved state; Tech Debt: `cur` beside `s`, URL only). Money prints with `formatMoneyShort` — TechPar's `$1.6M` shape, the page language's decimal separator (`R$1,6M`); other numbers with `formatters.ts`.
 
 ## Search Console and Google after go-live
 

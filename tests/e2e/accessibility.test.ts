@@ -68,6 +68,9 @@ const PAGES: A11yPage[] = [
   { name: 'M&A Portfolio', path: '/ma-portfolio/' },
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
+  // TechPar is the first Tier B (localized) tool — BL-153 Slice 3.
+  { name: 'TechPar (es)', path: '/es/hub/tools/techpar/' },
+  { name: 'TechPar (pt-BR)', path: '/pt/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
   { name: 'MCP Server', path: '/hub/mcp/' },
   { name: 'MCP Get Started', path: '/hub/mcp/get-started/', waitFor: 'h1' },
