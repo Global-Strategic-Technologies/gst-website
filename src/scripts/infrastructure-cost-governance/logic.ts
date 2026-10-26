@@ -5,13 +5,49 @@
  * string builders: the maturity gauge and radar SVGs, the maturity blurb, the
  * share-by-email link, the copied summary and the stage-context sentence. The
  * last two are page-only copy (the MCP server emits neither), so they live here
- * rather than in the Worker-deployed engine (ADR-0042). Unit-tested by `tests/unit/icg-logic.test.ts`.
+ * rather than in the Worker-deployed engine (ADR-0042).
+ *
+ * Every word comes from the `infrastructure-cost-governance` catalog through
+ * `s()` (BL-153 Tier B). Domain, question and recommendation text is the
+ * engine's English for the MCP server and is translated here by id; the
+ * English catalog is pinned to the data by `tests/unit/icg-logic.test.ts`.
  */
 import { BENCHMARK_RANGES, buildRadarPoints, getMaturityLevel } from '../../utils/icg-engine';
 import { escapeHtml } from '../../utils/escape-html';
+import { formatList, pluralKey } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
+import { s } from './strings';
 import type { CompanyStage, ICGResult, ICGState } from '../../utils/icg-engine';
 import type { Domain } from '../../data/infrastructure-cost-governance/domains';
 import type { Recommendation } from '../../data/infrastructure-cost-governance/recommendations';
+
+// ─── Lookups by id ──────────────────────────────────────────────────────────
+
+export const domainName = (id: string): string => s(`domain.${id}.name`);
+export const domainDescription = (id: string): string => s(`domain.${id}.description`);
+/** Radar axis label: written per domain, never derived from the full name. */
+export const radarLabel = (id: string): string => s(`domain.${id}.short`);
+export const questionText = (id: string): string => s(`question.${id}.text`);
+export const questionRationale = (id: string): string => s(`question.${id}.rationale`);
+export const recTitle = (id: string): string => s(`rec.${id}.title`);
+export const recDescription = (id: string): string => s(`rec.${id}.description`);
+export const answerLabel = (score: number): string => s(`answer.${score}`);
+export const maturityLabel = (level: ICGResult['maturityLevel']): string => s(`maturity.${level}`);
+export const impactLabel = (impact: string): string => s(`impact.${impact}`);
+export const effortLabel = (effort: string): string => s(`effort.${effort}`);
+
+/** A count with its one/other wording, e.g. `3 recs`. */
+export function counted(key: 'js.recCount' | 'js.skipped', n: number): string {
+  return s(`${key}.${pluralKey(n, pageLang())}`, { n });
+}
+
+/** The foundational-gap title for one or two domains (at most two are foundational). */
+export function foundationalTitle(domainIds: string[]): string {
+  const [first, second] = domainIds.map(domainName);
+  return second === undefined
+    ? s('js.foundational.one', { name: first })
+    : s('js.foundational.two', { first, second });
+}
 
 // ─── Gauge SVG ──────────────────────────────────────────────────────────────
 
@@ -25,44 +61,23 @@ export function gaugeArcSVG(score: number, resolvedColor: string): string {
   const ey = (cy - r * Math.sin(a)).toFixed(2);
   const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
   const fill = score > 0 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${ex} ${ey}` : null;
-  return `<svg viewBox="0 0 220 112" role="img" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="Maturity score: ${score} out of 100">
+  return `<svg viewBox="0 0 220 112" role="img" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="${escapeHtml(s('js.gauge.aria', { score }))}">
   <path d="${track}" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.15"/>
   ${fill ? `<path d="${fill}" fill="none" stroke="${resolvedColor}" stroke-width="14" stroke-linecap="round"/>` : ''}
   <text x="${cx}" y="84" text-anchor="middle"
     style="font-size:54px;font-weight:500;font-family:var(--font-family);fill:${resolvedColor}">${score}</text>
   <text x="${cx}" y="109" text-anchor="middle"
-    style="font-size:12px;font-family:var(--font-family);fill:currentColor;opacity:0.5">out of 100</text>
+    style="font-size:12px;font-family:var(--font-family);fill:currentColor;opacity:0.5">${escapeHtml(s('js.gauge.outOf'))}</text>
 </svg>`;
 }
 
 // ─── Maturity description ───────────────────────────────────────────────────
 
 export function maturityDescription(score: number): string {
-  if (score <= 25) return 'Cloud spend is a black box with no visibility or controls.';
-  if (score <= 50) return 'Some monitoring exists but systematic optimization is absent.';
-  if (score <= 75) return 'Active cost management in place with meaningful room to improve.';
-  return 'Cloud spend is a managed, optimized discipline.';
+  return s(`maturityDesc.${getMaturityLevel(score).level}`);
 }
 
 // ─── Radar chart SVG ────────────────────────────────────────────────────────
-
-/**
- * Radar axis labels, one per domain. Written, not derived: shortening the full
- * names in code ("Visibility and Tagging" → "Visibility &") left a dangling
- * ampersand on four of the six axes.
- */
-export const RADAR_LABELS: Record<string, string> = {
-  d1: 'Visibility & Tagging',
-  d2: 'Account Structure',
-  d3: 'Right-Sizing',
-  d4: 'Lifecycle & Waste',
-  d5: 'Architecture',
-  d6: 'Governance',
-};
-
-export function radarLabel(domainId: string, fallback: string): string {
-  return RADAR_LABELS[domainId] ?? fallback;
-}
 
 export function radarChartSVG(domainScores: Array<{ label: string; score: number }>): string {
   const cx = 150,
@@ -111,7 +126,7 @@ export function radarChartSVG(domainScores: Array<{ label: string; score: number
   // Data polygon
   const dataPoints = buildRadarPoints(domainScores, cx, cy, r);
 
-  return `<svg viewBox="0 0 300 300" role="img" aria-label="Radar chart showing domain scores" style="width:100%;max-width:300px;display:block;margin:0 auto">
+  return `<svg viewBox="0 0 300 300" role="img" aria-label="${escapeHtml(s('js.radar.aria'))}" style="width:100%;max-width:300px;display:block;margin:0 auto">
   ${rings}${axes}${labels}
   <polygon points="${dataPoints}" style="fill:${primaryColor};fill-opacity:0.15;stroke:${primaryColor};stroke-width:2"/>
   ${domainScores
@@ -132,13 +147,18 @@ export function radarChartSVG(domainScores: Array<{ label: string; score: number
 export function emailHref(context: 'landing' | 'results', pageUrl: string, score?: number): string {
   const baseUrl = pageUrl.split('?')[0];
   if (context === 'landing') {
-    return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance Assessment')}&body=${encodeURIComponent('Use this tool to identify useful opportunities for cloud cost optimization:\n\n' + baseUrl)}`;
+    return `mailto:?subject=${encodeURIComponent(s('js.email.landingSubject'))}&body=${encodeURIComponent(s('js.email.landingBody') + '\n\n' + baseUrl)}`;
   }
-  return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance - ' + score + '/100')}&body=${encodeURIComponent('Here are potential opportunities for improvement that were identified for your consideration:\n\n' + pageUrl)}`;
+  return `mailto:?subject=${encodeURIComponent(s('js.email.resultsSubject', { score: score ?? '' }))}&body=${encodeURIComponent(s('js.email.resultsBody') + '\n\n' + pageUrl)}`;
 }
 
 // ─── Summary text ───────────────────────────────────────────────────────────
 
+/**
+ * The copied plain-text summary, in the page language. Plain text for the
+ * clipboard: catalog text through `s()`, never escaped. The English output is
+ * pinned in full by `tests/unit/icg-summary-golden.test.ts`.
+ */
 export function buildSummaryText(
   _state: ICGState,
   result: ICGResult,
@@ -147,60 +167,65 @@ export function buildSummaryText(
   url?: string
 ): string {
   const date = new Date().toISOString().slice(0, 10);
-  const { level } = getMaturityLevel(result.overallScore);
+  const lang = pageLang();
+  const level = (score: number) => maturityLabel(getMaturityLevel(score).level);
 
   const lines: string[] = [
-    'Infrastructure Cost Governance - Summary',
-    `Generated: ${date}`,
+    s('summary.title'),
+    s('summary.generated', { date }),
     '────────────────────────────────────────',
-    `Overall score: ${result.overallScore}/100 (${level})`,
+    s('summary.overall', { score: result.overallScore, level: level(result.overallScore) }),
     // "Responses recorded" intentionally over "Questions answered" — the
     // counter is `answeredCount`, defined as "distinct keys in answers"
-    // (see CONTRACT.md:109). That count INCLUDES `-1` ("Not sure")
-    // responses, which colloquially aren't what a reader means by
-    // "answered." The disclosure on the next line ("Not sure" responses:
-    // N) honestly carves out the subset. The original "Questions
-    // answered" wording read as if the count excluded "Not sure", which
-    // it doesn't — surfaced 2026-05-26 during the BL-034 audit-against-
-    // contract sweep.
-    `Responses recorded: ${result.answeredCount} of ${result.totalQuestions}`,
+    // (see CONTRACT.md). That count INCLUDES `-1` ("Not sure") responses,
+    // which colloquially aren't what a reader means by "answered." The
+    // disclosure on the next line ("Not sure" responses: N) honestly carves
+    // out the subset — surfaced 2026-05-26 during the BL-034 sweep.
+    s('summary.responses', { answered: result.answeredCount, total: result.totalQuestions }),
   ];
 
   if (result.skippedCount > 0) {
     // "Not sure" answers are stored as -1 and contribute -1 to rawScore, but
     // the domain score floors at 0, so they cost more than "Not in place" (0)
-    // only in a domain with positive answers (BL-129 corrected the earlier
-    // "penalised below" wording). See the engine comment above the rawScore
-    // reducer and the "Not sure (-1) answers" tests for the contract.
-    // Earlier copy here ("scored as zero") was misleading — surfaced during
-    // BL-032 soak T.B.4.c on 2026-05-10.
-    lines.push(
-      `"Not sure" responses: ${result.skippedCount} (scored as -1 until the domain reaches its 0 floor)`
-    );
+    // only in a domain with positive answers (BL-129). Earlier copy here
+    // ("scored as zero") was misleading — surfaced during BL-032 soak T.B.4.c.
+    lines.push(s('summary.notSure', { count: result.skippedCount }));
   }
 
   if (result.showFoundationalFlag) {
     const belowNames = result.domainScores
       .filter((ds) => ds.isFoundational && ds.belowFoundationalThreshold)
-      .map((ds) => ds.name);
-    lines.push(`⚠ Foundational gap: ${belowNames.join(' and ')} scored below threshold`);
+      .map((ds) => domainName(ds.domainId));
+    lines.push(s('summary.foundational', { names: formatList(belowNames, lang, ' and ') }));
   }
 
-  lines.push('', 'Domain breakdown:');
+  lines.push('', s('summary.breakdown'));
   for (const ds of result.domainScores) {
-    const { level: dl } = getMaturityLevel(ds.score);
-    lines.push(`  ${ds.name}: ${ds.score}/100 (${dl})`);
+    lines.push(
+      '  ' +
+        s('summary.domainLine', {
+          name: domainName(ds.domainId),
+          score: ds.score,
+          level: level(ds.score),
+        })
+    );
   }
 
   if (recs.length > 0) {
-    lines.push('', `Active recommendations: ${recs.length}`);
+    lines.push('', s('summary.recs', { count: recs.length }));
     for (const r of recs) {
-      lines.push(`  [${r.impact.toUpperCase()}] ${r.title}`);
+      lines.push(
+        '  ' +
+          s('summary.recLine', {
+            impact: impactLabel(r.impact).toLocaleUpperCase(lang),
+            title: recTitle(r.id),
+          })
+      );
     }
   }
 
   if (url) {
-    lines.push('', `Generated by GST | ${url}`);
+    lines.push('', s('summary.footer', { url }));
   }
 
   return lines.join('\n');
@@ -212,9 +237,11 @@ export function contextualizeScore(score: number, stage?: CompanyStage): string 
   if (!stage) return null;
   const range = BENCHMARK_RANGES.find((r) => r.stageKey === stage);
   if (!range) return null;
-  if (score < range.low)
-    return `Your score of ${score} is below the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
-  if (score > range.high)
-    return `Your score of ${score} is above the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
-  return `Your score of ${score} is within the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
+  const position = score < range.low ? 'below' : score > range.high ? 'above' : 'within';
+  return s(`context.${position}`, {
+    score,
+    stage: s(`stage.${stage}`),
+    low: range.low,
+    high: range.high,
+  });
 }

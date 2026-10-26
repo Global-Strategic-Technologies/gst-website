@@ -159,6 +159,8 @@ const PAGES: A11yPage[] = [
   },
   { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
   { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
+  { name: 'ICG (es)', path: '/es/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
+  { name: 'ICG (pt-BR)', path: '/pt/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
   {
     name: 'Regulatory Map',
     path: '/hub/tools/regulatory-map/',

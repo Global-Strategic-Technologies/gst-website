@@ -506,7 +506,7 @@ constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/infrastructure-cost-governance/index.astro` |
+| **File** | `src/page-templates/HubIcgPage.astro` (localized; `src/pages/hub/tools/infrastructure-cost-governance/index.astro` is its English wrapper). Emits `inLanguage` with the page language |
 | **datePublished** | 2026-03-01 |
 | **featureList** | 20 questions across 6 cloud cost domains, Scored diagnostic with benchmarks, Prioritized improvement checklist, Shareable results for board reviews |
 | **knowsAbout** | Cloud Cost Optimization, Infrastructure Governance, FinOps, Technical Due Diligence, M&A Tech Strategy |
