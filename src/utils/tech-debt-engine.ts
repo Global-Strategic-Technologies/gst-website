@@ -212,6 +212,23 @@ export function encodeState(state: CalcState): string {
   return btoa(JSON.stringify(compact));
 }
 
+/**
+ * English label per compact state key, as `decodeState` reports an adjusted
+ * field. The site's localized page translates by key (`field.<key>`).
+ */
+export const STATE_FIELD_LABELS = {
+  ts: 'Team Size',
+  sa: 'Avg. Salary',
+  mp: 'Maintenance Burden',
+  di: 'Deployment Frequency',
+  in: 'Incidents / Mo',
+  mttr: 'Avg. Time to Resolve',
+  bg: 'Remediation Budget',
+  ar: 'Annual Recurring Revenue',
+  re: 'Remediation Efficiency',
+} as const;
+export type StateFieldKey = keyof typeof STATE_FIELD_LABELS;
+
 export interface DecodedState {
   /** Fields present in the payload and usable — either verbatim (in range) or clamped to a bound. */
   state: Partial<CalcState>;
@@ -223,6 +240,8 @@ export interface DecodedState {
    * decodes to an unrelated default without telling the reader.
    */
   adjusted: string[];
+  /** The same fields as `adjusted`, as `STATE_FIELD_LABELS` keys, in the same order. */
+  adjustedKeys: StateFieldKey[];
 }
 
 export function decodeState(encoded: string): DecodedState | null {
@@ -232,44 +251,50 @@ export function decodeState(encoded: string): DecodedState | null {
 
     const state: Partial<CalcState> = {};
     const adjusted: string[] = [];
+    const adjustedKeys: StateFieldKey[] = [];
 
     // Clamp a present numeric field into [min,max] and assign it via `set`. An
     // out-of-range value is coerced to the nearest bound; a non-numeric present
-    // value is dropped. Either coercion records `label` in `adjusted`. Absent
-    // fields are skipped silently (partial links are normal). Integer fields are
+    // value is dropped. Either coercion records the field in `adjusted` (its
+    // English label) and `adjustedKeys` (its key). Absent fields are skipped
+    // silently (partial links are normal). Integer fields are
     // rounded so the stored value stays representable on the slider control.
     const clampNum = (
       value: unknown,
       min: number,
       max: number,
-      label: string,
+      key: StateFieldKey,
       set: (v: number) => void,
       isInt = false
     ): void => {
       if (value === undefined) return;
+      const flag = (): void => {
+        adjusted.push(STATE_FIELD_LABELS[key]);
+        adjustedKeys.push(key);
+      };
       if (typeof value !== 'number' || !Number.isFinite(value)) {
-        adjusted.push(label);
+        flag();
         return;
       }
       const rounded = isInt ? Math.round(value) : value;
       const clamped = Math.min(max, Math.max(min, rounded));
-      if (clamped !== value) adjusted.push(label);
+      if (clamped !== value) flag();
       set(clamped);
     };
 
     if (raw.a === 0 || raw.a === 1) state.advancedOpen = raw.a === 1;
-    clampNum(raw.ts, 1, 500, 'Team Size', (v) => (state.teamSize = v), true);
-    clampNum(raw.sa, 60000, 1000000, 'Avg. Salary', (v) => (state.salary = v));
-    clampNum(raw.mp, 0, 100, 'Maintenance Burden', (v) => (state.maintPct = v), true);
-    clampNum(raw.di, 0, 8, 'Deployment Frequency', (v) => (state.deployIdx = v), true);
-    clampNum(raw['in'], 0, 20, 'Incidents / Mo', (v) => (state.incidents = v), true);
-    clampNum(raw.mttr, 1, 48, 'Avg. Time to Resolve', (v) => (state.mttr = v), true);
-    clampNum(raw.bg, 10000, 50000000, 'Remediation Budget', (v) => (state.remediationBudget = v));
-    clampNum(raw.ar, 100000, 1000000000, 'Annual Recurring Revenue', (v) => (state.arr = v));
-    clampNum(raw.re, 0, 100, 'Remediation Efficiency', (v) => (state.remediationPct = v), true);
+    clampNum(raw.ts, 1, 500, 'ts', (v) => (state.teamSize = v), true);
+    clampNum(raw.sa, 60000, 1000000, 'sa', (v) => (state.salary = v));
+    clampNum(raw.mp, 0, 100, 'mp', (v) => (state.maintPct = v), true);
+    clampNum(raw.di, 0, 8, 'di', (v) => (state.deployIdx = v), true);
+    clampNum(raw['in'], 0, 20, 'in', (v) => (state.incidents = v), true);
+    clampNum(raw.mttr, 1, 48, 'mttr', (v) => (state.mttr = v), true);
+    clampNum(raw.bg, 10000, 50000000, 'bg', (v) => (state.remediationBudget = v));
+    clampNum(raw.ar, 100000, 1000000000, 'ar', (v) => (state.arr = v));
+    clampNum(raw.re, 0, 100, 're', (v) => (state.remediationPct = v), true);
     if (raw.cs === 0 || raw.cs === 1) state.contextSwitchOn = raw.cs === 1;
 
-    return { state, adjusted };
+    return { state, adjusted, adjustedKeys };
   } catch {
     return null;
   }
@@ -325,6 +350,53 @@ export const fmtShortC = (n: number, symbol: string = '$'): string => {
 };
 
 // ─── Burden classification ───────────────────────────────────────────────────
+//
+// The level is a key, so the site's localized page can render its label,
+// range and narrative from a catalog (BL-153 Tier B). The English text below
+// is what this engine prints, and the `en` catalog is pinned to it by test.
+
+export type BurdenKey = 'managed' | 'acceptable' | 'yellow' | 'red' | 'risk';
+
+export function burdenKeyOf(pct: number): BurdenKey {
+  if (pct < 10) return 'managed';
+  if (pct < 15) return 'acceptable';
+  if (pct < 25) return 'yellow';
+  if (pct < 40) return 'red';
+  return 'risk';
+}
+
+/** English burden text: UI label, UI range, and the summary's plain label. */
+export const BURDEN_TEXT_EN: Record<BurdenKey, { label: string; range: string; plain: string }> = {
+  managed: { label: 'Well-managed', range: '< 10%', plain: 'Well-managed (< 10%)' },
+  acceptable: { label: 'Acceptable', range: '10–15%', plain: 'Acceptable (10-15%)' },
+  yellow: { label: 'Yellow flag', range: '15–25%', plain: 'Yellow flag (15-25%)' },
+  red: { label: 'Red flag', range: '25–40%', plain: 'Red flag (25-40%)' },
+  risk: { label: 'Deal risk', range: '40%+', plain: 'Deal risk (40%+)' },
+};
+
+export const BURDEN_COLOR: Record<BurdenKey, string> = {
+  managed: 'var(--color-primary)',
+  acceptable: 'var(--color-primary)',
+  yellow: 'var(--color-secondary-ink)',
+  red: 'var(--color-error-ink)',
+  risk: 'var(--color-error-ink)',
+};
+
+/**
+ * English narrative per level; `{pct}` is the burden and `{cost}` the
+ * formatted annual cost. One whole sentence per level, so a translation can
+ * agree in gender and number instead of splicing fragments.
+ */
+export const CONTEXT_NOTE_EN: Record<BurdenKey, string> = {
+  managed:
+    'Engineering capacity is predominantly forward-looking. Maintain discipline as the team scales.',
+  acceptable:
+    'Some accumulated friction is present. Normal for companies that have shipped fast, but should be on the 100-day plan.',
+  yellow:
+    'At {pct}% burden, maintenance is a material drag on velocity. Warrants targeted investigation into root causes and active mitigation: SDLC maturity, infrastructure architecture, test coverage, and deployment pipeline should all be examined.',
+  red: 'At {pct}% burden, debt is a strategic liability carrying {cost}/yr in costs. Expect architectural problems, manual processes, fragile deployments, and potential talent retention risk. Remediation cost belongs in the deal model.',
+  risk: 'At {pct}% burden, debt is the dominant constraint on this technology organization. The {cost}/yr carrying cost signals the platform may require significant restructuring or rewrite post-close. Factor directly into valuation.',
+};
 
 export interface BurdenLevel {
   text: string;
@@ -334,84 +406,132 @@ export interface BurdenLevel {
 
 /** Rich burden classification for UI display (label + range + color). */
 export function burdenClassify(pct: number): BurdenLevel {
-  if (pct < 10) return { text: 'Well-managed', range: '< 10%', color: 'var(--color-primary)' };
-  if (pct < 15) return { text: 'Acceptable', range: '10–15%', color: 'var(--color-primary)' };
-  if (pct < 25)
-    return { text: 'Yellow flag', range: '15–25%', color: 'var(--color-secondary-ink)' };
-  if (pct < 40) return { text: 'Red flag', range: '25–40%', color: 'var(--color-error-ink)' };
-  return { text: 'Deal risk', range: '40%+', color: '#b82e2e' };
+  const key = burdenKeyOf(pct);
+  return {
+    text: BURDEN_TEXT_EN[key].label,
+    range: BURDEN_TEXT_EN[key].range,
+    color: BURDEN_COLOR[key],
+  };
 }
 
-/** Plain-text burden label for clipboard/summary export. */
-function burdenLabel(pct: number): string {
-  if (pct < 10) return 'Well-managed (< 10%)';
-  if (pct < 15) return 'Acceptable (10-15%)';
-  if (pct < 25) return 'Yellow flag (15-25%)';
-  if (pct < 40) return 'Red flag (25-40%)';
-  return 'Deal risk (40%+)';
+/** `{name}` fill. Local on purpose: the Worker imports this engine, and the MCP
+ * workflows' path filters do not cover `src/i18n/` (workflow-paths-parity). */
+function fill(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m));
 }
 
 // ─── Plain-text summary for clipboard export ─────────────────────────────────
 
 /** Contextual narrative for a given burden level. */
 export function contextNote(pct: number, formattedAnnualCost: string): string {
-  if (pct < 10)
-    return 'Engineering capacity is predominantly forward-looking. Maintain discipline as the team scales.';
-  if (pct < 15)
-    return 'Some accumulated friction is present. Normal for companies that have shipped fast, but should be on the 100-day plan.';
-  if (pct < 25)
-    return `At ${pct}% burden, maintenance is a material drag on velocity. Warrants targeted investigation into root causes and active mitigation: SDLC maturity, infrastructure architecture, test coverage, and deployment pipeline should all be examined.`;
-  if (pct < 40)
-    return `At ${pct}% burden, debt is a strategic liability carrying ${formattedAnnualCost}/yr in costs. Expect architectural problems, manual processes, fragile deployments, and potential talent retention risk. Remediation cost belongs in the deal model.`;
-  return `At ${pct}% burden, debt is the dominant constraint on this technology organization. The ${formattedAnnualCost}/yr carrying cost signals the platform may require significant restructuring or rewrite post-close. Factor directly into valuation.`;
+  return fill(CONTEXT_NOTE_EN[burdenKeyOf(pct)], { pct, cost: formattedAnnualCost });
 }
+
+/** English summary text. `{name}` placeholders are filled by `fill`. */
+export const SUMMARY_TEXT_EN = {
+  title: 'Tech Debt Cost Calculator — Summary',
+  generated: 'Generated: {date}',
+  team: 'Team: {team} engineers | Avg. salary: {salary}',
+  burden: 'Maintenance burden: {pct}%',
+  deploy: 'Deployment frequency: {deploy} (DORA {dora}, {v}×)',
+  annual: 'Annual cost of technical debt: {amount}',
+  monthly: 'Monthly cost: {amount}',
+  hoursLost: 'Hours lost / eng / week: {hours}h',
+  costPerEng: 'Cost / eng / month: {amount}',
+  ftesLost: 'FTEs lost to debt: {ftes}',
+  burdenLevel: 'Burden level: {level}',
+  direct: 'Direct labor: {amount}/mo',
+  contextSwitch: 'Context-switch overhead (+23%): {amount}/mo',
+  incident: 'Incident labor: {amount}/mo',
+  debtPctArr: 'Debt as % of ARR: {pct}%',
+  efficiency: 'Remediation efficiency: {pct}%',
+  payback: 'Payback period: {payback}',
+  footer: 'Generated by GST | {url}',
+} as const;
+export type SummaryText = { [K in keyof typeof SUMMARY_TEXT_EN]: string };
+
+/**
+ * Localization hooks for `buildSummaryText`. Every field is optional and
+ * defaults to the English text and formatting the summary has always used, so
+ * the engine (and the MCP server that imports it) is unchanged unless a caller
+ * opts in. The site's localized page passes catalog text, the selected display
+ * currency and the page language's number format.
+ */
+export interface SummaryOptions {
+  text?: SummaryText;
+  money?: (n: number) => string;
+  /** Numbers in prose; `digits` fixes the decimals, omitted prints as-is. */
+  num?: (n: number, digits?: number) => string;
+  deployLabel?: (deployIdx: number) => string;
+  doraLabel?: (doraLabel: string) => string;
+  burdenLabel?: (key: BurdenKey) => string;
+  contextNote?: (key: BurdenKey, pct: number, formattedAnnualCost: string) => string;
+  payback?: (months: number) => string;
+}
+
+const enNum = (n: number, digits?: number): string =>
+  digits === undefined ? String(n) : n.toFixed(digits);
 
 export function buildSummaryText(
   state: CalcState,
   result: CalcResult,
   symbol: string = '$',
-  url?: string
+  url?: string,
+  options: SummaryOptions = {}
 ): string {
-  const f = (n: number) => fmtShortC(n, symbol);
+  const t = options.text ?? SUMMARY_TEXT_EN;
+  const f = options.money ?? ((n: number) => fmtShortC(n, symbol));
+  const num = options.num ?? enNum;
   const teamSize = state.teamSize;
-  const salary = state.salary;
   const deploy = DEPLOY_OPTIONS[state.deployIdx];
-  const ftesLost = (teamSize * (state.maintPct / 100)).toFixed(1);
+  const key = burdenKeyOf(state.maintPct);
   const date = new Date().toISOString().slice(0, 10);
 
   const lines: string[] = [
-    'Tech Debt Cost Calculator — Summary',
-    `Generated: ${date}`,
+    t.title,
+    fill(t.generated, { date }),
     '────────────────────────────────────────',
-    `Team: ${teamSize} engineers | Avg. salary: ${f(salary)}`,
-    `Maintenance burden: ${state.maintPct}%`,
-    `Deployment frequency: ${deploy.label} (DORA ${deploy.doraLabel}, ${deploy.V}×)`,
+    fill(t.team, { team: num(teamSize), salary: f(state.salary) }),
+    fill(t.burden, { pct: num(state.maintPct) }),
+    fill(t.deploy, {
+      deploy: options.deployLabel?.(state.deployIdx) ?? deploy.label,
+      dora: options.doraLabel?.(deploy.doraLabel) ?? deploy.doraLabel,
+      v: num(deploy.V),
+    }),
     '',
-    `Annual cost of technical debt: ${f(result.annualCost)}`,
-    `Monthly cost: ${f(result.totalMonthly)}`,
-    `Hours lost / eng / week: ${result.hoursLostPerEng.toFixed(0)}h`,
-    `Cost / eng / month: ${f(result.costPerEng)}`,
-    `FTEs lost to debt: ${ftesLost}`,
-    `Burden level: ${burdenLabel(state.maintPct)}`,
+    fill(t.annual, { amount: f(result.annualCost) }),
+    fill(t.monthly, { amount: f(result.totalMonthly) }),
+    fill(t.hoursLost, { hours: num(result.hoursLostPerEng, 0) }),
+    fill(t.costPerEng, { amount: f(result.costPerEng) }),
+    fill(t.ftesLost, { ftes: num(teamSize * (state.maintPct / 100), 1) }),
+    fill(t.burdenLevel, { level: options.burdenLabel?.(key) ?? BURDEN_TEXT_EN[key].plain }),
   ];
 
   if (state.advancedOpen) {
-    lines.push('', `Direct labor: ${f(result.directMonthly)}/mo`);
+    lines.push('', fill(t.direct, { amount: f(result.directMonthly) }));
     if (state.contextSwitchOn) {
-      lines.push(`Context-switch overhead (+23%): ${f(result.contextSwitchMonthly)}/mo`);
+      lines.push(fill(t.contextSwitch, { amount: f(result.contextSwitchMonthly) }));
     }
     lines.push(
-      `Incident labor: ${f(result.incidentMonthly)}/mo`,
-      `Debt as % of ARR: ${result.debtPctArr.toFixed(1)}%`,
-      `Remediation efficiency: ${state.remediationPct}%`,
-      `Payback period: ${fmtPayback(result.paybackMonths)}`
+      fill(t.incident, { amount: f(result.incidentMonthly) }),
+      fill(t.debtPctArr, { pct: num(result.debtPctArr, 1) }),
+      fill(t.efficiency, { pct: num(state.remediationPct) }),
+      fill(t.payback, {
+        payback: (options.payback ?? fmtPayback)(result.paybackMonths),
+      })
     );
   }
 
-  lines.push('', contextNote(state.maintPct, f(result.annualCost)));
+  const cost = f(result.annualCost);
   lines.push(
     '',
-    `Generated by GST | ${url || 'https://globalstrategic.tech/hub/tools/tech-debt-calculator'}`
+    options.contextNote?.(key, state.maintPct, cost) ?? contextNote(state.maintPct, cost)
+  );
+  lines.push(
+    '',
+    fill(t.footer, {
+      url: url || 'https://globalstrategic.tech/hub/tools/tech-debt-calculator',
+    })
   );
 
   return lines.join('\n');
