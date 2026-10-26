@@ -32,7 +32,7 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 | Tier | Pages                                                                                                                                                   | Localized?                                                                               |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | A    | `/`, `/services/`, `/about/`, `/hub/`, `/hub/tools/`, `/hub/mcp/`, `/hub/mcp/trial/`, `/hub/mcp/from-code/`, `/privacy/`, `/terms/`                     | Yes — a locale launches with all of them or not at all (`TIER_A_ROUTES`)                 |
-| B    | Hub tool UIs (`/hub/tools/<tool>/`) — **TechPar** (2026-10-24) and the **Tech Debt Calculator** (2026-10-26) live; the other tools one PR each          | Per tool, as it is listed in `TIER_B_ROUTES`; English-only until then                    |
+| B    | Hub tool UIs (`/hub/tools/<tool>/`) — **TechPar** (2026-10-24), the **Tech Debt Calculator** and **ICG** (2026-10-26) live; the other tools one PR each | Per tool, as it is listed in `TIER_B_ROUTES`; English-only until then                    |
 | C    | MCP media guides (`get-started`, `using`, `advanced-operations`, `docs`), portfolio entries and library articles (their chrome is Tier B), radar, brand | English only. Linked from localized pages with the `common.notice.contentInEnglish` line |
 | —    | `/404`, `/500`                                                                                                                                          | English chrome + trilingual hint (Vercel serves one static error page)                   |
 
@@ -76,7 +76,7 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 > `es` and `pt-BR` were set live on 2026-09-05 by operator decision before this checklist was run, so the switcher and band ship at once. The first two items below are still owed for both; treat the catalogs as first-pass translations until they are done.
 
-- [ ] Native-speaker review of every namespace recorded (who, when) in the PR. **Owed**: every Tier A namespace (since 2026-09-05) and the Tier B namespaces `techpar` (2026-10-24) and `tech-debt-calculator` (2026-10-26), published machine-translated by operator decision; their es and pt-BR sidecars are stamped against the English they were translated from, not against a review
+- [ ] Native-speaker review of every namespace recorded (who, when) in the PR. **Owed**: every Tier A namespace (since 2026-09-05) and the Tier B namespaces `techpar` (2026-10-24), `tech-debt-calculator` and `infrastructure-cost-governance` (2026-10-26), published machine-translated by operator decision; their es and pt-BR sidecars are stamped against the English they were translated from, not against a review
 - [ ] `npm run i18n:check` clean (no stale sidecars)
 - [ ] Longest strings checked at desktop / 768px / 480px / 360px in light and dark (`/es/services/` is the widest page), per [STYLES_GUIDE § Text expansion](../styles/STYLES_GUIDE.md#text-expansion-localized-copy) — including any state a page hides until a visitor acts
 - [ ] `PUBLIC_I18N_LIVE_LOCALES=<code> npm run build`: hreflang + `x-default` appear on English pages, `dist/client/sitemap-0.xml` lists the locale's URLs with `xhtml:link` alternates
@@ -84,13 +84,15 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 ## Tool scripts
 
-A hub tool renders much of its text from a client script. The page hands that script its strings in one JSON island, and the script never imports `t.ts` (its eager glob would put every catalog of every locale in the browser bundle). TechPar and the Tech Debt Calculator are the references:
+A hub tool renders much of its text from a client script. The page hands that script its strings in one JSON island, and the script never imports `t.ts` (its eager glob would put every catalog of every locale in the browser bundle). TechPar, the Tech Debt Calculator and ICG are the references:
 
 - The template builds the island from the catalog: `<script type="application/json" data-techpar-strings set:html={…}>`, escaping `<` exactly as `HubMcpTrialPage.astro` does.
 - `src/scripts/<tool>/strings.ts` binds the shared reader, `createToolStrings({ en, prefixes, selector })` in `src/scripts/tool-strings.ts`, to the tool's English catalog, the key prefixes its script reads (the island carries only those) and its island selector. The reader parses the island lazily and exposes `s(key, params)` / `sHtml(key, params)` (params escaped), filling `{name}` with `src/i18n/interpolate.ts`. When no island exists — a unit test importing the script under jsdom — it falls back to the English catalog, so tests and the English page render the same text.
 - Content only the script reads moves into the catalog. Content the engine or the MCP server also emits stays English in code and is translated at render **by key** (TechPar's stage labels, zone names and category names; the MCP's output is English by contract). A unit test pins the English catalog to the code for those keys.
 - A sentence built by splicing a translated fragment into prose (`'Your ratio is ' + zone.toLowerCase()`) does not survive translation: key the whole sentence per case instead.
-- Numbers use the page's `<html lang>` on both sides: the template formats its first paint with `locale.htmlLang`, the script reads `document.documentElement.lang` (`formatFixed`, `formatPlain` and `formatNumber` in `formatters.ts`).
+- Numbers use the page's `<html lang>` on both sides: the template formats its first paint with `locale.htmlLang`, the script reads it with `pageLang()` from `tool-strings.ts` (`formatFixed`, `formatPlain` and `formatNumber` in `formatters.ts`).
+- Counts pick a `one` / `other` key with `pluralKey` (`Intl.PluralRules`, with every category English lacks folded into `other`), and name lists join with `formatList`, which keeps a page's own English joiner. A sentence that names one or two things is better keyed per case (ICG's `js.foundational.one|two`) than joined.
+- Content the MCP server also emits that lives in TypeScript data the Worker imports (ICG's domains, questions and recommendations) cannot be moved into `src/i18n/`, which the MCP workflows' path filters do not cover: the English catalog mirrors it by id and a unit test pins the two.
 - A text field that shows a formatted amount must read it back in the same language: the Tech Debt Calculator runs typed amounts through `normalizeLocaleAmount` (`1,5M` is 1.5M on `/pt/` and `/es/`).
 - Analytics payloads stay English and dot-decimal.
 
