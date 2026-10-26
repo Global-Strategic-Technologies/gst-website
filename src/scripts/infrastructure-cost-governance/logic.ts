@@ -79,6 +79,23 @@ export function maturityDescription(score: number): string {
 
 // ─── Radar chart SVG ────────────────────────────────────────────────────────
 
+/** Longest radar label line, in characters, before it wraps (10px mono ≈ 6px each). */
+const RADAR_LINE_CHARS = 14;
+
+/**
+ * Split an axis label into at most two lines at the space nearest its middle,
+ * when it is longer than one line holds. Translated labels run longer than
+ * English, and the side axes have about 100 units of room.
+ */
+export function wrapRadarLabel(label: string): string[] {
+  if (label.length <= RADAR_LINE_CHARS) return [label];
+  const spaces = [...label.matchAll(/ /g)].map((m) => m.index ?? 0);
+  if (spaces.length === 0) return [label];
+  const mid = label.length / 2;
+  const cut = spaces.reduce((best, i) => (Math.abs(i - mid) < Math.abs(best - mid) ? i : best));
+  return [label.slice(0, cut), label.slice(cut + 1)];
+}
+
 export function radarChartSVG(domainScores: Array<{ label: string; score: number }>): string {
   const cx = 150,
     cy = 150,
@@ -119,14 +136,31 @@ export function radarChartSVG(domainScores: Array<{ label: string; score: number
       const lx = cx + (r + labelOffset) * Math.cos(a);
       const ly = cy + (r + labelOffset) * Math.sin(a);
       const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
-      return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${escapeHtml(ds.label)}</text>`;
+      const lines = wrapRadarLabel(ds.label);
+      // A two-line label grows away from the chart: upward at the top axis,
+      // downward at the bottom one, centred on its point at the sides.
+      const firstDy =
+        ly < cy - 5
+          ? -(lines.length - 1) * 12
+          : ly > cy + 5 && Math.abs(lx - cx) < 5
+            ? 0
+            : -(lines.length - 1) * 6;
+      const tspans = lines
+        .map(
+          (line, li) =>
+            `<tspan x="${lx.toFixed(1)}" dy="${li === 0 ? firstDy : 12}">${escapeHtml(line)}</tspan>`
+        )
+        .join('');
+      return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${tspans}</text>`;
     })
     .join('');
 
   // Data polygon
   const dataPoints = buildRadarPoints(domainScores, cx, cy, r);
 
-  return `<svg viewBox="0 0 300 300" role="img" aria-label="${escapeHtml(s('js.radar.aria'))}" style="width:100%;max-width:300px;display:block;margin:0 auto">
+  // The viewBox runs 80 units past the chart on each side so the side labels,
+  // which start 128 units from the centre, are not clipped by the SVG edge.
+  return `<svg viewBox="-80 0 460 300" role="img" aria-label="${escapeHtml(s('js.radar.aria'))}" style="width:100%;max-width:460px;display:block;margin:0 auto">
   ${rings}${axes}${labels}
   <polygon points="${dataPoints}" style="fill:${primaryColor};fill-opacity:0.15;stroke:${primaryColor};stroke-width:2"/>
   ${domainScores

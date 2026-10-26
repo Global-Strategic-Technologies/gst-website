@@ -7,6 +7,7 @@ import {
   maturityDescription,
   radarChartSVG,
   radarLabel,
+  wrapRadarLabel,
 } from '../../src/scripts/infrastructure-cost-governance/logic';
 import { resetStringsForTest } from '../../src/scripts/infrastructure-cost-governance/strings';
 import { ANSWER_OPTIONS, DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
@@ -63,9 +64,10 @@ describe('ICG logic — radarChartSVG', () => {
     expect(count(svg, '<circle')).toBe(scores.length);
   });
 
-  it('labels each axis with its written short name, escaped', () => {
-    expect(svg).toContain('>Visibility &amp; Tagging</text>');
-    expect(svg).toContain('>Right-Sizing</text>');
+  it('labels each axis with its written short name, escaped, wrapping long ones', () => {
+    expect(svg).toContain('>Visibility</tspan>');
+    expect(svg).toContain('>&amp; Tagging</tspan>');
+    expect(svg).toContain('>Right-Sizing</tspan>');
     expect(svg).not.toMatch(/&amp;<\/text>/);
     for (const d of DOMAINS) expect(radarLabel(d.id), d.id).not.toBe(`domain.${d.id}.short`);
   });
@@ -73,6 +75,21 @@ describe('ICG logic — radarChartSVG', () => {
   it('uses theme tokens, not currentColor, so it prints on white paper', () => {
     expect(svg).not.toContain('currentColor');
     expect(svg).toContain('var(--color-primary)');
+  });
+});
+
+describe('ICG logic — wrapRadarLabel', () => {
+  it('keeps a short label on one line', () => {
+    expect(wrapRadarLabel('Right-Sizing')).toEqual(['Right-Sizing']);
+  });
+
+  it('splits a long one at the space nearest its middle', () => {
+    expect(wrapRadarLabel('Visibilidad y etiquetado')).toEqual(['Visibilidad', 'y etiquetado']);
+    expect(wrapRadarLabel('Account Structure')).toEqual(['Account', 'Structure']);
+  });
+
+  it('leaves a single long word whole', () => {
+    expect(wrapRadarLabel('Dimensionamiento')).toEqual(['Dimensionamiento']);
   });
 });
 
