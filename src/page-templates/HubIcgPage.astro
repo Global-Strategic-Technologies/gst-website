@@ -19,6 +19,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import HubHeader from '../components/hub/HubHeader.astro';
 import { DOMAINS, TOTAL_QUESTIONS } from '../data/infrastructure-cost-governance/domains';
 import { hubToolSchema } from '../utils/hub-tool-schema';
+import { BENCHMARK_RANGES } from '../utils/icg-engine';
 import { isDefaultLocale, type Locale } from '../i18n/locales';
 import { localizedHref } from '../i18n/routes';
 import { useTranslations } from '../i18n/t';
@@ -40,13 +41,8 @@ const tAny = t as (key: string, params?: Record<string, string | number>) => str
 const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, tAny(key)]));
 
 const domainCount = DOMAINS.length;
-const STAGES = ['pre-series-b', 'series-bc', 'pe-backed', 'enterprise'] as const;
-const BENCH: Record<(typeof STAGES)[number], string> = {
-  'pre-series-b': '15-35',
-  'series-bc': '30-55',
-  'pe-backed': '45-70',
-  enterprise: '65-90',
-};
+// Stages and their ranges are the engine's (the MCP contract cites the same table).
+const STAGES = BENCHMARK_RANGES.map((r) => ({ key: r.stageKey, range: `${r.low}-${r.high}` }));
 // The methodology names the answer labels, maturity levels and foundational
 // domains; they come from the same keys as the buttons and badges.
 const terms = {
@@ -138,13 +134,13 @@ const terms = {
                 </span>
               </span>
               <div class="icg-stage-grid" data-stage-grid>
-                {STAGES.map((stage) => (
+                {STAGES.map(({ key }) => (
                   <button
                     class="brutal-option-card brutal-option-card--compact"
-                    data-stage={stage}
+                    data-stage={key}
                     type="button"
                   >
-                    {tAny(`stage.${stage}`)}
+                    {tAny(`stage.${key}`)}
                   </button>
                 ))}
               </div>
@@ -286,10 +282,10 @@ const terms = {
               <div class="brutal-tool-shell__section-label">{t('results.benchmark')}</div>
               <table class="brutal-bench-table">
                 <tbody data-benchmark-body>
-                  {STAGES.map((stage) => (
-                    <tr data-stage-row={stage}>
-                      <td>{tAny(`stageRow.${stage}`)}</td>
-                      <td data-bench={BENCH[stage]}>{BENCH[stage]}</td>
+                  {STAGES.map(({ key, range }) => (
+                    <tr data-stage-row={key}>
+                      <td>{tAny(`stageRow.${key}`)}</td>
+                      <td data-bench={range}>{range}</td>
                     </tr>
                   ))}
                 </tbody>

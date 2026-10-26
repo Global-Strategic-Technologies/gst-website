@@ -107,9 +107,13 @@ for (const { prefix, lang, catalog } of LOCALES) {
       await expect(page.locator('[data-rec-id="r01"] .brutal-rec-card__badge--high')).toHaveText(
         catalog['impact.high']
       );
-      await expect(page.locator('[data-radar-chart] text').first()).toHaveText(
-        catalog['domain.d1.short']
-      );
+      // A long label wraps into tspans; joined with a space it is the catalog label.
+      const radarLines = await page
+        .locator('[data-radar-chart] text')
+        .first()
+        .locator('tspan')
+        .allTextContents();
+      expect(radarLines.join(' ')).toBe(catalog['domain.d1.short']);
     });
 
     test('the MCP page links here in the same locale', async ({ page }) => {

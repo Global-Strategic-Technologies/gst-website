@@ -69,8 +69,8 @@ function el(id: string): HTMLElement {
 // ─── Page language ───────────────────────────────────────────────────────────
 
 // Strings come from the page's island (English when there is none); numbers
-// follow `<html lang>`, the tag the template formats its first paint with.
-
+// follow `<html lang>` (`pageLang()`), the tag the template formats its first
+// paint with.
 const fixed = (n: number, decimals: number): string => formatFixed(n, pageLang(), decimals);
 const plain = (n: number): string => formatPlain(n, pageLang());
 const pct = (n: number): string => s('js.unit.pct', { n: plain(n) });
