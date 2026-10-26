@@ -84,6 +84,17 @@ for (const { prefix, lang, catalog, dec } of LOCALES) {
       await expect(page.locator('[data-clamp-msg="arr"]')).toBeHidden();
     });
 
+    test('the pages that link here open it in the same locale', async ({ page }) => {
+      const href = `${prefix}/hub/tools/tech-debt-calculator/`;
+      await page.goto(`${prefix}/hub/mcp/`, { waitUntil: 'load' });
+      await expect(
+        page.locator('a.mcp-catalog__try[href$="/hub/tools/tech-debt-calculator/"]')
+      ).toHaveAttribute('href', href);
+      // TechPar's cross-link reads its href from this attribute (chart.ts).
+      await page.goto(`${prefix}/hub/tools/techpar/`, { waitUntil: 'load' });
+      await expect(page.locator('[data-techpar]')).toHaveAttribute('data-tech-debt-href', href);
+    });
+
     test('a shared link with out-of-range values explains itself in the locale', async ({
       page,
     }) => {

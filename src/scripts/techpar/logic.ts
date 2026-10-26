@@ -3,9 +3,9 @@
  * it is unit-testable and counted by coverage).
  */
 import { formatFixed, formatNumber, formatPlain } from '../../i18n/formatters';
+import { CATEGORY_LABELS } from '../../utils/techpar-engine';
 
 export { formatFixed, formatPlain };
-import { CATEGORY_LABELS } from '../../utils/techpar-engine';
 
 /**
  * Parse the ARR text field. It is the one `type="text"` money input and shows
