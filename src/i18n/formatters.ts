@@ -47,3 +47,20 @@ export function formatCurrency(
     value
   );
 }
+
+/**
+ * Fixed-decimal number, no grouping: what `toFixed` printed, with the
+ * locale's decimal separator. English output stays byte-identical to `toFixed`.
+ */
+export function formatFixed(n: number, locale: IntlTag | undefined, decimals: number): string {
+  return formatNumber(n, locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  });
+}
+
+/** A plain number as `String(n)` printed it (e.g. a multiplier), localized. */
+export function formatPlain(n: number, locale?: IntlTag): string {
+  return formatNumber(n, locale, { maximumFractionDigits: 10, useGrouping: false });
+}

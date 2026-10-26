@@ -72,6 +72,8 @@ const PAGES: A11yPage[] = [
   { name: 'TechPar (es)', path: '/es/hub/tools/techpar/' },
   { name: 'TechPar (pt-BR)', path: '/pt/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  { name: 'Tech Debt Calculator (es)', path: '/es/hub/tools/tech-debt-calculator/' },
+  { name: 'Tech Debt Calculator (pt-BR)', path: '/pt/hub/tools/tech-debt-calculator/' },
   { name: 'MCP Server', path: '/hub/mcp/' },
   { name: 'MCP Get Started', path: '/hub/mcp/get-started/', waitFor: 'h1' },
   { name: 'MCP Using the Server', path: '/hub/mcp/using/', waitFor: 'h1' },

@@ -132,8 +132,8 @@ describe('localizedHref — prefixes registry routes only', () => {
 
   it('returns English-only routes unchanged (unregistered tools and Tier C stay English)', () => {
     expect(localizedHref('/ma-portfolio/', es)).toBe('/ma-portfolio/');
-    expect(localizedHref('/hub/tools/tech-debt-calculator/', ptBR)).toBe(
-      '/hub/tools/tech-debt-calculator/'
+    expect(localizedHref('/hub/tools/diligence-machine/', ptBR)).toBe(
+      '/hub/tools/diligence-machine/'
     );
     expect(localizedHref('/hub/mcp/get-started/', es)).toBe('/hub/mcp/get-started/');
     expect(localizedHref('/brand/', es)).toBe('/brand/');
@@ -143,6 +143,12 @@ describe('localizedHref — prefixes registry routes only', () => {
     expect(localizedHref('/hub/tools/techpar/', ptBR)).toBe('/pt/hub/tools/techpar/');
     expect(localizedHref('/hub/tools/techpar/', es)).toBe('/es/hub/tools/techpar/');
     expect(localizedHref('/hub/tools/techpar/', en)).toBe('/hub/tools/techpar/');
+    expect(localizedHref('/hub/tools/tech-debt-calculator/', ptBR)).toBe(
+      '/pt/hub/tools/tech-debt-calculator/'
+    );
+    expect(localizedHref('/hub/tools/tech-debt-calculator/', es)).toBe(
+      '/es/hub/tools/tech-debt-calculator/'
+    );
   });
 
   it('never double-prefixes an already localized path', () => {
@@ -187,14 +193,14 @@ describe('localizedHrefWithFragment — localizes the path, keeps the fragment',
 
 describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns a single entry for routes outside the registry', () => {
-    expect(alternatesFor('/hub/tools/tech-debt-calculator/', en)).toEqual([en]);
+    expect(alternatesFor('/hub/tools/diligence-machine/', en)).toEqual([en]);
     expect(alternatesFor('/ma-portfolio/', es)).toEqual([es]);
   });
 
   it('advertises every live locale for a Tier B route', () => {
-    expect(alternatesFor('/hub/tools/techpar/', en)).toEqual(
-      LOCALES.filter((l) => l.status === 'live')
-    );
+    for (const path of ['/hub/tools/techpar/', '/hub/tools/tech-debt-calculator/']) {
+      expect(alternatesFor(path, en)).toEqual(LOCALES.filter((l) => l.status === 'live'));
+    }
   });
 
   it('returns only the current locale for a draft page', () => {

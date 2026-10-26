@@ -270,7 +270,10 @@ function accessHref(tier?: string) {
                     estimate_tech_debt_cost
                   </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/tech-debt-calculator/" hreflang="en">
+                <a
+                  class="mcp-catalog__try"
+                  href={localizedHref('/hub/tools/tech-debt-calculator/', locale)}
+                >
                   {t('catalog.try')}
                 </a>
               </div>

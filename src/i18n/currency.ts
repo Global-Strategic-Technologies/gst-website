@@ -78,7 +78,8 @@ export function formatMoneyChip(value: number, code: Currency): string {
 }
 
 const separators = new Map<string, string>();
-function decimalSeparator(intlTag: string): string {
+/** The decimal separator `Intl` uses for a language tag (`.` in en, `,` in es/pt-BR). */
+export function decimalSeparator(intlTag: string): string {
   let sep = separators.get(intlTag);
   if (sep === undefined) {
     sep =

@@ -386,7 +386,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         crossLink.innerHTML = withSlot(
           `js.crossLink.${rdCat.zone}`,
           'link',
-          `<a href="/hub/tools/tech-debt-calculator/" hreflang="en">${sHtml('js.crossLink.link')}</a>`
+          `<a href="${escapeHtml(techDebtHref())}">${sHtml('js.crossLink.link')}</a>`
         );
       } else {
         crossLink.style.display = 'none';
@@ -820,4 +820,14 @@ export async function renderTrajectory(r: TechParResult) {
   } catch (error) {
     Sentry.captureException(error, { tags: { area: 'techpar-calculation' } });
   }
+}
+
+/**
+ * The Tech Debt Calculator in the page's locale. The template resolves it with
+ * `localizedHref` (scripts never build locale paths); the English path is the
+ * fallback when there is no shell, as in the jsdom tests.
+ */
+function techDebtHref(): string {
+  const shell = document.querySelector<HTMLElement>('[data-techpar]');
+  return shell?.dataset.techDebtHref ?? '/hub/tools/tech-debt-calculator/';
 }

@@ -38,6 +38,7 @@ import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
+import enTechDebtCalculator from './en/tech-debt-calculator.json';
 import enTechpar from './en/techpar.json';
 import enTerms from './en/terms.json';
 
@@ -56,6 +57,7 @@ export const EN = {
   privacy: enPrivacy,
   terms: enTerms,
   techpar: enTechpar,
+  'tech-debt-calculator': enTechDebtCalculator,
 } as const;
 
 export type Namespace = keyof typeof EN;

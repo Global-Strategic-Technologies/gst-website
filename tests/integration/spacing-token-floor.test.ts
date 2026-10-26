@@ -144,7 +144,7 @@ const ACCEPTED_RESIDUALS = [
       'src/pages/brand.astro',
       'src/pages/hub/mcp/docs/index.astro',
       'src/pages/hub/tools/diligence-machine/index.astro',
-      'src/pages/hub/tools/tech-debt-calculator/index.astro',
+      'src/page-templates/HubTechDebtPage.astro',
       'src/styles/components/form.css',
     ],
     reason:
@@ -535,7 +535,7 @@ describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => 
       'src/components/Footer.astro 0.85rem',
       'src/components/hub/mcp/JobCard.astro 14px',
       'src/components/radar/CategoryFilter.astro 1.6rem',
-      'src/pages/hub/tools/tech-debt-calculator/index.astro 18px',
+      'src/page-templates/HubTechDebtPage.astro 18px',
       'src/styles/components/cards.css 10px',
       'src/styles/components/cards.css 14px',
       'src/styles/components/filter.css 3px',

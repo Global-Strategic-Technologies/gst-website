@@ -497,7 +497,7 @@ constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/tech-debt-calculator/index.astro` |
+| **File** | `src/page-templates/HubTechDebtPage.astro` (localized; `src/pages/hub/tools/tech-debt-calculator/index.astro` is its English wrapper). Emits `inLanguage` with the page language |
 | **datePublished** | 2025-06-01 |
 | **featureList** | Annual carrying cost quantification, Team size and salary inputs, Maintenance burden and delivery metrics, Defensible estimates for PE conversations |
 | **knowsAbout** | Technical Due Diligence, Technical Debt Assessment, M&A Tech Strategy, DORA Metrics, Software Engineering Economics |
