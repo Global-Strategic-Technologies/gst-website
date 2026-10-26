@@ -8,6 +8,7 @@
  * rather than in the Worker-deployed engine (ADR-0042). Unit-tested by `tests/unit/icg-logic.test.ts`.
  */
 import { BENCHMARK_RANGES, buildRadarPoints, getMaturityLevel } from '../../utils/icg-engine';
+import { escapeHtml } from '../../utils/escape-html';
 import type { CompanyStage, ICGResult, ICGState } from '../../utils/icg-engine';
 import type { Domain } from '../../data/infrastructure-cost-governance/domains';
 import type { Recommendation } from '../../data/infrastructure-cost-governance/recommendations';
@@ -45,7 +46,25 @@ export function maturityDescription(score: number): string {
 
 // ─── Radar chart SVG ────────────────────────────────────────────────────────
 
-export function radarChartSVG(domainScores: Array<{ name: string; score: number }>): string {
+/**
+ * Radar axis labels, one per domain. Written, not derived: shortening the full
+ * names in code ("Visibility and Tagging" → "Visibility &") left a dangling
+ * ampersand on four of the six axes.
+ */
+export const RADAR_LABELS: Record<string, string> = {
+  d1: 'Visibility & Tagging',
+  d2: 'Account Structure',
+  d3: 'Right-Sizing',
+  d4: 'Lifecycle & Waste',
+  d5: 'Architecture',
+  d6: 'Governance',
+};
+
+export function radarLabel(domainId: string, fallback: string): string {
+  return RADAR_LABELS[domainId] ?? fallback;
+}
+
+export function radarChartSVG(domainScores: Array<{ label: string; score: number }>): string {
   const cx = 150,
     cy = 150,
     r = 110;
@@ -85,9 +104,7 @@ export function radarChartSVG(domainScores: Array<{ name: string; score: number 
       const lx = cx + (r + labelOffset) * Math.cos(a);
       const ly = cy + (r + labelOffset) * Math.sin(a);
       const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
-      // Abbreviate long names
-      const short = ds.name.replace('and ', '& ').split(' ').slice(0, 2).join(' ');
-      return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${short}</text>`;
+      return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${escapeHtml(ds.label)}</text>`;
     })
     .join('');
 

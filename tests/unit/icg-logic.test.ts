@@ -3,6 +3,8 @@ import {
   gaugeArcSVG,
   maturityDescription,
   radarChartSVG,
+  radarLabel,
+  RADAR_LABELS,
 } from '../../src/scripts/infrastructure-cost-governance/logic';
 import { DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
 
@@ -44,7 +46,10 @@ describe('ICG logic — gaugeArcSVG', () => {
 });
 
 describe('ICG logic — radarChartSVG', () => {
-  const scores = DOMAINS.map((d, i) => ({ name: d.name, score: (i * 17) % 101 }));
+  const scores = DOMAINS.map((d, i) => ({
+    label: radarLabel(d.id, d.name),
+    score: (i * 17) % 101,
+  }));
   const svg = radarChartSVG(scores);
 
   it('draws four grid rings plus the data polygon, and one axis, label and point per domain', () => {
@@ -54,15 +59,11 @@ describe('ICG logic — radarChartSVG', () => {
     expect(count(svg, '<circle')).toBe(scores.length);
   });
 
-  it('abbreviates labels to two words, with "and" as "&"', () => {
-    const one = radarChartSVG([
-      { name: 'Tagging and Allocation Policy', score: 50 },
-      { name: 'Forecasting', score: 50 },
-      { name: 'Unit Economics', score: 50 },
-    ]);
-    expect(one).toContain('>Tagging &</text>');
-    expect(one).toContain('>Forecasting</text>');
-    expect(one).toContain('>Unit Economics</text>');
+  it('labels each axis with its written short name, escaped', () => {
+    expect(svg).toContain('>Visibility &amp; Tagging</text>');
+    expect(svg).toContain('>Right-Sizing</text>');
+    expect(svg).not.toMatch(/&amp;<\/text>/);
+    for (const d of DOMAINS) expect(RADAR_LABELS[d.id], d.id).toBeTruthy();
   });
 
   it('uses theme tokens, not currentColor, so it prints on white paper', () => {

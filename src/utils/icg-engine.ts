@@ -429,7 +429,7 @@ export function compareSnapshots(
  * with stricter or looser DomainScore types don't need casts.
  */
 export function buildRadarPoints(
-  domainScores: ReadonlyArray<Pick<DomainScore, 'name' | 'score'>>,
+  domainScores: ReadonlyArray<Pick<DomainScore, 'score'>>,
   cx: number,
   cy: number,
   radius: number

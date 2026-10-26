@@ -25,6 +25,7 @@ import {
   gaugeArcSVG,
   maturityDescription,
   radarChartSVG,
+  radarLabel,
 } from './logic';
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
@@ -274,7 +275,7 @@ function renderResults(): void {
   const skippedEl = qs<HTMLElement>('[data-skipped-note]');
   skippedEl.classList.toggle('is-hidden', result.skippedCount === 0);
   if (result.skippedCount > 0) {
-    skippedEl.textContent = `${result.skippedCount} of ${result.totalQuestions} questions marked "Not sure" \u2014 these score as zero and may indicate governance blind spots`;
+    skippedEl.textContent = `${result.skippedCount} of ${result.totalQuestions} questions marked "Not sure" \u2014 each counts as -1 until its domain reaches 0, and may indicate governance blind spots`;
   }
 
   // Foundational warning
@@ -292,7 +293,9 @@ function renderResults(): void {
 
   // Domain bars
   // Radar chart
-  qs<HTMLElement>('[data-radar-chart]').innerHTML = radarChartSVG(result.domainScores);
+  qs<HTMLElement>('[data-radar-chart]').innerHTML = radarChartSVG(
+    result.domainScores.map((ds) => ({ label: radarLabel(ds.domainId, ds.name), score: ds.score }))
+  );
 
   // Rec counts by domain (for domain bar badges)
   const dismissed = new Set(state.dismissed);
@@ -445,8 +448,8 @@ function renderResults(): void {
 
     recsContainer.innerHTML = `
     <div class="brutal-tool-shell__section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
-    ${renderGroup(high, 'High', '#E24B4A')}
-    ${renderGroup(med, 'Medium', 'var(--color-secondary)')}
+    ${renderGroup(high, 'High', 'var(--color-error-ink)')}
+    ${renderGroup(med, 'Medium', 'var(--color-secondary-ink)')}
     ${renderGroup(low, 'Low', 'var(--text-muted)')}
   `;
 
