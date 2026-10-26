@@ -1,0 +1,1401 @@
+---
+/**
+ * /hub/tools/tech-debt-calculator/ in every locale. Rendered by
+ * src/pages/hub/tools/tech-debt-calculator/index.astro (English) and by
+ * src/pages/[locale]/[...route].astro. A Tier B route (`TIER_B_ROUTES`).
+ *
+ * Every user-visible string in the markup comes from the
+ * `tech-debt-calculator` catalog; the strings the client script paints at
+ * runtime travel in the `data-tech-debt-strings` island at the bottom. Hooks
+ * (`id`, `class`, `data-*`, ARIA wiring) are untouched: the script and the E2E
+ * suite read them.
+ *
+ * Literals that stay in this file are not language: slider bounds and starting
+ * positions, currency codes, and the tool name. Deploy-frequency labels are the
+ * engine's `DEPLOY_OPTIONS` (an MCP contract, English) translated here by index.
+ * `knowsAbout` in the JSON-LD stays an English literal —
+ * `tests/unit/hub-tool-schema.test.ts` parses it.
+ *
+ * Numbers are formatted with `locale.htmlLang`, the tag the client script reads
+ * from `<html lang>`, so the first paint matches what the script repaints
+ * (ADR-0030, the 2026-10-26 note in the 2026-10-24 amendment).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../utils/tech-debt-engine';
+import { hubToolSchema } from '../utils/hub-tool-schema';
+import { formatMoneyShort } from '../i18n/currency';
+import { formatNumber } from '../i18n/formatters';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+import { SCRIPT_STRING_KEYS } from '../scripts/tech-debt-calculator/strings';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'tech-debt-calculator');
+
+// Script strings and index-keyed labels are computed keys, so they are looked
+// up through the untyped catalog view.
+const tAny = t as (key: string, params?: Record<string, string | number>) => string;
+const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, tAny(key)]));
+
+const lang = locale.htmlLang;
+const money = (n: number) => formatMoneyShort(n, 'USD', lang);
+const pct = (n: number) => tAny('js.unit.pct', { n: formatNumber(n, lang) });
+const pageHref = localizedHref('/hub/tools/tech-debt-calculator/', locale);
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${pageHref}`}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Technical Debt Cost Calculator',
+        description: t('jsonld.description'),
+        datePublished: '2025-06-01',
+        dateModified: '2026-10-26',
+        inLanguage: locale.htmlLang,
+        featureList: [
+          t('jsonld.feature1'),
+          t('jsonld.feature2'),
+          t('jsonld.feature3'),
+          t('jsonld.feature4'),
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Technical Debt Assessment',
+          'M&A Tech Strategy',
+          'DORA Metrics',
+          'Software Engineering Economics',
+        ],
+      })
+    )}
+  />
+  <section class="tdc-section">
+    <div class="container">
+      <HubHeader
+        title="Tech Debt Cost Calculator"
+        subtitle={t('header.subtitle')}
+        locale={locale}
+      />
+
+      <PrintReportHeader title={t('print.title')} locale={locale} />
+
+      <div data-calc class="brutal-tool-shell brutal-tool-shell--wide">
+        <p class="brutal-tool-shell__authority tdc-authority">{t('authority')}</p>
+
+        <!-- Shared-link range-adjustment notice (populated by decodeState on load) -->
+        <p class="tdc-shared-notice" data-shared-notice role="status" aria-live="polite" hidden></p>
+
+        <!-- ── Core inputs ─────────────────────────────────────────── -->
+        <div class="inputs-section">
+          <div class="brutal-tool-shell__section-label section-label">{t('section.teamCost')}</div>
+
+          <div class="sliders-stack">
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-team-size">
+                  {t('label.teamSize')}
+                </label>
+                <span class="brutal-slider__value" data-display="team-size">
+                  {DEFAULT_STATE.teamSize}
+                </span>
+              </div>
+              <input
+                id="input-team-size"
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                class="brutal-slider__input"
+                data-input="team-size"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="14"
+                aria-valuetext={tAny('js.aria.engineers', { n: DEFAULT_STATE.teamSize })}
+              />
+              <div class="brutal-slider__hints">
+                <input
+                  type="number"
+                  class="brutal-slider__direct"
+                  data-direct="team-size"
+                  min="1"
+                  max="500"
+                  step="1"
+                  value="8"
+                  aria-label={t('aria.teamSize')}
+                />
+              </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="team-size"
+                role="status"
+                aria-live="polite"
+                style="display:none"
+              ></span>
+            </div>
+
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-salary">
+                  {t('label.salary')}
+                </label>
+                <span class="brutal-slider__value" data-display="salary">
+                  {money(DEFAULT_STATE.salary)}
+                </span>
+              </div>
+              <input
+                id="input-salary"
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                class="brutal-slider__input"
+                data-input="salary"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="31"
+                aria-valuetext={money(DEFAULT_STATE.salary)}
+              />
+              <div class="brutal-slider__hints">
+                <input
+                  type="text"
+                  class="brutal-slider__direct"
+                  data-direct="salary"
+                  value="150000"
+                  aria-label={t('aria.salary')}
+                />
+              </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="salary"
+                role="status"
+                aria-live="polite"
+                style="display:none"
+              ></span>
+            </div>
+
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-maint-pct">
+                  {t('label.maintPct')}
+                </label>
+                <span class="brutal-slider__value" data-display="maint-pct">
+                  {pct(DEFAULT_STATE.maintPct)}
+                </span>
+              </div>
+              <input
+                id="input-maint-pct"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                class="brutal-slider__input"
+                data-input="maint-pct"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="25"
+                aria-valuetext={pct(DEFAULT_STATE.maintPct)}
+              />
+              <div class="brutal-slider__hints">
+                <input
+                  type="number"
+                  class="brutal-slider__direct"
+                  data-direct="maint-pct"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value="25"
+                  aria-label={t('aria.maintPct')}
+                />
+              </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="maint-pct"
+                role="status"
+                aria-live="polite"
+                style="display:none"
+              ></span>
+              <div class="slider-benchmark">{t('help.maint')}</div>
+              <div class="slider-benchmark">{t('help.maintBands')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Advanced inputs (collapsible) ──────────────────────── -->
+        <div class="advanced-section">
+          <button data-advanced-toggle type="button" class="advanced-toggle" aria-expanded="false">
+            <span data-toggle-label>{t('js.advanced.show')}</span>
+            <span class="toggle-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M4 6l4 4 4-4"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+            </span>
+          </button>
+
+          <div data-advanced-panel class="advanced-panel is-hidden">
+            <div class="brutal-tool-shell__section-label section-label">
+              {t('section.delivery')}
+            </div>
+            <div class="sliders-grid-2">
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-incidents">
+                    {t('label.incidents')}
+                  </label>
+                  <span class="brutal-slider__value" data-display="incidents">
+                    {DEFAULT_STATE.incidents}
+                  </span>
+                </div>
+                <input
+                  id="input-incidents"
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="1"
+                  class="brutal-slider__input"
+                  data-input="incidents"
+                  aria-valuemin="0"
+                  aria-valuemax="20"
+                  aria-valuenow="3"
+                  aria-valuetext={tAny('js.aria.perMonth', { n: DEFAULT_STATE.incidents })}
+                />
+                <div class="brutal-slider__hints">
+                  <input
+                    type="number"
+                    class="brutal-slider__direct"
+                    data-direct="incidents"
+                    min="0"
+                    max="20"
+                    step="1"
+                    value="3"
+                    aria-label={t('aria.incidents')}
+                  />
+                </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="incidents"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"
+                ></span>
+              </div>
+
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-mttr">
+                    {t('label.mttr')}
+                  </label>
+                  <span class="brutal-slider__value" data-display="mttr">
+                    {tAny('js.unit.hours', { n: DEFAULT_STATE.mttr })}
+                  </span>
+                </div>
+                <input
+                  id="input-mttr"
+                  type="range"
+                  min="1"
+                  max="48"
+                  step="1"
+                  class="brutal-slider__input"
+                  data-input="mttr"
+                  aria-valuemin="1"
+                  aria-valuemax="48"
+                  aria-valuenow="4"
+                  aria-valuetext={tAny('js.aria.hours', { n: DEFAULT_STATE.mttr })}
+                />
+                <div class="brutal-slider__hints">
+                  <input
+                    type="number"
+                    class="brutal-slider__direct"
+                    data-direct="mttr"
+                    min="1"
+                    max="48"
+                    step="1"
+                    value="4"
+                    aria-label={t('aria.mttr')}
+                  />
+                </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="mttr"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"
+                ></span>
+              </div>
+            </div>
+
+            <div class="context-switch-toggle">
+              <label class="brutal-toggle">
+                <input type="checkbox" id="input-context-switch" data-input="context-switch" />
+                <span class="brutal-toggle__label">{t('toggle.contextSwitch')}</span>
+              </label>
+              <span class="brutal-toggle__hint">{t('toggle.contextSwitchHint')}</span>
+            </div>
+
+            <div class="brutal-tool-shell__section-label section-label section-label--spaced">
+              {t('section.deploy')}
+            </div>
+            <div class="deploy-grid">
+              {DEPLOY_OPTIONS.map((_opt, i) => (
+                <button
+                  data-deploy-btn={i}
+                  class={`deploy-btn${i === DEFAULT_STATE.deployIdx ? ' active' : ''}`}
+                  type="button"
+                  aria-pressed={i === DEFAULT_STATE.deployIdx ? 'true' : 'false'}
+                >
+                  {tAny(`deploy.${i}`)}
+                </button>
+              ))}
+            </div>
+            <div data-dora-message class="dora-message"></div>
+
+            <div class="brutal-tool-shell__section-label section-label section-label--spaced">
+              {t('section.roi')}
+            </div>
+            <div class="sliders-grid-2">
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-arr">
+                    {t('label.arr')}
+                  </label>
+                  <span class="brutal-slider__value" data-display="arr">
+                    {money(DEFAULT_STATE.arr)}
+                  </span>
+                </div>
+                <input
+                  id="input-arr"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="brutal-slider__input"
+                  data-input="arr"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="37"
+                  aria-valuetext={money(DEFAULT_STATE.arr)}
+                />
+                <div class="brutal-slider__hints">
+                  <input
+                    type="text"
+                    class="brutal-slider__direct"
+                    data-direct="arr"
+                    value="10000000"
+                    aria-label={t('aria.arr')}
+                  />
+                </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="arr"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"
+                ></span>
+              </div>
+
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-budget">
+                    {t('label.budget')}
+                  </label>
+                  <span class="brutal-slider__value" data-display="budget">
+                    {money(DEFAULT_STATE.remediationBudget)}
+                  </span>
+                </div>
+                <input
+                  id="input-budget"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="brutal-slider__input"
+                  data-input="budget"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="33"
+                  aria-valuetext={money(DEFAULT_STATE.remediationBudget)}
+                />
+                <div class="brutal-slider__hints">
+                  <input
+                    type="text"
+                    class="brutal-slider__direct"
+                    data-direct="budget"
+                    value="500000"
+                    aria-label={t('aria.budget')}
+                  />
+                </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="budget"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"
+                ></span>
+              </div>
+            </div>
+
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-remediation">
+                  {t('label.remediation')}
+                </label>
+                <span class="brutal-slider__value" data-display="remediation">
+                  {pct(DEFAULT_STATE.remediationPct)}
+                </span>
+              </div>
+              <input
+                id="input-remediation"
+                type="range"
+                min="0"
+                max="100"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="70"
+                aria-valuetext={pct(DEFAULT_STATE.remediationPct)}
+                step="1"
+                value="70"
+                class="brutal-slider__input"
+                data-input="remediation"
+              />
+              <div class="brutal-slider__hints">
+                <span>{pct(0)}</span>
+                <span>{pct(100)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Results panel ───────────────────────────────────────── -->
+        <div class="results-section" role="status" aria-live="polite" aria-atomic="false">
+          <div class="brutal-tool-shell__section-label section-label">{t('section.results')}</div>
+
+          <!-- Primary figure -->
+          <div class="result-primary">
+            <div>
+              <div class="result-cost-label">{t('results.annualCost')}</div>
+              <div class="result-cost-value" data-metric="annual-cost">
+                —
+              </div>
+              <div class="result-cost-sub">
+                <span data-metric="per-month">—</span>
+                {t('results.perMonthSuffix')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Core metrics grid -->
+          <div class="result-grid">
+            <div class="result-stat">
+              <div class="result-stat-label">{t('results.hrsLost')}</div>
+              <div class="result-stat-value" data-metric="hrs-lost">
+                —
+              </div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-label">{t('results.costPerEng')}</div>
+              <div class="result-stat-value" data-metric="cost-per-eng">
+                —
+              </div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-label">{t('results.ftesLost')}</div>
+              <div class="result-stat-value" id="ctx-engs-lost">
+                —
+              </div>
+            </div>
+            <div class="result-stat">
+              <div class="result-stat-label">{t('results.burdenLevel')}</div>
+              <div class="result-stat-value" id="ctx-burden-label">
+                —
+              </div>
+              <div class="result-stat-range" id="ctx-burden-range"></div>
+            </div>
+          </div>
+
+          <!-- Advanced metrics — only visible when advanced is open -->
+          <div data-adv-results class="adv-results is-hidden">
+            <div class="adv-results__grid">
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.directLabor')}</div>
+                <div class="result-stat-value" data-metric="direct-labor">
+                  —
+                </div>
+              </div>
+              <div class="result-stat" id="ctx-switch-stat" style="display:none;">
+                <div class="result-stat-label">{t('results.contextSwitch')}</div>
+                <div class="result-stat-value" data-metric="context-switch">
+                  —
+                </div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.incidentLabor')}</div>
+                <div class="result-stat-value" data-metric="incident-labor">
+                  —
+                </div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.velocity')}</div>
+                <div class="result-stat-value" data-metric="velocity">
+                  —
+                </div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.debtPctArr')}</div>
+                <div class="result-stat-value" data-metric="debt-pct-arr">
+                  —
+                </div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.breakEven')}</div>
+                <div class="result-stat-value" id="payback-breakeven">
+                  —
+                </div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-label">{t('results.monthlySavings')}</div>
+                <div class="result-stat-value result-stat-value--teal" id="payback-savings">
+                  —
+                </div>
+              </div>
+            </div>
+            <div class="payback-disclaimer" id="payback-disclaimer"></div>
+          </div>
+
+          <!-- Contextual note -->
+          <p class="result-note" id="ctx-note"></p>
+        </div>
+
+        <!-- ── Methodology ─────────────────────────────────────────── -->
+        <details class="tool-methodology">
+          <summary class="tool-methodology__trigger">{t('method.summary')}</summary>
+          <div class="tool-methodology__body">
+            <h4 class="tool-methodology__heading">{t('method.cost.heading')}</h4>
+            <p>{t('method.cost.body')}</p>
+
+            <h4 class="tool-methodology__heading">{t('method.dora.heading')}</h4>
+            <p set:html={tHtml('method.dora.body')} />
+
+            <h4 class="tool-methodology__heading">{t('method.burden.heading')}</h4>
+            <p>{t('method.burden.body')}</p>
+
+            <h4 class="tool-methodology__heading">{t('method.payback.heading')}</h4>
+            <p>{t('method.payback.body')}</p>
+
+            <h4 class="tool-methodology__heading">{t('method.limits.heading')}</h4>
+            <p>{t('method.limits.body')}</p>
+
+            <h4 class="tool-methodology__heading">{t('method.currency.heading')}</h4>
+            <p>{t('method.currency.body')}</p>
+
+            <h4 class="tool-methodology__heading">{t('method.privacy.heading')}</h4>
+            <p
+              set:html={tHtml('method.privacy.body', {
+                privacyHref: localizedHref('/privacy/', locale),
+              })}
+            />
+
+            <p class="tool-methodology__updated">{t('method.updated')}</p>
+          </div>
+        </details>
+
+        <!-- ── Footer ──────────────────────────────────────────────── -->
+        <div class="calc-footer">
+          <div class="calc-footer__controls tool-action-bar">
+            <select
+              id="currency-select"
+              class="currency-select"
+              aria-label={t('actions.currencyAria')}
+            >
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="BRL">BRL</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+            </select>
+            <button
+              id="export-pdf-btn"
+              type="button"
+              class="brutal-btn brutal-btn--secondary copy-link-btn"
+              aria-label={t('actions.exportPdfAria')}
+            >
+              {t('actions.exportPdf')}
+            </button>
+            <button
+              id="copy-summary-btn"
+              type="button"
+              class="brutal-btn brutal-btn--secondary copy-link-btn"
+              aria-label={t('actions.copySummaryAria')}
+            >
+              {t('actions.copySummary')}
+            </button>
+            <button
+              id="copy-link-btn"
+              type="button"
+              class="brutal-btn brutal-btn--secondary copy-link-btn"
+              aria-label={t('actions.copyLinkAria')}
+            >
+              {t('actions.copyLink')}
+            </button>
+          </div>
+        </div>
+
+        <!-- Print-only footer (hidden on screen) -->
+        <div class="print-report-footer" aria-hidden="true">
+          <p>{t('print.footer', { url: `globalstrategic.tech${pageHref}` })}</p>
+          <p>{t('print.disclaimer')}</p>
+        </div>
+      </div>
+
+      <a href={localizedHref('/hub/tools/', locale)} class="cta-button back-link">
+        {t('nav.back')}
+      </a>
+    </div>
+  </section>
+  {/* English needs no island: strings.ts falls back to the English catalog. */}
+  {!isDefaultLocale(locale) && (
+    <script
+      is:inline
+      type="application/json"
+      data-tech-debt-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
+    />
+  )}
+</BaseLayout>
+
+<style>
+  /* ── Page wrapper ─────────────────────────────────────────────────────── */
+  .tdc-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* ── Calculator shell — base styles provided by global .tool-shell + .tool-shell--wide ── */
+
+  /* ── Authority line ────────────────────────────────────────────────────── */
+  .tdc-authority {
+    padding: var(--spacing-sm) var(--spacing-2xl);
+  }
+
+  /* ── Shared-link range-adjustment notice ───────────────────────────────── */
+  .tdc-shared-notice {
+    margin: 0 var(--spacing-2xl) var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-left: 3px solid var(--color-secondary);
+    background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .tdc-shared-notice[hidden] {
+    display: none;
+  }
+
+  /* ── Shared section padding ───────────────────────────────────────────── */
+  .inputs-section,
+  .results-section {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+  }
+
+  .inputs-section {
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
+  }
+
+  /* ── Section label overrides (base from global .tool-section-label) ──── */
+  .section-label {
+    color: var(--text-muted);
+  }
+
+  .section-label--spaced {
+    margin-top: var(--spacing-xl);
+  }
+
+  /* ── Slider layouts ───────────────────────────────────────────────────── */
+  .sliders-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .sliders-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg) var(--spacing-2xl);
+  }
+
+  /* ── Slider overrides — base styles from shared .brutal-slider in form.css ── */
+  .brutal-slider__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brutal-slider__value {
+    flex-shrink: 0;
+  }
+
+  .brutal-slider__hints {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-xs);
+    /* No extra opacity: over --text-muted it took the direct-entry fields to
+       2.9:1 (BL-162). */
+    color: var(--text-muted);
+  }
+
+  .brutal-slider__direct {
+    margin: 0 auto;
+  }
+
+  .slider-benchmark {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* ── Advanced section ─────────────────────────────────────────────────── */
+  .advanced-section {
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
+  }
+
+  .advanced-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    min-height: var(--touch-target-min);
+    transition: color var(--transition-fast);
+  }
+
+  .advanced-toggle:hover {
+    color: var(--color-primary);
+  }
+
+  .toggle-icon {
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    transition: transform var(--transition-fast);
+  }
+
+  .advanced-toggle[aria-expanded='true'] .toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  .advanced-panel {
+    padding: 0 var(--spacing-2xl) var(--spacing-xl);
+    border-top: 1px solid light-dark(var(--border-light), rgba(255, 255, 255, 0.08));
+  }
+
+  .advanced-panel .section-label:first-child {
+    margin-top: var(--spacing-xl);
+  }
+
+  /* ── Context-switch toggle ────────────────────────────────────────────── */
+  .context-switch-toggle {
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .brutal-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+  }
+
+  .brutal-toggle input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  .brutal-toggle__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+  }
+
+  .brutal-toggle__hint {
+    display: block;
+    margin-top: var(--spacing-xs);
+    padding-left: calc(18px + var(--spacing-sm));
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ── Deploy frequency ─────────────────────────────────────────────────── */
+  .deploy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xs);
+  }
+
+  .deploy-btn {
+    min-height: var(--touch-target-min);
+    padding: var(--spacing-xs);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    background: transparent;
+    border-radius: 0;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    text-align: center;
+    transition:
+      border-color var(--transition-fast),
+      color var(--transition-fast),
+      background var(--transition-fast);
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .deploy-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .deploy-btn.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--bg-dark);
+  }
+
+  .dora-message {
+    min-height: 1.4rem;
+    margin-top: var(--spacing-xs);
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-style: italic;
+    opacity: 0.85;
+    line-height: 1.4;
+  }
+
+  /* ── Results section ──────────────────────────────────────────────────── */
+  .results-section {
+    background: transparent;
+    border-top: 3px solid var(--color-primary);
+  }
+
+  /* Primary cost figure */
+  .result-primary {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .result-cost-label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .result-cost-value {
+    font-family: var(--font-family-mono);
+    font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .result-cost-sub {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+  }
+
+  /* Metric grid — shared by core and advanced */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .result-stat {
+    padding-top: var(--spacing-sm);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .result-stat-label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .result-stat-value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+  }
+
+  .result-stat-range {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    margin-top: 2px;
+  }
+
+  .result-stat-value--teal {
+    color: var(--color-primary);
+  }
+
+  /* Advanced results — same grid style, separated by a subtle rule */
+  .adv-results {
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-lg);
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .adv-results__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .payback-disclaimer {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.5;
+    margin-top: var(--spacing-sm);
+  }
+
+  /* Contextual note */
+  .result-note {
+    font-size: var(--text-sm);
+    font-family: var(--font-family-mono);
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────────────────── */
+  .calc-footer {
+    padding: var(--spacing-md) var(--spacing-2xl);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--gap-normal);
+    background: transparent;
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    color: var(--text-muted);
+  }
+
+  /* ── Footer controls group (currency + copy link) ─────────────────────── */
+  .calc-footer__controls {
+    flex-shrink: 0;
+  }
+
+  /* ── Currency selector ────────────────────────────────────────────────── */
+  .currency-select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    appearance: none;
+    padding-right: var(--spacing-xl);
+
+    /* SVG stroke #05cd99 matches --color-primary; data URIs can't reference CSS variables */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2305cd99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    transition: border-color var(--transition-fast);
+  }
+
+  .currency-select:hover,
+  .currency-select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+
+  .currency-select option {
+    background-color: light-dark(inherit, var(--bg-dark-secondary));
+  }
+
+  /* ── Copy Link button ─────────────────────────────────────────────────── */
+
+  /* Button overrides (base styles from global .hub-btn) */
+  .copy-link-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .copy-link-btn:hover {
+    opacity: 0.75;
+    border-color: var(--color-primary);
+  }
+
+  /* ── Visibility ───────────────────────────────────────────────────────── */
+  .is-hidden {
+    display: none;
+  }
+
+  /* ── Back link ────────────────────────────────────────────────────────── */
+  .back-link {
+    display: inline-block;
+    margin-top: var(--spacing-2xl);
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — tablet (≤ 768px)
+    ════════════════════════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .inputs-section,
+    .results-section,
+    .advanced-panel {
+      padding: var(--spacing-lg);
+    }
+
+    .advanced-toggle {
+      padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    .sliders-grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .result-grid,
+    .adv-results__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .calc-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    .calc-footer__controls {
+      width: 100%;
+    }
+
+    .calc-footer__controls .currency-select,
+    .calc-footer__controls .copy-link-btn {
+      flex: 1;
+      min-height: var(--touch-target-min);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — mobile (≤ 480px)
+    ════════════════════════════════════════════════════════════════════════ */
+  @media (max-width: 480px) {
+    .inputs-section,
+    .results-section {
+      padding: var(--spacing-md);
+    }
+
+    .advanced-panel {
+      padding: 0 var(--spacing-md) var(--spacing-lg);
+    }
+
+    .advanced-toggle {
+      padding: var(--spacing-md);
+    }
+
+    .deploy-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .deploy-btn {
+      min-height: 48px;
+    }
+
+    .result-grid,
+    .adv-results__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* The label ellipsises rather than wrapping (see the override above), and
+       under the pinned face (BL-144) `Avg. Salary (all-in)` was 17px past the
+       146px it got at 320px — so it lost its last two characters on the
+       narrowest phone. One step down on the size, not the tracking: dropping
+       0.08em would only buy back 5px.
+
+       The gutter ladder (global.css, 2026-09-01) has since given a 320px
+       viewport 64px more room, turning that 17px deficit into headroom, so this
+       is now CONSERVATIVE RATHER THAN EXACT. Kept because --text-2xs is a
+       deliberate size step for a dense control stack, not a width workaround —
+       the label reads better small here regardless of what it would now fit. */
+    .brutal-slider__label {
+      font-size: var(--text-2xs);
+    }
+
+    .brutal-slider__input {
+      height: 28px;
+    }
+
+    .brutal-slider__input::-webkit-slider-thumb {
+      width: 24px;
+      height: 24px;
+      margin-top: -10.5px;
+    }
+
+    .brutal-slider__input::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+       PRINT — professional PDF export
+    ════════════════════════════════════════════════════════════════════════ */
+
+  /* Print-only footer (hidden on screen). The print header is the
+     PrintReportHeader component, which hides and styles itself. */
+  .print-report-footer {
+    display: none;
+  }
+
+  @media print {
+    /* Font sizes use pt (points) intentionally — pt is the correct unit for
+       print media. The project's var(--text-*) scale is rem-based and relative
+       to screen root font size, which produces unpredictable results in print. */
+
+    /* ── Hide interactive chrome ─────────────────────────────────── */
+    /* Breadcrumb and HubHeader are rendered by BaseLayout/HubHeader, so they
+       need :global(). Header and Footer hide themselves in print. */
+    :global(.breadcrumb),
+    :global(.hub-header),
+    .calc-footer,
+    .brutal-slider__input,
+    .brutal-slider__hints,
+    .slider-benchmark,
+    .advanced-toggle,
+    .advanced-section,
+    .back-link {
+      display: none !important;
+    }
+
+    /* ── Show print footer ───────────────────────────────────────── */
+    .print-report-footer {
+      display: block !important;
+      margin-top: var(--spacing-2xl);
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid var(--border-light);
+    }
+
+    .print-report-footer p {
+      font-family: var(--font-family-mono);
+      font-size: 8pt;
+      color: var(--text-muted);
+      margin: 0 0 var(--spacing-xs);
+      line-height: 1.4;
+    }
+
+    /* ── Tool shell: remove decorative styling ───────────────────── */
+    [data-calc] {
+      box-shadow: none;
+      border: none !important;
+      background: none !important;
+      backdrop-filter: none !important;
+      overflow: visible;
+      max-width: 100%;
+    }
+
+    .tdc-section {
+      padding: 0;
+    }
+
+    /* ── Inputs: compact label + value rows ──────────────────────── */
+    .inputs-section {
+      padding: var(--spacing-md) 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .brutal-slider {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: var(--spacing-xs) 0;
+    }
+
+    .brutal-slider__label {
+      font-size: 10pt;
+      font-family: var(--font-family-mono);
+      color: var(--text-primary);
+    }
+
+    .brutal-slider__value {
+      font-size: 10pt;
+      font-family: var(--font-family-mono);
+      color: var(--color-primary);
+    }
+
+    .sliders-stack,
+    .sliders-grid-2 {
+      gap: 2px;
+    }
+
+    .sliders-grid-2 {
+      display: block;
+    }
+
+    /* ── Section labels ──────────────────────────────────────────── */
+    .section-label {
+      font-size: 9pt;
+      margin-bottom: var(--spacing-xs);
+      margin-top: var(--spacing-md);
+      color: var(--text-muted);
+    }
+
+    /* ── Results: keep page together, strong divider ─────────────── */
+    .results-section {
+      background: none;
+      border-top: 3px solid var(--color-primary);
+      padding: var(--spacing-lg) 0;
+      break-inside: avoid;
+    }
+
+    .result-cost-label {
+      color: var(--color-primary);
+    }
+
+    .result-cost-value {
+      font-size: 28pt;
+      color: var(--text-primary) !important;
+    }
+
+    .result-cost-sub {
+      color: var(--text-muted);
+    }
+
+    /* ── Metrics grid: 2-col for print ───────────────────────────── */
+    .result-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-md);
+      break-inside: avoid;
+    }
+
+    .result-stat {
+      border-top: 1px solid var(--border-light);
+      padding-top: 6px;
+    }
+
+    .result-stat-label {
+      font-size: 8pt;
+      color: var(--text-muted);
+    }
+
+    .result-stat-value {
+      font-size: 11pt;
+      color: var(--text-primary);
+    }
+
+    /* ── Advanced results: always show in print ──────────────────── */
+    [data-adv-results] {
+      display: block !important;
+      border-top: 1px solid var(--border-light);
+      padding-top: var(--spacing-md);
+      break-inside: avoid;
+    }
+
+    .adv-results__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .payback-disclaimer {
+      font-size: 8pt;
+      color: var(--text-muted);
+    }
+
+    /* ── Context note: keep visible ──────────────────────────────── */
+    .result-note {
+      font-size: 10pt;
+      color: var(--text-primary);
+      font-style: italic;
+      line-height: 1.6;
+      border-left: 3px solid var(--color-primary);
+      padding-left: var(--spacing-md);
+      margin-top: var(--spacing-lg);
+      break-inside: avoid;
+    }
+
+    /* ── Authority line ──────────────────────────────────────────── */
+    .tdc-authority {
+      font-size: 8pt;
+      color: var(--text-muted);
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* ── Page layout ─────────────────────────────────────────────── */
+    @page {
+      margin: 1.5cm 2cm;
+    }
+  }
+</style>
+
+<script>
+  import '../scripts/tech-debt-calculator';
+</script>

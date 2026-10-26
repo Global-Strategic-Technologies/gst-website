@@ -16,6 +16,7 @@ import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
 import HubMcpPage from './HubMcpPage.astro';
 import HubMcpTrialPage from './HubMcpTrialPage.astro';
 import HubPage from './HubPage.astro';
+import HubTechDebtPage from './HubTechDebtPage.astro';
 import HubTechParPage from './HubTechParPage.astro';
 import HubToolsPage from './HubToolsPage.astro';
 import PrivacyPage from './PrivacyPage.astro';
@@ -34,6 +35,7 @@ export const TEMPLATES = {
   privacy: PrivacyPage,
   terms: TermsPage,
   techpar: HubTechParPage,
+  'tech-debt-calculator': HubTechDebtPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

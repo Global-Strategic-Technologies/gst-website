@@ -45,6 +45,7 @@ A bundled Astro `<script>` is already a deferred module that runs once, so movin
 **Code and docs that cite this decision** (keep current):
 
 - `src/scripts/<tool>/` — one directory per tool page: tech-debt-calculator, information-request-list-{generator,extractor}, infrastructure-cost-governance, diligence-machine, regulatory-map, techpar
+- `src/scripts/tool-strings.ts` — the one cross-tool module: the Tier B island-string reader each localized tool binds in its `strings.ts` (ADR-0030, amendment of 2026-10-24)
 - `vitest.config.ts` — the `src/scripts/*/logic.ts` coverage glob and the `src/scripts/techpar/state.ts` entry
 - `tests/unit/tool-analytics.test.ts` — the directory reader
 - [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md) § 1 and the coverage lines; [DEVELOPER_TOOLING.md](../development/DEVELOPER_TOOLING.md) § Coverage reporting; [testing/README.md](../testing/README.md)

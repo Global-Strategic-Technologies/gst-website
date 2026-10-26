@@ -10,25 +10,39 @@ import {
   arrToPos,
   budgetToPos,
   calculate,
-  fmtPayback,
   encodeState,
   decodeState,
   buildSummaryText,
-  burdenClassify,
-  contextNote,
+  burdenKeyOf,
+  BURDEN_COLOR,
+  SUMMARY_TEXT_EN,
   parseShortCurrency,
 } from '../../utils/tech-debt-engine';
 
-import type { CalcState, CalcResult } from '../../utils/tech-debt-engine';
+import type {
+  BurdenKey,
+  CalcState,
+  CalcResult,
+  StateFieldKey,
+  SummaryText,
+} from '../../utils/tech-debt-engine';
 import { trackEvent } from '../../utils/analytics';
 import { copyWithFeedback } from '../../utils/copy-feedback';
-import { formatCurrency, formatShortCurrency, hasNonDefaultAdvanced } from './logic';
+import {
+  formatCurrency,
+  formatShortCurrency,
+  hasNonDefaultAdvanced,
+  normalizeLocaleAmount,
+} from './logic';
 import {
   CURRENCY_SYMBOL,
   DEFAULT_CURRENCY,
+  decimalSeparator,
   parseCurrencyParam,
   type Currency,
 } from '../../i18n/currency';
+import { formatFixed, formatPlain } from '../../i18n/formatters';
+import { s } from './strings';
 
 // Analytics: fire tdc_start once per page load on first slider interaction
 let tdcStartFired = false;
@@ -51,6 +65,29 @@ function el(id: string): HTMLElement {
   return document.getElementById(id) as HTMLElement;
 }
 
+// ─── Page language ───────────────────────────────────────────────────────────
+
+// Strings come from the page's island (English when there is none); numbers
+// follow `<html lang>`, the tag the template formats its first paint with.
+function pageLang(): string {
+  return document.documentElement.lang || 'en';
+}
+
+const fixed = (n: number, decimals: number): string => formatFixed(n, pageLang(), decimals);
+const plain = (n: number): string => formatPlain(n, pageLang());
+const pct = (n: number): string => s('js.unit.pct', { n: plain(n) });
+const perMonth = (amount: string): string => s('js.unit.perMonth', { amount });
+
+function contextNoteText(key: BurdenKey, burdenPct: number, cost: string): string {
+  return s(`burden.${key}.note`, { pct: plain(burdenPct), cost });
+}
+
+function paybackText(months: number): string {
+  if (months < 1) return s('payback.under1');
+  if (months > 60) return s('payback.over5');
+  return s('payback.months', { n: fixed(months, 1) });
+}
+
 // ─── URL state ────────────────────────────────────────────────────────────────
 
 // The display currency rides beside `s` (never inside it — `s` is the MCP
@@ -63,30 +100,36 @@ function pushUrlState(state: CalcState): void {
 }
 
 function readUrlState(): ReturnType<typeof decodeState> {
-  const s = new URLSearchParams(window.location.search).get('s');
-  return s ? decodeState(s) : null;
+  const encoded = new URLSearchParams(window.location.search).get('s');
+  return encoded ? decodeState(encoded) : null;
 }
 
 // Surface a visible notice when a shared link carried values outside the
 // calculator's supported range (see decodeState's producer/consumer note).
 // Without this, a clamped value looks indistinguishable from one the reader
 // chose — the same silent-misreport failure mode this guard set out to fix.
-function showSharedStateNotice(adjustedLabels: string[]): void {
+function showSharedStateNotice(adjustedKeys: StateFieldKey[]): void {
   const noticeEl = document.querySelector('[data-shared-notice]') as HTMLElement | null;
-  if (!noticeEl || adjustedLabels.length === 0) return;
-  noticeEl.textContent =
-    `Some values in this shared link were outside the calculator's supported range and have ` +
-    `been adjusted to the nearest limit: ${adjustedLabels.join(', ')}. Results reflect the ` +
-    `adjusted values.`;
+  if (!noticeEl || adjustedKeys.length === 0) return;
+  const labels = adjustedKeys.map((key) => s(`field.${key}`));
+  noticeEl.textContent = s('js.sharedNotice', { fields: listOf(labels) });
   noticeEl.hidden = false;
+}
+
+// `Intl.ListFormat` joins in the page language ("a, b y c", "a, b e c"). The
+// English page keeps the comma list it has always printed.
+function listOf(items: string[]): string {
+  const lang = pageLang();
+  if (lang.startsWith('en') || typeof Intl.ListFormat !== 'function') return items.join(', ');
+  return new Intl.ListFormat(lang, { style: 'long', type: 'conjunction' }).format(items);
 }
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
 
 let currency: Currency = DEFAULT_CURRENCY;
 
-const fmtC = (n: number): string => formatCurrency(n, currency);
-const fmtShortC = (n: number): string => formatShortCurrency(n, currency);
+const fmtC = (n: number): string => formatCurrency(n, currency, pageLang());
+const fmtShortC = (n: number): string => formatShortCurrency(n, currency, pageLang());
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -111,20 +154,21 @@ function renderAnalytics(result: CalcResult): void {
 function renderCoreMetrics(state: CalcState, result: CalcResult, teamSize: number): void {
   getMetric('annual-cost').textContent = fmtShortC(result.annualCost);
   getMetric('per-month').textContent = fmtShortC(result.totalMonthly);
-  getMetric('hrs-lost').textContent = result.hoursLostPerEng.toFixed(0) + 'h';
+  getMetric('hrs-lost').textContent = s('js.unit.hours', { n: fixed(result.hoursLostPerEng, 0) });
   getMetric('cost-per-eng').textContent = fmtShortC(result.costPerEng);
 
-  const engsLost = ((teamSize * state.maintPct) / 100).toFixed(1);
-  const burden = burdenClassify(state.maintPct);
+  const engsLost = fixed((teamSize * state.maintPct) / 100, 1);
+  const key = burdenKeyOf(state.maintPct);
+  const color = BURDEN_COLOR[key];
 
-  el('ctx-engs-lost').textContent = engsLost + ' FTEs';
+  el('ctx-engs-lost').textContent = s('js.unit.ftes', { n: engsLost });
   el('ctx-engs-lost').style.color =
     state.maintPct >= 35 ? 'var(--color-secondary-ink)' : 'var(--color-primary)';
-  el('ctx-burden-label').textContent = burden.text;
-  el('ctx-burden-label').style.color = burden.color;
-  el('ctx-burden-range').textContent = burden.range;
-  el('ctx-burden-range').style.color = burden.color;
-  el('ctx-note').textContent = contextNote(state.maintPct, fmtShortC(result.annualCost));
+  el('ctx-burden-label').textContent = s(`burden.${key}.label`);
+  el('ctx-burden-label').style.color = color;
+  el('ctx-burden-range').textContent = s(`burden.${key}.range`);
+  el('ctx-burden-range').style.color = color;
+  el('ctx-note').textContent = contextNoteText(key, state.maintPct, fmtShortC(result.annualCost));
 
   getMetric('annual-cost').style.color =
     state.maintPct >= 35 ? 'var(--color-secondary-ink)' : 'var(--color-primary)';
@@ -141,15 +185,18 @@ function renderAdvancedPanel(state: CalcState, result: CalcResult): void {
     toggleBtn.setAttribute('aria-expanded', String(state.advancedOpen));
     const labelEl = toggleBtn.querySelector('[data-toggle-label]') as HTMLElement | null;
     if (labelEl) {
-      labelEl.textContent = state.advancedOpen ? 'Hide Advanced Inputs' : 'Show Advanced Inputs';
+      labelEl.textContent = s(state.advancedOpen ? 'js.advanced.hide' : 'js.advanced.show');
     }
   }
 
   if (state.advancedOpen) {
-    getMetric('direct-labor').textContent = fmtShortC(result.directMonthly) + '/mo';
-    getMetric('incident-labor').textContent = fmtShortC(result.incidentMonthly) + '/mo';
-    getMetric('velocity').textContent = result.V.toFixed(2) + '× ' + result.doraLabel;
-    getMetric('debt-pct-arr').textContent = result.debtPctArr.toFixed(1) + '%';
+    getMetric('direct-labor').textContent = perMonth(fmtShortC(result.directMonthly));
+    getMetric('incident-labor').textContent = perMonth(fmtShortC(result.incidentMonthly));
+    getMetric('velocity').textContent = s('js.velocity', {
+      v: fixed(result.V, 2),
+      dora: s(`dora.${result.doraLabel}`),
+    });
+    getMetric('debt-pct-arr').textContent = s('js.unit.pct', { n: fixed(result.debtPctArr, 1) });
 
     getMetric('velocity').style.color =
       result.V <= 1.0 ? 'var(--color-primary)' : 'var(--color-secondary-ink)';
@@ -162,17 +209,19 @@ function renderAdvancedPanel(state: CalcState, result: CalcResult): void {
     if (ctxSwitchStat) {
       ctxSwitchStat.style.display = state.contextSwitchOn ? '' : 'none';
     }
-    getMetric('context-switch').textContent = fmtShortC(result.contextSwitchMonthly) + '/mo';
+    getMetric('context-switch').textContent = perMonth(fmtShortC(result.contextSwitchMonthly));
     getMetric('context-switch').style.color = state.contextSwitchOn
       ? 'var(--color-secondary-ink)'
       : '';
 
-    el('payback-breakeven').textContent = fmtPayback(result.paybackMonths);
+    el('payback-breakeven').textContent = paybackText(result.paybackMonths);
     el('payback-breakeven').style.color =
       result.paybackMonths < 24 ? 'var(--color-primary)' : 'var(--color-secondary-ink)';
     el('payback-savings').textContent = fmtShortC(result.monthlySavings);
-    el('payback-disclaimer').textContent =
-      `Remediation efficiency: ${state.remediationPct}% · Budget: ${fmtC(state.remediationBudget)}`;
+    el('payback-disclaimer').textContent = s('js.paybackDisclaimer', {
+      pct: plain(state.remediationPct),
+      budget: fmtC(state.remediationBudget),
+    });
   }
 }
 
@@ -186,12 +235,10 @@ function renderDeployButtons(state: CalcState): void {
 
   const doraEl = document.querySelector('[data-dora-message]') as HTMLElement;
   if (state.deployIdx >= 6) {
-    doraEl.textContent =
-      'DORA Low tier: constrained velocity signals debt is likely the rate-limiting factor';
+    doraEl.textContent = s('js.dora.low');
     doraEl.style.color = 'var(--color-secondary-ink)';
   } else if (state.deployIdx >= 4) {
-    doraEl.textContent =
-      'DORA Medium tier: deployment lag suggests debt friction is dampening throughput';
+    doraEl.textContent = s('js.dora.medium');
     doraEl.style.color = 'var(--color-secondary-ink)';
   } else {
     doraEl.textContent = '';
@@ -202,12 +249,13 @@ function renderDeployButtons(state: CalcState): void {
 function renderSliderValues(state: CalcState, teamSize: number): void {
   getDisplay('team-size').textContent = String(teamSize);
   getDisplay('salary').textContent = fmtShortC(state.salary);
-  getDisplay('maint-pct').textContent = state.maintPct + '%';
-  getDisplay('incidents').textContent = state.incidents === 0 ? 'None' : String(state.incidents);
-  getDisplay('mttr').textContent = state.mttr + 'h';
+  getDisplay('maint-pct').textContent = pct(state.maintPct);
+  getDisplay('incidents').textContent =
+    state.incidents === 0 ? s('js.none') : String(state.incidents);
+  getDisplay('mttr').textContent = s('js.unit.hours', { n: state.mttr });
   getDisplay('budget').textContent = fmtShortC(state.remediationBudget);
   getDisplay('arr').textContent = fmtShortC(state.arr);
-  getDisplay('remediation').textContent = state.remediationPct + '%';
+  getDisplay('remediation').textContent = pct(state.remediationPct);
 
   const ctxCheckbox = document.getElementById('input-context-switch') as HTMLInputElement | null;
   if (ctxCheckbox) ctxCheckbox.checked = state.contextSwitchOn;
@@ -219,36 +267,26 @@ function renderSliderValues(state: CalcState, teamSize: number): void {
       slider.setAttribute('aria-valuetext', text);
     }
   };
-  setAriaValue('input-team-size', teamSizeToPos(state.teamSize), `${teamSize} engineers`);
+  setAriaValue(
+    'input-team-size',
+    teamSizeToPos(state.teamSize),
+    s('js.aria.engineers', { n: teamSize })
+  );
   setAriaValue('input-salary', salaryToPos(state.salary), fmtShortC(state.salary));
-  setAriaValue('input-maint-pct', state.maintPct, `${state.maintPct}%`);
+  setAriaValue('input-maint-pct', state.maintPct, pct(state.maintPct));
   setAriaValue(
     'input-incidents',
     state.incidents,
-    state.incidents === 0 ? 'None' : `${state.incidents} per month`
+    state.incidents === 0 ? s('js.none') : s('js.aria.perMonth', { n: state.incidents })
   );
-  setAriaValue('input-mttr', state.mttr, `${state.mttr} hours`);
+  setAriaValue('input-mttr', state.mttr, s('js.aria.hours', { n: state.mttr }));
   setAriaValue('input-arr', arrToPos(state.arr), fmtShortC(state.arr));
   setAriaValue(
     'input-budget',
     budgetToPos(state.remediationBudget),
     fmtShortC(state.remediationBudget)
   );
-  setAriaValue('input-remediation', state.remediationPct, `${state.remediationPct}%`);
-
-  const hint = (key: string): HTMLElement | null => document.querySelector(`[data-hint="${key}"]`);
-  const salaryMin = hint('salary-min');
-  if (salaryMin) salaryMin.textContent = fmtShortC(60000);
-  const salaryMax = hint('salary-max');
-  if (salaryMax) salaryMax.textContent = fmtShortC(1000000);
-  const arrMin = hint('arr-min');
-  if (arrMin) arrMin.textContent = fmtShortC(100000);
-  const arrMax = hint('arr-max');
-  if (arrMax) arrMax.textContent = fmtShortC(1000000000);
-  const budgetMin = hint('budget-min');
-  if (budgetMin) budgetMin.textContent = fmtShortC(10000);
-  const budgetMax = hint('budget-max');
-  if (budgetMax) budgetMax.textContent = fmtShortC(50000000);
+  setAriaValue('input-remediation', state.remediationPct, pct(state.remediationPct));
 }
 
 function render(): void {
@@ -321,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (urlState) {
     Object.assign(state, urlState.state);
     if (hasNonDefaultAdvanced(state)) state.advancedOpen = true;
-    showSharedStateNotice(urlState.adjusted);
+    showSharedStateNotice(urlState.adjustedKeys);
   }
 
   initSliders();
@@ -380,22 +418,28 @@ document.addEventListener('DOMContentLoaded', () => {
     min: number,
     max: number,
     fallback: number,
-    label: string,
+    field: string,
     fmt: (n: number) => string
   ): { value: number; reason: string | null } {
+    // `raw` is the visitor's own text; it reaches the page through
+    // `textContent` only (showClampMsg), never as markup.
     if (!Number.isFinite(parsed)) {
-      return { value: fallback, reason: `Couldn't read "${raw}" — kept ${fmt(fallback)}` };
+      return { value: fallback, reason: s('js.clamp.unreadable', { raw, value: fmt(fallback) }) };
     }
+    const label = s(`js.clampField.${field}`);
     if (parsed < min) {
-      return { value: min, reason: `Minimum ${label} is ${fmt(min)}` };
+      return { value: min, reason: s('js.clamp.min', { field: label, value: fmt(min) }) };
     }
     if (parsed > max) {
-      return { value: max, reason: `Maximum ${label} is ${fmt(max)}` };
+      return { value: max, reason: s('js.clamp.max', { field: label, value: fmt(max) }) };
     }
     return { value: parsed, reason: null };
   }
 
   const fmtInt = (n: number) => String(n);
+  // Typed amounts arrive in the page language (`1,5M` on /pt/ and /es/).
+  const readAmount = (raw: string): number =>
+    parseShortCurrency(normalizeLocaleAmount(raw, decimalSeparator(pageLang())));
 
   const tsInput = getDirect('team-size');
   if (tsInput) {
@@ -408,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
         1,
         500,
         state.teamSize,
-        'team size',
+        'teamSize',
         fmtInt
       );
       state.teamSize = value;
@@ -422,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (salInput) {
     salInput.addEventListener('input', () => showClampMsg('salary', null));
     salInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(salInput.value);
+      const parsed = readAmount(salInput.value);
       const { value, reason } = resolveTyped(
         salInput.value,
         parsed,
@@ -450,8 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
         0,
         100,
         state.maintPct,
-        'maintenance burden',
-        (n) => `${n}%`
+        'maintPct',
+        pct
       );
       state.maintPct = value;
       showClampMsg('maint-pct', reason);
@@ -492,8 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
         1,
         48,
         state.mttr,
-        'MTTR',
-        (n) => `${n}h`
+        'mttr',
+        (n) => s('js.unit.hours', { n })
       );
       state.mttr = value;
       showClampMsg('mttr', reason);
@@ -506,14 +550,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (arrInput) {
     arrInput.addEventListener('input', () => showClampMsg('arr', null));
     arrInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(arrInput.value);
+      const parsed = readAmount(arrInput.value);
       const { value, reason } = resolveTyped(
         arrInput.value,
         parsed,
         100000,
         1000000000,
         state.arr,
-        'ARR',
+        'arr',
         fmtShortC
       );
       state.arr = value;
@@ -527,14 +571,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (budgetInput) {
     budgetInput.addEventListener('input', () => showClampMsg('budget', null));
     budgetInput.addEventListener('change', () => {
-      const parsed = parseShortCurrency(budgetInput.value);
+      const parsed = readAmount(budgetInput.value);
       const { value, reason } = resolveTyped(
         budgetInput.value,
         parsed,
         10000,
         50000000,
         state.remediationBudget,
-        'remediation budget',
+        'budget',
         fmtShortC
       );
       state.remediationBudget = value;
@@ -632,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
       trackEvent({ event: 'tdc_copy_link', category: 'engagement' });
-      copyWithFeedback(window.location.href, copyBtn);
+      copyWithFeedback(window.location.href, copyBtn, { label: s('js.copied') });
     });
   }
 
@@ -641,8 +685,30 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryBtn.addEventListener('click', () => {
       trackEvent({ event: 'tdc_copy_summary', category: 'engagement' });
       const result = calculate(state);
-      const text = buildSummaryText(state, result, CURRENCY_SYMBOL[currency], window.location.href);
-      copyWithFeedback(text, summaryBtn);
+      const text = buildSummaryText(
+        state,
+        result,
+        CURRENCY_SYMBOL[currency],
+        window.location.href,
+        {
+          text: summaryText(),
+          money: fmtShortC,
+          num: (n, digits) => (digits === undefined ? plain(n) : fixed(n, digits)),
+          deployLabel: (idx) => s(`deploy.${idx}`),
+          doraLabel: (label) => s(`dora.${label}`),
+          burdenLabel: (key) => s(`burden.${key}.plain`),
+          contextNote: contextNoteText,
+          payback: paybackText,
+        }
+      );
+      copyWithFeedback(text, summaryBtn, { label: s('js.copied') });
     });
   }
 });
+
+/** The summary's line templates in the page language (`summary.<key>`). */
+function summaryText(): SummaryText {
+  return Object.fromEntries(
+    Object.keys(SUMMARY_TEXT_EN).map((key) => [key, s(`summary.${key}`)])
+  ) as SummaryText;
+}

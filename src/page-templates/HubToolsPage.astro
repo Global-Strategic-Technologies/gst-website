@@ -39,8 +39,8 @@ const TOOL_IDS = [
   'information-request-list-extractor',
 ] as const;
 
-// English names for the ItemList: the tool pages are English, so their listed
-// names are too, in every locale.
+// English names for the ItemList: a tool's name is a brand and stays English
+// in every locale, including on the tool pages that are localized.
 const EN_TOOL_NAMES: Record<(typeof TOOL_IDS)[number], string> = {
   'regulatory-map': 'Regulatory Map',
   'diligence-machine': 'The Diligence Machine',

@@ -2,8 +2,10 @@
  * TechPar UI — DOM-free helpers (ADR-0042: pure logic lives in `logic.ts` so
  * it is unit-testable and counted by coverage).
  */
-import { formatNumber } from '../../i18n/formatters';
+import { formatFixed, formatNumber, formatPlain } from '../../i18n/formatters';
 import { CATEGORY_LABELS } from '../../utils/techpar-engine';
+
+export { formatFixed, formatPlain };
 
 /**
  * Parse the ARR text field. It is the one `type="text"` money input and shows
@@ -20,27 +22,10 @@ export function formatArrInput(n: number, lang: string): string {
   return formatNumber(n, lang, { maximumFractionDigits: 0 });
 }
 
-/**
- * Fixed-decimal number in the page locale, no grouping — what `toFixed`
- * printed before, so English stays byte-identical.
- */
-export function formatFixed(n: number, lang: string, decimals: number): string {
-  return formatNumber(n, lang, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-    useGrouping: false,
-  });
-}
-
 /** `formatPercent` (`n.toFixed(d) + '%'`, em dash when not finite), localized. */
 export function formatPct(n: number, lang: string, decimals = 1): string {
   if (!isFinite(n)) return '—';
   return formatFixed(n, lang, decimals) + '%';
-}
-
-/** A plain number as `String(n)` printed it (e.g. an exit multiple), localized. */
-export function formatPlain(n: number, lang: string): string {
-  return formatNumber(n, lang, { maximumFractionDigits: 10, useGrouping: false });
 }
 
 /** The `CATEGORY_LABELS` key for an engine category label, or null. */

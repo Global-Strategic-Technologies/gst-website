@@ -3,7 +3,7 @@ tool: estimate_tech_debt_cost
 tools:
   - estimate_tech_debt_cost
 version: v1
-lastAuthored: 2026-09-27
+lastAuthored: 2026-10-26
 schema: src/schemas/tech-debt.ts
 enumParity:
   - tableHeading: '`deployFrequency`'
@@ -19,12 +19,12 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`src/schemas/tech-debt.ts`](../../../../../src/schemas/tech-debt.ts) — `TechDebtInputsSchema`, `DEPLOY_FREQUENCY_VALUES` tuple
-> - **Engine logic**: [`src/utils/tech-debt-engine.ts`](../../../../../src/utils/tech-debt-engine.ts) — `calculateFromRawInputs` (lines ~88–120), `DEPLOY_OPTIONS` (lines 10–20), `RawTechDebtInputs` interface
-> - **Burden classification (output context)**: [`src/utils/tech-debt-engine.ts`](../../../../../src/utils/tech-debt-engine.ts) — `burdenClassify` (lines 205–211), `contextNote` (lines 225–235)
+> - **Engine logic**: [`src/utils/tech-debt-engine.ts`](../../../../../src/utils/tech-debt-engine.ts) — `calculateFromRawInputs`, `DEPLOY_OPTIONS`, the `RawTechDebtInputs` interface
+> - **Burden classification (output context)**: [`src/utils/tech-debt-engine.ts`](../../../../../src/utils/tech-debt-engine.ts) — `burdenKeyOf` and `burdenClassify`, `contextNote` (English; the website's localized calculator renders the same levels from its catalog by `BurdenKey`, so this tool's output is unchanged)
 >
-> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../../prompts/target-quick-look.ts) (first-look brief — Tech Debt range section reports `annualCost`, `debtPctArr`, `paybackMonths`, DORA tier; the prompt body instructs the model to synthesize raw inputs from `productType + stage` norms biased toward conservative midpoints when uncertain). The tool's `deeplink` opens the calculator with sliders pre-positioned to reproduce the supplied raw inputs (subject to slider-granularity quantization — see BL-034 cleanup item).
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../../prompts/target-quick-look.ts) (first-look brief — Tech Debt range section reports `annualCost`, `debtPctArr`, `paybackMonths`, DORA tier; the prompt body instructs the model to synthesize raw inputs from `productType + stage` norms biased toward conservative midpoints when uncertain). The tool's `deeplink` opens the English calculator on the supplied raw inputs; the URL carries raw values, so they round-trip exactly ([`tech-debt-deeplink.test.ts`](../../../../tests/unit/deeplinks/tech-debt-deeplink.test.ts)), and a value outside a slider's range is clamped with a visible notice.
 >
-> **Version**: `v1` | **Last authored**: 2026-04-28
+> **Version**: `v1` | **Last authored**: 2026-10-26
 >
 > **Registry**: see [`../contracts/README.md`](../README.md).
 

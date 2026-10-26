@@ -83,7 +83,7 @@ export const FormSpecimen = () => (
     </Row>
 
     <Row label="Slider (bounded numeric)">
-      {/* Ported from tech-debt-calculator/index.astro: __header holds __label
+      {/* Ported from page-templates/HubTechDebtPage.astro: __header holds __label
           + live __value; __input is a real <input type="range">; __hints holds
           the optional __direct number entry; __clamp-msg is a status line JS
           shows when a typed value is clamped. */}
