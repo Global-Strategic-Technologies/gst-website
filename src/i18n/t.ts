@@ -37,6 +37,8 @@ import enHubMcpFromCode from './en/hub-mcp-from-code.json';
 import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
 import enInfrastructureCostGovernance from './en/infrastructure-cost-governance.json';
+import enDiligenceMachine from './en/diligence-machine.json';
+import enDiligenceMachineData from './en/diligence-machine-data.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
 import enTechDebtCalculator from './en/tech-debt-calculator.json';
@@ -60,6 +62,8 @@ export const EN = {
   techpar: enTechpar,
   'tech-debt-calculator': enTechDebtCalculator,
   'infrastructure-cost-governance': enInfrastructureCostGovernance,
+  'diligence-machine': enDiligenceMachine,
+  'diligence-machine-data': enDiligenceMachineData,
 } as const;
 
 export type Namespace = keyof typeof EN;

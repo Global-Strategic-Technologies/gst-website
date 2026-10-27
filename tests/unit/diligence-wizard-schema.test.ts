@@ -28,9 +28,8 @@ import {
   TRANSFORMATION_STATE_IDS,
   DATA_SENSITIVITY_IDS,
   OPERATING_MODEL_IDS,
-  getOptionLabel,
 } from '../../src/data/diligence-machine/wizard-config';
-import { UNKNOWN_INPUT, UserInputsSchema } from '../../src/schemas/diligence';
+import { UserInputsSchema } from '../../src/schemas/diligence';
 
 function getStepOptionIds(stepId: string): string[] {
   const step = WIZARD_STEPS.find((s) => s.id === stepId);
@@ -200,17 +199,5 @@ describe('UserInputsSchema ↔ WIZARD_STEPS subset invariant', () => {
     };
     const result = UserInputsSchema.safeParse(bad);
     expect(result.success).toBe(false);
-  });
-});
-
-describe('getOptionLabel', () => {
-  it('labels a "Not sure" answer as the button does, not as the raw sentinel', () => {
-    expect(getOptionLabel('company-profile', UNKNOWN_INPUT)).toBe('Not sure');
-    expect(getOptionLabel('geography', UNKNOWN_INPUT)).toBe('Not sure');
-  });
-
-  it('labels options of plain and compound steps', () => {
-    expect(getOptionLabel('transaction-type', 'carve-out')).toBe('Carve-out');
-    expect(getOptionLabel('company-profile', '51-200')).toBe('51 – 200');
   });
 });

@@ -191,7 +191,10 @@ function accessHref(tier?: string) {
                     generate_diligence_agenda
                   </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/diligence-machine/" hreflang="en">
+                <a
+                  class="mcp-catalog__try"
+                  href={localizedHref('/hub/tools/diligence-machine/', locale)}
+                >
                   {t('catalog.try')}
                 </a>
               </div>

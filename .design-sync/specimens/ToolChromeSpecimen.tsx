@@ -110,7 +110,7 @@ export const ToolChromeSpecimen = () => (
     </Row>
 
     <Row label="Wizard stepper (multi-step tools)">
-      {/* diligence-machine/index.astro — states are --completed (done),
+      {/* HubDiligenceMachinePage.astro — states are --completed (done),
           --active (current), --reachable (visited-ahead), else faded. Ships
           desktop-only; the page swaps in .tool-wizard-progress-mobile at 480px. */}
       <div

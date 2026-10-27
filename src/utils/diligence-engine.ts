@@ -342,8 +342,14 @@ export function applyArchetypePivot(
   });
 }
 
-/** Human-readable labels for condition dimensions */
-const CONDITION_LABELS: Record<string, string> = {
+/**
+ * Human-readable labels for condition dimensions — the `triggerMap` values,
+ * English by contract. The website page shows them in its own language: it
+ * maps each label back to its input dimension and reads the same
+ * `js.meta.*` key the target-parameters block uses (pinned equal in
+ * `tests/unit/diligence-catalog.test.ts`).
+ */
+export const CONDITION_LABELS: Record<string, string> = {
   transactionTypes: 'Transaction Type',
   excludeTransactionTypes: 'Transaction Type',
   productTypes: 'Product Type',

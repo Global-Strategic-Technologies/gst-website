@@ -36,15 +36,13 @@ import {
 
 // ─── wizard-config.ts ────────────────────────────────────────────────────────
 
+// The wizard's words are in the `diligence-machine` catalog, keyed by these ids.
 export const WizardOptionSchema = z.object({
   id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().min(1).optional(),
 });
 
 export const WizardFieldSchema = z.object({
   id: z.string().min(1),
-  label: z.string().min(1),
   inputType: z.literal('select'),
   options: z.array(WizardOptionSchema).min(1),
 });
@@ -53,9 +51,6 @@ export const WizardInputTypeSchema = z.enum(['single-select', 'multi-select', 'c
 
 export const WizardStepSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1),
-  navLabel: z.string().min(1),
-  subtitle: z.string().min(1),
   inputType: WizardInputTypeSchema,
   options: z.array(WizardOptionSchema).optional(),
   fields: z.array(WizardFieldSchema).optional(),

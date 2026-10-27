@@ -43,8 +43,8 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`src/schemas/diligence.ts`](../../../../../src/schemas/diligence.ts) — `UserInputsSchema` and the `*_IDS` enum tuples
-> - **Labels & per-option descriptions**: [`src/data/diligence-machine/wizard-config.ts`](../../../../../src/data/diligence-machine/wizard-config.ts) — `WizardStep` definitions, lines 85–425
-> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS` (lines 333-348), `meetsMinimumBracket` (lines 74-87), `BRACKET_ORDER` constant
+> - **Labels & per-option descriptions**: the website's English catalog [`src/i18n/en/diligence-machine.json`](../../../../../src/i18n/en/diligence-machine.json) — `step.<stepId>.title|subtitle`, `option.<stepOrFieldId>.<optionId>.label|description`, keyed by the ids in [`wizard-config.ts`](../../../../../src/data/diligence-machine/wizard-config.ts) (which holds the steps' structure only, since BL-153 Tier B). The tool never emits these labels; the tables below copy the English for the reader.
+> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS`, `meetsMinimumBracket`, `withMultiRegion`, and the `BRACKET_ORDER` constant in `wizard-config.ts`
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template this document follows.
 

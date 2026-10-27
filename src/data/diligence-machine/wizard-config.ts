@@ -1,9 +1,16 @@
 /**
  * Wizard Step Configuration for The Diligence Machine
  *
- * Each step is a typed config object. Adding, removing, or reordering steps
- * requires only changes to this file — the UI renders from this data.
- * Validated at build time against `WizardStepsArraySchema`.
+ * The wizard's structure: its steps, their input types, and the option ids
+ * the engine and the MCP tool's schema accept. Adding, removing, or
+ * reordering steps starts here; the page renders from this data.
+ *
+ * The words live in the `diligence-machine` catalog
+ * (`src/i18n/<locale>/diligence-machine.json`), keyed by these ids —
+ * `step.<stepId>.title|navLabel|subtitle`, `field.<fieldId>.label` and
+ * `option.<stepOrFieldId>.<optionId>.label|description` — because only the
+ * page shows them (BL-153 Tier B). Validated at build time against
+ * `WizardStepsArraySchema`.
  */
 
 import type { WizardOption, WizardField, WizardStep } from '../../schemas/diligence';
@@ -85,341 +92,121 @@ export const OPERATING_MODEL_IDS = [
 const wizardStepsData: WizardStep[] = [
   {
     id: 'transaction-type',
-    title: 'Transaction Type',
-    navLabel: 'Transaction',
-    subtitle: 'What type of deal is being evaluated?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'full-acquisition',
-        label: 'Full Acquisition',
-        description: 'Complete purchase of the target entity',
-      },
-      {
-        id: 'majority-stake',
-        label: 'Majority Stake',
-        description: 'Controlling interest with existing ownership retained',
-      },
-      {
-        id: 'business-integration',
-        label: 'Portfolio Integration',
-        description: 'Merging operations of two existing entities',
-      },
-      {
-        id: 'carve-out',
-        label: 'Carve-out',
-        description: 'Separation of a business unit from a parent company',
-      },
-      {
-        id: 'venture-series',
-        label: 'Venture Series A/B',
-        description: 'Growth-stage equity investment round',
-      },
+      { id: 'full-acquisition' },
+      { id: 'majority-stake' },
+      { id: 'business-integration' },
+      { id: 'carve-out' },
+      { id: 'venture-series' },
     ],
   },
   {
     id: 'product-type',
-    title: 'Product Type',
-    navLabel: 'Product',
-    subtitle: 'What does the target company build or deliver?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'b2b-saas',
-        label: 'B2B SaaS',
-        description: 'Cloud-hosted software sold to businesses',
-      },
-      {
-        id: 'b2c-marketplace',
-        label: 'B2C Marketplace',
-        description: 'Consumer-facing platform connecting buyers and sellers',
-      },
-      {
-        id: 'on-premise-enterprise',
-        label: 'On-Premise Enterprise',
-        description: 'Software deployed within customer infrastructure',
-      },
-      {
-        id: 'deep-tech-ip',
-        label: 'Deep-Tech / IP',
-        description: 'Technology driven by proprietary research or patents',
-      },
-      {
-        id: 'tech-enabled-service',
-        label: 'Tech-Enabled Business / Service Company',
-        description: 'Service delivery augmented by proprietary technology',
-      },
+      { id: 'b2b-saas' },
+      { id: 'b2c-marketplace' },
+      { id: 'on-premise-enterprise' },
+      { id: 'deep-tech-ip' },
+      { id: 'tech-enabled-service' },
     ],
   },
   {
     id: 'tech-archetype',
-    title: 'Tech Stack Archetype',
-    navLabel: 'Tech Stack',
-    subtitle: 'How is the technology infrastructure provisioned?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'modern-cloud-native',
-        label: 'Modern Cloud Native',
-        description: 'Built on public cloud with containerization and IaC',
-      },
-      {
-        id: 'hybrid-legacy',
-        label: 'Hybrid Legacy',
-        description: 'Mix of cloud services and legacy on-premise systems',
-      },
-      {
-        id: 'self-managed-infra',
-        label: 'Self-Managed Infrastructure',
-        description: 'On-premises servers owned and operated by the company',
-      },
-      {
-        id: 'datacenter-vendor',
-        label: 'Datacenter Vendor',
-        description: 'Hardware housed in third-party data centers',
-      },
+      { id: 'modern-cloud-native' },
+      { id: 'hybrid-legacy' },
+      { id: 'self-managed-infra' },
+      { id: 'datacenter-vendor' },
     ],
   },
   {
     id: 'company-profile',
-    title: 'Company Profile',
-    navLabel: 'Company',
-    subtitle: "Describe the target company's scale and maturity.",
     inputType: 'compound',
     fields: [
       {
         id: 'headcount',
-        label: 'Target Size (Headcount)',
         inputType: 'select',
-        options: [
-          { id: '1-50', label: '1 \u2013 50' },
-          { id: '51-200', label: '51 \u2013 200' },
-          { id: '201-500', label: '201 \u2013 500' },
-          { id: '500+', label: '500+' },
-        ],
+        options: [{ id: '1-50' }, { id: '51-200' }, { id: '201-500' }, { id: '500+' }],
       },
       {
         id: 'revenue-range',
-        label: 'Revenue Range',
         inputType: 'select',
-        options: [
-          { id: '0-5m', label: '$0 \u2013 $5M' },
-          { id: '5-25m', label: '$5M \u2013 $25M' },
-          { id: '25-100m', label: '$25M \u2013 $100M' },
-          { id: '100m+', label: '$100M+' },
-        ],
+        options: [{ id: '0-5m' }, { id: '5-25m' }, { id: '25-100m' }, { id: '100m+' }],
       },
       {
         id: 'growth-stage',
-        label: 'Growth Stage',
         inputType: 'select',
-        options: [
-          { id: 'early', label: 'Early' },
-          { id: 'scaling', label: 'Scaling' },
-          { id: 'mature', label: 'Mature' },
-        ],
+        options: [{ id: 'early' }, { id: 'scaling' }, { id: 'mature' }],
       },
       {
         id: 'company-age',
-        label: 'Company Age',
         inputType: 'select',
         options: [
-          { id: 'under-2yr', label: 'Under 2 years' },
-          { id: '2-5yr', label: '2 \u2013 5 years' },
-          { id: '5-10yr', label: '5 \u2013 10 years' },
-          { id: '10-20yr', label: '10 \u2013 20 years' },
-          { id: '20yr+', label: '20+ years' },
+          { id: 'under-2yr' },
+          { id: '2-5yr' },
+          { id: '5-10yr' },
+          { id: '10-20yr' },
+          { id: '20yr+' },
         ],
       },
     ],
   },
   {
     id: 'geography',
-    title: 'Geography',
-    navLabel: 'Geography',
-    subtitle: 'Where does the target operate? Select all that apply.',
     inputType: 'multi-select',
     options: [
-      {
-        id: 'us',
-        label: 'United States',
-        description: 'North American operations',
-      },
-      {
-        id: 'canada',
-        label: 'Canada',
-        description: 'Canadian operations',
-      },
-      {
-        id: 'eu',
-        label: 'European Union',
-        description: 'EU member state operations',
-      },
-      {
-        id: 'uk',
-        label: 'United Kingdom',
-        description: 'UK operations (post-Brexit)',
-      },
-      {
-        id: 'latam',
-        label: 'Latin America',
-        description: 'LATAM regional operations',
-      },
-      {
-        id: 'africa',
-        label: 'Africa',
-        description: 'African continent operations',
-      },
-      {
-        id: 'apac',
-        label: 'Asia-Pacific',
-        description: 'APAC regional operations',
-      },
-      {
-        id: 'multi-region',
-        label: 'Multi-Region',
-        description: 'Operations spanning geographies',
-      },
+      { id: 'us' },
+      { id: 'canada' },
+      { id: 'eu' },
+      { id: 'uk' },
+      { id: 'latam' },
+      { id: 'africa' },
+      { id: 'apac' },
+      { id: 'multi-region' },
     ],
   },
   {
     id: 'business-model',
-    title: 'Business Model',
-    navLabel: 'Business',
-    subtitle: 'What is the primary delivery and monetization model?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'productized-platform',
-        label: 'Productized Platform',
-        description: 'Self-serve product with platform economics',
-      },
-      {
-        id: 'customized-deployments',
-        label: 'Customized Deployments',
-        description: 'Tailored implementations for each customer',
-      },
-      {
-        id: 'services-led',
-        label: 'Services-Led',
-        description: 'Professional services as primary revenue driver',
-      },
-      {
-        id: 'usage-based',
-        label: 'Usage-Based',
-        description: 'Consumption-based pricing model',
-      },
-      {
-        id: 'ip-licensing',
-        label: 'IP Licensing',
-        description: 'Revenue from intellectual property licensing',
-      },
+      { id: 'productized-platform' },
+      { id: 'customized-deployments' },
+      { id: 'services-led' },
+      { id: 'usage-based' },
+      { id: 'ip-licensing' },
     ],
   },
   {
     id: 'scale-intensity',
-    title: 'Scale Intensity',
-    navLabel: 'Scale',
-    subtitle: 'What is the operational scale and user volume pressure?',
     inputType: 'single-select',
-    options: [
-      {
-        id: 'low',
-        label: 'Low',
-        description: 'Internal tools or small user base',
-      },
-      {
-        id: 'moderate',
-        label: 'Moderate',
-        description: 'Thousands of users with steady growth',
-      },
-      {
-        id: 'high',
-        label: 'High',
-        description: 'Millions of users or high transaction volume',
-      },
-    ],
+    options: [{ id: 'low' }, { id: 'moderate' }, { id: 'high' }],
   },
   {
     id: 'transformation-state',
-    title: 'Transformation State',
-    navLabel: 'Change',
-    subtitle: 'What is the current state of technology modernization?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'stable',
-        label: 'Stable',
-        description: 'No active modernization; current stack is maintained',
-      },
-      {
-        id: 'mid-migration',
-        label: 'Mid-Migration',
-        description: 'Actively transitioning between technology stacks',
-      },
-      {
-        id: 'actively-modernizing',
-        label: 'Actively Modernizing',
-        description: 'Systematic upgrade of architecture and tooling',
-      },
-      {
-        id: 'recently-modernized',
-        label: 'Recently Modernized',
-        description: 'Major modernization completed within past 12\u201318 months',
-      },
+      { id: 'stable' },
+      { id: 'mid-migration' },
+      { id: 'actively-modernizing' },
+      { id: 'recently-modernized' },
     ],
   },
   {
     id: 'data-sensitivity',
-    title: 'Data Sensitivity',
-    navLabel: 'Data',
-    subtitle: 'What is the sensitivity level of the data the target handles?',
     inputType: 'single-select',
-    options: [
-      {
-        id: 'low',
-        label: 'Low',
-        description: 'Non-sensitive operational data',
-      },
-      {
-        id: 'moderate',
-        label: 'Moderate',
-        description: 'Business-sensitive data with standard protection requirements',
-      },
-      {
-        id: 'high',
-        label: 'High',
-        description: 'PII, PHI, financial data, or regulated data categories',
-      },
-    ],
+    options: [{ id: 'low' }, { id: 'moderate' }, { id: 'high' }],
   },
   {
     id: 'operating-model',
-    title: 'Operating Model',
-    navLabel: 'Model',
-    subtitle: 'How is the engineering organization structured?',
     inputType: 'single-select',
     options: [
-      {
-        id: 'centralized-eng',
-        label: 'Centralized Engineering',
-        description: 'Single engineering org with unified leadership',
-      },
-      {
-        id: 'product-aligned-teams',
-        label: 'Product-Aligned Teams',
-        description: 'Autonomous squads aligned to product areas',
-      },
-      {
-        id: 'outsourced-heavy',
-        label: 'Outsourced-Heavy',
-        description: 'Significant reliance on external development partners',
-      },
-      {
-        id: 'hybrid',
-        label: 'Hybrid',
-        description: 'Mix of internal teams and outsourced capabilities',
-      },
+      { id: 'centralized-eng' },
+      { id: 'product-aligned-teams' },
+      { id: 'outsourced-heavy' },
+      { id: 'hybrid' },
     ],
   },
 ];
@@ -433,29 +220,3 @@ export const BRACKET_ORDER = {
   'revenue-range': ['0-5m', '5-25m', '25-100m', '100m+'],
   'company-age': ['under-2yr', '2-5yr', '5-10yr', '10-20yr', '20yr+'],
 } as const;
-
-/** The label every step's "Not sure" button carries. */
-export const NOT_SURE_LABEL = 'Not sure';
-
-/** Human-readable labels for input summary display */
-export function getOptionLabel(stepId: string, optionId: string): string {
-  // `UNKNOWN_INPUT` in src/schemas/diligence.ts, spelled out: a value import
-  // from the schema module would put Zod in the page's bundle.
-  if (optionId === 'unknown') return NOT_SURE_LABEL;
-  const step = WIZARD_STEPS.find((s) => s.id === stepId);
-  if (!step) return optionId;
-
-  if (step.options) {
-    const opt = step.options.find((o) => o.id === optionId);
-    return opt?.label ?? optionId;
-  }
-
-  if (step.fields) {
-    for (const field of step.fields) {
-      const opt = field.options.find((o) => o.id === optionId);
-      if (opt) return opt.label;
-    }
-  }
-
-  return optionId;
-}
