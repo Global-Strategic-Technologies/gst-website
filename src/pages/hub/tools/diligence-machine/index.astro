@@ -8,13 +8,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 import { QUESTIONS } from '../../../../data/diligence-machine/questions';
 import { ATTENTION_AREAS } from '../../../../data/diligence-machine/attention-areas';
 import { UserInputsSchema } from '../../../../schemas/diligence';
-import { MANUAL_OPS_MASKING_AREA } from '../../../../utils/diligence-engine';
 
 // The methodology's counts are measured from the data, so they cannot drift.
 const questionCount = QUESTIONS.length;
-// The data's areas plus the one the engine computes.
-const attentionAreaCount = new Set([...ATTENTION_AREAS, MANUAL_OPS_MASKING_AREA].map((a) => a.id))
-  .size;
+const attentionAreaCount = ATTENTION_AREAS.length;
 const dimensionCount = Object.keys(UserInputsSchema.shape).length;
 ---
 

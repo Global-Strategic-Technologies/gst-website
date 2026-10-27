@@ -39,7 +39,7 @@ v2 expands the wizard from 5 steps to 10, adds strategic metadata to questions, 
 | Attention areas | 18 areas | 28 areas (+10 v2) |
 | Condition dimensions | 9 fields | 14 fields (+5 new) |
 | Question metadata | id, text, rationale, priority | + exitImpact, lookoutSignal, track |
-| Engine rules | Filter → Balance → Group | + Archetype Pivot, Maturity Override |
+| Engine rules | Filter → Balance → Group | + Archetype Pivot |
 | State version | `STORAGE_VERSION = 1` | `STORAGE_VERSION = 2` |
 | UX | Instant output | 2-second "Analyzing" overlay + methodology section |
 
@@ -291,16 +291,6 @@ All ~68 questions are filtered against user inputs via `matchesConditions()`. Ty
 
 Questions are grouped by topic (Architecture → Operations → Carve-out → Security) and sorted by priority within each topic.
 
-### 5. Maturity Override (v2)
-
-`applyMaturityOverrides()` injects computed attention areas based on cross-field logic:
-
-**Trigger**: `revenueRange >= '25-100m'` AND `headcount < '201-500'` AND `growthStage === 'mature'`
-
-**Action**: Inject `attention-manual-ops-masking` area if not already present from condition matching.
-
-**Rationale**: High revenue with low headcount in a mature company may indicate manual processes masked behind a technology facade — a pattern that simple condition arrays can't express.
-
 ---
 
 ## Attention Areas
@@ -329,7 +319,7 @@ Questions are grouped by topic (Architecture → Operations → Carve-out → Se
 
 **Strategic / Market (v2)**
 - AI Commodity Risk (Moat Erosion) — B2B SaaS
-- Manual Operations Masking — revenue 25–100m+ + mature (also injected by maturity override)
+- Manual Operations Masking — revenue 25–100m+ + mature
 - Services-Led Margin Pressure (v2) — services-led business model + revenue 5–25m
 
 **Security & Data Governance (v2)**
@@ -472,9 +462,8 @@ interface GeneratedScript {
 3. Balance across topics (15-20, min 3 per topic)
 4. Group by topic and sort by priority
 5. Filter attention areas by matchesConditions()
-6. Apply maturity overrides (inject computed areas)
-7. Sort areas by relevance (high → medium → low)
-8. Return GeneratedScript with 13-field metadata
+6. Sort areas by relevance (high → medium → low)
+7. Return GeneratedScript with 13-field metadata
 ```
 
 ---
@@ -516,7 +505,7 @@ A static methodology section appears in the output after the attention areas, ex
 
 | Test File | Tests | Purpose |
 |-----------|-------|---------|
-| `tests/unit/diligence-engine.test.ts` | Engine logic | `matchesConditions()`, `meetsMinimumBracket()`, `sortByPriority()`, `balanceAcrossTopics()`, `groupByTopic()`, `generateScript()`, `syncMultiRegion()`, `applyArchetypePivot()`, `applyMaturityOverrides()`, v2 condition dimensions |
+| `tests/unit/diligence-engine.test.ts` | Engine logic | `matchesConditions()`, `meetsMinimumBracket()`, `sortByPriority()`, `balanceAcrossTopics()`, `groupByTopic()`, `generateScript()`, `syncMultiRegion()`, `applyArchetypePivot()`, v2 condition dimensions |
 | `tests/unit/diligence-questions.test.ts` | Data validation | Question/area structure, ID formats, condition validity against wizard options, v2 metadata validation, wizard config integrity |
 | `tests/integration/diligence-wizard-navigation.test.ts` | Navigation | 10-step progress bar, forward/back/segment clicks, state persistence, edge cases |
 
@@ -529,7 +518,7 @@ A static methodology section appears in the output after the attention areas, ex
 | `src/pages/hub/tools/diligence-machine/index.astro` | Page component: 10-step wizard markup, analyze overlay, methodology section, styles incl. print |
 | `src/scripts/diligence-machine/index.ts` | Client script: step navigation, option selection, localStorage + URL state, output rendering (incl. exitImpact badges, lookoutSignal), copy/print |
 | `src/scripts/diligence-machine/logic.ts` | DOM-free wizard rules: `navigate()`, `stepState()`, `canNavigateTo()`, `parseSavedState()`, `STORAGE_VERSION` |
-| `src/utils/diligence-engine.ts` | Core engine: `generateScript()`, `matchesConditions()`, `balanceAcrossTopics()`, `applyArchetypePivot()`, `applyMaturityOverrides()`, `syncMultiRegion()` |
+| `src/utils/diligence-engine.ts` | Core engine: `generateScript()`, `matchesConditions()`, `balanceAcrossTopics()`, `applyArchetypePivot()`, `syncMultiRegion()` |
 | `src/data/diligence-machine/wizard-config.ts` | 10 step definitions, option labels, `BRACKET_ORDER`, `getOptionLabel()` helper |
 | `src/data/diligence-machine/questions.ts` | Question bank (~68 questions) with conditions, priorities, and v2 metadata |
 | `src/data/diligence-machine/attention-areas.ts` | Attention area definitions (23 areas) with conditions and relevance |

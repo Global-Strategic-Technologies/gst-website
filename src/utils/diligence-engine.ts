@@ -342,44 +342,6 @@ export function applyArchetypePivot(
   });
 }
 
-/**
- * The one attention area the engine computes rather than reads from
- * `ATTENTION_AREAS` (its trigger is cross-field). The area count the page's
- * methodology cites and the catalog pin test both read it from here.
- */
-export const MANUAL_OPS_MASKING_AREA: AttentionArea = {
-  id: 'attention-manual-ops-masking',
-  title: 'Manual Operations Masking',
-  description:
-    'High-revenue companies with low headcount growth may be masking manual operations behind a technology facade. Revenue per employee ratios that appear favorable may actually indicate process bottlenecks that limit scalability.',
-  relevance: 'high',
-  conditions: {},
-};
-
-/**
- * Inject computed attention areas based on cross-field logic that cannot be
- * expressed as simple condition arrays.
- *
- * Maturity Override: high-revenue + low headcount + mature growth →
- * inject "Manual Operations Masking" attention area.
- */
-export function applyMaturityOverrides(
-  areas: AttentionArea[],
-  inputs: UserInputs
-): AttentionArea[] {
-  const isHighRevLowHead =
-    meetsMinimumBracket('revenue-range', inputs.revenueRange, '25-100m') &&
-    !meetsMinimumBracket('headcount', inputs.headcount, '201-500') &&
-    inputs.growthStage === 'mature';
-
-  if (!isHighRevLowHead) return areas;
-
-  const alreadyPresent = areas.some((a) => a.id === MANUAL_OPS_MASKING_AREA.id);
-  if (alreadyPresent) return areas;
-
-  return [...areas, MANUAL_OPS_MASKING_AREA];
-}
-
 /** Human-readable labels for condition dimensions */
 const CONDITION_LABELS: Record<string, string> = {
   transactionTypes: 'Transaction Type',
@@ -438,14 +400,11 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
   // 5. Filter attention areas by conditions
   const matchedAreas = ATTENTION_AREAS.filter((a) => matchesConditions(a.conditions, inputs));
 
-  // 6. Apply maturity overrides (inject computed attention areas)
-  const enrichedAreas = applyMaturityOverrides(matchedAreas, inputs);
-
   return {
     topics,
     triggerMap,
-    // 7. Sort attention areas by relevance
-    attentionAreas: [...enrichedAreas].sort(
+    // 6. Sort attention areas by relevance
+    attentionAreas: [...matchedAreas].sort(
       (a, b) => (RELEVANCE_ORDER[a.relevance] ?? 2) - (RELEVANCE_ORDER[b.relevance] ?? 2)
     ),
     metadata: {

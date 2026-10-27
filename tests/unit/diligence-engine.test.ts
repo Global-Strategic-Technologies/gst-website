@@ -22,9 +22,9 @@ import {
   withMultiRegion,
   knownRegionCount,
   applyArchetypePivot,
-  applyMaturityOverrides,
 } from '../../src/utils/diligence-engine';
 import type { UserInputs } from '../../src/utils/diligence-engine';
+import { ATTENTION_AREAS } from '../../src/data/diligence-machine/attention-areas';
 import type {
   DiligenceQuestion,
   QuestionCondition,
@@ -1218,77 +1218,30 @@ describe('applyArchetypePivot', () => {
   });
 });
 
-// ─── TESTS: applyMaturityOverrides ──────────────────────────────────────────
+// ─── TESTS: Manual Operations Masking ───────────────────────────────────────
 
-describe('applyMaturityOverrides', () => {
-  it('should inject manual-ops-masking anchor for high-revenue + low-headcount + mature', () => {
-    const inputs: UserInputs = {
+// The engine used to inject a second copy of this area from code
+// (applyMaturityOverrides). Its trigger was narrower than the data entry's
+// conditions, so the data entry always matched first and the injected copy
+// never reached the output (0 of 900 input combinations); it was removed.
+describe('attention-manual-ops-masking', () => {
+  const manualOps = (inputs: UserInputs) =>
+    generateScript(inputs).attentionAreas.filter((a) => a.id === 'attention-manual-ops-masking');
+
+  it('appears once, with the data entry, for high revenue at maturity', () => {
+    const areas = manualOps({
       ...baseInputs,
       revenueRange: '25-100m',
       headcount: '51-200',
       growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(true);
+    });
+    const entry = ATTENTION_AREAS.find((a) => a.id === 'attention-manual-ops-masking');
+    expect(areas).toEqual([entry]);
   });
 
-  it('should not inject for low-revenue companies', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '5-25m',
-      headcount: '51-200',
-      growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not inject for high-headcount companies', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '100m+',
-      headcount: '201-500',
-      growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not inject for non-mature growth stages', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '25-100m',
-      headcount: '51-200',
-      growthStage: 'scaling',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not duplicate if anchor already present', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '25-100m',
-      headcount: '1-50',
-      growthStage: 'mature',
-    };
-    const existing = [
-      {
-        id: 'attention-manual-ops-masking',
-        title: 'Manual Operations Masking',
-        description: 'Already present',
-        relevance: 'high' as const,
-        conditions: {},
-      },
-    ];
-    const result = applyMaturityOverrides(existing, inputs);
-
-    const count = result.filter((a) => a.id === 'attention-manual-ops-masking').length;
-    expect(count).toBe(1);
+  it('does not appear below the revenue threshold or before maturity', () => {
+    expect(manualOps({ ...baseInputs, revenueRange: '5-25m', growthStage: 'mature' })).toEqual([]);
+    expect(manualOps({ ...baseInputs, revenueRange: '100m+', growthStage: 'scaling' })).toEqual([]);
   });
 });
 

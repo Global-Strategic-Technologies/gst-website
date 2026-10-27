@@ -172,7 +172,7 @@ The 13 inputs the tool accepts. The "Dimension label" column matches the labels 
 | `scaling` | Scaling |
 | `mature`  | Mature  |
 
-**Downstream effect**: Combines with other inputs to gate stage-specific questions. `scaling` paired with `dataSensitivity: high` surfaces the Data Classification Maturity Gap attention area. The `applyMaturityOverrides()` helper injects a "Manual Operations Masking" attention area for the specific pattern `revenueMin: 25-100m` + `headcount < 201` + `growthStage: mature` — high-revenue with low headcount at maturity is a reliable signal of unscalable manual processes.
+**Downstream effect**: Combines with other inputs to gate stage-specific questions. `scaling` paired with `dataSensitivity: high` surfaces the Data Classification Maturity Gap attention area. `mature` paired with `revenueRange` of `25-100m` or more surfaces the Manual Operations Masking attention area — high revenue on a lean, mature organization can mean manual processes that won't scale.
 
 ---
 
