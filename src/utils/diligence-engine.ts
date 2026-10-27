@@ -473,10 +473,35 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
 export const MULTI_REGION_ID = 'multi-region';
 
 /**
- * Synchronize 'multi-region' based on non-MR geography count.
- * - 2+ non-MR geos → ensure MR is included
- * - 1 non-MR geo → ensure MR is removed
- * - 0 non-MR geos → no change (standalone MR allowed)
+ * How many specific regions an answer names: not `multi-region` itself, and
+ * not the `'unknown'` sentinel, which says nothing about where the target
+ * operates. The page's `syncMultiRegion` and the MCP tool's `withMultiRegion`
+ * both count with this, so a deeplink opens the page on the same agenda the
+ * tool returned.
+ */
+export function knownRegionCount(geographies: readonly string[]): number {
+  return geographies.filter((g) => g !== MULTI_REGION_ID && g !== 'unknown').length;
+}
+
+/**
+ * The MCP tool's sync: add `multi-region` when 2+ specific regions are named,
+ * and never remove it — a caller who passes it explicitly asserted it
+ * (operator decision, 2026-10-27). Returns a new array.
+ */
+export function withMultiRegion(geographies: readonly string[]): string[] {
+  if (knownRegionCount(geographies) >= 2 && !geographies.includes(MULTI_REGION_ID)) {
+    return [...geographies, MULTI_REGION_ID];
+  }
+  return [...geographies];
+}
+
+/**
+ * Synchronize 'multi-region' with the wizard's selection, counting specific
+ * regions with `knownRegionCount`:
+ * - 2+ specific regions → ensure MR is included
+ * - exactly 1 → ensure MR is removed
+ * - 0 → no change (standalone MR allowed, and `['unknown', 'multi-region']`
+ *   keeps it, as the MCP tool does)
  *
  * Does NOT handle the "user deselects MR" clear-all case;
  * that is a UI-level concern handled in the click handler.
@@ -484,14 +509,14 @@ export const MULTI_REGION_ID = 'multi-region';
  * Returns a new array (does not mutate the input).
  */
 export function syncMultiRegion(geographies: string[]): string[] {
-  const nonMR = geographies.filter((g) => g !== MULTI_REGION_ID);
+  const known = knownRegionCount(geographies);
   const hasMR = geographies.includes(MULTI_REGION_ID);
 
-  if (nonMR.length >= 2 && !hasMR) {
+  if (known >= 2 && !hasMR) {
     return [...geographies, MULTI_REGION_ID];
   }
-  if (nonMR.length === 1 && hasMR) {
-    return nonMR;
+  if (known === 1 && hasMR) {
+    return geographies.filter((g) => g !== MULTI_REGION_ID);
   }
   return geographies;
 }

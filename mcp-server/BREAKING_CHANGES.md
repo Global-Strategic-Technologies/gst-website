@@ -35,6 +35,21 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.71.0 — 2026-10-27 — `generate_diligence_agenda` adds `multi-region` for two or more specific regions
+
+**Not breaking: an output-behaviour change on one tool.** No tool, prompt or Resource URI is renamed or removed. **The manifest hash is unchanged**: tool behaviour and descriptions are not hash inputs.
+
+**Changed**
+
+- **`generate_diligence_agenda` adds `multi-region`** when `geographies` names two or more specific regions, before the engine runs. The `geographies` description had promised this ("auto-syncs `multi-region`") since the tool shipped, but only the website's wizard did it. So a caller passing `['eu', 'uk']` got none of the four cross-border attention areas, while the `deeplink` it returned opened a page that showed them. `'unknown'` does not count as a region, and a `multi-region` the caller passes is never removed (operator decision). The audit checks still see the caller's own array; `metadata.inputSummary.geographies` and the `deeplink` now carry the array the engine ran on. The website now counts regions the same way, so the two agree on every input except one specific region plus `multi-region`, which the CONTRACT documents.
+- **The `geographies` description** says exactly that. The JSON Schema text changes; the enum and shape do not.
+
+**Client impact**: a caller passing two or more regions without `multi-region` gets up to four more attention areas, and the echoed `inputSummary.geographies` has `multi-region` appended. Nothing is removed from any response.
+
+**Rollback stays safe.** `rollback-mcp.yml` to the previous Worker version; the change is a pure function on the request path, with no stored state.
+
+---
+
 ## 0.70.0 — 2026-10-14 — five Canadian regulation Resources; an optional `status` on `search_regulations` results; `us` / `ca` deeplinks drop the region (BL-169)
 
 **Additive for every client: five new Resource URIs, one new optional result field, one prompt minor bump.** No tool, prompt or Resource URI is renamed or removed, so pinned conversations keep working. **The manifest hash changes** (new URIs, plus the prompt bump).

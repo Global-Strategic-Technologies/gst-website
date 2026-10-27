@@ -221,7 +221,7 @@ export const UserInputsSchema = z.object({
     .array(z.enum(withUnknown(GEOGRAPHY_IDS)))
     .min(1)
     .describe(
-      "Multi-select array of operating regions (≥ 1 element). Selecting 2+ specific regions auto-syncs `multi-region` via `syncMultiRegion()`. EU triggers GDPR + EU AI Act questions; Canada triggers PIPEDA + Quebec Law 25 attention area. Pass `['unknown']` (still satisfies .min(1)) when geographies are not derivable; the engine treats `['unknown']` exactly like a single-value `'unknown'` (widens triggers)."
+      "Multi-select array of operating regions (≥ 1 element). Two or more specific regions (not `'unknown'`) add `multi-region` to the array the engine runs on; a `multi-region` you pass is kept. EU triggers GDPR + EU AI Act questions; Canada triggers PIPEDA + Quebec Law 25 attention area. Pass `['unknown']` (still satisfies .min(1)) when geographies are not derivable; the engine treats `['unknown']` exactly like a single-value `'unknown'` (widens triggers)."
     ),
   businessModel: z
     .enum(withUnknown(BUSINESS_MODEL_IDS))

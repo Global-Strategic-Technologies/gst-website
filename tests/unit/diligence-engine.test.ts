@@ -19,6 +19,8 @@ import {
   groupByTopic,
   generateScript,
   syncMultiRegion,
+  withMultiRegion,
+  knownRegionCount,
   applyArchetypePivot,
   applyMaturityOverrides,
 } from '../../src/utils/diligence-engine';
@@ -1344,6 +1346,52 @@ describe('syncMultiRegion', () => {
     // Simulates: user had ['us', 'eu', 'multi-region'], then deselected 'eu'
     // After deselect, array is ['us', 'multi-region'] → sync → ['us']
     expect(syncMultiRegion(['us', 'multi-region'])).toEqual(['us']);
+  });
+
+  // A deeplink can carry mixes the wizard's clicks never build. 'unknown'
+  // is not a region, so the page agrees with the MCP tool on them.
+  it("does not count 'unknown' as a region when adding", () => {
+    expect(syncMultiRegion(['us', 'unknown'])).toEqual(['us', 'unknown']);
+  });
+
+  it("keeps multi-region beside 'unknown' alone", () => {
+    expect(syncMultiRegion(['unknown', 'multi-region'])).toEqual(['unknown', 'multi-region']);
+  });
+
+  it("removes multi-region beside one specific region and 'unknown'", () => {
+    expect(syncMultiRegion(['us', 'unknown', 'multi-region'])).toEqual(['us', 'unknown']);
+  });
+});
+
+describe('knownRegionCount', () => {
+  it("counts specific regions only, not multi-region or 'unknown'", () => {
+    expect(knownRegionCount(['us', 'eu', 'multi-region', 'unknown'])).toBe(2);
+    expect(knownRegionCount(['unknown'])).toBe(0);
+    expect(knownRegionCount([])).toBe(0);
+  });
+});
+
+describe('withMultiRegion (the MCP tool: add, never remove)', () => {
+  it('adds multi-region for 2+ specific regions', () => {
+    expect(withMultiRegion(['eu', 'uk'])).toEqual(['eu', 'uk', 'multi-region']);
+  });
+
+  it("does not count 'unknown' as a region", () => {
+    expect(withMultiRegion(['us', 'unknown'])).toEqual(['us', 'unknown']);
+  });
+
+  it("keeps an explicit multi-region beside 'unknown'", () => {
+    expect(withMultiRegion(['unknown', 'multi-region'])).toEqual(['unknown', 'multi-region']);
+  });
+
+  it('keeps an explicit multi-region beside one specific region (the page would remove it)', () => {
+    expect(withMultiRegion(['us', 'multi-region'])).toEqual(['us', 'multi-region']);
+  });
+
+  it('does not duplicate multi-region or mutate its input', () => {
+    const input = ['us', 'eu', 'multi-region'];
+    expect(withMultiRegion(input)).toEqual(['us', 'eu', 'multi-region']);
+    expect(input).toEqual(['us', 'eu', 'multi-region']);
   });
 });
 

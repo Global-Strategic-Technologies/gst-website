@@ -197,7 +197,7 @@ export const CAPABILITIES: readonly Capability[] = [
       },
       {
         name: 'geographies',
-        desc: 'enum array. The only multi-select input. Two or more specific regions auto-adds multi-region.',
+        desc: "enum array. The only multi-select input. Two or more specific regions (not 'unknown') add multi-region; one you pass is kept.",
         example: '["eu"]',
       },
       {

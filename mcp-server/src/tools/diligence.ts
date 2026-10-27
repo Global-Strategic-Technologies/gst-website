@@ -8,7 +8,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
-import { generateScript } from '../../../src/utils/diligence-engine';
+import { generateScript, withMultiRegion } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { type ValidatedUserInputs } from '../schemas';
@@ -107,8 +107,15 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
   try {
     // Strip the _audit sibling before invoking the engine — the engine
     // operates on the 13 dimension fields only.
-    const { _audit: _ignored, ...inputs } = payload;
+    const { _audit: _ignored, ...received } = payload;
     void _ignored;
+    // Two or more specific regions add `multi-region`, as the website does
+    // (`withMultiRegion` never removes it). After the audit, which checks
+    // the caller's own geographies against its citation.
+    const inputs = {
+      ...received,
+      geographies: withMultiRegion(received.geographies),
+    };
     const result = generateScript(inputs as ValidatedUserInputs);
     const unknownDimensionCount = countUnknownDimensions(inputs as ValidatedUserInputs);
     const deeplink = buildDiligenceDeeplink(inputs as ValidatedUserInputs);
