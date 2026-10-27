@@ -43,7 +43,7 @@ const WizardStep = ({
 export const ToolChromeSpecimen = () => (
   <Stack>
     <Row label="Action bar (results footer)">
-      {/* infrastructure-cost-governance/index.astro § results — a row of
+      {/* page-templates/HubIcgPage.astro § results — a row of
           .brutal-btn actions; --center/--end align, --bordered adds the top
           hairline, --frosted the surface, --stack collapses at 480px. */}
       <div
@@ -167,7 +167,7 @@ export const ToolChromeSpecimen = () => (
     </Row>
 
     <Row label="Methodology disclosure">
-      {/* infrastructure-cost-governance/index.astro § methodology — must be
+      {/* page-templates/HubIcgPage.astro § methodology — must be
           <details>/<summary>: the marker rotation keys on [open] and the
           direct-child combinator. --delta swaps the ▶ glyph for the GST delta. */}
       <details className="tool-methodology tool-methodology--delta" style={{ width: '100%' }} open>

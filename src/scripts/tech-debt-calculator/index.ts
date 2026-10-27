@@ -41,8 +41,9 @@ import {
   parseCurrencyParam,
   type Currency,
 } from '../../i18n/currency';
-import { formatFixed, formatPlain } from '../../i18n/formatters';
+import { formatFixed, formatList, formatPlain } from '../../i18n/formatters';
 import { s } from './strings';
+import { pageLang } from '../tool-strings';
 
 // Analytics: fire tdc_start once per page load on first slider interaction
 let tdcStartFired = false;
@@ -68,11 +69,8 @@ function el(id: string): HTMLElement {
 // ─── Page language ───────────────────────────────────────────────────────────
 
 // Strings come from the page's island (English when there is none); numbers
-// follow `<html lang>`, the tag the template formats its first paint with.
-function pageLang(): string {
-  return document.documentElement.lang || 'en';
-}
-
+// follow `<html lang>` (`pageLang()`), the tag the template formats its first
+// paint with.
 const fixed = (n: number, decimals: number): string => formatFixed(n, pageLang(), decimals);
 const plain = (n: number): string => formatPlain(n, pageLang());
 const pct = (n: number): string => s('js.unit.pct', { n: plain(n) });
@@ -112,16 +110,9 @@ function showSharedStateNotice(adjustedKeys: StateFieldKey[]): void {
   const noticeEl = document.querySelector('[data-shared-notice]') as HTMLElement | null;
   if (!noticeEl || adjustedKeys.length === 0) return;
   const labels = adjustedKeys.map((key) => s(`field.${key}`));
-  noticeEl.textContent = s('js.sharedNotice', { fields: listOf(labels) });
+  // The English page keeps the comma list it has always printed.
+  noticeEl.textContent = s('js.sharedNotice', { fields: formatList(labels, pageLang(), ', ') });
   noticeEl.hidden = false;
-}
-
-// `Intl.ListFormat` joins in the page language ("a, b y c", "a, b e c"). The
-// English page keeps the comma list it has always printed.
-function listOf(items: string[]): string {
-  const lang = pageLang();
-  if (lang.startsWith('en') || typeof Intl.ListFormat !== 'function') return items.join(', ');
-  return new Intl.ListFormat(lang, { style: 'long', type: 'conjunction' }).format(items);
 }
 
 // ─── Currency ─────────────────────────────────────────────────────────────────

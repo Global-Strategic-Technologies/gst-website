@@ -6,10 +6,8 @@ import {
   getQuickWins,
   encodeState,
   decodeState,
-  buildSummaryText,
   buildExportPayload,
   compareSnapshots,
-  contextualizeScore,
   findMatchingRange,
 } from '../../utils/icg-engine';
 
@@ -20,7 +18,30 @@ import { DOMAINS, ANSWER_OPTIONS } from '../../data/infrastructure-cost-governan
 import { RECOMMENDATIONS } from '../../data/infrastructure-cost-governance/recommendations';
 import { copyWithFeedback } from '../../utils/copy-feedback';
 import { escapeHtml } from '../../utils/escape-html';
-import { emailHref, gaugeArcSVG, maturityDescription, radarChartSVG } from './logic';
+import {
+  answerLabel,
+  buildSummaryText,
+  contextualizeScore,
+  counted,
+  domainDescription,
+  domainName,
+  effortLabel,
+  emailHref,
+  foundationalTitle,
+  gaugeArcSVG,
+  impactLabel,
+  maturityDescription,
+  maturityLabel,
+  questionRationale,
+  questionText,
+  radarChartSVG,
+  radarLabel,
+  recDescription,
+  recTitle,
+} from './logic';
+import { s } from './strings';
+import { formatDate } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
 
@@ -36,8 +57,8 @@ function pushUrlState(state: ICGState): void {
 }
 
 function readUrlState(): Partial<ICGState> | null {
-  const s = new URLSearchParams(window.location.search).get('s');
-  return s ? decodeState(s) : null;
+  const encoded = new URLSearchParams(window.location.search).get('s');
+  return encoded ? decodeState(encoded) : null;
 }
 
 // ─── State ──────────────────────────────────────────────────────────────────
@@ -50,9 +71,9 @@ let hasPendingResume = false;
 
 const ICG_STORAGE_KEY = 'icg-assessment-state';
 
-function saveToStorage(s: ICGState): void {
+function saveToStorage(current: ICGState): void {
   try {
-    localStorage.setItem(ICG_STORAGE_KEY, JSON.stringify(s));
+    localStorage.setItem(ICG_STORAGE_KEY, JSON.stringify(current));
   } catch {
     /* private browsing */
   }
@@ -108,7 +129,7 @@ function saveSnapshot(snap: ICGSnapshot): void {
 
 function deleteSnapshot(id: string): void {
   try {
-    const all = loadSnapshots().filter((s) => s.id !== id);
+    const all = loadSnapshots().filter((snap) => snap.id !== id);
     localStorage.setItem(ICG_SNAPSHOTS_KEY, JSON.stringify(all));
   } catch {
     /* noop */
@@ -176,12 +197,14 @@ function renderWizard(): void {
   const fill = qs<HTMLElement>('[data-progress-fill]');
   const label = qs<HTMLElement>('[data-progress-label]');
   fill.style.width = `${(state.currentStep / 6) * 100}%`;
-  label.textContent = `${state.currentStep} of 6`;
+  label.textContent = s('js.progress', { n: state.currentStep, total: 6 });
 
   // Domain header
-  qs<HTMLElement>('[data-domain-label]').textContent = `Domain ${state.currentStep}`;
-  qs<HTMLElement>('[data-domain-name]').textContent = domain.name;
-  qs<HTMLElement>('[data-domain-desc]').textContent = domain.description;
+  qs<HTMLElement>('[data-domain-label]').textContent = s('js.domainLabel', {
+    n: state.currentStep,
+  });
+  qs<HTMLElement>('[data-domain-name]').textContent = domainName(domain.id);
+  qs<HTMLElement>('[data-domain-desc]').textContent = domainDescription(domain.id);
 
   // Foundational badge and note
   const badge = qs<HTMLElement>('[data-foundational-badge]');
@@ -201,16 +224,16 @@ function renderWizard(): void {
       const optBtns =
         ANSWER_OPTIONS.map((opt) => {
           const sel = state.answers[q.id] === opt.score;
-          return `<button class="brutal-choice-btn${sel ? ' brutal-choice-btn--selected' : ''}" data-answer="${q.id}" data-score="${opt.score}" type="button" aria-pressed="${sel}">${opt.label}</button>`;
+          return `<button class="brutal-choice-btn${sel ? ' brutal-choice-btn--selected' : ''}" data-answer="${q.id}" data-score="${opt.score}" type="button" aria-pressed="${sel}">${escapeHtml(answerLabel(opt.score))}</button>`;
         }).join('') +
-        `<button class="brutal-choice-btn brutal-choice-btn--unsure${unsureSel ? ' brutal-choice-btn--selected' : ''}" data-answer="${q.id}" data-score="-1" type="button" aria-pressed="${unsureSel}">Not sure</button>`;
+        `<button class="brutal-choice-btn brutal-choice-btn--unsure${unsureSel ? ' brutal-choice-btn--selected' : ''}" data-answer="${q.id}" data-score="-1" type="button" aria-pressed="${unsureSel}">${escapeHtml(answerLabel(-1))}</button>`;
       return `
     <div class="icg-question-card">
       <p class="icg-question-text">
-        <span class="icg-question-num">${globalOffset + qi + 1}.</span>${q.text}
+        <span class="icg-question-num">${globalOffset + qi + 1}.</span>${escapeHtml(questionText(q.id))}
       </p>
       <div class="icg-options-row">${optBtns}</div>
-      ${q.rationale ? `<details class="icg-rationale"><summary class="icg-rationale__trigger">Why this matters</summary><p class="icg-rationale__text">${q.rationale}</p></details>` : ''}
+      ${q.rationale ? `<details class="icg-rationale"><summary class="icg-rationale__trigger">${escapeHtml(s('js.whyMatters'))}</summary><p class="icg-rationale__text">${escapeHtml(questionRationale(q.id))}</p></details>` : ''}
     </div>`;
     })
     .join('');
@@ -233,12 +256,12 @@ function renderWizard(): void {
   const nextBtn = qs<HTMLButtonElement>('[data-action="next"]');
 
   if (reviewMode) {
-    backBtn.textContent = state.currentStep === 1 ? 'Back to results' : 'Previous';
-    nextBtn.textContent = state.currentStep === 6 ? 'Back to results' : 'Next domain';
+    backBtn.textContent = s(state.currentStep === 1 ? 'js.nav.backToResults' : 'js.nav.previous');
+    nextBtn.textContent = s(state.currentStep === 6 ? 'js.nav.backToResults' : 'js.nav.nextDomain');
     nextBtn.disabled = false;
   } else {
-    backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
-    nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
+    backBtn.textContent = s(state.currentStep === 1 ? 'js.nav.backToIntro' : 'js.nav.previous');
+    nextBtn.textContent = s(state.currentStep === 6 ? 'js.nav.viewResults' : 'js.nav.nextDomain');
     nextBtn.disabled = !canNext;
   }
 }
@@ -255,7 +278,7 @@ function renderResults(): void {
 
   // Level and description
   const levelEl = qs<HTMLElement>('[data-score-level]');
-  levelEl.textContent = result.maturityLevel;
+  levelEl.textContent = maturityLabel(result.maturityLevel);
   levelEl.style.color = result.maturityInk;
   qs<HTMLElement>('[data-score-desc]').textContent = maturityDescription(result.overallScore);
 
@@ -269,25 +292,28 @@ function renderResults(): void {
   const skippedEl = qs<HTMLElement>('[data-skipped-note]');
   skippedEl.classList.toggle('is-hidden', result.skippedCount === 0);
   if (result.skippedCount > 0) {
-    skippedEl.textContent = `${result.skippedCount} of ${result.totalQuestions} questions marked "Not sure" \u2014 these score as zero and may indicate governance blind spots`;
+    skippedEl.textContent = s('js.skippedNote', {
+      count: result.skippedCount,
+      total: result.totalQuestions,
+    });
   }
 
   // Foundational warning
   const warningEl = qs<HTMLElement>('[data-foundational-warning]');
   warningEl.classList.toggle('is-hidden', !result.showFoundationalFlag);
   if (result.showFoundationalFlag) {
-    const belowNames = result.domainScores
+    const belowIds = result.domainScores
       .filter((ds) => ds.isFoundational && ds.belowFoundationalThreshold)
-      .map((ds) => ds.name);
-    qs<HTMLElement>('[data-foundational-warning-title]').textContent =
-      `${belowNames.join(' and ')} scored below the foundational threshold`;
-    qs<HTMLElement>('[data-foundational-warning-text]').textContent =
-      'Without foundational visibility and cost structure in place, scores in other domains may understate the true optimization gap. It is difficult to right-size or govern what you cannot see or attribute.';
+      .map((ds) => ds.domainId);
+    qs<HTMLElement>('[data-foundational-warning-title]').textContent = foundationalTitle(belowIds);
+    qs<HTMLElement>('[data-foundational-warning-text]').textContent = s('js.foundational.text');
   }
 
   // Domain bars
   // Radar chart
-  qs<HTMLElement>('[data-radar-chart]').innerHTML = radarChartSVG(result.domainScores);
+  qs<HTMLElement>('[data-radar-chart]').innerHTML = radarChartSVG(
+    result.domainScores.map((ds) => ({ label: radarLabel(ds.domainId), score: ds.score }))
+  );
 
   // Rec counts by domain (for domain bar badges)
   const dismissed = new Set(state.dismissed);
@@ -307,18 +333,18 @@ function renderResults(): void {
       const recCount = recCountByDomain[ds.domainId] || 0;
       const recBadge =
         recCount > 0
-          ? `<span class="icg-domain-bar__rec-count">${recCount} rec${recCount > 1 ? 's' : ''}</span>`
+          ? `<span class="icg-domain-bar__rec-count">${escapeHtml(counted('js.recCount', recCount))}</span>`
           : '';
       const skippedBadge =
         ds.skippedCount > 0
-          ? `<span class="icg-domain-bar__skipped">${ds.skippedCount} skipped</span>`
+          ? `<span class="icg-domain-bar__skipped">${escapeHtml(counted('js.skipped', ds.skippedCount))}</span>`
           : '';
       const hasLink = recCount > 0;
       return `
     <div class="icg-domain-bar"${hasLink ? ` data-domain-link="${ds.domainId}"` : ''}>
       <div class="icg-domain-bar__header">
-        <span class="icg-domain-bar__name">${ds.name}</span>
-        <span class="icg-domain-bar__score" style="color:${ink}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span>${recBadge}${skippedBadge}</span>
+        <span class="icg-domain-bar__name">${escapeHtml(domainName(ds.domainId))}</span>
+        <span class="icg-domain-bar__score" style="color:${ink}">${ds.score} <span class="icg-domain-bar__maturity">${escapeHtml(maturityLabel(level))}</span>${recBadge}${skippedBadge}</span>
       </div>
       <div class="icg-domain-bar__track">
         <div class="icg-domain-bar__fill" style="width:${ds.score}%;background:${color}"></div>
@@ -351,7 +377,7 @@ function renderResults(): void {
       if (inRange) {
         firstTd.insertAdjacentHTML(
           'beforeend',
-          ' <span class="brutal-bench-table__label brutal-bench-table__label--score">Your range</span>'
+          ` <span class="brutal-bench-table__label brutal-bench-table__label--score">${escapeHtml(s('js.yourRange'))}</span>`
         );
       }
     }
@@ -367,7 +393,7 @@ function renderResults(): void {
     if (isActive) {
       firstTd.insertAdjacentHTML(
         'beforeend',
-        ' <span class="brutal-bench-table__label brutal-bench-table__label--stage">Your stage</span>'
+        ` <span class="brutal-bench-table__label brutal-bench-table__label--stage">${escapeHtml(s('js.yourStage'))}</span>`
       );
     }
   });
@@ -390,14 +416,14 @@ function renderResults(): void {
   if (quickWins.length > 0) {
     quickWinsContainer.classList.remove('is-hidden');
     quickWinsContainer.innerHTML = `
-    <div class="brutal-tool-shell__section-label">Start here</div>
+    <div class="brutal-tool-shell__section-label">${escapeHtml(s('js.startHere'))}</div>
     ${quickWins
       .map(
         (qw) => `
       <div class="icg-quick-win-item">
-        <span class="brutal-rec-card__badge brutal-rec-card__badge--${qw.impact}">${qw.impact}</span>
-        <span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${qw.effort.replace('-', ' ')}</span>
-        <span class="icg-quick-win-item__title">${qw.title}</span>
+        <span class="brutal-rec-card__badge brutal-rec-card__badge--${qw.impact}">${escapeHtml(impactLabel(qw.impact))}</span>
+        <span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${escapeHtml(effortLabel(qw.effort))}</span>
+        <span class="icg-quick-win-item__title">${escapeHtml(recTitle(qw.id))}</span>
       </div>
     `
       )
@@ -410,27 +436,26 @@ function renderResults(): void {
   // Recommendations
   const recsContainer = qs<HTMLElement>('[data-recs-container]');
   if (recs.length === 0) {
-    recsContainer.innerHTML =
-      '<div class="icg-recs-empty">No recommendations triggered. All domains scored above threshold.</div>';
+    recsContainer.innerHTML = `<div class="icg-recs-empty">${escapeHtml(s('js.recsEmpty'))}</div>`;
   } else {
     const activeCount = recs.filter((r) => !dismissed.has(r.id)).length;
     const high = recs.filter((r) => r.impact === 'high');
     const med = recs.filter((r) => r.impact === 'medium');
     const low = recs.filter((r) => r.impact === 'low');
 
-    const renderGroup = (items: typeof recs, label: string, labelColor: string) => {
+    const renderGroup = (items: typeof recs, impact: string, labelColor: string) => {
       if (items.length === 0) return '';
       return `
       <div class="icg-recs-group">
-        <div class="icg-recs-group__label" style="color:${labelColor}">${label} impact</div>
+        <div class="icg-recs-group__label" style="color:${labelColor}">${escapeHtml(s(`impactGroup.${impact}`))}</div>
         ${items
           .map((rec) => {
             const isDismissed = dismissed.has(rec.id);
             return `
           <div class="brutal-rec-card${state.expanded?.includes(rec.id) ? '' : ' is-collapsed'}${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
             <div class="brutal-rec-card__body">
-              <div class="brutal-rec-card__title"><span class="brutal-rec-card__badge brutal-rec-card__badge--${rec.impact}">${rec.impact}</span><span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${rec.effort.replace('-', ' ')}</span><button class="brutal-rec-card__na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button><span class="brutal-rec-card__text">${rec.title}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"/></svg></span></div>
-              <div class="brutal-rec-card__desc">${rec.description}</div>
+              <div class="brutal-rec-card__title"><span class="brutal-rec-card__badge brutal-rec-card__badge--${rec.impact}">${escapeHtml(impactLabel(rec.impact))}</span><span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${escapeHtml(effortLabel(rec.effort))}</span><button class="brutal-rec-card__na" data-dismiss="${rec.id}" type="button" title="${escapeHtml(s(isDismissed ? 'js.restoreTitle' : 'js.dismissTitle'))}">${escapeHtml(s(isDismissed ? 'js.restore' : 'js.na'))}</button><span class="brutal-rec-card__text">${escapeHtml(recTitle(rec.id))}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"/></svg></span></div>
+              <div class="brutal-rec-card__desc">${escapeHtml(recDescription(rec.id))}</div>
             </div>
           </div>`;
           })
@@ -439,10 +464,10 @@ function renderResults(): void {
     };
 
     recsContainer.innerHTML = `
-    <div class="brutal-tool-shell__section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
-    ${renderGroup(high, 'High', '#E24B4A')}
-    ${renderGroup(med, 'Medium', 'var(--color-secondary)')}
-    ${renderGroup(low, 'Low', 'var(--text-muted)')}
+    <div class="brutal-tool-shell__section-label">${escapeHtml(s('js.recsHeading', { active: activeCount, total: recs.length }))}</div>
+    ${renderGroup(high, 'high', 'var(--color-error-ink)')}
+    ${renderGroup(med, 'medium', 'var(--color-secondary-ink)')}
+    ${renderGroup(low, 'low', 'var(--text-muted)')}
   `;
 
     // Wire expand/collapse toggle on the entire card
@@ -638,20 +663,22 @@ document.addEventListener('DOMContentLoaded', () => {
       (r) => !state.dismissed.includes(r.id)
     );
     const text = buildSummaryText(state, result, DOMAINS, recs, window.location.href);
-    copyWithFeedback(text, btn);
+    copyWithFeedback(text, btn, { label: s('js.copied') });
   });
 
   qs<HTMLElement>('[data-action="copy"]').addEventListener('click', () => {
     trackEvent({ event: 'icg_copy_link', category: 'engagement', location: 'results' });
     const btn = qs<HTMLButtonElement>('[data-action="copy"]');
-    copyWithFeedback(window.location.href, btn, { label: 'Link copied' });
+    copyWithFeedback(window.location.href, btn, { label: s('js.linkCopied') });
   });
 
   // ── Landing actions ──
   const landingCopy = qs<HTMLButtonElement>('[data-action="landing-copy"]');
   landingCopy.addEventListener('click', () => {
     trackEvent({ event: 'icg_copy_link', category: 'engagement', location: 'landing' });
-    copyWithFeedback(window.location.href.split('?')[0], landingCopy, { label: 'Link copied' });
+    copyWithFeedback(window.location.href.split('?')[0], landingCopy, {
+      label: s('js.linkCopied'),
+    });
   });
 
   const landingEmail = qs<HTMLAnchorElement>('[data-action="landing-email"]');
@@ -675,18 +702,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (snaps.length === 0) return;
 
     list.innerHTML = snaps
-      .map((s) => {
-        const decoded = decodeState(s.encodedState);
+      .map((snap) => {
+        const decoded = decodeState(snap.encodedState);
         const score = decoded?.answers
           ? calculateResults({ ...DEFAULT_STATE, ...decoded }, DOMAINS).overallScore
           : '?';
         return `
       <div class="icg-snapshot-row">
         <span class="icg-snapshot-row__info">
-          <span>${escapeHtml(s.label)}</span>
+          <span>${escapeHtml(snap.label)}</span>
           <span class="icg-snapshot-row__score">${score}/100</span>
         </span>
-        <button class="icg-snapshot-row__delete" data-delete-snapshot="${s.id}" type="button" title="Delete this snapshot">&times;</button>
+        <button class="icg-snapshot-row__delete" data-delete-snapshot="${snap.id}" type="button" title="${escapeHtml(s('js.deleteSnapshot'))}">&times;</button>
       </div>`;
       })
       .join('');
@@ -705,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
     trackEvent({ event: 'icg_save_snapshot', category: 'engagement' });
     const labelInput = qs<HTMLInputElement>('[data-snapshot-label]');
     const customLabel = labelInput.value.trim();
-    const defaultLabel = new Date().toLocaleDateString('en-US', {
+    const defaultLabel = formatDate(new Date(), pageLang(), {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -718,9 +745,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     saveSnapshot(snap);
     labelInput.value = '';
-    saveSnapshotBtn.textContent = 'Saved!';
+    saveSnapshotBtn.textContent = s('js.saved');
     setTimeout(() => {
-      saveSnapshotBtn.textContent = 'Save snapshot';
+      saveSnapshotBtn.textContent = s('js.saveSnapshot');
     }, 2000);
     renderSnapshotManager();
   });
@@ -736,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     compBody.innerHTML = `
     <div class="icg-comparison-overall icg-comparison-row">
-      <span class="icg-comparison-row__name">Overall score</span>
+      <span class="icg-comparison-row__name">${escapeHtml(s('js.overallScore'))}</span>
       <span class="icg-comparison-row__scores">
         <span class="icg-comparison-row__score">${comparison.a.overallScore}</span>
         <span class="icg-comparison-row__score">&rarr;</span>
@@ -749,7 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(
         (dd) => `
       <div class="icg-comparison-row">
-        <span class="icg-comparison-row__name">${dd.name}</span>
+        <span class="icg-comparison-row__name">${escapeHtml(domainName(dd.domainId))}</span>
         <span class="icg-comparison-row__scores">
           <span class="icg-comparison-row__score">${dd.scoreA}</span>
           <span class="icg-comparison-row__score">&rarr;</span>
@@ -782,21 +809,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const compBody = qs<HTMLElement>('[data-comparison-body]');
     compBody.innerHTML = `
     <div class="icg-snapshot-select">
-      <p class="brutal-text-small" style="margin-bottom:var(--spacing-md)">Select two snapshots to compare:</p>
+      <p class="brutal-text-small" style="margin-bottom:var(--spacing-md)">${escapeHtml(s('js.selectTwo'))}</p>
       ${snaps
-        .map((s, i) => {
-          const decoded = decodeState(s.encodedState);
+        .map((snap, i) => {
+          const decoded = decodeState(snap.encodedState);
           const score = decoded?.answers
             ? calculateResults({ ...DEFAULT_STATE, ...decoded }, DOMAINS).overallScore
             : '?';
           return `
           <div class="icg-snapshot-item">
             <input type="checkbox" id="snap-sel-${i}" data-snap-select="${i}" />
-            <label for="snap-sel-${i}">${escapeHtml(s.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
+            <label for="snap-sel-${i}">${escapeHtml(snap.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
           </div>`;
         })
         .join('')}
-      <button data-action="compare-selected" type="button" class="brutal-btn brutal-btn--primary brutal-btn--full" disabled style="margin-top:var(--spacing-md)">Compare selected</button>
+      <button data-action="compare-selected" type="button" class="brutal-btn brutal-btn--primary brutal-btn--full" disabled style="margin-top:var(--spacing-md)">${escapeHtml(s('js.compareSelected'))}</button>
     </div>`;
 
     const checkboxes = compBody.querySelectorAll<HTMLInputElement>('[data-snap-select]');

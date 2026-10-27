@@ -3,7 +3,7 @@ tool: assess_infrastructure_cost_governance
 tools:
   - assess_infrastructure_cost_governance
 version: v1
-lastAuthored: 2026-04-28
+lastAuthored: 2026-10-26
 schema: src/schemas/icg.ts
 enumParity:
   - tableHeading: '`companyStage`'
@@ -19,11 +19,11 @@ enumParity:
 > - **Validation**: [`src/schemas/icg.ts`](../../../../../src/schemas/icg.ts) — `ICGInputsSchema`, `ICGAnswerScoreSchema`, `CompanyStageSchema` (`COMPANY_STAGE_VALUES` tuple)
 > - **Question and domain definitions**: [`src/data/infrastructure-cost-governance/domains.ts`](../../../../../src/data/infrastructure-cost-governance/domains.ts) — `DOMAINS` (6 domains, ~30 questions total), `ANSWER_OPTIONS` (4 maturity levels)
 > - **Recommendation triggers**: [`src/data/infrastructure-cost-governance/recommendations.ts`](../../../../../src/data/infrastructure-cost-governance/recommendations.ts) — `RECOMMENDATIONS` (impact / effort / domain / threshold per record)
-> - **Engine logic**: [`src/utils/icg-engine.ts`](../../../../../src/utils/icg-engine.ts) — `calculateResults` (lines 106–154), `getRecommendations` (lines 84–102), `getMaturityLevel` (lines 60–70), `MATURITY_THRESHOLDS` (line 49–53), `FOUNDATIONAL_THRESHOLD` (line 56), `BENCHMARK_RANGES` (lines 332–337)
+> - **Engine logic**: [`src/utils/icg-engine.ts`](../../../../../src/utils/icg-engine.ts) — `calculateResults`, `getRecommendations`, `getMaturityLevel`, `MATURITY_THRESHOLDS`, `FOUNDATIONAL_THRESHOLD`, `BENCHMARK_RANGES`
 >
 > **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../../prompts/target-quick-look.ts) (first-look brief — combines ICG + TechPar + Tech Debt + regulatory exposure into one digestible page). The prompt body enumerates the 20 schema-canonical question IDs (`q1_1`–`q6_4`) inline so the model uses them verbatim rather than inventing flat IDs (which the engine silently ignores per the "Unknown keys" hidden semantic below). Schema additions to `ICGInputsSchema` should be reflected in the body's enumeration. The prompt also surfaces a `deeplink` field that opens the wizard at `currentStep: 7` (results view) — see [`tools/icg.ts`](../../../tools/icg.ts) `buildResultsState()`.
 >
-> **Version**: `v1` | **Last authored**: 2026-04-28
+> **Version**: `v1` | **Last authored**: 2026-10-26
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, cross-tool registry, and per-tool spec template.
 
@@ -83,14 +83,14 @@ The asymmetry is intentional — different surfaces, different completion semant
 - **Display label**: Company growth stage
 - **What it asks**: The target's funding / growth stage, used only for benchmark contextualization.
 
-| ID             | Label              | Benchmark range (overall score) |
-| -------------- | ------------------ | ------------------------------- |
-| `pre-series-b` | Pre-Series B       | 15–35                           |
-| `series-bc`    | Series B–C         | 30–55                           |
-| `pe-backed`    | PE-backed (2+ yrs) | 45–70                           |
-| `enterprise`   | Enterprise         | 65–90                           |
+| ID             | Label           | Benchmark range (overall score) |
+| -------------- | --------------- | ------------------------------- |
+| `pre-series-b` | Pre-Series B    | 15–35                           |
+| `series-bc`    | Series B-C      | 30–55                           |
+| `pe-backed`    | PE-backed 2+ yr | 45–70                           |
+| `enterprise`   | Enterprise      | 65–90                           |
 
-**Downstream effect**: Optional. If supplied, the engine uses `contextualizeScore(score, stage)` to add a stage-specific benchmark band so the consumer can see whether the target is below / within / above the typical range for its stage. **Does not change the score itself** — it changes the narrative around the score. If omitted, the result is computed identically; the benchmark band is simply absent.
+**Downstream effect**: Optional. **Does not change the score itself.** The tool echoes the stage it used in `stageContext` (below); it computes no benchmark band. The labels and ranges above are `BENCHMARK_RANGES` in the engine. The website's results page uses the stage for its below / within / above sentence (`contextualizeScore` in `src/scripts/infrastructure-cost-governance/logic.ts`, page-only copy since 2026-10-26).
 
 **Canonical stage adapter (BL-031.87)**: the MCP wrapper accepts `companyStage` as either a canonical funding-stage value (preferred — see [`src/data/common/funding-stages.ts`](../../../../../src/data/common/funding-stages.ts) `CANONICAL_STAGES`: `seed` | `series-a` | `series-b` | `series-c` | `pe` | `enterprise`) or one of the four ICG-native values listed above (backward-compat). Translation happens via [`ICG_STAGE_ADAPTER`](../../../../../src/data/common/stage-adapters.ts) before the engine is invoked. ICG's native enum collapses canonical seed + series-a into `pre-series-b` and canonical series-b + series-c into `series-bc` — both reflect the benchmark dataset's granularity. The MCP response includes a `stageContext: { native, canonical }` field where `canonical` is array-valued, exposing the lossy collapses honestly (e.g., `pre-series-b` → `['seed', 'series-a']`). Engine and benchmark dataset untouched. See [`mcp-server/src/docs/tools/README.md` § Cross-tool concept glossary](../README.md#funding-stage--canonical-layer--adapter-bl-03187-shipped) for the full canonical mapping table; see [ADR-0001](../../../../../src/docs/adr/0001-stage-taxonomy-adapter.md) for pattern-choice rationale.
 

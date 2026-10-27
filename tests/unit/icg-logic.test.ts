@@ -1,10 +1,20 @@
+// @vitest-environment jsdom
 import {
+  counted,
   emailHref,
+  foundationalTitle,
   gaugeArcSVG,
   maturityDescription,
   radarChartSVG,
+  radarLabel,
+  wrapRadarLabel,
 } from '../../src/scripts/infrastructure-cost-governance/logic';
-import { DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
+import { resetStringsForTest } from '../../src/scripts/infrastructure-cost-governance/strings';
+import { ANSWER_OPTIONS, DOMAINS } from '../../src/data/infrastructure-cost-governance/domains';
+import { RECOMMENDATIONS } from '../../src/data/infrastructure-cost-governance/recommendations';
+import { BENCHMARK_RANGES } from '../../src/utils/icg-engine';
+import { COMPANY_STAGE_VALUES, EffortSchema, ImpactSchema } from '../../src/schemas/icg';
+import EN from '../../src/i18n/en/infrastructure-cost-governance.json';
 
 const count = (s: string, needle: string) => s.split(needle).length - 1;
 
@@ -44,7 +54,7 @@ describe('ICG logic — gaugeArcSVG', () => {
 });
 
 describe('ICG logic — radarChartSVG', () => {
-  const scores = DOMAINS.map((d, i) => ({ name: d.name, score: (i * 17) % 101 }));
+  const scores = DOMAINS.map((d, i) => ({ label: radarLabel(d.id), score: (i * 17) % 101 }));
   const svg = radarChartSVG(scores);
 
   it('draws four grid rings plus the data polygon, and one axis, label and point per domain', () => {
@@ -54,20 +64,32 @@ describe('ICG logic — radarChartSVG', () => {
     expect(count(svg, '<circle')).toBe(scores.length);
   });
 
-  it('abbreviates labels to two words, with "and" as "&"', () => {
-    const one = radarChartSVG([
-      { name: 'Tagging and Allocation Policy', score: 50 },
-      { name: 'Forecasting', score: 50 },
-      { name: 'Unit Economics', score: 50 },
-    ]);
-    expect(one).toContain('>Tagging &</text>');
-    expect(one).toContain('>Forecasting</text>');
-    expect(one).toContain('>Unit Economics</text>');
+  it('labels each axis with its written short name, escaped, wrapping long ones', () => {
+    expect(svg).toContain('>Visibility</tspan>');
+    expect(svg).toContain('>&amp; Tagging</tspan>');
+    expect(svg).toContain('>Right-Sizing</tspan>');
+    expect(svg).not.toMatch(/&amp;<\/text>/);
+    for (const d of DOMAINS) expect(radarLabel(d.id), d.id).not.toBe(`domain.${d.id}.short`);
   });
 
   it('uses theme tokens, not currentColor, so it prints on white paper', () => {
     expect(svg).not.toContain('currentColor');
     expect(svg).toContain('var(--color-primary)');
+  });
+});
+
+describe('ICG logic — wrapRadarLabel', () => {
+  it('keeps a short label on one line', () => {
+    expect(wrapRadarLabel('Right-Sizing')).toEqual(['Right-Sizing']);
+  });
+
+  it('splits a long one at the space nearest its middle', () => {
+    expect(wrapRadarLabel('Visibilidad y etiquetado')).toEqual(['Visibilidad', 'y etiquetado']);
+    expect(wrapRadarLabel('Account Structure')).toEqual(['Account', 'Structure']);
+  });
+
+  it('leaves a single long word whole', () => {
+    expect(wrapRadarLabel('Dimensionamiento')).toEqual(['Dimensionamiento']);
   });
 });
 
@@ -87,5 +109,78 @@ describe('ICG logic — emailHref', () => {
     const [subject, body] = href.slice('mailto:?subject='.length).split('&body=');
     expect(decodeURIComponent(subject)).toBe('Infrastructure Cost Governance - 64/100');
     expect(decodeURIComponent(body)).toContain(url);
+  });
+});
+
+// ─── Localization (BL-153 Tier B) ─────────────────────────────────────────
+
+describe('ICG catalog — English equals the data and engine it mirrors', () => {
+  const en = EN as Record<string, string>;
+
+  it('domains, questions and their rationale', () => {
+    for (const d of DOMAINS) {
+      expect(en[`domain.${d.id}.name`]).toBe(d.name);
+      expect(en[`domain.${d.id}.description`]).toBe(d.description);
+      for (const q of d.questions) {
+        expect(en[`question.${q.id}.text`]).toBe(q.text);
+        if (q.rationale) expect(en[`question.${q.id}.rationale`]).toBe(q.rationale);
+      }
+    }
+  });
+
+  it('recommendations', () => {
+    for (const r of RECOMMENDATIONS) {
+      expect(en[`rec.${r.id}.title`]).toBe(r.title);
+      expect(en[`rec.${r.id}.description`]).toBe(r.description);
+    }
+  });
+
+  it('answer labels, stages, maturity levels, impact and effort', () => {
+    for (const o of ANSWER_OPTIONS) expect(en[`answer.${o.score}`]).toBe(o.label);
+    for (const b of BENCHMARK_RANGES) expect(en[`stage.${b.stageKey}`]).toBe(b.label);
+    for (const stage of COMPANY_STAGE_VALUES) expect(en[`stageRow.${stage}`]).toBeTruthy();
+    for (const level of ['Reactive', 'Aware', 'Optimizing', 'Strategic']) {
+      expect(en[`maturity.${level}`]).toBe(level);
+    }
+    for (const id of ImpactSchema.options) expect(en[`impact.${id}`]).toBe(id);
+    for (const id of EffortSchema.options) expect(en[`effort.${id}`]).toBe(id.replace('-', ' '));
+  });
+});
+
+describe('ICG logic — counts and the foundational title', () => {
+  it('picks one or other in English', () => {
+    expect(counted('js.recCount', 1)).toBe('1 rec');
+    expect(counted('js.recCount', 3)).toBe('3 recs');
+    expect(counted('js.skipped', 2)).toBe('2 skipped');
+  });
+
+  it('names one or two foundational domains in a whole sentence', () => {
+    expect(foundationalTitle(['d1'])).toBe(
+      'Visibility and Tagging scored below the foundational threshold'
+    );
+    expect(foundationalTitle(['d1', 'd2'])).toBe(
+      'Visibility and Tagging and Account Structure and Attribution scored below the foundational threshold'
+    );
+  });
+});
+
+describe('ICG logic — reads the island when there is one', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    document.documentElement.lang = '';
+    resetStringsForTest();
+  });
+
+  it('translates by id, falls back per key, and counts in the page language', () => {
+    document.documentElement.lang = 'pt-BR';
+    document.body.innerHTML =
+      '<script type="application/json" data-icg-strings>' +
+      '{"domain.d1.short":"Visibilidade","js.recCount.one":"{n} rec.","js.recCount.other":"{n} recs."}' +
+      '</script>';
+    resetStringsForTest();
+    expect(radarLabel('d1')).toBe('Visibilidade');
+    expect(radarLabel('d3')).toBe('Right-Sizing');
+    expect(counted('js.recCount', 1)).toBe('1 rec.');
+    expect(counted('js.recCount', 2)).toBe('2 recs.');
   });
 });

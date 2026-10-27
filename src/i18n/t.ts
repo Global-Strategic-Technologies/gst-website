@@ -18,8 +18,8 @@
  * parity guard restricts the tags a `tHtml` string may contain.
  *
  * No runtime dependency: this is the ~100 lines BL-153 budgeted for. Plurals
- * are not needed for Tier A copy; add `Intl.PluralRules` here when a Tier B
- * tool needs them (ADR-0030).
+ * are not needed for Tier A copy. Tier B tool scripts, which cannot import this
+ * file, pick a `one`/`other` key with `pluralKey` in `formatters.ts` (ADR-0030).
  */
 import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 import { escapeHtml } from '../utils/escape-html';
@@ -36,6 +36,7 @@ import enHubMcp from './en/hub-mcp.json';
 import enHubMcpFromCode from './en/hub-mcp-from-code.json';
 import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
+import enInfrastructureCostGovernance from './en/infrastructure-cost-governance.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
 import enTechDebtCalculator from './en/tech-debt-calculator.json';
@@ -58,6 +59,7 @@ export const EN = {
   terms: enTerms,
   techpar: enTechpar,
   'tech-debt-calculator': enTechDebtCalculator,
+  'infrastructure-cost-governance': enInfrastructureCostGovernance,
 } as const;
 
 export type Namespace = keyof typeof EN;

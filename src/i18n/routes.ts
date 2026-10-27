@@ -54,6 +54,10 @@ export const TIER_A_ROUTES: readonly RouteEntry[] = [
 export const TIER_B_ROUTES: readonly RouteEntry[] = [
   { id: 'techpar', path: '/hub/tools/techpar/' },
   { id: 'tech-debt-calculator', path: '/hub/tools/tech-debt-calculator/' },
+  {
+    id: 'infrastructure-cost-governance',
+    path: '/hub/tools/infrastructure-cost-governance/',
+  },
 ];
 
 /** Every route that exists in every locale. */

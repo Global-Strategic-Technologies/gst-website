@@ -2,6 +2,7 @@
  * TechPar UI — DOM helpers, formatting, tab navigation, input validation,
  * and UI-sync utilities.
  */
+import { pageLang } from '../tool-strings';
 import { zoneColorVar, SUMMARY_TEXT_EN } from '../../utils/techpar-engine';
 import type {
   TechParInputs,
@@ -94,11 +95,6 @@ const CHART_FONT_FALLBACK = "'GST Mono Fallback', 'GST Mono Fallback WD', ui-mon
 /** The symbol for the selected display currency (allowlisted — see i18n/currency). */
 export function currencySymbol(): string {
   return CURRENCY_SYMBOL[tp.currency];
-}
-
-/** The page's language tag (`en`, `es`, `pt-BR`), for number formatting. */
-export function pageLang(): string {
-  return document.documentElement.lang || 'en';
 }
 
 /** Short money in the selected display currency and the page's number format. */
