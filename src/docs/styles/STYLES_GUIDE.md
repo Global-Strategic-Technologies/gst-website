@@ -979,6 +979,8 @@ screen worth printing. Add the block when a tool's on-screen result **is** the a
 
 **Convention**: Hardcoded colors (e.g., `#ddd`, `#333`) are acceptable in print styles since print always renders on white paper. CSS variables that resolve to dark theme values would produce invisible content in print.
 
+**Printing from a dark theme prints the light theme.** `src/scripts/print-theme.ts` (loaded by the Header on every page) drops `dark-theme` and `theme-dim` from `<html>` on `beforeprint` and restores them on `afterprint`, so every token, palette inks included, prints its light value; `global.css` turns transitions off in print so no colour is caught part-way. Before it, a dark-theme Export PDF printed most report text near-white on the white page. A print rule may therefore use theme tokens, which resolve to their light values on paper. `tests/e2e/print-chrome.test.ts` guards it.
+
 ### `:global()` for Dynamically Injected Content
 
 Hub tools render content via `innerHTML` at runtime (questions, recommendations, chart elements). Astro scopes `<style>` selectors to statically-rendered elements, so dynamically injected HTML requires `:global()`:

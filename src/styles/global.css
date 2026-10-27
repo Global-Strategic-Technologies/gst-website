@@ -166,6 +166,15 @@ a:hover {
   .no-print {
     display: none !important;
   }
+
+  /* Paper shows final values. Printing from a dark theme drops the theme
+     classes (src/scripts/print-theme.ts); a colour transition would otherwise
+     still be part-way to the light ink when the page is laid out. */
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
 }
 
 /* Portfolio Controls — shared between StickyControls and PortfolioHeader */
