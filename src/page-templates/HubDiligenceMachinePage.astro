@@ -46,12 +46,14 @@ const tHtmlAny = tHtml as (key: string, params?: Record<string, string | number>
 const tDataAny = tData as (key: string) => string;
 
 // The island: the script's own strings, plus every question, attention area
-// and topic string, which the script reads by id. English needs none.
+// and topic string, which the script reads by id. English needs none. Option
+// descriptions match the `option.` prefix but render here, never in the script.
 const DATA_KEYS = Object.keys(DATA_EN);
+const ISLAND_UI_KEYS = SCRIPT_STRING_KEYS.filter((key) => !key.endsWith('.description'));
 const SCRIPT_STRINGS = isDefaultLocale(locale)
   ? {}
   : {
-      ...Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, tAny(key)])),
+      ...Object.fromEntries(ISLAND_UI_KEYS.map((key) => [key, tAny(key)])),
       ...Object.fromEntries(DATA_KEYS.map((key) => [key, tDataAny(key)])),
     };
 

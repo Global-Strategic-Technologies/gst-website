@@ -119,7 +119,11 @@ for (const { prefix, lang, ui, data } of LOCALES) {
       expect(text).toContain(ui['js.clip.title'].toLocaleUpperCase(lang));
       expect(text).toContain(`${ui['js.meta.companyAge']}:`);
       expect(text).toContain(data['topic.architecture.label'].toLocaleUpperCase(lang));
-      expect(text).not.toContain('unknown');
+      // "Not sure" reads as itself in the target parameters, never as the raw sentinel.
+      const params = text.split(ui['js.attentionHeading'].toLocaleUpperCase(lang))[0];
+      expect(params).toContain(`${ui['js.meta.companyAge']}:`);
+      expect(params).toContain(ui['option.unknown']);
+      expect(params).not.toContain('unknown');
     });
 
     test('the MCP page links here in the same locale', async ({ page }) => {

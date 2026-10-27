@@ -26,7 +26,7 @@
                     hub/mcp/docs/index.astro, brand.astro
    portfolio.css  → PortfolioGrid.astro (ma-portfolio), brand.astro
    map.css        → MapVisualizer.astro (regulatory-map), HubMcpTrialPage.astro, brand.astro
-   progress.css   → diligence-machine/index.astro, HubIcgPage.astro,
+   progress.css   → HubDiligenceMachinePage.astro, HubIcgPage.astro,
                     brand.astro
 
    brand.astro imports all four because it renders specimens for every one of them;
