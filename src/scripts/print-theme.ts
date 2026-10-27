@@ -18,6 +18,8 @@ import { DARK_CLASS, DIM_CLASS } from './theme-state';
 let held: string[] = [];
 
 export function enterPrintTheme(root: Element = document.documentElement): void {
+  // A second beforeprint before afterprint must not forget the held theme.
+  if (held.length) return;
   held = [DARK_CLASS, DIM_CLASS].filter((c) => root.classList.contains(c));
   root.classList.remove(...held);
 }

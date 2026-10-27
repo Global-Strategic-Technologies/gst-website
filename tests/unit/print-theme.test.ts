@@ -27,6 +27,14 @@ describe('print theme', () => {
     for (const c of classes) expect(html.classList.contains(c)).toBe(true);
   });
 
+  it('a repeated beforeprint still restores the theme', () => {
+    html.className = DARK_CLASS;
+    window.dispatchEvent(new Event('beforeprint'));
+    window.dispatchEvent(new Event('beforeprint'));
+    window.dispatchEvent(new Event('afterprint'));
+    expect(html.classList.contains(DARK_CLASS)).toBe(true);
+  });
+
   it('leaves the light theme alone', () => {
     html.className = 'palette-2';
     window.dispatchEvent(new Event('beforeprint'));
