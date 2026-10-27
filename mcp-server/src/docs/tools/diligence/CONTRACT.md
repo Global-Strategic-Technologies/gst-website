@@ -3,7 +3,7 @@ tool: generate_diligence_agenda
 tools:
   - generate_diligence_agenda
 version: v1
-lastAuthored: 2026-04-27
+lastAuthored: 2026-10-27
 schema: src/schemas/diligence.ts
 enumParity:
   - tableHeading: '`transactionType`'
@@ -43,8 +43,8 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`src/schemas/diligence.ts`](../../../../../src/schemas/diligence.ts) — `UserInputsSchema` and the `*_IDS` enum tuples
-> - **Labels & per-option descriptions**: [`src/data/diligence-machine/wizard-config.ts`](../../../../../src/data/diligence-machine/wizard-config.ts) — `WizardStep` definitions, lines 85–425
-> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS` (lines 333-348), `meetsMinimumBracket` (lines 74-87), `BRACKET_ORDER` constant
+> - **Labels & per-option descriptions**: the website's English catalog [`src/i18n/en/diligence-machine.json`](../../../../../src/i18n/en/diligence-machine.json) — `step.<stepId>.title|subtitle`, `option.<stepOrFieldId>.<optionId>.label|description`, keyed by the ids in [`wizard-config.ts`](../../../../../src/data/diligence-machine/wizard-config.ts) (which holds the steps' structure only, since BL-153 Tier B). The tool never emits these labels; the tables below copy the English for the reader.
+> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS`, `meetsMinimumBracket`, `withMultiRegion`, and the `BRACKET_ORDER` constant in `wizard-config.ts`
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template this document follows.
 
@@ -74,7 +74,7 @@ The 13 inputs the tool accepts. The "Dimension label" column matches the labels 
 
 **Three fields are ordinal** (`headcount`, `revenueRange`, `companyAge`) — questions can gate by _minimum threshold_ via `meetsMinimumBracket()` rather than by exact match. Example: a question with `revenueMin: "5-25m"` surfaces for any user input from `5-25m` upward.
 
-**One field is multi-select** (`geographies`). Selecting two or more specific regions auto-syncs `multi-region` into the array via the engine's `syncMultiRegion()` helper.
+**One field is multi-select** (`geographies`). Two or more specific regions add `multi-region` to the array (`withMultiRegion()` in the engine, since 0.71.0); see `geographies` below.
 
 ---
 
@@ -172,7 +172,7 @@ The 13 inputs the tool accepts. The "Dimension label" column matches the labels 
 | `scaling` | Scaling |
 | `mature`  | Mature  |
 
-**Downstream effect**: Combines with other inputs to gate stage-specific questions. `scaling` paired with `dataSensitivity: high` surfaces the Data Classification Maturity Gap attention area. The `applyMaturityOverrides()` helper injects a "Manual Operations Masking" attention area for the specific pattern `revenueMin: 25-100m` + `headcount < 201` + `growthStage: mature` — high-revenue with low headcount at maturity is a reliable signal of unscalable manual processes.
+**Downstream effect**: Combines with other inputs to gate stage-specific questions. `scaling` paired with `dataSensitivity: high` surfaces the Data Classification Maturity Gap attention area. `mature` paired with `revenueRange` of `25-100m` or more surfaces the Manual Operations Masking attention area — high revenue on a lean, mature organization can mean manual processes that won't scale.
 
 ---
 
@@ -209,7 +209,9 @@ The 13 inputs the tool accepts. The "Dimension label" column matches the labels 
 | `apac`         | Asia-Pacific   | APAC regional operations        |
 | `multi-region` | Multi-Region   | Operations spanning geographies |
 
-**Hidden semantics — multi-region auto-sync**: When the user selects 2+ specific (non-`multi-region`) regions, the engine's `syncMultiRegion()` helper adds `multi-region` to the array. Callers should pass the geographies they know about; the engine fills in `multi-region` deterministically.
+**Hidden semantics — multi-region auto-sync** (since 0.71.0): when the array names two or more specific regions, the tool adds `multi-region` before running the engine (`withMultiRegion()`). `'unknown'` is not a region and does not count. The tool **never removes** a `multi-region` you pass. Callers should pass the geographies they know about; the tool fills in `multi-region` deterministically, and `metadata.inputSummary.geographies` and the `deeplink` carry the array it ran on.
+
+**Where the website differs**: its wizard also _removes_ `multi-region` when exactly one specific region remains (`syncMultiRegion()`, counting regions the same way). So for an input with exactly one specific region plus `multi-region` (`['us', 'multi-region']`, `['us', 'unknown', 'multi-region']`), the tool keeps `multi-region` and the `deeplink` opens a page that drops it, with up to four fewer attention areas. Every other input runs on the same array in both.
 
 **Downstream effect**: `eu` triggers GDPR posture questions (`sec-05`) and EU AI Act conformity questions (`sec-17`). `uk` adds UK-GDPR / ICO posture questions. `canada` triggers the Canadian Privacy Law Complexity attention area (PIPEDA, Quebec Law 25, Alberta, BC). Multi-region selection (auto-synced or explicit) triggers the Cross-Border Data Compliance attention area and certification-transfer questions (`ci-10`).
 
@@ -306,8 +308,11 @@ The tool returns a `GeneratedScript` envelope:
   metadata: {
     totalQuestions: number;
     generatedAt: string;
-    inputSummary: UserInputs;  // echoes back the inputs received
+    inputSummary: UserInputs;  // the inputs the engine ran on: as received, except
+                               // geographies after the multi-region sync
   };
+  unknownDimensionCount: number;  // how many of the 13 fields were 'unknown'
+  deeplink: string;               // the website page, pre-filled with inputSummary
 }
 ```
 

@@ -343,41 +343,13 @@ export function applyArchetypePivot(
 }
 
 /**
- * Inject computed attention areas based on cross-field logic that cannot be
- * expressed as simple condition arrays.
- *
- * Maturity Override: high-revenue + low headcount + mature growth →
- * inject "Manual Operations Masking" attention area.
+ * Human-readable labels for condition dimensions — the `triggerMap` values,
+ * English by contract. The website page shows them in its own language: it
+ * maps each label back to its input dimension and reads the same
+ * `js.meta.*` key the target-parameters block uses (pinned equal in
+ * `tests/unit/diligence-catalog.test.ts`).
  */
-export function applyMaturityOverrides(
-  areas: AttentionArea[],
-  inputs: UserInputs
-): AttentionArea[] {
-  const isHighRevLowHead =
-    meetsMinimumBracket('revenue-range', inputs.revenueRange, '25-100m') &&
-    !meetsMinimumBracket('headcount', inputs.headcount, '201-500') &&
-    inputs.growthStage === 'mature';
-
-  if (!isHighRevLowHead) return areas;
-
-  const alreadyPresent = areas.some((a) => a.id === 'attention-manual-ops-masking');
-  if (alreadyPresent) return areas;
-
-  return [
-    ...areas,
-    {
-      id: 'attention-manual-ops-masking',
-      title: 'Manual Operations Masking',
-      description:
-        'High-revenue companies with low headcount growth may be masking manual operations behind a technology facade. Revenue per employee ratios that appear favorable may actually indicate process bottlenecks that limit scalability.',
-      relevance: 'high',
-      conditions: {},
-    },
-  ];
-}
-
-/** Human-readable labels for condition dimensions */
-const CONDITION_LABELS: Record<string, string> = {
+export const CONDITION_LABELS: Record<string, string> = {
   transactionTypes: 'Transaction Type',
   excludeTransactionTypes: 'Transaction Type',
   productTypes: 'Product Type',
@@ -434,14 +406,11 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
   // 5. Filter attention areas by conditions
   const matchedAreas = ATTENTION_AREAS.filter((a) => matchesConditions(a.conditions, inputs));
 
-  // 6. Apply maturity overrides (inject computed attention areas)
-  const enrichedAreas = applyMaturityOverrides(matchedAreas, inputs);
-
   return {
     topics,
     triggerMap,
-    // 7. Sort attention areas by relevance
-    attentionAreas: [...enrichedAreas].sort(
+    // 6. Sort attention areas by relevance
+    attentionAreas: [...matchedAreas].sort(
       (a, b) => (RELEVANCE_ORDER[a.relevance] ?? 2) - (RELEVANCE_ORDER[b.relevance] ?? 2)
     ),
     metadata: {
@@ -469,10 +438,35 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
 export const MULTI_REGION_ID = 'multi-region';
 
 /**
- * Synchronize 'multi-region' based on non-MR geography count.
- * - 2+ non-MR geos → ensure MR is included
- * - 1 non-MR geo → ensure MR is removed
- * - 0 non-MR geos → no change (standalone MR allowed)
+ * How many specific regions an answer names: not `multi-region` itself, and
+ * not the `'unknown'` sentinel, which says nothing about where the target
+ * operates. The page's `syncMultiRegion` and the MCP tool's `withMultiRegion`
+ * both count with this, so a deeplink opens the page on the same agenda the
+ * tool returned.
+ */
+export function knownRegionCount(geographies: readonly string[]): number {
+  return geographies.filter((g) => g !== MULTI_REGION_ID && g !== 'unknown').length;
+}
+
+/**
+ * The MCP tool's sync: add `multi-region` when 2+ specific regions are named,
+ * and never remove it — a caller who passes it explicitly asserted it
+ * (operator decision, 2026-10-27). Returns a new array.
+ */
+export function withMultiRegion(geographies: readonly string[]): string[] {
+  if (knownRegionCount(geographies) >= 2 && !geographies.includes(MULTI_REGION_ID)) {
+    return [...geographies, MULTI_REGION_ID];
+  }
+  return [...geographies];
+}
+
+/**
+ * Synchronize 'multi-region' with the wizard's selection, counting specific
+ * regions with `knownRegionCount`:
+ * - 2+ specific regions → ensure MR is included
+ * - exactly 1 → ensure MR is removed
+ * - 0 → no change (standalone MR allowed, and `['unknown', 'multi-region']`
+ *   keeps it, as the MCP tool does)
  *
  * Does NOT handle the "user deselects MR" clear-all case;
  * that is a UI-level concern handled in the click handler.
@@ -480,14 +474,14 @@ export const MULTI_REGION_ID = 'multi-region';
  * Returns a new array (does not mutate the input).
  */
 export function syncMultiRegion(geographies: string[]): string[] {
-  const nonMR = geographies.filter((g) => g !== MULTI_REGION_ID);
+  const known = knownRegionCount(geographies);
   const hasMR = geographies.includes(MULTI_REGION_ID);
 
-  if (nonMR.length >= 2 && !hasMR) {
+  if (known >= 2 && !hasMR) {
     return [...geographies, MULTI_REGION_ID];
   }
-  if (nonMR.length === 1 && hasMR) {
-    return nonMR;
+  if (known === 1 && hasMR) {
+    return geographies.filter((g) => g !== MULTI_REGION_ID);
   }
   return geographies;
 }

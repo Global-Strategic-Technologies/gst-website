@@ -143,7 +143,7 @@ const ACCEPTED_RESIDUALS = [
       'src/components/hub/mcp/CapabilityNav.astro',
       'src/pages/brand.astro',
       'src/pages/hub/mcp/docs/index.astro',
-      'src/pages/hub/tools/diligence-machine/index.astro',
+      'src/page-templates/HubDiligenceMachinePage.astro',
       'src/page-templates/HubTechDebtPage.astro',
       'src/styles/components/form.css',
     ],

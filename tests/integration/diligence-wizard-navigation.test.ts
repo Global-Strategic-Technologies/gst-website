@@ -129,7 +129,7 @@ describe('Diligence Machine wizard navigation', () => {
       currentStep: 3,
       highestStepReached: 6,
       inputs: {},
-      targetIdentifier: 'Target',
+      targetIdentifier: 'Project Falcon',
     };
 
     it('reads back a state saved under the current version', () => {

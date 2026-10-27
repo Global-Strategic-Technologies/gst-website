@@ -19,10 +19,12 @@ import {
   groupByTopic,
   generateScript,
   syncMultiRegion,
+  withMultiRegion,
+  knownRegionCount,
   applyArchetypePivot,
-  applyMaturityOverrides,
 } from '../../src/utils/diligence-engine';
 import type { UserInputs } from '../../src/utils/diligence-engine';
+import { ATTENTION_AREAS } from '../../src/data/diligence-machine/attention-areas';
 import type {
   DiligenceQuestion,
   QuestionCondition,
@@ -1216,77 +1218,30 @@ describe('applyArchetypePivot', () => {
   });
 });
 
-// ─── TESTS: applyMaturityOverrides ──────────────────────────────────────────
+// ─── TESTS: Manual Operations Masking ───────────────────────────────────────
 
-describe('applyMaturityOverrides', () => {
-  it('should inject manual-ops-masking anchor for high-revenue + low-headcount + mature', () => {
-    const inputs: UserInputs = {
+// The engine used to inject a second copy of this area from code
+// (applyMaturityOverrides). Its trigger was narrower than the data entry's
+// conditions, so the data entry always matched first and the injected copy
+// never reached the output (0 of 900 input combinations); it was removed.
+describe('attention-manual-ops-masking', () => {
+  const manualOps = (inputs: UserInputs) =>
+    generateScript(inputs).attentionAreas.filter((a) => a.id === 'attention-manual-ops-masking');
+
+  it('appears once, with the data entry, for high revenue at maturity', () => {
+    const areas = manualOps({
       ...baseInputs,
       revenueRange: '25-100m',
       headcount: '51-200',
       growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(true);
+    });
+    const entry = ATTENTION_AREAS.find((a) => a.id === 'attention-manual-ops-masking');
+    expect(areas).toEqual([entry]);
   });
 
-  it('should not inject for low-revenue companies', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '5-25m',
-      headcount: '51-200',
-      growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not inject for high-headcount companies', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '100m+',
-      headcount: '201-500',
-      growthStage: 'mature',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not inject for non-mature growth stages', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '25-100m',
-      headcount: '51-200',
-      growthStage: 'scaling',
-    };
-    const result = applyMaturityOverrides([], inputs);
-
-    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
-  });
-
-  it('should not duplicate if anchor already present', () => {
-    const inputs: UserInputs = {
-      ...baseInputs,
-      revenueRange: '25-100m',
-      headcount: '1-50',
-      growthStage: 'mature',
-    };
-    const existing = [
-      {
-        id: 'attention-manual-ops-masking',
-        title: 'Manual Operations Masking',
-        description: 'Already present',
-        relevance: 'high' as const,
-        conditions: {},
-      },
-    ];
-    const result = applyMaturityOverrides(existing, inputs);
-
-    const count = result.filter((a) => a.id === 'attention-manual-ops-masking').length;
-    expect(count).toBe(1);
+  it('does not appear below the revenue threshold or before maturity', () => {
+    expect(manualOps({ ...baseInputs, revenueRange: '5-25m', growthStage: 'mature' })).toEqual([]);
+    expect(manualOps({ ...baseInputs, revenueRange: '100m+', growthStage: 'scaling' })).toEqual([]);
   });
 });
 
@@ -1344,6 +1299,52 @@ describe('syncMultiRegion', () => {
     // Simulates: user had ['us', 'eu', 'multi-region'], then deselected 'eu'
     // After deselect, array is ['us', 'multi-region'] → sync → ['us']
     expect(syncMultiRegion(['us', 'multi-region'])).toEqual(['us']);
+  });
+
+  // A deeplink can carry mixes the wizard's clicks never build. 'unknown'
+  // is not a region, so the page agrees with the MCP tool on them.
+  it("does not count 'unknown' as a region when adding", () => {
+    expect(syncMultiRegion(['us', 'unknown'])).toEqual(['us', 'unknown']);
+  });
+
+  it("keeps multi-region beside 'unknown' alone", () => {
+    expect(syncMultiRegion(['unknown', 'multi-region'])).toEqual(['unknown', 'multi-region']);
+  });
+
+  it("removes multi-region beside one specific region and 'unknown'", () => {
+    expect(syncMultiRegion(['us', 'unknown', 'multi-region'])).toEqual(['us', 'unknown']);
+  });
+});
+
+describe('knownRegionCount', () => {
+  it("counts specific regions only, not multi-region or 'unknown'", () => {
+    expect(knownRegionCount(['us', 'eu', 'multi-region', 'unknown'])).toBe(2);
+    expect(knownRegionCount(['unknown'])).toBe(0);
+    expect(knownRegionCount([])).toBe(0);
+  });
+});
+
+describe('withMultiRegion (the MCP tool: add, never remove)', () => {
+  it('adds multi-region for 2+ specific regions', () => {
+    expect(withMultiRegion(['eu', 'uk'])).toEqual(['eu', 'uk', 'multi-region']);
+  });
+
+  it("does not count 'unknown' as a region", () => {
+    expect(withMultiRegion(['us', 'unknown'])).toEqual(['us', 'unknown']);
+  });
+
+  it("keeps an explicit multi-region beside 'unknown'", () => {
+    expect(withMultiRegion(['unknown', 'multi-region'])).toEqual(['unknown', 'multi-region']);
+  });
+
+  it('keeps an explicit multi-region beside one specific region (the page would remove it)', () => {
+    expect(withMultiRegion(['us', 'multi-region'])).toEqual(['us', 'multi-region']);
+  });
+
+  it('does not duplicate multi-region or mutate its input', () => {
+    const input = ['us', 'eu', 'multi-region'];
+    expect(withMultiRegion(input)).toEqual(['us', 'eu', 'multi-region']);
+    expect(input).toEqual(['us', 'eu', 'multi-region']);
   });
 });
 

@@ -57,6 +57,58 @@ test.describe('Print chrome on Hub tool reports', () => {
   });
 });
 
+test.describe('Printing from a dark theme', () => {
+  // Paper has no dark theme: with the dark tokens, report text printed near-white
+  // on the white page (src/scripts/print-theme.ts). Playwright's print emulation
+  // fires no print events, so the test dispatches them as the browser does.
+  const luminance = (rgb: string): number => {
+    const [r, g, b] = rgb
+      .match(/\d+(\.\d+)?/g)!
+      .slice(0, 3)
+      .map(Number);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  };
+
+  test('a Diligence Machine agenda prints in readable ink, and the theme comes back', async ({
+    page,
+  }) => {
+    // Monolith (palette 1): its dark-theme primary, the question ink, is pure white.
+    await page.addInitScript(() => {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, '0');
+      const today = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('theme-date', today);
+      localStorage.setItem('palette', '1');
+      localStorage.setItem('palette-date', today);
+    });
+    await page.goto(
+      '/hub/tools/diligence-machine/?tt=carve-out&pt=b2b-saas&ta=hybrid-legacy&hc=51-200' +
+        '&rr=25-100m&gs=mature&ca=5-10yr&ge=us&bm=services-led&si=high&ts=stable&ds=high&om=hybrid',
+      { waitUntil: 'load' }
+    );
+    await expect(
+      page.locator('[data-testid="wizard-container"][data-restored="true"]')
+    ).toBeVisible();
+    await page.locator('[data-testid="btn-generate"]').click();
+    const question = page.locator('.doc-q-text').first();
+    await expect(question).toBeVisible();
+    await expect(page.locator('html')).toHaveClass(/dark-theme/);
+    // On screen, the dark theme's question ink is near-white.
+    const ink = () => question.evaluate((el) => getComputedStyle(el).color);
+    expect(luminance(await ink())).toBeGreaterThan(0.85);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    await page.emulateMedia({ media: 'print' });
+    // On paper it is the light theme's ink (Monolith grey), not white on white.
+    expect(luminance(await ink())).toBeLessThan(0.7);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+    await page.emulateMedia({ media: 'screen' });
+    await expect(page.locator('html')).toHaveClass(/dark-theme/);
+  });
+});
+
 test.describe('Portfolio no-results message', () => {
   test('a search that matches nothing shows a centred message', async ({ page }) => {
     await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });

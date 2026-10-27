@@ -19,7 +19,7 @@ import { join } from 'path';
  * cannot see it: a literal `&#32;` ending the prose line (a character reference
  * is not source whitespace), or `{' '}` (compiles to an expression). `&#32;` is
  * the default in plain template regions; `{' '}` is already load-bearing in
- * diligence-machine/index.astro and CTABox.astro, so the scan skips lines ending
+ * HubDiligenceMachinePage.astro and CTABox.astro, so the scan skips lines ending
  * in `}`. `&nbsp;` would work too but wrongly suppresses wrapping at that point.
  *
  * Disabling `compressHTML` fixes the whole class, but was measured at +305 KB

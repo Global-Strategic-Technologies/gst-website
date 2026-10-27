@@ -36,15 +36,13 @@ import {
 
 // ─── wizard-config.ts ────────────────────────────────────────────────────────
 
+// The wizard's words are in the `diligence-machine` catalog, keyed by these ids.
 export const WizardOptionSchema = z.object({
   id: z.string().min(1),
-  label: z.string().min(1),
-  description: z.string().min(1).optional(),
 });
 
 export const WizardFieldSchema = z.object({
   id: z.string().min(1),
-  label: z.string().min(1),
   inputType: z.literal('select'),
   options: z.array(WizardOptionSchema).min(1),
 });
@@ -53,9 +51,6 @@ export const WizardInputTypeSchema = z.enum(['single-select', 'multi-select', 'c
 
 export const WizardStepSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1),
-  navLabel: z.string().min(1),
-  subtitle: z.string().min(1),
   inputType: WizardInputTypeSchema,
   options: z.array(WizardOptionSchema).optional(),
   fields: z.array(WizardFieldSchema).optional(),
@@ -221,7 +216,7 @@ export const UserInputsSchema = z.object({
     .array(z.enum(withUnknown(GEOGRAPHY_IDS)))
     .min(1)
     .describe(
-      "Multi-select array of operating regions (≥ 1 element). Selecting 2+ specific regions auto-syncs `multi-region` via `syncMultiRegion()`. EU triggers GDPR + EU AI Act questions; Canada triggers PIPEDA + Quebec Law 25 attention area. Pass `['unknown']` (still satisfies .min(1)) when geographies are not derivable; the engine treats `['unknown']` exactly like a single-value `'unknown'` (widens triggers)."
+      "Multi-select array of operating regions (≥ 1 element). Two or more specific regions (not `'unknown'`) add `multi-region` to the array the engine runs on; a `multi-region` you pass is kept. EU triggers GDPR + EU AI Act questions; Canada triggers PIPEDA + Quebec Law 25 attention area. Pass `['unknown']` (still satisfies .min(1)) when geographies are not derivable; the engine treats `['unknown']` exactly like a single-value `'unknown'` (widens triggers)."
     ),
   businessModel: z
     .enum(withUnknown(BUSINESS_MODEL_IDS))

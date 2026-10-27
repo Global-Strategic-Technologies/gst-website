@@ -58,6 +58,7 @@ export const TIER_B_ROUTES: readonly RouteEntry[] = [
     id: 'infrastructure-cost-governance',
     path: '/hub/tools/infrastructure-cost-governance/',
   },
+  { id: 'diligence-machine', path: '/hub/tools/diligence-machine/' },
 ];
 
 /** Every route that exists in every locale. */

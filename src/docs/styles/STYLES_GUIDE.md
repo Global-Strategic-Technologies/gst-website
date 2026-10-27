@@ -309,7 +309,7 @@ the space itself, which leaves no source whitespace to delete. Fourteen of the t
 | `{' '}` | compiles to an expression (`${' '}`), not a text node a compressor can see | JSX-ish regions that already carry expressions                        |
 
 `&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — in
-`diligence-machine/index.astro`'s markup and in `CTABox.astro`, the latter with a comment
+`HubDiligenceMachinePage.astro`'s markup and in `CTABox.astro`, the latter with a comment
 saying so. Do **not** reach for `&nbsp;`: it would wrongly suppress wrapping at that point.
 Either form collapses harmlessly against real whitespace if compression is ever turned off.
 
@@ -977,7 +977,7 @@ screen worth printing. Add the block when a tool's on-screen result **is** the a
 }
 ```
 
-**Convention**: Hardcoded colors (e.g., `#ddd`, `#333`) are acceptable in print styles since print always renders on white paper. CSS variables that resolve to dark theme values would produce invisible content in print.
+**Convention**: print renders on white paper, so a print rule may hardcode colors (e.g., `#ddd`, `#333`) or use theme tokens: **printing from a dark theme prints the light theme**. `src/scripts/print-theme.ts` (loaded by the Header on every page) drops `dark-theme` and `theme-dim` from `<html>` on `beforeprint` and restores them on `afterprint`, so every token, palette inks included, prints its light value; `global.css` turns transitions off in print so no colour is caught part-way. Before it, a dark-theme Export PDF printed most report text near-white on the white page. `tests/e2e/print-chrome.test.ts` guards it.
 
 ### `:global()` for Dynamically Injected Content
 

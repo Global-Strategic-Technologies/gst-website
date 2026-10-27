@@ -12,6 +12,7 @@
 import { QUESTIONS, TOPIC_META } from '../../src/data/diligence-machine/questions';
 import { ATTENTION_AREAS } from '../../src/data/diligence-machine/attention-areas';
 import { WIZARD_STEPS, BRACKET_ORDER } from '../../src/data/diligence-machine/wizard-config';
+import EN from '../../src/i18n/en/diligence-machine.json';
 import { generateScript } from '../../src/utils/diligence-engine';
 
 // ─── DATA VALIDATION: QUESTION BANK ────────────────────────────────────────
@@ -736,7 +737,8 @@ describe('Wizard Configuration Integrity', () => {
     });
 
     it('should have all required fields on each step', () => {
-      const requiredFields = ['id', 'title', 'subtitle', 'inputType'];
+      // The words are catalog keys (see content validation below).
+      const requiredFields = ['id', 'inputType'];
 
       WIZARD_STEPS.forEach((step) => {
         requiredFields.forEach((field) => {
@@ -831,26 +833,14 @@ describe('Wizard Configuration Integrity', () => {
       }
     });
 
-    it('should have label and id for all options', () => {
+    it('should have an id for all options', () => {
       for (const step of WIZARD_STEPS) {
-        if (step.options) {
-          step.options.forEach((option) => {
-            expect(option.id, `Option in step ${step.id} missing id`).toBeTruthy();
-            expect(
-              option.label,
-              `Option ${option.id} in step ${step.id} missing label`
-            ).toBeTruthy();
-          });
+        for (const option of step.options ?? []) {
+          expect(option.id, `Option in step ${step.id} missing id`).toBeTruthy();
         }
-        if (step.fields) {
-          for (const field of step.fields) {
-            field.options.forEach((option) => {
-              expect(option.id, `Option in field ${field.id} missing id`).toBeTruthy();
-              expect(
-                option.label,
-                `Option ${option.id} in field ${field.id} missing label`
-              ).toBeTruthy();
-            });
+        for (const field of step.fields ?? []) {
+          for (const option of field.options) {
+            expect(option.id, `Option in field ${field.id} missing id`).toBeTruthy();
           }
         }
       }
@@ -907,39 +897,28 @@ describe('Wizard Configuration Integrity', () => {
   });
 
   describe('content validation', () => {
-    it('should have non-empty title for all steps', () => {
-      WIZARD_STEPS.forEach((step) => {
-        expect(step.title.length, `Step ${step.id} has empty title`).toBeGreaterThan(0);
-        expect(step.title.trim()).toBe(step.title);
-      });
-    });
+    // The wizard's words live in the diligence-machine catalog, keyed by id.
+    const catalog = EN as Record<string, string>;
+    const present = (key: string) => {
+      expect(catalog[key], `catalog key ${key}`).toBeTruthy();
+      expect(catalog[key].trim()).toBe(catalog[key]);
+    };
 
-    it('should have non-empty subtitle for all steps', () => {
-      WIZARD_STEPS.forEach((step) => {
-        expect(step.subtitle.length, `Step ${step.id} has empty subtitle`).toBeGreaterThan(0);
-        expect(step.subtitle.trim()).toBe(step.subtitle);
-      });
-    });
-
-    it('should have non-empty labels for all options', () => {
+    it('every step has a title, nav label and subtitle', () => {
       for (const step of WIZARD_STEPS) {
-        if (step.options) {
-          step.options.forEach((option) => {
-            expect(
-              option.label.length,
-              `Option ${option.id} in step ${step.id} has empty label`
-            ).toBeGreaterThan(0);
-          });
+        for (const part of ['title', 'navLabel', 'subtitle']) present(`step.${step.id}.${part}`);
+      }
+    });
+
+    it('every option has a label, and every plain-step option a description', () => {
+      for (const step of WIZARD_STEPS) {
+        for (const option of step.options ?? []) {
+          present(`option.${step.id}.${option.id}.label`);
+          present(`option.${step.id}.${option.id}.description`);
         }
-        if (step.fields) {
-          for (const field of step.fields) {
-            field.options.forEach((option) => {
-              expect(
-                option.label.length,
-                `Option ${option.id} in field ${field.id} has empty label`
-              ).toBeGreaterThan(0);
-            });
-          }
+        for (const field of step.fields ?? []) {
+          present(`field.${field.id}.label`);
+          for (const option of field.options) present(`option.${field.id}.${option.id}.label`);
         }
       }
     });

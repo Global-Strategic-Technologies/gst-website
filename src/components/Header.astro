@@ -112,6 +112,8 @@ const { t } = useTranslations(locale, 'common');
   import '../scripts/theme-color';
   // The tab icon follows the day's palette (STYLES_GUIDE § Browser chrome).
   import '../scripts/favicon';
+  // Printing leaves a dark theme for the length of the print (paper has none).
+  import '../scripts/print-theme';
 
   // Make trackNavigation available to inline onclick handlers.
   window.trackNavigation = trackNavigation;

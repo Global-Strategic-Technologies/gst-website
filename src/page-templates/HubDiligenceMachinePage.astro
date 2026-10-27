@@ -1,0 +1,2167 @@
+---
+/**
+ * /hub/tools/diligence-machine/ in every locale. Rendered by
+ * src/pages/hub/tools/diligence-machine/index.astro (English) and by
+ * src/pages/[locale]/[...route].astro. A Tier B route (`TIER_B_ROUTES`).
+ *
+ * Every user-visible string comes from the `diligence-machine` catalog,
+ * including the wizard's step and option words (wizard-config.ts holds only
+ * the ids). The client script renders the agenda, so the question, attention
+ * area and topic text it needs travels in the `data-dm-strings` island at the
+ * bottom, translated by id from `diligence-machine-data`; the engine keeps
+ * the English the MCP server emits. Hooks (`id`, `class`, `data-*`) are
+ * untouched: the script and the E2E suite read them.
+ *
+ * Literals that stay: the tool name, "GST", the site URL, the author's name
+ * and LinkedIn. `knowsAbout` in the JSON-LD stays an English literal —
+ * `tests/unit/hub-tool-schema.test.ts` parses it.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import { WIZARD_STEPS } from '../data/diligence-machine/wizard-config';
+import { QUESTIONS } from '../data/diligence-machine/questions';
+import { ATTENTION_AREAS } from '../data/diligence-machine/attention-areas';
+import { UserInputsSchema } from '../schemas/diligence';
+import { hubToolSchema } from '../utils/hub-tool-schema';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+import { SCRIPT_STRING_KEYS } from '../scripts/diligence-machine/strings';
+import DATA_EN from '../i18n/en/diligence-machine-data.json';
+import '../styles/components/progress.css';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'diligence-machine');
+const { t: tData } = useTranslations(locale, 'diligence-machine-data');
+
+// Wizard words and script strings are computed keys, so they are looked up
+// through the untyped catalog view.
+const tAny = t as (key: string, params?: Record<string, string | number>) => string;
+const tHtmlAny = tHtml as (key: string, params?: Record<string, string | number>) => string;
+const tDataAny = tData as (key: string) => string;
+
+// The island: the script's own strings, plus every question, attention area
+// and topic string, which the script reads by id. English needs none. Option
+// descriptions match the `option.` prefix but render here, never in the script.
+const DATA_KEYS = Object.keys(DATA_EN);
+const ISLAND_UI_KEYS = SCRIPT_STRING_KEYS.filter((key) => !key.endsWith('.description'));
+const SCRIPT_STRINGS = isDefaultLocale(locale)
+  ? {}
+  : {
+      ...Object.fromEntries(ISLAND_UI_KEYS.map((key) => [key, tAny(key)])),
+      ...Object.fromEntries(DATA_KEYS.map((key) => [key, tDataAny(key)])),
+    };
+
+// The methodology's counts are measured from the data, so they cannot drift.
+const questionCount = QUESTIONS.length;
+const attentionAreaCount = ATTENTION_AREAS.length;
+const dimensionCount = Object.keys(UserInputsSchema.shape).length;
+
+const href = (path: string) => localizedHref(path, locale);
+const stepNoteHref: Record<string, string> = {
+  'tech-archetype': href('/hub/tools/techpar/'),
+  'scale-intensity': href('/hub/tools/infrastructure-cost-governance/'),
+  'transformation-state': href('/hub/tools/tech-debt-calculator/'),
+  'data-sensitivity': href('/hub/tools/regulatory-map/'),
+};
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${href('/hub/tools/diligence-machine/')}`}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'The Diligence Machine',
+        description: t('jsonld.description'),
+        datePublished: '2025-06-01',
+        dateModified: '2026-10-27',
+        inLanguage: locale.htmlLang,
+        featureList: [
+          t('jsonld.feature.dimensions', { count: dimensionCount }),
+          t('jsonld.feature.questions'),
+          t('jsonld.feature.privacy'),
+          t('jsonld.feature.attention'),
+          t('jsonld.feature.export'),
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'M&A Tech Strategy',
+          'Technology Risk Assessment',
+          'PE Portfolio Technology',
+          'Software Architecture Evaluation',
+        ],
+      })
+    )}
+  />
+  <section
+    class="diligence-machine"
+    data-techpar-href={href('/hub/tools/techpar/')}
+    data-tech-debt-href={href('/hub/tools/tech-debt-calculator/')}
+    data-icg-href={href('/hub/tools/infrastructure-cost-governance/')}
+  >
+    <div class="container">
+      <!-- Header -->
+      <HubHeader title="The Diligence Machine" subtitle={t('header.subtitle')} locale={locale} />
+
+      <p class="brutal-tool-shell__authority dm-authority">{t('intro.authority')}</p>
+      <p class="dm-privacy-note">{t('intro.privacy')}</p>
+
+      <!-- Wizard Container -->
+      <div class="wizard-container" id="wizardContainer" data-testid="wizard-container">
+        <!-- Progress Bar -->
+        <div
+          class="tool-wizard-progress"
+          role="progressbar"
+          aria-valuemin="1"
+          aria-valuemax={WIZARD_STEPS.length}
+          aria-valuenow="1"
+          aria-label={t('wizard.progressLabel')}
+          data-testid="wizard-progress"
+        >
+          {WIZARD_STEPS.map((step, index) => (
+            <div
+              class={`tool-wizard-step ${index === 0 ? 'tool-wizard-step--active' : ''}`}
+              data-step-indicator={index + 1}
+              data-testid={`progress-segment-${index + 1}`}
+            >
+              <svg
+                class="tool-wizard-step__icon"
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M32 12 L52 52 L12 52 Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  stroke-linejoin="miter"
+                />
+                <text
+                  x="32"
+                  y="40"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  class="tool-wizard-step__number"
+                >
+                  {index + 1}
+                </text>
+              </svg>
+              <span class="tool-wizard-step__label">{tAny(`step.${step.id}.navLabel`)}</span>
+            </div>
+          ))}
+        </div>
+
+        <!-- Mobile Compact Progress -->
+        <div class="tool-wizard-progress-mobile" aria-hidden="true">
+          <span class="tool-wizard-progress-mobile__label">
+            {t('wizard.mobileStep')} <span class="tool-wizard-progress-mobile__current">1</span>{' '}
+            {t('wizard.mobileOf', { total: WIZARD_STEPS.length })}{' '}
+            <span class="tool-wizard-progress-mobile__name">
+              {tAny(`step.${WIZARD_STEPS[0].id}.navLabel`)}
+            </span>
+          </span>
+          <div class="tool-wizard-progress-mobile__dots">
+            {WIZARD_STEPS.map((_, index) => (
+              <button
+                class={`tool-wizard-dot ${index === 0 ? 'tool-wizard-dot--active' : ''}`}
+                data-dot-step={index + 1}
+                aria-label={t('wizard.goToStep', { n: index + 1 })}
+              >
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M32 12 L52 52 L12 52 Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="6"
+                    stroke-linejoin="miter"
+                  />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <!-- Steps -->
+        <div>
+          {WIZARD_STEPS.map((step, index) => (
+            <div
+              class={`wizard-step ${index === 0 ? 'active' : ''}`}
+              data-step={index + 1}
+              data-step-id={step.id}
+              data-input-type={step.inputType}
+              data-testid={`wizard-step-${index + 1}`}
+            >
+              <h2 class="step-title">{tAny(`step.${step.id}.title`)}</h2>
+              <p class="step-subtitle">{tAny(`step.${step.id}.subtitle`)}</p>
+              {stepNoteHref[step.id] && (
+                <p
+                  class="step-note"
+                  set:html={tHtmlAny(`note.${step.id}`, { href: stepNoteHref[step.id] })}
+                />
+              )}
+
+              {step.inputType === 'single-select' && step.options && (
+                <div class="options-grid">
+                  {step.options.map((option) => (
+                    <button
+                      class="brutal-option-card"
+                      data-option-id={option.id}
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-${option.id}`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        {tAny(`option.${step.id}.${option.id}.label`)}
+                      </span>
+                      <span class="brutal-option-card__description">
+                        {tAny(`option.${step.id}.${option.id}.description`)}
+                      </span>
+                    </button>
+                  ))}
+                  {/* BL-031.95 Phase 2.C: "Not sure" affordance — sets the
+                        dimension to the 'unknown' sentinel; engine widens
+                        triggers conservatively. Routes through the existing
+                        handleOptionClick because the schema accepts 'unknown'
+                        as a valid value (see UNKNOWN_INPUT in
+                        src/schemas/diligence.ts). */}
+                  <button
+                    class="brutal-option-card brutal-option-card--unsure"
+                    data-option-id="unknown"
+                    data-step-id={step.id}
+                    data-testid={`option-${step.id}-unknown`}
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    <span class="brutal-option-card__label">
+                      <DeltaIcon class="bullet-icon" />
+                      {t('option.unknown')}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {step.inputType === 'multi-select' && step.options && (
+                <div class="options-grid">
+                  {step.options.map((option) => (
+                    <button
+                      class="brutal-option-card"
+                      data-option-id={option.id}
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-${option.id}`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        {tAny(`option.${step.id}.${option.id}.label`)}
+                      </span>
+                      <span class="brutal-option-card__description">
+                        {tAny(`option.${step.id}.${option.id}.description`)}
+                      </span>
+                    </button>
+                  ))}
+                  {/* BL-031.95 Phase 2.C: "Not sure" affordance for the
+                        multi-select geography step. Click sets
+                        inputs.geographies = ['unknown'] and clears all other
+                        selections; clicking any specific region after
+                        clears the 'unknown' state. Special case handled in
+                        handleOptionClick. */}
+                  <button
+                    class="brutal-option-card brutal-option-card--unsure"
+                    data-option-id="unknown"
+                    data-step-id={step.id}
+                    data-testid={`option-${step.id}-unknown`}
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    <span class="brutal-option-card__label">
+                      <DeltaIcon class="bullet-icon" />
+                      {t('option.unknown')}
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {step.inputType === 'compound' && step.fields && (
+                <div class="compound-fields-grid">
+                  {step.fields.map((field) => (
+                    <div class="compound-field-section">
+                      <h3 class="field-section-label">{tAny(`field.${field.id}.label`)}</h3>
+                      <div class="field-options-grid" data-field-id={field.id}>
+                        {field.options.map((opt) => (
+                          <button
+                            class="brutal-option-card compound-option"
+                            data-option-id={opt.id}
+                            data-field-id={field.id}
+                            data-step-id={step.id}
+                            data-testid={`compound-${field.id}-${opt.id}`}
+                            type="button"
+                            aria-pressed="false"
+                          >
+                            <span class="brutal-option-card__label">
+                              <DeltaIcon size={10} class="brutal-option-card__icon" />
+                              {tAny(`option.${field.id}.${opt.id}.label`)}
+                            </span>
+                          </button>
+                        ))}
+                        {/* BL-031.95 Phase 2.C: "Not sure" per compound
+                              field. Each of the 4 compound fields
+                              (headcount/revenueRange/growthStage/companyAge)
+                              gets its own affordance — routes through
+                              handleCompoundOptionClick because the schema
+                              accepts 'unknown' on every dimension. */}
+                        <button
+                          class="brutal-option-card compound-option brutal-option-card--unsure"
+                          data-option-id="unknown"
+                          data-field-id={field.id}
+                          data-step-id={step.id}
+                          data-testid={`compound-${field.id}-unknown`}
+                          type="button"
+                          aria-pressed="false"
+                        >
+                          <span class="brutal-option-card__label">
+                            <DeltaIcon size={10} class="brutal-option-card__icon" />
+                            {t('option.unknown')}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <!-- Navigation -->
+        <div class="wizard-nav">
+          <button
+            class="brutal-btn brutal-btn--secondary"
+            id="btnBack"
+            data-testid="btn-back"
+            type="button"
+            disabled
+          >
+            {t('nav.back')}
+          </button>
+          <button
+            class="brutal-btn brutal-btn--primary"
+            id="btnNext"
+            data-testid="btn-next"
+            type="button"
+            disabled
+          >
+            {t('nav.next')}
+          </button>
+          <button
+            class="brutal-btn brutal-btn--primary"
+            id="btnGenerate"
+            data-testid="btn-generate"
+            type="button"
+            style="display:none;"
+          >
+            {t('nav.generate')}
+          </button>
+        </div>
+      </div>
+      <!-- Output Container -->
+      <div
+        class="output-container brutal-tool-shell--document"
+        id="outputContainer"
+        data-testid="output-container"
+        style="display:none;"
+      >
+        <!-- Floating Action Bar -->
+        <div
+          class="doc-action-bar tool-action-bar tool-action-bar--end tool-action-bar--frosted"
+          id="docActionBar"
+          data-testid="doc-action-bar"
+        >
+          <button
+            class="brutal-btn brutal-btn--secondary doc-action-btn"
+            id="btnGoBack"
+            data-testid="btn-go-back"
+            type="button"
+            aria-label={t('actions.goBackLabel')}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M10 3L5 8l5 5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+            {t('actions.back')}
+          </button>
+          <button
+            class="brutal-btn brutal-btn--secondary doc-action-btn"
+            id="btnCopy"
+            data-testid="btn-copy"
+            type="button"
+            aria-label={t('actions.copyLabel')}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect
+                x="5"
+                y="5"
+                width="9"
+                height="9"
+                rx="1.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+              ></rect>
+              <path
+                d="M3 11V3a1.5 1.5 0 011.5-1.5H11"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            <span id="btnCopyLabel">{t('actions.copy')}</span>
+          </button>
+          <button
+            class="brutal-btn brutal-btn--secondary doc-action-btn"
+            id="btnPrint"
+            data-testid="btn-print"
+            type="button"
+            aria-label={t('actions.printLabel')}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M4 6V1h8v5M4 12H2V7h12v5h-2"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              ></path>
+              <rect
+                x="4"
+                y="10"
+                width="8"
+                height="4"
+                rx="0.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+              ></rect>
+            </svg>
+            {t('actions.print')}
+          </button>
+          <button
+            class="brutal-btn brutal-btn--secondary doc-action-btn"
+            id="btnRestart"
+            data-testid="btn-restart"
+            type="button"
+            aria-label={t('actions.restartLabel')}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M2.5 2.5v4h4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M2.5 6.5A5.5 5.5 0 1 1 3 10"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            {t('actions.restart')}
+          </button>
+        </div>
+
+        <!-- The Document -->
+        <div class="doc-page" id="docPage" data-testid="doc-page">
+          <!-- Document Header -->
+          <header class="doc-header" data-testid="doc-header">
+            <div class="doc-brand">
+              <DeltaIcon size={20} class="doc-brand-icon" />
+              <span class="doc-brand-name">GST</span>
+            </div>
+            <h1 class="doc-title">{t('doc.title')}</h1>
+            <p class="doc-generation-date" id="docDate"></p>
+          </header>
+
+          <hr class="doc-divider doc-divider--heavy" />
+
+          <!-- Metadata Block -->
+          <section
+            class="doc-meta"
+            id="docMeta"
+            data-testid="doc-meta"
+            aria-label={t('doc.metaLabel')}
+          ></section>
+
+          <hr class="doc-divider" />
+
+          <!-- Table of Contents -->
+          <section
+            class="doc-toc"
+            id="docToc"
+            data-testid="doc-toc"
+            aria-label={t('doc.tocLabel')}
+          ></section>
+
+          <hr class="doc-divider doc-divider--post-toc" />
+
+          <!-- Attention Areas -->
+          <section
+            class="doc-attention-anchors"
+            id="attentionAreasSection"
+            data-testid="attention-areas-section"
+            style="display:none;"
+            aria-label={t('doc.attentionLabel')}
+          >
+            <h2 class="doc-section-heading">
+              <DeltaIcon class="bullet-icon" />
+              {t('js.attentionHeading')}
+            </h2>
+            <p class="doc-section-subtitle">{t('doc.attentionSubtitle')}</p>
+            <div class="doc-attention-grid" id="attentionAreasGrid"></div>
+          </section>
+
+          <!-- Topic Sections -->
+          <div class="doc-topics" id="scriptTopics" data-testid="doc-topics"></div>
+
+          <!-- Document Footer -->
+          <footer class="doc-footer">
+            <hr class="doc-divider" />
+            <div class="doc-footer-brand">
+              <DeltaIcon class="bullet-icon" />
+              <span>https://globalstrategic.tech</span>
+            </div>
+            <p class="doc-footer-disclaimer">{t('doc.disclaimer')}</p>
+          </footer>
+        </div>
+      </div>
+
+      <details class="tool-methodology tool-methodology--delta">
+        <summary class="tool-methodology__trigger">{t('method.summary')}</summary>
+        <div class="tool-methodology__body">
+          <h4 class="tool-methodology__heading">{t('method.bank.heading')}</h4>
+          <p set:html={tHtml('method.bank.body', { count: questionCount })} />
+
+          <h4 class="tool-methodology__heading">{t('method.matching.heading')}</h4>
+          <p set:html={tHtml('method.matching.body', { count: dimensionCount })} />
+
+          <h4 class="tool-methodology__heading">{t('method.balancing.heading')}</h4>
+          <p set:html={tHtml('method.balancing.body')} />
+
+          <h4 class="tool-methodology__heading">{t('method.attention.heading')}</h4>
+          <p set:html={tHtml('method.attention.body', { count: attentionAreaCount })} />
+
+          <h4 class="tool-methodology__heading">{t('method.pivot.heading')}</h4>
+          <p set:html={tHtml('method.pivot.body')} />
+
+          <h4 class="tool-methodology__heading">{t('method.limits.heading')}</h4>
+          <p set:html={tHtml('method.limits.body')} />
+
+          <h4 class="tool-methodology__heading">{t('method.privacy.heading')}</h4>
+          <p set:html={tHtml('method.privacy.body', { privacyHref: href('/privacy/') })} />
+
+          <p class="tool-methodology__updated">{t('method.updated')}</p>
+
+          <div class="tool-methodology__author">
+            <span class="tool-methodology__author-name">Reid Peryam</span>
+            <span class="tool-methodology__author-sep">&middot;</span>
+            <span>{t('method.authorRole')}</span>
+            <span class="tool-methodology__author-sep">&middot;</span>
+            <span>{t('method.authorCred')}</span>
+            <span class="tool-methodology__author-sep">&middot;</span>
+            <a
+              href="https://www.linkedin.com/in/reidperyam/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="tool-methodology__author-link"
+            >
+              LinkedIn
+            </a>
+          </div>
+        </div>
+      </details>
+
+      <a
+        href={href('/hub/tools/')}
+        class="brutal-btn brutal-btn--secondary back-link"
+        id="backToTools"
+      >
+        <DeltaIcon class="bullet-icon" />
+        {t('backToTools')}
+      </a>
+    </div>
+  </section>
+  {/* English needs no island: the script falls back to its English catalog and the data. */}
+  {!isDefaultLocale(locale) && (
+    <script
+      is:inline
+      type="application/json"
+      data-dm-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
+    />
+  )}
+</BaseLayout>
+
+<script>
+  import '../scripts/diligence-machine';
+</script>
+
+<style>
+  /* ─── LAYOUT ───────────────────────────────────────────────────────── */
+
+  /* No top padding: `HubHeader` already contributes 3xl above the title, and a
+     second helping here started this page's title 40px lower than the other
+     hub tools'. */
+  .diligence-machine {
+    padding: 0 0 var(--spacing-3xl);
+    min-height: 80vh;
+  }
+
+  /* ─── AUTHORITY LINE ───────────────────────────────────────────────── */
+
+  .dm-authority {
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .dm-privacy-note {
+    padding: var(--spacing-xs) var(--spacing-lg);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ─── WIZARD STEPS ─────────────────────────────────────────────────── */
+
+  .wizard-step {
+    display: none;
+    max-width: 390px;
+    margin: 0 auto;
+  }
+
+  .wizard-step.active {
+    display: block;
+  }
+
+  .step-title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+    text-align: center;
+    margin: 0 0 var(--spacing-sm) 0;
+  }
+
+  .step-subtitle {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    text-align: center;
+    margin: 0 0 var(--spacing-2xl) 0;
+    line-height: 1.6;
+  }
+
+  .step-note {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-align: center;
+    margin: calc(-1 * var(--spacing-xl)) 0 var(--spacing-2xl) 0;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* ─── OPTION CARDS ─────────────────────────────────────────────────── */
+
+  .options-grid {
+    display: grid;
+    gap: var(--spacing-md);
+  }
+
+  /* Single-column steps: constrain width to reduce whitespace */
+  [data-step-id='transaction-type'] .options-grid,
+  [data-step-id='product-type'] .options-grid,
+  [data-step-id='tech-archetype'] .options-grid,
+  [data-step-id='business-model'] .options-grid,
+  [data-step-id='scale-intensity'] .options-grid,
+  [data-step-id='transformation-state'] .options-grid,
+  [data-step-id='data-sensitivity'] .options-grid,
+  [data-step-id='operating-model'] .options-grid {
+    max-width: 50%;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    [data-step-id='transaction-type'] .options-grid,
+    [data-step-id='product-type'] .options-grid,
+    [data-step-id='tech-archetype'] .options-grid,
+    [data-step-id='business-model'] .options-grid,
+    [data-step-id='scale-intensity'] .options-grid,
+    [data-step-id='transformation-state'] .options-grid,
+    [data-step-id='data-sensitivity'] .options-grid,
+    [data-step-id='operating-model'] .options-grid {
+      max-width: 100%;
+    }
+  }
+
+  /* Geography step: two-column layout for efficient whitespace usage */
+  [data-step-id='geography'] .options-grid {
+    grid-template-columns: 1fr; /* Mobile: single column */
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 480px) {
+    [data-step-id='geography'] .options-grid {
+      grid-template-columns: repeat(2, 1fr); /* Two columns on tablets and up */
+      max-width: 560px; /* ~80% of 700px step width */
+      column-gap: var(--spacing-lg);
+    }
+  }
+
+  @media (min-width: 768px) {
+    [data-step-id='geography'] .options-grid {
+      max-width: 580px; /* ~83% of 700px step width */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    [data-step-id='geography'] .options-grid {
+      max-width: 640px; /* ~80% of 800px desktop width */
+    }
+  }
+
+  /* ─── COMPOUND FIELD SECTIONS ────────────────────────────────────────── */
+
+  .compound-fields-grid {
+    display: grid;
+    gap: var(--spacing-3xl);
+  }
+
+  .compound-field-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .field-section-label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid light-dark(var(--border-dark), var(--color-primary-30));
+  }
+
+  .field-options-grid {
+    display: grid;
+    gap: var(--spacing-md);
+    grid-template-columns: 1fr; /* Mobile-first: 1 column */
+  }
+
+  .compound-option {
+    min-height: 52px; /* Ensure WCAG touch target */
+    justify-content: center;
+  }
+
+  /* ─── NAVIGATION ───────────────────────────────────────────────────── */
+
+  .wizard-nav {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-3xl);
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ─── DOCUMENT ACTION BAR ──────────────────────────────────────────── */
+
+  .doc-action-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* Button overrides (layout only — base styles from global .brutal-btn) */
+  .doc-action-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-family: var(--font-family-mono);
+  }
+
+  /* Use attribute selector instead of #id to keep specificity low (camelCase
+     * id rename requires coordinated HTML + JS update; logged to Phase 9 backlog). */
+  [id='btnGoBack'] {
+    margin-right: auto;
+  }
+
+  .doc-action-btn:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  /* ─── DOCUMENT PAGE ────────────────────────────────────────────────── */
+
+  .output-container {
+    /* max-width: 800px now provided by global .brutal-tool-shell--document */
+    margin: 0 auto;
+  }
+
+  .doc-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--surface-faint-bg);
+    backdrop-filter: blur(3px);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding: var(--spacing-xl);
+  }
+
+  .doc-page,
+  .doc-page * {
+    user-select: text;
+  }
+
+  /* ─── DOCUMENT HEADER ──────────────────────────────────────────────── */
+
+  .doc-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .doc-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .doc-brand :global(.doc-brand-icon) {
+    flex-shrink: 0;
+    color: var(--color-primary);
+  }
+
+  .doc-brand-name {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+
+  .doc-title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+
+  .doc-generation-date {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin: 0;
+    margin-top: var(--spacing-xs);
+  }
+
+  /* ─── DIVIDERS ─────────────────────────────────────────────────────── */
+
+  .doc-divider {
+    border: none;
+    border-top: 1px solid light-dark(var(--border-light), var(--border-dark));
+    margin: var(--spacing-xl) 0;
+  }
+
+  .doc-divider--heavy {
+    border-top-width: 3px;
+    border-top-color: var(--color-primary);
+  }
+
+  .doc-divider--post-toc {
+    display: block;
+  }
+
+  .doc-footer .doc-divider {
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+
+  /* ─── SECTION HEADINGS ─────────────────────────────────────────────── */
+
+  .doc-page :global(.doc-section-heading) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-secondary-ink);
+    margin: 0 0 var(--spacing-lg) 0;
+  }
+
+  .doc-page :global(.doc-section-subtitle) {
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: calc(var(--spacing-sm) * -1) 0 var(--spacing-md) 0;
+    padding-left: var(--spacing-xl);
+    font-style: italic;
+  }
+
+  /* ─── METADATA BLOCK ───────────────────────────────────────────────── */
+
+  .doc-meta :global(.doc-meta-grid) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+    margin: 0;
+    padding-left: var(--spacing-xl);
+  }
+
+  .doc-meta :global(.doc-meta-card) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) 0;
+  }
+
+  .doc-meta :global(.doc-meta-label) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-primary);
+    opacity: 0.7;
+  }
+
+  .doc-meta :global(.doc-meta-label--clickable) {
+    cursor: pointer;
+    transition:
+      opacity var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .doc-meta :global(.doc-meta-label--clickable:hover) {
+    opacity: 1;
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .doc-meta :global(.doc-meta-value) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  /* Column alignment for 3-column grid */
+  .doc-meta :global(.doc-meta-card--col2) {
+    align-items: center;
+    text-align: center;
+  }
+
+  .doc-meta :global(.doc-meta-card--col3) {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .doc-meta :global(.doc-meta-card--identifier) {
+    grid-column: span 1;
+  }
+
+  .doc-meta :global(.doc-meta-identifier-input) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.3;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 1px dashed light-dark(var(--color-primary-30), var(--border-dark));
+    padding: 2px 0;
+    width: 75%;
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+
+  .doc-meta :global(.doc-meta-identifier-input:focus) {
+    border-bottom-color: var(--color-primary);
+  }
+
+  .doc-meta :global(.doc-meta-identifier-input::placeholder) {
+    color: var(--text-muted);
+    font-weight: var(--font-weight-normal);
+  }
+
+  .doc-meta :global(.doc-meta-actions) {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+  }
+
+  .doc-meta :global(.doc-meta-cta-button) {
+    font-size: var(--text-size-compact);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    text-align: center;
+    line-height: 1.3;
+    white-space: nowrap;
+    border-radius: 0;
+  }
+
+  /* ─── TABLE OF CONTENTS ────────────────────────────────────────────── */
+
+  .doc-toc :global(.doc-toc-list) {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    margin: 0 0 var(--spacing-lg) 0;
+  }
+
+  .doc-toc :global(.doc-toc-link) {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    font-family: var(--font-family-mono);
+    transition:
+      color var(--transition-fast),
+      background-color var(--transition-fast);
+    border-left: 2px solid var(--color-primary);
+    border-bottom: none;
+    padding-bottom: var(--spacing-xs);
+    outline: none;
+  }
+
+  .doc-toc :global(.doc-toc-link:first-child) {
+    border-left: none;
+  }
+
+  .doc-toc :global(.doc-toc-link:hover) {
+    color: var(--color-primary);
+    border-bottom: none;
+  }
+
+  .doc-toc :global(.doc-toc-link:focus-visible) {
+    color: var(--color-primary);
+    background-color: light-dark(var(--accent-light-bg), var(--accent-light-bg-hover));
+  }
+
+  .doc-toc :global(.doc-toc-link:active) {
+    color: var(--color-primary);
+    background-color: light-dark(var(--accent-light-bg-hover), var(--border-dark));
+  }
+
+  .doc-toc :global(.doc-toc-topic-name) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── ATTENTION AREAS ──────────────────────────────────────────────── */
+
+  .doc-attention-anchors {
+    margin-bottom: 0;
+  }
+
+  .doc-attention-grid {
+    display: grid;
+    gap: var(--spacing-md);
+    padding-left: 0;
+  }
+
+  .doc-attention-grid :global(.doc-attention-card) {
+    padding: calc(var(--spacing-xl) * 0.5) var(--spacing-xl);
+    border-left: 3px solid var(--color-primary);
+    background: var(--accent-wash-bg);
+    border-radius: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .doc-attention-grid :global(.doc-attention-card.is-collapsed) {
+    padding: var(--spacing-sm) var(--spacing-xl);
+  }
+
+  .doc-attention-grid :global(.doc-attention-card.relevance-high) {
+    border-left-color: var(--color-authority);
+    background: var(--color-authority-bg);
+  }
+
+  .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
+    border-left-color: var(--color-subdued);
+    background: var(--color-subdued-bg);
+  }
+
+  .doc-attention-grid :global(.doc-attention-header) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .doc-attention-grid :global(.doc-attention-title) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1.4;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .doc-attention-grid :global(.doc-attention-divider) {
+    width: 2rem;
+    height: 2px;
+    border: none;
+    opacity: 0.4;
+    margin: var(--spacing-md) 0;
+  }
+
+  .doc-attention-grid :global(.doc-attention-card .doc-attention-divider) {
+    background: var(--color-primary);
+  }
+
+  .doc-attention-grid :global(.relevance-high .doc-attention-divider) {
+    background: var(--color-authority);
+  }
+
+  .doc-attention-grid :global(.relevance-medium .doc-attention-divider) {
+    background: var(--color-subdued);
+  }
+
+  .doc-attention-grid :global(.doc-attention-desc) {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* ─── COLLAPSE / DISMISS CONTROLS ────────────────────────────────── */
+
+  :global([data-card-toggle]) {
+    cursor: pointer;
+  }
+
+  :global(.doc-attention-card.is-dismissed),
+  :global(.doc-question.is-dismissed) {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+
+  :global(.is-dismissed .brutal-na-btn) {
+    border-style: solid;
+  }
+
+  /* Attention card collapse */
+
+  .doc-attention-grid :global(.is-collapsed .doc-attention-divider) {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+  }
+
+  .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* Question card collapse */
+  :global(.dm-card-body) {
+    transition:
+      max-height var(--transition-normal),
+      opacity var(--transition-normal);
+    max-height: 1000px;
+    overflow: hidden;
+    opacity: 1;
+  }
+
+  :global(.is-collapsed .dm-card-body) {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+  }
+
+  /* Truncate question text to one line when collapsed */
+  :global(.doc-question.is-collapsed .doc-q-text) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0;
+    font-weight: var(--font-weight-normal);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  /* ─── TOPIC SECTIONS ───────────────────────────────────────────────── */
+
+  /* All topic/question elements are dynamically injected via innerHTML,
+       so they need :global() wrappers anchored on the static .doc-topics parent */
+
+  .doc-topics :global(.doc-topic) {
+    margin-top: var(--spacing-3xl);
+  }
+
+  .doc-topics :global(.doc-topic-header) {
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--color-primary);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .doc-topics :global(.doc-topic-label-row) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .doc-topics :global(.doc-topic-number) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-primary);
+  }
+
+  .doc-topics :global(.doc-topic-title) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-secondary-ink);
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+
+  .doc-topics :global(.doc-section-subtitle) {
+    margin: 0 0 var(--spacing-sm) 0;
+    padding-left: 0;
+  }
+
+  .doc-topics :global(.doc-topic-audience) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+  }
+
+  /* ─── QUESTIONS ────────────────────────────────────────────────────── */
+
+  .doc-topics :global(.doc-questions) {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--spacing-md);
+  }
+
+  .doc-topics :global(.doc-question) {
+    padding: var(--spacing-lg);
+    border: 1px solid light-dark(var(--border-light), var(--border-dark));
+    border-radius: 0;
+    border-left: 3px solid light-dark(var(--border-light), var(--border-dark));
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .doc-topics :global(.doc-question.is-collapsed) {
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .doc-topics :global(.doc-question.priority-high) {
+    border-left-color: var(--color-authority);
+  }
+
+  .doc-topics :global(.doc-question.priority-medium) {
+    border-left-color: var(--color-subdued);
+  }
+
+  .doc-topics :global(.doc-question.priority-standard) {
+    border-left-color: var(--color-primary);
+  }
+
+  .doc-topics :global(.doc-q-header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .doc-topics :global(.doc-q-number) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin-right: var(--spacing-sm);
+  }
+
+  .doc-topics :global(.doc-q-priority) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px var(--spacing-sm);
+    border-radius: 0;
+  }
+
+  .doc-topics :global(.priority-high .doc-q-priority) {
+    background: var(--color-authority-bg);
+    color: var(--color-authority-ink);
+  }
+
+  .doc-topics :global(.priority-medium .doc-q-priority) {
+    background: var(--color-subdued-bg);
+    color: var(--color-subdued-ink);
+  }
+
+  .doc-topics :global(.priority-standard .doc-q-priority) {
+    background: var(--accent-light-bg-hover);
+    color: var(--color-primary);
+  }
+
+  .doc-topics :global(.doc-q-text) {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-sm) 0;
+  }
+
+  .doc-topics :global(.doc-q-rationale) {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .doc-topics :global(.doc-q-triggers) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .doc-topics :global(.doc-q-trigger-tag) {
+    display: inline-block;
+    padding: 1px var(--spacing-xs);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-radius: 0;
+  }
+
+  /* ─── V2: EXIT IMPACT BADGES ──────────────────────────────────────── */
+
+  .doc-topics :global(.doc-q-badges) {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+  }
+
+  .doc-topics :global(.doc-q-exit-impact) {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px var(--spacing-sm);
+    border-radius: 0;
+  }
+
+  .doc-topics :global(.exit-impact-multiple-expander) {
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
+    color: var(--color-success-ink);
+  }
+
+  .doc-topics :global(.exit-impact-valuation-drag) {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning-ink);
+  }
+
+  .doc-topics :global(.exit-impact-operational-risk) {
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+    color: var(--color-error-ink);
+  }
+
+  .doc-topics :global(.doc-q-red-flag) {
+    font-size: var(--text-sm);
+    color: var(--color-error-ink);
+    line-height: 1.6;
+    margin: 0 0 var(--spacing-sm) 0;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--dm-negative-dark-bg);
+    border-left: 2px solid color-mix(in srgb, var(--color-error) 30%, transparent);
+    border-radius: 0;
+  }
+
+  /* ─── DOCUMENT FOOTER ──────────────────────────────────────────────── */
+
+  .doc-footer {
+    margin-top: var(--spacing-md);
+    padding-top: 0;
+    opacity: 0.5;
+  }
+
+  .doc-footer-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-3xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+  }
+
+  .doc-footer-brand img {
+    width: 10px;
+    height: 10px;
+  }
+
+  .doc-footer-disclaimer {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-3xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 0;
+    text-transform: none;
+  }
+
+  /* DM methodology — scoped overrides on shared .tool-methodology */
+  .diligence-machine :global(.tool-methodology) {
+    max-width: 800px;
+    margin: var(--spacing-2xl) auto 0;
+  }
+
+  .diligence-machine :global(.tool-methodology__trigger) {
+    justify-content: center;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+
+  /* ─── BACK LINK ────────────────────────────────────────────────────── */
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-3xl);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  /* ─── RESPONSIVE ───────────────────────────────────────────────────── */
+
+  @media (min-width: 768px) {
+    .diligence-machine {
+      padding: 0 0 var(--spacing-2_5xl);
+    }
+
+    /* Expand wizard step width on tablet+ for better multi-column layout */
+    .wizard-step {
+      max-width: 700px;
+    }
+
+    /* Headcount (4 options): 2 columns in 2x2 grid */
+    .field-options-grid[data-field-id='headcount'] {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Revenue Range (4 options): 2 columns in 2x2 grid */
+    .field-options-grid[data-field-id='revenue-range'] {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Growth Stage (3 options): 3 columns in single row */
+    .field-options-grid[data-field-id='growth-stage'] {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Company Age (5 options): 3 columns (2-2-1 layout) */
+    .field-options-grid[data-field-id='company-age'] {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    /* Desktop: even wider for optimal spacing */
+    .wizard-step {
+      max-width: 800px;
+    }
+
+    /* Headcount (4 options): 4 columns in single row */
+    .field-options-grid[data-field-id='headcount'] {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Revenue Range (4 options): 4 columns in single row */
+    .field-options-grid[data-field-id='revenue-range'] {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Company Age (5 options): 5 columns in single row */
+    .field-options-grid[data-field-id='company-age'] {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .diligence-machine {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .tool-wizard-progress {
+      display: none;
+    }
+
+    .tool-wizard-progress-mobile {
+      display: flex;
+    }
+
+    :global(.brutal-option-card) {
+      padding: var(--spacing-lg);
+    }
+
+    .compound-fields-grid {
+      gap: var(--spacing-2xl);
+    }
+
+    .field-section-label {
+      font-size: var(--text-xs);
+    }
+
+    .wizard-nav {
+      flex-direction: row;
+    }
+
+    /* Document output mobile overrides */
+    .doc-page {
+      padding: var(--spacing-md) var(--spacing-sm);
+    }
+
+    .doc-divider {
+      margin-left: var(--spacing-md);
+      margin-right: var(--spacing-md);
+    }
+
+    .doc-title {
+      font-size: var(--text-xl);
+    }
+
+    .doc-page :global(.doc-section-subtitle) {
+      padding-left: var(--spacing-md);
+      font-size: var(--text-size-compact);
+    }
+
+    .doc-meta :global(.doc-meta-grid) {
+      grid-template-columns: 1fr 1fr;
+      padding: 0 var(--spacing-md);
+      gap: var(--spacing-xs);
+    }
+
+    .doc-meta :global(.doc-meta-card) {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .doc-meta :global(.doc-meta-card--identifier) {
+      grid-column: 1 / -1;
+      align-items: center;
+      text-align: center;
+    }
+
+    .doc-meta :global(.doc-meta-card--identifier .doc-meta-label) {
+      font-size: var(--text-sm);
+    }
+
+    .doc-meta :global(.doc-meta-identifier-input) {
+      text-align: center;
+      font-size: var(--text-xl);
+      width: 100%;
+    }
+
+    /* Reset desktop column alignment for 2-col mobile grid */
+    .doc-meta :global(.doc-meta-card--col2),
+    .doc-meta :global(.doc-meta-card--col3) {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    /* Right-align every second card in the 2-col grid */
+    .doc-meta :global(.doc-meta-card:nth-child(2n + 1):not(.doc-meta-card--identifier)) {
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    .doc-meta :global(.doc-meta-actions) {
+      flex-direction: column;
+      padding: 0 var(--spacing-md);
+      gap: var(--spacing-sm);
+      align-items: stretch;
+    }
+
+    .doc-meta :global(.doc-meta-cta-button) {
+      white-space: normal;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .doc-toc :global(.doc-toc-list) {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .doc-toc :global(.doc-toc-link) {
+      border-left: none;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--text-xs);
+    }
+
+    .doc-attention-grid {
+      padding: 0 var(--spacing-md);
+    }
+
+    .doc-action-bar {
+      margin-left: var(--spacing-sm);
+      margin-right: var(--spacing-sm);
+      flex-wrap: wrap;
+      gap: var(--spacing-xs);
+    }
+
+    .doc-action-btn {
+      flex: 1 1 auto;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--text-xs);
+    }
+
+    .doc-topics :global(.doc-topic-header) {
+      margin-left: var(--spacing-md);
+      margin-right: var(--spacing-md);
+    }
+
+    .doc-topics :global(.doc-topic-label-row) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-xs);
+    }
+
+    /* Tighten question list spacing on mobile */
+    .doc-topics :global(.doc-questions) {
+      gap: var(--spacing-sm);
+      margin-left: var(--spacing-sm);
+      margin-right: var(--spacing-sm);
+    }
+
+    .doc-topics :global(.doc-question) {
+      padding: var(--spacing-md);
+    }
+
+    .doc-topics :global(.doc-question.is-collapsed) {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .doc-attention-grid :global(.doc-attention-card.is-collapsed) {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    /* Collapsed cards: title-only on mobile */
+    .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+      display: none;
+    }
+
+    .doc-attention-grid :global(.is-collapsed .doc-attention-title) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    :global(.doc-question.is-collapsed .doc-q-text) {
+      font-size: var(--text-xs);
+    }
+  }
+
+  /* ─── PRINT ────────────────────────────────────────────────────────── */
+
+  @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
+    /* Page setup */
+    html,
+    body {
+      height: auto;
+    }
+
+    .wizard-container,
+    .wizard-nav,
+    .doc-action-bar,
+    .back-link,
+    .brutal-tool-shell__authority,
+    .dm-privacy-note,
+    .tool-methodology,
+    :global(.hub-header) {
+      display: none;
+    }
+
+    .doc-meta :global(.doc-meta-actions) {
+      display: none;
+    }
+
+    .diligence-machine {
+      padding: 0;
+    }
+
+    .output-container {
+      display: block !important;
+      max-width: 100%;
+    }
+
+    .doc-page {
+      display: block;
+      min-height: auto;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      background: #fff;
+      page-break-after: avoid;
+    }
+
+    /* Document header - keep tight */
+    .doc-header {
+      color: var(--color-primary);
+      margin-bottom: 0;
+      page-break-after: avoid;
+    }
+
+    .doc-title {
+      margin: 0 0 var(--spacing-xs);
+      font-size: 15pt;
+      page-break-after: avoid;
+    }
+
+    .doc-generation-date {
+      margin: 0;
+      font-size: 8.25pt;
+    }
+
+    /* Dividers - reduce spacing */
+    .doc-divider {
+      margin: var(--spacing-lg) 0;
+    }
+
+    .doc-divider--heavy {
+      margin: 0 0 var(--spacing-md);
+      border-top-color: var(--color-primary);
+      page-break-after: avoid;
+    }
+
+    .doc-divider--post-toc {
+      display: block;
+    }
+
+    /* Metadata grid - compact */
+    .doc-meta :global(.doc-meta-grid) {
+      gap: var(--spacing-sm);
+      margin: 0;
+      padding-left: 0;
+      page-break-after: avoid;
+    }
+
+    .doc-meta :global(.doc-meta-card) {
+      gap: 2px;
+      padding: 6px 0;
+      page-break-inside: avoid;
+    }
+
+    .doc-meta :global(.doc-meta-label) {
+      font-size: var(--text-2xs);
+      opacity: 0.7;
+    }
+
+    .doc-meta :global(.doc-meta-value) {
+      font-size: 9.75pt;
+      line-height: 1.2;
+    }
+
+    .doc-meta :global(.doc-meta-identifier-input) {
+      border: none !important;
+      padding: 0 !important;
+      font-size: 9.75pt;
+    }
+
+    /* TOC - inline horizontal nav */
+    .doc-toc :global(.doc-toc-list) {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      padding: 0;
+      margin: 0 0 var(--spacing-sm);
+      page-break-inside: avoid;
+    }
+
+    .doc-toc :global(.doc-toc-link) {
+      padding: 2px var(--spacing-sm);
+      font-size: 9pt;
+      line-height: 1.3;
+      border-left: 1px solid var(--color-primary);
+    }
+
+    .doc-toc :global(.doc-toc-link:first-child) {
+      border-left: none;
+    }
+
+    .doc-toc :global(.doc-toc-topic-name) {
+      font-size: 9pt;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    /* Attention Areas */
+    .doc-attention-anchors :global(.doc-section-heading) {
+      font-size: 9pt;
+      margin: 0 0 var(--spacing-sm);
+      page-break-after: avoid;
+    }
+
+    .doc-attention-anchors {
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    /* Attention areas - compact cards */
+    .doc-attention-grid {
+      gap: var(--spacing-sm);
+      padding-left: 0;
+    }
+
+    .doc-attention-grid :global(.doc-attention-card) {
+      padding: var(--spacing-md);
+      border-left: 2px solid var(--color-primary);
+      break-inside: avoid;
+    }
+
+    .doc-attention-grid :global(.doc-attention-card.relevance-high) {
+      border-left-color: var(--color-authority);
+    }
+
+    .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
+      border-left-color: var(--color-subdued);
+    }
+
+    .doc-attention-grid :global(.doc-attention-header) {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      page-break-inside: avoid;
+    }
+
+    .doc-attention-grid :global(.doc-attention-title) {
+      font-size: 9.75pt;
+      font-weight: var(--font-weight-bold);
+      margin: 0 0 2px;
+      color: var(--color-primary);
+    }
+
+    .doc-attention-grid :global(.doc-attention-divider) {
+      display: none;
+    }
+
+    .doc-attention-grid :global(.doc-attention-desc) {
+      font-size: 8.25pt;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* Topics - one per page, ultra-condensed */
+    .doc-topics :global(.doc-topic) {
+      page-break-before: always;
+      margin-top: 0;
+      margin-bottom: 0;
+      break-inside: avoid;
+    }
+
+    .doc-topics :global(.doc-topic-header) {
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid var(--color-primary);
+      margin-bottom: var(--spacing-sm);
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-topic-label-row) {
+      margin-bottom: 2px;
+      gap: var(--spacing-md);
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-topic-number) {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .doc-topics :global(.doc-topic-title) {
+      font-size: 12pt;
+      font-weight: var(--font-weight-bold);
+      margin: 0 0 2px;
+      color: var(--color-secondary-ink);
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-section-subtitle) {
+      font-size: 6.75pt;
+      margin: 0 0 var(--spacing-xs);
+      padding-left: 0;
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-topic-audience) {
+      font-size: 7.5pt;
+      margin: 0;
+      font-style: italic;
+      page-break-after: avoid;
+    }
+
+    /* Questions - ultra-tight spacing */
+    .doc-topics :global(.doc-questions) {
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      page-break-inside: avoid;
+    }
+
+    .doc-topics :global(.doc-question) {
+      padding: var(--spacing-sm);
+      border: 0.5px solid #ccc;
+      border-left: 2px solid var(--color-primary);
+      margin: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .doc-topics :global(.doc-question.priority-high) {
+      border-left-color: var(--color-authority);
+    }
+
+    .doc-topics :global(.doc-question.priority-medium) {
+      border-left-color: var(--color-subdued);
+    }
+
+    .doc-topics :global(.doc-q-header) {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 3px;
+      gap: var(--spacing-sm);
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-q-number) {
+      font-size: 8.25pt;
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+      flex-shrink: 0;
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-q-priority) {
+      font-size: 6pt;
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      padding: 1px var(--spacing-xs);
+      border-radius: 0;
+      flex-shrink: 0;
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-q-text) {
+      font-size: 9pt;
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.3;
+      margin: 0 0 2px;
+      color: var(--color-primary);
+      page-break-after: avoid;
+    }
+
+    .doc-topics :global(.doc-q-rationale) {
+      font-size: 7.5pt;
+      line-height: 1.3;
+      margin: 0;
+      font-style: italic;
+      color: var(--text-primary);
+      page-break-after: avoid;
+    }
+
+    /* Footer - appears once at the end of the document */
+    .doc-footer {
+      position: static;
+      padding: var(--spacing-md) var(--spacing-2_5xl);
+      margin-top: var(--spacing-xl);
+      opacity: 0.6;
+      font-size: 6.75pt;
+      background: #fff;
+      border: none;
+      border-top: 1px solid var(--border-light);
+      box-shadow: none;
+      page-break-before: avoid;
+    }
+
+    @page {
+      margin-bottom: 1.5cm;
+    }
+
+    .doc-footer .doc-divider {
+      margin: 0 0 var(--spacing-xs);
+    }
+
+    .doc-footer-brand {
+      gap: 2px;
+      margin-bottom: 2px;
+      font-size: 6.75pt;
+    }
+
+    .doc-footer-disclaimer {
+      font-size: 6.75pt;
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    /* Section headings */
+    .doc-page :global(.doc-section-heading) {
+      font-size: 8.25pt;
+      margin: 0 0 6px;
+      page-break-after: avoid;
+    }
+
+    .doc-page :global(.doc-section-subtitle) {
+      font-size: 6.75pt;
+      line-height: 1.4;
+      margin: -4px 0 6px;
+      padding-left: 0;
+      page-break-after: avoid;
+    }
+
+    /* v2: Exit impact badges */
+    .doc-topics :global(.doc-q-badges) {
+      display: flex;
+      gap: var(--spacing-xs);
+      align-items: center;
+    }
+
+    .doc-topics :global(.doc-q-exit-impact) {
+      font-size: 6pt;
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      padding: 1px var(--spacing-xs);
+      border-radius: 0;
+      flex-shrink: 0;
+    }
+
+    .doc-topics :global(.exit-impact-multiple-expander) {
+      background: rgba(46, 139, 87, 0.15);
+      color: var(--color-success-ink);
+    }
+
+    .doc-topics :global(.exit-impact-valuation-drag) {
+      background: rgba(178, 102, 34, 0.15);
+      color: var(--color-editors-pick-ink);
+    }
+
+    .doc-topics :global(.exit-impact-operational-risk) {
+      background: rgba(178, 34, 34, 0.15);
+      color: var(--color-error-ink);
+    }
+
+    /* v2: Red flag signals */
+    .doc-topics :global(.doc-q-red-flag) {
+      font-size: 7.5pt;
+      line-height: 1.3;
+      margin: 0 0 2px;
+      padding: 2px 6px;
+      color: var(--color-error-ink);
+      background: rgba(178, 34, 34, 0.05);
+      border-left: 2px solid rgba(178, 34, 34, 0.3);
+      page-break-after: avoid;
+    }
+
+    /* Dismiss/collapse: print overrides */
+    :global(.doc-attention-card.is-dismissed),
+    :global(.doc-question.is-dismissed) {
+      display: none !important;
+    }
+
+    :global(.is-collapsed .doc-attention-divider),
+    :global(.is-collapsed .dm-card-body) {
+      max-height: none !important;
+      opacity: 1 !important;
+    }
+
+    :global(.doc-question.is-collapsed .doc-q-text),
+    :global(.is-collapsed .doc-attention-desc) {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+
+    :global(.delta-chevron),
+    :global(.brutal-na-btn) {
+      display: none !important;
+    }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
+  }
+</style>

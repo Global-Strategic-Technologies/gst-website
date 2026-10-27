@@ -13,6 +13,7 @@
 import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
 import HubIcgPage from './HubIcgPage.astro';
+import HubDiligenceMachinePage from './HubDiligenceMachinePage.astro';
 import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
 import HubMcpPage from './HubMcpPage.astro';
 import HubMcpTrialPage from './HubMcpTrialPage.astro';
@@ -38,6 +39,7 @@ export const TEMPLATES = {
   techpar: HubTechParPage,
   'tech-debt-calculator': HubTechDebtPage,
   'infrastructure-cost-governance': HubIcgPage,
+  'diligence-machine': HubDiligenceMachinePage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

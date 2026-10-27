@@ -132,9 +132,7 @@ describe('localizedHref — prefixes registry routes only', () => {
 
   it('returns English-only routes unchanged (unregistered tools and Tier C stay English)', () => {
     expect(localizedHref('/ma-portfolio/', es)).toBe('/ma-portfolio/');
-    expect(localizedHref('/hub/tools/diligence-machine/', ptBR)).toBe(
-      '/hub/tools/diligence-machine/'
-    );
+    expect(localizedHref('/hub/tools/regulatory-map/', ptBR)).toBe('/hub/tools/regulatory-map/');
     expect(localizedHref('/hub/mcp/get-started/', es)).toBe('/hub/mcp/get-started/');
     expect(localizedHref('/brand/', es)).toBe('/brand/');
   });
@@ -193,7 +191,7 @@ describe('localizedHrefWithFragment — localizes the path, keeps the fragment',
 
 describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns a single entry for routes outside the registry', () => {
-    expect(alternatesFor('/hub/tools/diligence-machine/', en)).toEqual([en]);
+    expect(alternatesFor('/hub/tools/regulatory-map/', en)).toEqual([en]);
     expect(alternatesFor('/ma-portfolio/', es)).toEqual([es]);
   });
 

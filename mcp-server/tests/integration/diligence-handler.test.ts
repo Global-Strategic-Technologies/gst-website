@@ -175,7 +175,8 @@ describe('handleDiligenceTool — BL-031.95 Phase 2.B deeplink emission', () => 
     // All 13 fields encoded.
     expect(deeplink).toContain('tt=majority-stake');
     expect(deeplink).toContain('pt=b2b-saas');
-    expect(deeplink).toContain('ge=us%2Ceu'); // URL-encoded comma
+    // URL-encoded commas; two specific regions add multi-region (withMultiRegion).
+    expect(deeplink).toContain('ge=us%2Ceu%2Cmulti-region');
     expect(deeplink).toContain('om=product-aligned-teams');
   });
 
@@ -198,5 +199,45 @@ describe('handleDiligenceTool — BL-031.95 Phase 2.B deeplink emission', () => 
     const deeplink = buildDiligenceDeeplink(allKnown);
     expect(deeplink.startsWith(HUB_BASE)).toBe(true);
     expect(deeplink).toMatch(/\/hub\/tools\/diligence-machine\/\?/);
+  });
+});
+
+describe('handleDiligenceTool — multi-region is added for 2+ specific regions', () => {
+  // The website's wizard adds multi-region when two or more specific regions
+  // are selected; the tool does the same, so the deeplink opens on the
+  // agenda the tool returned. It never removes a caller's multi-region.
+  async function run(geographies: string[]) {
+    const parsed = UserInputsSchema.parse({ ...allKnown, geographies });
+    const response = await handleDiligenceTool(withAudit(parsed));
+    expect(response.isError).toBeUndefined();
+    const payload = response.structuredContent as {
+      attentionAreas: { id: string }[];
+      metadata: { inputSummary: { geographies: string[] } };
+      deeplink: string;
+    };
+    return payload;
+  }
+
+  it("['eu','uk'] gets multi-region, its attention areas, and a deeplink that says so", async () => {
+    const payload = await run(['eu', 'uk']);
+    expect(payload.metadata.inputSummary.geographies).toEqual(['eu', 'uk', 'multi-region']);
+    expect(payload.attentionAreas.map((a) => a.id)).toContain('attention-multi-data-transfer');
+    expect(payload.deeplink).toContain('ge=eu%2Cuk%2Cmulti-region');
+  });
+
+  it("['us','unknown'] does not: 'unknown' is not a region", async () => {
+    const payload = await run(['us', 'unknown']);
+    expect(payload.metadata.inputSummary.geographies).toEqual(['us', 'unknown']);
+  });
+
+  it("['unknown','multi-region'] and ['us','multi-region'] keep the caller's multi-region", async () => {
+    expect((await run(['unknown', 'multi-region'])).metadata.inputSummary.geographies).toEqual([
+      'unknown',
+      'multi-region',
+    ]);
+    expect((await run(['us', 'multi-region'])).metadata.inputSummary.geographies).toEqual([
+      'us',
+      'multi-region',
+    ]);
   });
 });

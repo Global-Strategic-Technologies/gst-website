@@ -1,7 +1,7 @@
 // Specimen gallery — GST card families (src/styles/components/cards.css).
 // Ported from src/components/brand/BrandUILibrary.astro § Cards, the hub
 // library gateway (src/pages/hub/library/index.astro), the Diligence Machine
-// option grid (src/pages/hub/tools/diligence-machine/index.astro) and the
+// option grid (src/page-templates/HubDiligenceMachinePage.astro) and the
 // services FAQ (src/pages/services.astro).
 //
 // Note: there is no generic .brutal-card. Cards are a named family and each
@@ -56,7 +56,7 @@ export const CardSpecimen = () => (
     </Row>
 
     <Row label="Option cards (choice)">
-      {/* Ported from diligence-machine/index.astro § transaction step: real
+      {/* Ported from HubDiligenceMachinePage.astro § transaction step: real
           <button>s with aria-pressed; .options-grid owns the column. Modifiers:
           --selected-outline (chosen), --unsure (the "not sure" peer), --compact
           (dense text-only groups, e.g. a stage picker). */}
