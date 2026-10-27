@@ -343,6 +343,20 @@ export function applyArchetypePivot(
 }
 
 /**
+ * The one attention area the engine computes rather than reads from
+ * `ATTENTION_AREAS` (its trigger is cross-field). The area count the page's
+ * methodology cites and the catalog pin test both read it from here.
+ */
+export const MANUAL_OPS_MASKING_AREA: AttentionArea = {
+  id: 'attention-manual-ops-masking',
+  title: 'Manual Operations Masking',
+  description:
+    'High-revenue companies with low headcount growth may be masking manual operations behind a technology facade. Revenue per employee ratios that appear favorable may actually indicate process bottlenecks that limit scalability.',
+  relevance: 'high',
+  conditions: {},
+};
+
+/**
  * Inject computed attention areas based on cross-field logic that cannot be
  * expressed as simple condition arrays.
  *
@@ -360,20 +374,10 @@ export function applyMaturityOverrides(
 
   if (!isHighRevLowHead) return areas;
 
-  const alreadyPresent = areas.some((a) => a.id === 'attention-manual-ops-masking');
+  const alreadyPresent = areas.some((a) => a.id === MANUAL_OPS_MASKING_AREA.id);
   if (alreadyPresent) return areas;
 
-  return [
-    ...areas,
-    {
-      id: 'attention-manual-ops-masking',
-      title: 'Manual Operations Masking',
-      description:
-        'High-revenue companies with low headcount growth may be masking manual operations behind a technology facade. Revenue per employee ratios that appear favorable may actually indicate process bottlenecks that limit scalability.',
-      relevance: 'high',
-      conditions: {},
-    },
-  ];
+  return [...areas, MANUAL_OPS_MASKING_AREA];
 }
 
 /** Human-readable labels for condition dimensions */

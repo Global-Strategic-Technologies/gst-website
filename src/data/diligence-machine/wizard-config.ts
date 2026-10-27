@@ -434,8 +434,14 @@ export const BRACKET_ORDER = {
   'company-age': ['under-2yr', '2-5yr', '5-10yr', '10-20yr', '20yr+'],
 } as const;
 
+/** The label every step's "Not sure" button carries. */
+export const NOT_SURE_LABEL = 'Not sure';
+
 /** Human-readable labels for input summary display */
 export function getOptionLabel(stepId: string, optionId: string): string {
+  // `UNKNOWN_INPUT` in src/schemas/diligence.ts, spelled out: a value import
+  // from the schema module would put Zod in the page's bundle.
+  if (optionId === 'unknown') return NOT_SURE_LABEL;
   const step = WIZARD_STEPS.find((s) => s.id === stepId);
   if (!step) return optionId;
 

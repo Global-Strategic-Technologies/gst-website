@@ -5,6 +5,17 @@ import { WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import '../../../../styles/components/progress.css';
 import { hubToolSchema } from '../../../../utils/hub-tool-schema';
+import { QUESTIONS } from '../../../../data/diligence-machine/questions';
+import { ATTENTION_AREAS } from '../../../../data/diligence-machine/attention-areas';
+import { UserInputsSchema } from '../../../../schemas/diligence';
+import { MANUAL_OPS_MASKING_AREA } from '../../../../utils/diligence-engine';
+
+// The methodology's counts are measured from the data, so they cannot drift.
+const questionCount = QUESTIONS.length;
+// The data's areas plus the one the engine computes.
+const attentionAreaCount = new Set([...ATTENTION_AREAS, MANUAL_OPS_MASKING_AREA].map((a) => a.id))
+  .size;
+const dimensionCount = Object.keys(UserInputsSchema.shape).length;
 ---
 
 <BaseLayout
@@ -27,7 +38,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         datePublished: '2025-06-01',
         dateModified: '2026-03-22',
         featureList: [
-          '14-dimension conditional matching',
+          `${dimensionCount}-dimension conditional matching`,
           '15-20 prioritized questions per agenda',
           'Client-side processing — no deal data transmitted',
           'Attention area risk flagging',
@@ -536,22 +547,22 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         <div class="tool-methodology__body">
           <h4 class="tool-methodology__heading">Question bank</h4>
           <p>
-            The engine draws from a bank of 68 due diligence questions organized into four topics:
-            Architecture &amp; Scalability, Operations &amp; Delivery, Carve-out / Integration, and
-            Security, Compliance &amp; Governance. Each question carries a priority level (high,
-            medium, or standard), a rationale explaining why it matters, and conditional triggers
-            that determine when it appears.
+            The engine draws from a bank of {questionCount} due diligence questions organized into
+            four topics: Architecture &amp; Scalability, Operations &amp; Delivery, Carve-out /
+            Integration, and Security, Compliance &amp; Governance. Each question carries a priority
+            level (high, medium, or standard), a rationale explaining why it matters, and
+            conditional triggers that determine when it appears.
           </p>
 
           <h4 class="tool-methodology__heading">Conditional matching</h4>
           <p>
-            Questions are filtered against your inputs using AND logic across 14 dimensions:
-            transaction type, product type, tech stack archetype, headcount, revenue range, growth
-            stage, company age, geography, business model, scale intensity, transformation state,
-            data sensitivity, and operating model. A condition left undefined acts as a wildcard
-            (matches everything). Ordinal fields&mdash;headcount, revenue, and company age&mdash;use
-            &ldquo;at least&rdquo; comparison so that a threshold set at &ldquo;51&ndash;200
-            employees&rdquo; also matches larger brackets.
+            Questions are filtered against your inputs using AND logic across {dimensionCount}{' '}
+            dimensions: transaction type, product type, tech stack archetype, headcount, revenue
+            range, growth stage, company age, geography, business model, scale intensity,
+            transformation state, data sensitivity, and operating model. A condition left undefined
+            acts as a wildcard (matches everything). Ordinal fields&mdash;headcount, revenue, and
+            company age&mdash;use &ldquo;at least&rdquo; comparison so that a threshold set at
+            &ldquo;51&ndash;200 employees&rdquo; also matches larger brackets.
           </p>
 
           <h4 class="tool-methodology__heading">Balancing algorithm</h4>
@@ -564,10 +575,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
           <h4 class="tool-methodology__heading">Attention areas</h4>
           <p>
-            29 attention areas surface structural risk factors&mdash;such as hardware end-of-life
-            exposure, key-person dependencies, or manual operations masking&mdash;triggered by
-            specific input combinations. They are sorted by relevance (high, medium, low) and
-            displayed before the question agenda.
+            {attentionAreaCount} attention areas surface structural risk factors&mdash;such as
+            hardware end-of-life exposure, key-person dependencies, or manual operations
+            masking&mdash;triggered by specific input combinations. They are sorted by relevance
+            (high, medium, low) and displayed before the question agenda.
           </p>
 
           <h4 class="tool-methodology__heading">Archetype pivot</h4>

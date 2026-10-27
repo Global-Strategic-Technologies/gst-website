@@ -563,6 +563,12 @@ function wireCardInteractions(): void {
   });
 }
 
+/** "51 – 200 employees"; a "Not sure" answer reads as itself, not "Not sure employees". */
+function headcountValue(headcount: string): string {
+  const label = getOptionLabel('company-profile', headcount);
+  return headcount === 'unknown' ? label : `${label} employees`;
+}
+
 function renderMetaBlock(): void {
   const docMeta = document.getElementById('docMeta')!;
   const fields: { label: string; value: string; stepId: string }[] = [];
@@ -591,7 +597,7 @@ function renderMetaBlock(): void {
   if (inputs.headcount) {
     fields.push({
       label: 'Company Size',
-      value: getOptionLabel('company-profile', inputs.headcount) + ' employees',
+      value: headcountValue(inputs.headcount),
       stepId: 'company-profile',
     });
   }
@@ -810,10 +816,7 @@ function copyToClipboard(): void {
     lines.push(`Product Type:      ${getOptionLabel('product-type', inputs.productType)}`);
   if (inputs.techArchetype)
     lines.push(`Tech Stack:        ${getOptionLabel('tech-archetype', inputs.techArchetype)}`);
-  if (inputs.headcount)
-    lines.push(
-      `Company Size:      ${getOptionLabel('company-profile', inputs.headcount)} employees`
-    );
+  if (inputs.headcount) lines.push(`Company Size:      ${headcountValue(inputs.headcount)}`);
   if (inputs.revenueRange)
     lines.push(`Revenue:           ${getOptionLabel('company-profile', inputs.revenueRange)}`);
   if (inputs.growthStage)
@@ -831,7 +834,7 @@ function copyToClipboard(): void {
     lines.push(`Scale Intensity:   ${getOptionLabel('scale-intensity', inputs.scaleIntensity)}`);
   if (inputs.transformationState)
     lines.push(
-      `Transform State:   ${getOptionLabel('transformation-state', inputs.transformationState)}`
+      `Transformation:    ${getOptionLabel('transformation-state', inputs.transformationState)}`
     );
   if (inputs.dataSensitivity)
     lines.push(`Data Sensitivity:  ${getOptionLabel('data-sensitivity', inputs.dataSensitivity)}`);
