@@ -4,7 +4,9 @@
 
 The Diligence Machine is a client-side wizard that generates a prescriptive technology due diligence agenda customized to a target company's profile. Users answer 10 steps of questions across deal structure, product profile, infrastructure, company scale, geography, and 5 contextual dimensions. The engine produces 15–20 high-impact questions organized by topic, plus contextual attention areas.
 
-**Entry point**: `src/pages/hub/tools/diligence-machine/index.astro` (markup and styles); its client script is `src/scripts/diligence-machine/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
+**Entry point**: `src/page-templates/HubDiligenceMachinePage.astro` (markup and styles, every locale; `src/pages/hub/tools/diligence-machine/index.astro` is the English wrapper); its client script is `src/scripts/diligence-machine/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
+
+**Languages**: English, Spanish (`/es/`) and Brazilian Portuguese (`/pt/`) since 2026-10-27 (BL-153 Tier B, [LOCALIZATION.md § Tool scripts](../development/LOCALIZATION.md#tool-scripts)). The page's words are in the `diligence-machine` catalog (`src/i18n/<locale>/`), including the wizard's step and option labels. The questions, attention areas and topics stay English in the data the MCP server also imports; `diligence-machine-data` mirrors them by id for the page, pinned by `tests/unit/diligence-catalog.test.ts`. Editing a question or area means editing its English catalog entry too, then revisiting es and pt-BR.
 
 **Current version**: v2 (February 2026)
 
@@ -15,13 +17,13 @@ The Diligence Machine is a client-side wizard that generates a prescriptive tech
 ```
 User (Wizard UI)
 │
-├── src/data/diligence-machine/wizard-config.ts    ← Step definitions & option labels (10 steps)
+├── src/data/diligence-machine/wizard-config.ts    ← Step structure and option ids (10 steps); labels in the catalog
 │
 ├── src/utils/diligence-engine.ts                  ← Core engine: filtering, pivots, overrides, balancing, output
 │
-├── src/data/diligence-machine/questions.ts        ← Question bank (~68 questions, 4 topics)
+├── src/data/diligence-machine/questions.ts        ← Question bank (67 questions, 4 topics)
 │
-└── src/data/diligence-machine/attention-areas.ts  ← Attention area definitions (23 areas)
+└── src/data/diligence-machine/attention-areas.ts  ← Attention area definitions (28 areas)
 ```
 
 All logic runs client-side. No server calls. The engine is a pure function: `generateScript(UserInputs) → GeneratedScript`.
@@ -30,12 +32,12 @@ All logic runs client-side. No server calls. The engine is a pure function: `gen
 
 ## What Changed in v2
 
-v2 expands the wizard from 5 steps to 10, adds strategic metadata to questions, and introduces two new engine rules. All changes are backward-compatible with v1 data structures — v1 questions remain unchanged and continue to function as before.
+v2 expands the wizard from 5 steps to 10, adds strategic metadata to questions, and introduces a new engine rule (the archetype pivot; a second, the maturity override, was removed in 2026-10 as unreachable). All changes are backward-compatible with v1 data structures — v1 questions remain unchanged and continue to function as before.
 
 | Area | v1 | v2 |
 |------|----|----|
 | Wizard steps | 5 | 10 (+5 context dimensions) |
-| Question bank | ~45 questions | ~68 questions (+15 v2 questions) |
+| Question bank | ~45 questions | 67 questions (+15 v2 questions) |
 | Attention areas | 18 areas | 28 areas (+10 v2) |
 | Condition dimensions | 9 fields | 14 fields (+5 new) |
 | Question metadata | id, text, rationale, priority | + exitImpact, lookoutSignal, track |
@@ -111,7 +113,7 @@ Enables regulatory/compliance questions and region-specific attention areas.
 | Asia-Pacific | `apac` |
 | Multi-Region | `multi-region` |
 
-**Multi-Region auto-sync**: Selecting 2+ specific regions auto-adds `multi-region`. Selecting only 1 region removes it.
+**Multi-Region auto-sync**: Selecting 2+ specific regions auto-adds `multi-region`. Selecting only 1 region removes it. "Not sure" is not a region and is never counted (`knownRegionCount`). The MCP tool adds `multi-region` the same way but never removes one the caller passed (`withMultiRegion`).
 
 ### Steps 6–10 (v2 — new context dimensions)
 
@@ -267,7 +269,7 @@ conditions: {
 
 ### 1. Filter
 
-All ~68 questions are filtered against user inputs via `matchesConditions()`. Typically produces ~25–35 matched questions.
+All 67 questions are filtered against user inputs via `matchesConditions()`. Typically produces ~25–35 matched questions.
 
 ### 2. Archetype Pivot (v2)
 
@@ -339,7 +341,6 @@ Questions are grouped by topic (Architecture → Operations → Carve-out → Se
 
 **Multi-Region** (triggered by `multi-region` geography)
 - Cross-Border Data Transfer Complexity
-- Jurisdictional Conflict Exposure
 - Multi-Region Infrastructure Cost Multiplier
 - Fragmented Vendor and Contract Landscape
 - Regulatory Change Velocity
@@ -377,7 +378,7 @@ Attention areas are sorted by relevance in the output.
 | **LATAM** | LGPD compliance | LATAM infrastructure maturity |
 | **Africa** | POPIA, local DPA | African regulatory fragmentation |
 | **Canada** | PIPEDA, Quebec Law 25 | Canadian privacy complexity |
-| **Multi-Region** | All geographic compliance questions | 5 multi-region attention areas |
+| **Multi-Region** | All geographic compliance questions | 4 multi-region attention areas |
 
 ### v2 Context Dimensions
 
@@ -515,13 +516,16 @@ A static methodology section appears in the output after the attention areas, ex
 
 | File | Purpose |
 |------|---------|
-| `src/pages/hub/tools/diligence-machine/index.astro` | Page component: 10-step wizard markup, analyze overlay, methodology section, styles incl. print |
+| `src/page-templates/HubDiligenceMachinePage.astro` | Page template (every locale): 10-step wizard markup, methodology section, styles incl. print, the strings island |
+| `src/i18n/<locale>/diligence-machine.json` | The page's words: chrome, wizard step and option labels, script strings (`js.*`) |
+| `src/i18n/<locale>/diligence-machine-data.json` | Questions, attention areas and topics by id, for the page (English mirrors the data) |
+| `src/scripts/diligence-machine/strings.ts` | The island reader bound to this tool |
 | `src/scripts/diligence-machine/index.ts` | Client script: step navigation, option selection, localStorage + URL state, output rendering (incl. exitImpact badges, lookoutSignal), copy/print |
-| `src/scripts/diligence-machine/logic.ts` | DOM-free wizard rules: `navigate()`, `stepState()`, `canNavigateTo()`, `parseSavedState()`, `STORAGE_VERSION` |
+| `src/scripts/diligence-machine/logic.ts` | DOM-free rules: `navigate()`, `stepState()`, `canNavigateTo()`, `parseSavedState()`, `STORAGE_VERSION`; the page's words: data lookups by id, `optionLabel()`, `metaFields()`, `triggerLabel()`, `buildClipboardText()` |
 | `src/utils/diligence-engine.ts` | Core engine: `generateScript()`, `matchesConditions()`, `balanceAcrossTopics()`, `applyArchetypePivot()`, `syncMultiRegion()` |
-| `src/data/diligence-machine/wizard-config.ts` | 10 step definitions, option labels, `BRACKET_ORDER`, `getOptionLabel()` helper |
-| `src/data/diligence-machine/questions.ts` | Question bank (~68 questions) with conditions, priorities, and v2 metadata |
-| `src/data/diligence-machine/attention-areas.ts` | Attention area definitions (23 areas) with conditions and relevance |
+| `src/data/diligence-machine/wizard-config.ts` | 10 step definitions (ids and input types), the `*_IDS` tuples, `BRACKET_ORDER` |
+| `src/data/diligence-machine/questions.ts` | Question bank (67 questions) with conditions, priorities, and v2 metadata |
+| `src/data/diligence-machine/attention-areas.ts` | Attention area definitions (28 areas) with conditions and relevance |
 
 ---
 

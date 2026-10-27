@@ -479,9 +479,9 @@ constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/diligence-machine/index.astro` |
+| **File** | `src/page-templates/HubDiligenceMachinePage.astro` (localized; `src/pages/hub/tools/diligence-machine/index.astro` is its English wrapper). Emits `inLanguage` with the page language |
 | **datePublished** | 2025-06-01 |
-| **featureList** | 14-dimension conditional matching, 15-20 prioritized questions per agenda, Client-side processing, Attention area risk flagging, PDF export and clipboard copy |
+| **featureList** | 13-dimension conditional matching (the count is measured from `UserInputsSchema`), 15-20 prioritized questions per agenda, Client-side processing, Attention area risk flagging, PDF export and clipboard copy |
 | **knowsAbout** | Technical Due Diligence, M&A Tech Strategy, Technology Risk Assessment, PE Portfolio Technology, Software Architecture Evaluation |
 
 #### 2. TechPar
