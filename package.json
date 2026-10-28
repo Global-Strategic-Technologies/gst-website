@@ -27,6 +27,7 @@
     "radar:stub": "node scripts/radar-stub.mjs",
     "i18n:stamp": "node scripts/i18n-stamp-sources.mjs",
     "i18n:check": "node scripts/i18n-stamp-sources.mjs --check",
+    "i18n:sync-regulatory-map": "node scripts/sync-regulatory-map-catalog.mjs",
     "media:consent-still": "node scripts/render-consent-still.mjs",
     "media:pwa-assets": "node scripts/render-pwa-assets.mjs",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",

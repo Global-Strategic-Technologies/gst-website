@@ -5,6 +5,11 @@ export interface RegulationIndexEntry {
   id: string;
   name: string;
   /**
+   * The English name, on an es or pt index only (`src/lib/regulation-i18n.ts`):
+   * the page searches it alongside the translated name, and analytics reports it.
+   */
+  nameEn?: string;
+  /**
    * Curated short forms (BL-073). Carried into the index so the page's search
    * can reach a framework by the name people actually type — BL-119 cycle 4
    * found "Colorado AI Act" returning nothing here. The index stores the raw
@@ -67,11 +72,14 @@ export function getRegulationsByRegion(regulations: Regulation[]): Record<string
  * Contains only the fields needed for map coloring, timeline rendering,
  * and search — full regulation details are fetched on demand per click.
  */
-export function buildRegulationIndex(regulations: Regulation[]): RegulationIndex {
+export function buildRegulationIndex(
+  regulations: (Regulation & { nameEn?: string })[]
+): RegulationIndex {
   const regions: Record<string, string[]> = {};
   const regs: RegulationIndexEntry[] = regulations.map((r) => ({
     id: r.id,
     name: r.name,
+    ...(r.nameEn ? { nameEn: r.nameEn } : {}),
     aliases: r.aliases,
     effectiveDate: r.effectiveDate,
     ...(r.status ? { status: r.status } : {}),

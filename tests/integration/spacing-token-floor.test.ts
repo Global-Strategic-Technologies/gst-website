@@ -160,7 +160,7 @@ const ACCEPTED_RESIDUALS = [
   },
   {
     value: '14px',
-    files: ['src/pages/hub/tools/regulatory-map/index.astro'],
+    files: ['src/page-templates/HubRegulatoryMapPage.astro'],
     reason:
       "14px, between md (12) and lg (16). The timeline scroller's top padding, " +
       'inside a min-height reserved against layout shift.',

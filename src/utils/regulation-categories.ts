@@ -1,6 +1,8 @@
 /**
  * Regulatory Map category vocabulary — the single source for the four
- * regulation categories, their short display labels and their CSS modifiers.
+ * regulation category ids and their CSS modifiers. Their display words live
+ * in the `regulatory-map` catalog (`category.<id>`, `js.category.<id>`), so
+ * every page language labels them (BL-153).
  *
  * A zero-import leaf on purpose (no Zod): `regulatory-map-url.ts` and the
  * `/hub/tools/regulatory-map/` page bundle import it, and must not pull Zod
@@ -18,14 +20,6 @@ export const REGULATION_CATEGORY_VALUES = [
 ] as const;
 
 export type RegulationCategoryId = (typeof REGULATION_CATEGORY_VALUES)[number];
-
-/** Short chip labels used by the Regulatory Map search results. */
-export const REGULATION_CATEGORY_SHORT_LABELS: Readonly<Record<RegulationCategoryId, string>> = {
-  'data-privacy': 'Privacy',
-  'ai-governance': 'AI',
-  'industry-compliance': 'Industry',
-  cybersecurity: 'Cyber',
-};
 
 /**
  * CSS modifier per category — the `--<modifier>` suffix on the page's

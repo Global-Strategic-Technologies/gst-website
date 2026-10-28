@@ -6,14 +6,44 @@
  * here takes only data: the client search index and its matching, the
  * category filter over the region map, the timeline ordering, and the HTML
  * for regulation cards, search-result rows and timeline entries. Unit-tested by `tests/unit/regulatory-map-logic.test.ts`.
+ *
+ * Words come from the `regulatory-map` catalog through `s()`, and region
+ * names through `regionName` (BL-153 Tier B). With no island — the English
+ * page, and jsdom tests — both fall back to English, so English output is
+ * unchanged. Dates and counts follow `pageLang()` unless a caller passes `lang`.
  */
 import type { Regulation } from '../../types/regulatory-map';
 import { escapeHtml } from '../../utils/escape-html';
-import {
-  REGULATION_CATEGORY_CSS,
-  REGULATION_CATEGORY_SHORT_LABELS,
-} from '../../utils/regulation-categories';
+import { REGULATION_CATEGORY_CSS } from '../../utils/regulation-categories';
 import { buildRegulationSearchText } from '../../utils/regulation-search-text';
+import { alpha3ToName } from '../../utils/countryCodeMap';
+import { stateCodeToName } from '../../utils/fipsToStateCode';
+import { provinceCodeToName } from '../../utils/canadianProvinceMap';
+import { formatDate, pluralKey } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
+import { hasString, s, sHtml } from './strings';
+
+/**
+ * A region's English name: a US state, a Canadian province, or a country by
+ * alpha-3 code. Analytics reports this one, whatever the page language.
+ */
+export function regionNameEn(code: string): string | undefined {
+  return stateCodeToName[code] ?? provinceCodeToName[code] ?? alpha3ToName[code];
+}
+
+/**
+ * A region's name in the page language: `region.<code>` from the island
+ * (the `regulatory-map-geo` namespace), else the English name.
+ */
+export function regionName(code: string): string | undefined {
+  const key = `region.${code}`;
+  return hasString(key) ? s(key) : regionNameEn(code);
+}
+
+/** Lowercase with accents removed, so `protecao` finds `Proteção`. */
+export function foldForSearch(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+}
 
 /**
  * One row of `/data/reg-index.json` (prerendered by
@@ -25,6 +55,8 @@ import { buildRegulationSearchText } from '../../utils/regulation-search-text';
 export interface RegIndexEntry {
   id: string;
   name: string;
+  /** The English name, on a translated index only: search and analytics read it. */
+  nameEn?: string;
   aliases?: string[];
   effectiveDate: string;
   status?: 'not-in-force';
@@ -37,13 +69,22 @@ export interface SearchableReg {
   searchText: string;
 }
 
+/**
+ * A translated index also searches the English name, so "GDPR" or "Consumer
+ * Privacy Act" finds a regulation on any page. Accents are folded on both sides.
+ */
 export function buildSearchIndex(regs: readonly RegIndexEntry[]): SearchableReg[] {
-  return regs.map((reg) => ({ reg, searchText: buildRegulationSearchText(reg) }));
+  return regs.map((reg) => {
+    let text = buildRegulationSearchText(reg);
+    if (reg.nameEn) text += ' ' + buildRegulationSearchText({ name: reg.nameEn });
+    return { reg, searchText: foldForSearch(text) };
+  });
 }
 
 /**
  * Every whitespace-separated term must appear in a regulation's search text
- * (raw substring, no ranking), within the active category unless it is 'all'.
+ * (raw substring, accents folded, no ranking), within the active category
+ * unless it is 'all'.
  */
 export function searchRegulations(
   index: readonly SearchableReg[],
@@ -51,7 +92,7 @@ export function searchRegulations(
   activeCategory: string
 ): RegIndexEntry[] {
   if (!query.trim()) return [];
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const terms = foldForSearch(query).split(/\s+/).filter(Boolean);
   return index
     .filter(({ searchText, reg }) => {
       if (activeCategory !== 'all' && reg.category !== activeCategory) return false;
@@ -80,10 +121,10 @@ export function sortByEffectiveDate(regs: readonly RegIndexEntry[]): RegIndexEnt
   return [...regs].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
 }
 
-export function renderRegulationCard(reg: Regulation): string {
+export function renderRegulationCard(reg: Regulation, lang: string = pageLang()): string {
   // The data stores bare YYYY-MM-DD, which parses as UTC midnight. Formatting
   // in the visitor's zone put every date a day early west of UTC.
-  const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
+  const date = formatDate(new Date(reg.effectiveDate), lang, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -95,13 +136,13 @@ export function renderRegulationCard(reg: Regulation): string {
               <h3 class="brutal-reg-card__name">${escapeHtml(reg.name)}</h3>
               <p class="brutal-reg-card__date">${
                 reg.status === 'not-in-force'
-                  ? `Enacted: ${escapeHtml(date)} · Not yet in force`
-                  : `Effective: ${escapeHtml(date)}`
+                  ? sHtml('js.card.enacted', { date })
+                  : sHtml('js.card.effective', { date })
               }</p>
               <p class="brutal-reg-card__summary">${escapeHtml(reg.summary)}</p>`;
 
   if (reg.scope) {
-    html += `<p class="brutal-reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
+    html += `<p class="brutal-reg-card__scope">${sHtml('js.card.scope', { scope: reg.scope })}</p>`;
   }
 
   if (reg.keyRequirements && reg.keyRequirements.length > 0) {
@@ -113,7 +154,7 @@ export function renderRegulationCard(reg: Regulation): string {
   }
 
   if (reg.penalties) {
-    html += `<p class="brutal-reg-card__penalties">Penalties: ${escapeHtml(reg.penalties)}</p>`;
+    html += `<p class="brutal-reg-card__penalties">${sHtml('js.card.penalties', { penalties: reg.penalties })}</p>`;
   }
 
   html += '</div>';
@@ -123,17 +164,30 @@ export function renderRegulationCard(reg: Regulation): string {
 // Widened to string keys: the index's `category` is a plain string, and an
 // unknown one falls back below rather than failing to type-check.
 const CATEGORY_CSS: Record<string, string> = REGULATION_CATEGORY_CSS;
-const CATEGORY_LABELS: Record<string, string> = REGULATION_CATEGORY_SHORT_LABELS;
+
+/** A category's short chip label (`js.category.<id>`); an unknown id shows as itself. */
+function categoryShortLabel(category: string): string {
+  const key = `js.category.${category}`;
+  return hasString(key) ? s(key) : category;
+}
+
+/** "N regions", in the page language. */
+export function regionCountLabel(n: number, lang: string = pageLang()): string {
+  return s(`js.regionCount.${pluralKey(n, lang)}`, { count: n });
+}
 
 const SEARCH_RESULT_LIMIT = 15;
 
 /** The search dropdown's rows: the first 15 matches, then an overflow line. */
-export function renderSearchResultRows(results: readonly RegIndexEntry[]): string {
+export function renderSearchResultRows(
+  results: readonly RegIndexEntry[],
+  lang: string = pageLang()
+): string {
   let html = results
     .slice(0, SEARCH_RESULT_LIMIT)
     .map((reg, i) => {
       const catColor = CATEGORY_CSS[reg.category] ?? 'privacy';
-      const catLabel = CATEGORY_LABELS[reg.category] ?? reg.category;
+      const catLabel = categoryShortLabel(reg.category);
       const regionCount = reg.regions.length;
       return `
               <div class="brutal-search__result"
@@ -144,19 +198,19 @@ export function renderSearchResultRows(results: readonly RegIndexEntry[]): strin
                   <span class="brutal-search__result-name">${escapeHtml(reg.name)}</span>
                   <span class="brutal-search__result-meta">
                       <span class="brutal-search__category brutal-search__category--${catColor}">${escapeHtml(catLabel)}</span>
-                      <span class="brutal-search__result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
+                      <span class="brutal-search__result-regions">${escapeHtml(regionCountLabel(regionCount, lang))}</span>
                   </span>
               </div>`;
     })
     .join('');
 
   if (results.length > SEARCH_RESULT_LIMIT) {
-    html += `<div class="brutal-search__overflow">${results.length - SEARCH_RESULT_LIMIT} more results\u2026</div>`;
+    const more = results.length - SEARCH_RESULT_LIMIT;
+    html += `<div class="brutal-search__overflow">${sHtml(`js.moreResults.${pluralKey(more, lang)}`, { count: more })}</div>`;
   }
   return html;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // Entries carry no aria-label: the accessible name is the visible text (name
 // + date), which WCAG 2.5.3 Label in Name requires — a full-name label fails it
 // whenever the visible name is truncated. The full name still reaches AT as the
@@ -167,10 +221,19 @@ const TIMELINE_NAME_MAX = 35;
  * The timeline's year groups for regulations already in chronological order.
  * An entry dated after `today` (YYYY-MM-DD), or enacted but not yet in force
  * (`status: 'not-in-force'`), is marked upcoming; names over 35
- * characters are cut to 33 plus an ellipsis. Dates are read from the string,
- * never through `Date`, so no time zone can shift them.
+ * characters are cut to 33 plus an ellipsis. The year and month are read from
+ * the string and formatted as a UTC date, so no time zone can shift them.
  */
-export function renderTimelineGroups(regs: readonly RegIndexEntry[], today: string): string {
+export function renderTimelineGroups(
+  regs: readonly RegIndexEntry[],
+  today: string,
+  lang: string = pageLang()
+): string {
+  const monthYear = new Intl.DateTimeFormat(lang, {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
   const byYear = new Map<number, RegIndexEntry[]>();
   for (const reg of regs) {
     const year = parseInt(reg.effectiveDate.slice(0, 4));
@@ -188,7 +251,9 @@ export function renderTimelineGroups(regs: readonly RegIndexEntry[], today: stri
       const isUpcoming = reg.status === 'not-in-force' || reg.effectiveDate > today;
       const catClass = CATEGORY_CSS[reg.category] ?? 'privacy';
       const [y, m] = reg.effectiveDate.split('-');
-      const shortDate = `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+      const shortDate = escapeHtml(
+        monthYear.format(new Date(Date.UTC(parseInt(y, 10), parseInt(m, 10) - 1, 1)))
+      );
       const truncName =
         reg.name.length > TIMELINE_NAME_MAX
           ? reg.name.slice(0, TIMELINE_NAME_MAX - 2) + '\u2026'

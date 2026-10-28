@@ -1,0 +1,698 @@
+---
+/**
+ * /hub/tools/regulatory-map/ in every locale. Rendered by
+ * src/pages/hub/tools/regulatory-map/index.astro (English) and by
+ * src/pages/[locale]/[...route].astro. A Tier B route (`TIER_B_ROUTES`).
+ *
+ * Three catalogs serve it (BL-153, ADR-0030 § Amendment 2026-10-28):
+ * - `regulatory-map`: every word on the page, and the script's `js.*` strings;
+ * - `regulatory-map-geo`: country, state and province names, which the script
+ *   reads from the `data-rm-strings` island by region code;
+ * - `regulatory-map-data`: the 128 regulation texts. They never travel in the
+ *   island: the script fetches the locale's index and each regulation from
+ *   the prerendered `/data/` endpoints (`src/lib/regulation-i18n.ts`), whose
+ *   URLs and content version this template writes on the section.
+ *
+ * Hooks (`id`, `class`, `data-*`) are untouched: the script and the E2E suite
+ * read them. Literals that stay: the tool name, "GST", the site URL, the
+ * zoom-region codes in `data-region`. `knowsAbout` in the JSON-LD stays an
+ * English literal — `tests/unit/hub-tool-schema.test.ts` parses it.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import MapVisualizer from '../components/hub/tools/regulatory-map/MapVisualizer.astro';
+import CompliancePanel from '../components/hub/tools/regulatory-map/CompliancePanel.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import { hubToolSchema } from '../utils/hub-tool-schema';
+import {
+  REGULATION_CATEGORY_CSS,
+  REGULATION_CATEGORY_VALUES,
+} from '../utils/regulation-categories';
+import { DEFAULT_LOCALE, isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+import { regulationData, regulationDataPaths } from '../lib/regulation-i18n';
+import { SCRIPT_STRING_KEYS } from '../scripts/regulatory-map/strings';
+import GEO_EN from '../i18n/en/regulatory-map-geo.json';
+import '../styles/components/filter.css';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'regulatory-map');
+const { t: tGeo } = useTranslations(locale, 'regulatory-map-geo');
+// FAQ analytics reports the English question on every page (LOCALIZATION.md).
+const { t: tEn } = useTranslations(DEFAULT_LOCALE, 'regulatory-map');
+
+// Category and FAQ keys are computed, so they are looked up untyped.
+const tAny = t as (key: string, params?: Record<string, string | number>) => string;
+const tHtmlAny = tHtml as (key: string, params?: Record<string, string | number>) => string;
+const tEnAny = tEn as (key: string) => string;
+const tGeoAny = tGeo as (key: string) => string;
+
+const href = (path: string) => localizedHref(path, locale);
+const pagePath = href('/hub/tools/regulatory-map/');
+
+// The data the script fetches, and a hash of it: the `?v=` keeps the year-long
+// immutable cache on /data (vercel.json) from serving a stale copy.
+const { index, version } = await regulationData(locale);
+const regulationCount = index.regs.length;
+const dataPaths = regulationDataPaths(locale);
+const regIndexHref = `${dataPaths.index}?v=${version}`;
+
+// The island: the script's own strings and every region name. English needs none.
+const SCRIPT_STRINGS = isDefaultLocale(locale)
+  ? {}
+  : {
+      ...Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, tAny(key)])),
+      ...Object.fromEntries(Object.keys(GEO_EN).map((key) => [key, tGeoAny(key)])),
+    };
+
+const faqItems = ([1, 2, 3, 4, 5] as const).map((n) => ({
+  question: tAny(`faq.q${n}`),
+  answer: tHtmlAny(`faq.a${n}`, { count: regulationCount, servicesHref: href('/services/') }),
+  analyticsLabel: tEnAny(`faq.q${n}`),
+}));
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${pagePath}`}
+  faqItems={faqItems}
+>
+  {/* Preload geodata so downloads start during HTML parsing, before the D3 module executes */}
+  <link rel="preload" href="/data/world-110m.json" as="fetch" crossorigin />
+  <link rel="prefetch" href="/data/us-states-10m.json" as="fetch" crossorigin />
+  <link rel="prefetch" href="/data/canada-provinces.json" as="fetch" crossorigin />
+
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Regulatory Map',
+        description: t('jsonld.description', { count: regulationCount }),
+        datePublished: '2026-01-15',
+        dateModified: '2026-10-28',
+        inLanguage: locale.htmlLang,
+        featureList: [
+          t('jsonld.feature.count', { count: regulationCount }),
+          t('jsonld.feature.map'),
+          t('jsonld.feature.details'),
+          t('jsonld.feature.categories'),
+        ],
+        knowsAbout: [
+          'Regulatory Compliance',
+          'Data Privacy',
+          'AI Governance',
+          'Technical Due Diligence',
+          'M&A Tech Strategy',
+        ],
+      })
+    )}
+  />
+  <section
+    class="regulatory-map-section"
+    data-reg-index-href={regIndexHref}
+    data-reg-base={dataPaths.base}
+    data-reg-version={version}
+  >
+    <div class="container">
+      <PrintReportHeader title="Regulatory Map" locale={locale} />
+
+      <HubHeader title="Regulatory Map" subtitle={t('header.subtitle')} locale={locale} />
+
+      <div class="map-layout" id="mapLayout">
+        <div class="map-wrapper">
+          <MapVisualizer locale={locale} />
+          <div class="brutal-legend map-legend-positioned">
+            <div class="brutal-legend__item">
+              <span
+                class="brutal-legend__swatch brutal-legend__swatch--active"
+                aria-hidden="true"
+              ></span>
+              <span class="brutal-legend__label">{t('legend.coverage')}</span>
+            </div>
+            <div class="brutal-legend__item">
+              <span
+                class="brutal-legend__swatch brutal-legend__swatch--neutral"
+                aria-hidden="true"
+              ></span>
+              <span class="brutal-legend__label">{t('legend.noData')}</span>
+            </div>
+          </div>
+          <div class="brutal-map-cta" id="mapCta">
+            <svg
+              class="brutal-map-cta__icon"
+              width="20"
+              height="20"
+              viewBox="0 0 64 64"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M32 12 L52 52 L12 52 Z"
+                stroke="currentColor"
+                stroke-width="6"
+                stroke-linejoin="miter"
+              ></path>
+            </svg>
+            <span class="brutal-map-cta__text">{t('cta.select')}</span>
+          </div>
+        </div>
+        <CompliancePanel locale={locale} />
+        <div class="brutal-bottom-sheet__overlay" id="bottomSheetOverlay" hidden></div>
+      </div>
+
+      <div class="regulation-filters" role="toolbar" aria-label={t('filters.label')}>
+        <div class="regulation-search" id="regulationSearch">
+          <div class="brutal-search">
+            <svg
+              class="brutal-search__icon"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"></circle>
+              <path
+                d="M10.5 10.5L14.5 14.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            <input
+              type="search"
+              id="regulationSearchInput"
+              class="brutal-search__input"
+              placeholder={t('search.placeholder')}
+              aria-label={t('search.label')}
+              autocomplete="off"
+            />
+            <button
+              id="searchClearBtn"
+              class="brutal-search__clear"
+              aria-label={t('search.clear')}
+              hidden
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path
+                  d="M3 3l8 8M11 3l-8 8"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+            </button>
+          </div>
+          <div
+            class="brutal-search__results"
+            id="searchResults"
+            role="listbox"
+            aria-label={t('search.results')}
+            hidden
+          ></div>
+        </div>
+        <div class="brutal-filter-chips" id="regulation-filter-chips">
+          <button
+            class="brutal-filter-chip brutal-filter-chip--all brutal-filter-chip--active"
+            data-category="all"
+          >
+            {t('category.all')}
+          </button>
+          {REGULATION_CATEGORY_VALUES.map((id) => (
+            <button
+              class={`brutal-filter-chip brutal-filter-chip--${REGULATION_CATEGORY_CSS[id]}`}
+              data-category={id}
+            >
+              {tAny(`category.${id}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div class="timeline-section" id="timelineSection">
+        <h2 class="timeline-heading brutal-heading-md">{t('timeline.heading')}</h2>
+        <div class="timeline-legend">
+          {REGULATION_CATEGORY_VALUES.map((id) => (
+            <span class="timeline-legend__item">
+              <span
+                class={`brutal-timeline-dot brutal-timeline-dot--${REGULATION_CATEGORY_CSS[id]}`}
+                aria-hidden="true"
+              />{' '}
+              {tAny(`category.${id}`)}
+            </span>
+          ))}
+        </div>
+        <!-- tabindex="0" is load-bearing, not decoration: this region scrolls
+             horizontally and without it a keyboard user cannot reach the content that
+             is off-screen. axe rates it `scrollable-region-focusable` (WCAG 2.1.1
+             Keyboard, Level A). The role+label give the focus stop an announceable
+             identity rather than a bare unnamed group.
+
+             The entries inside are native <button>s (BL-104), so Tab reaches each one and
+             Enter/Space opens it through the same delegated click handler. The region's
+             own focus stop stays: when a filter leaves no entries it is the only one. -->
+        <div
+          class="timeline-scroll"
+          id="timelineScroll"
+          tabindex="0"
+          role="region"
+          aria-label={t('timeline.region')}
+        >
+          <div class="timeline-track" id="timelineTrack">
+            <!-- Rendered by client JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section">
+    <div class="container">
+      <h2 class="brutal-heading-lg">{t('faq.heading')}</h2>
+      <div class="brutal-faq brutal-faq--lg">
+        {faqItems.map((item) => (
+          <details class="brutal-faq__item" data-analytics-label={item.analyticsLabel}>
+            <summary class="brutal-faq__question">
+              <span>{item.question}</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer" set:html={item.answer} />
+          </details>
+        ))}
+      </div>
+      <div class="print-report-footer" aria-hidden="true">
+        <p>{t('print.generated', { url: `globalstrategic.tech${pagePath.replace(/\/$/, '')}` })}</p>
+        <p>{t('print.disclaimer')}</p>
+      </div>
+      <a href={href('/hub/tools/')} class="cta-button back-link">
+        {t('nav.back')}
+      </a>
+    </div>
+  </section>
+  <link rel="preload" href={regIndexHref} as="fetch" crossorigin />
+  {!isDefaultLocale(locale) && (
+    <script
+      is:inline
+      type="application/json"
+      data-rm-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
+    />
+  )}
+</BaseLayout>
+
+<script>
+  import '../scripts/regulatory-map';
+</script>
+<style>
+  .regulatory-map-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* Bottom sheet overlay (mobile) */
+  .brutal-bottom-sheet__overlay {
+    display: none;
+  }
+
+  @media (max-width: 1023px) {
+    .brutal-bottom-sheet__overlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: var(--scrim-40);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-slow);
+    }
+
+    .brutal-bottom-sheet__overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  .regulation-filters {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  @media (max-width: 1023px) {
+    .regulation-filters {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg-light);
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
+    }
+  }
+
+  /* Search */
+  .regulation-search {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+  }
+
+  /* Search — uses global .brutal-search classes; scoped overrides only */
+
+  @media (max-width: 1023px) {
+    .regulation-search {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 767px) {
+    :global(.brutal-search__results) {
+      max-height: 50vh;
+    }
+  }
+
+  /* Filter chips use global .brutal-filter-chip classes — see global.css */
+  .brutal-filter-chips {
+    justify-content: center;
+    gap: var(--spacing-md);
+  }
+
+  .map-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    align-items: start;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .map-wrapper {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Legend & CTA — uses global .brutal-legend / .brutal-map-cta; scoped positioning only */
+  .map-legend-positioned {
+    position: absolute;
+    bottom: var(--spacing-sm);
+    left: var(--spacing-sm);
+    flex-direction: row;
+    gap: var(--spacing-md);
+    z-index: 5;
+  }
+
+  .brutal-map-cta {
+    position: absolute;
+    bottom: var(--spacing-sm);
+    right: var(--spacing-sm);
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-top: var(--spacing-2xl);
+  }
+
+  /* Mobile: legend static below map, hide CTA (tap bar covers this UX) */
+  @media (max-width: 1023px) {
+    .map-legend-positioned {
+      position: static;
+      background: transparent;
+      border: none;
+      justify-content: center;
+      padding: var(--spacing-sm) 0;
+      z-index: auto;
+    }
+
+    .brutal-map-cta {
+      display: none;
+    }
+  }
+
+  /* Responsive */
+  @media (min-width: 1024px) {
+    .map-layout:has(.brutal-panel:not([hidden])) {
+      grid-template-columns: 1fr 380px;
+      gap: var(--spacing-xl);
+      max-width: none;
+    }
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    padding: var(--spacing-3xl) 0;
+  }
+
+  /* FAQ — uses global .brutal-faq classes; scoped layout only */
+  .faq-section .brutal-heading-lg {
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+  }
+
+  .brutal-faq {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 1023px) {
+    .faq-section {
+      position: relative;
+      z-index: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .faq-section {
+      padding: var(--spacing-2xl) 0;
+    }
+  }
+
+  /* Timeline — uses global .brutal-timeline-* classes; scoped layout for horizontal scroll */
+  .timeline-section {
+    margin-top: var(--spacing-3xl);
+    padding-top: var(--spacing-2xl);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .timeline-heading {
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Wraps for the same reason the footer link row does: four fixed-width items
+     in a nowrap flex row cannot shrink, so at 320px the last one sat 8px off
+     the right edge in WebKit and the page scrolled sideways. That 8px was
+     measured under the flat 96px gutter; the ladder (global.css, 2026-09-01)
+     has since given 320px 64px more room, so the wrap is now CONSERVATIVE
+     RATHER THAN EXACT. Kept as the safety net — a nowrap row that cannot shrink
+     is one label change away from overflowing again. */
+  .timeline-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    row-gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: light-dark(var(--text-secondary), var(--text-dark-muted));
+  }
+
+  .timeline-legend__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .timeline-scroll {
+    min-height: 140px; /* Reserve space to prevent CLS when renderTimeline() injects content */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 14px;
+    padding-bottom: var(--spacing-sm);
+    cursor: grab;
+  }
+
+  .timeline-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .timeline-scroll::-webkit-scrollbar-track {
+    background: var(--surface-tint-bg);
+    border-radius: 0;
+  }
+
+  .timeline-scroll::-webkit-scrollbar-thumb {
+    background: light-dark(rgba(26, 26, 26, 0.15), var(--border-dark-default));
+    border-radius: 0;
+  }
+
+  :global(.timeline-track) {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    min-width: max-content;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    position: relative;
+  }
+
+  :global(.timeline-track::before) {
+    content: '';
+    position: absolute;
+    top: var(--spacing-1_75);
+    left: var(--spacing-lg);
+    right: var(--spacing-lg);
+    height: 2px;
+    background: light-dark(var(--border-light), var(--border-dark-default));
+    z-index: 0;
+  }
+
+  /* Horizontal scroll overrides for .brutal-timeline-* base classes.
+       Use .timeline-track parent to beat global.css specificity
+       regardless of Astro's production CSS chunk load order. */
+  :global(.timeline-track .brutal-timeline-entry) {
+    position: relative;
+    z-index: 1;
+  }
+
+  :global(.timeline-track .brutal-timeline-entry__name) {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Today marker — absolute positioned in horizontal timeline */
+  :global(.timeline-track .brutal-timeline-today) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    top: -6px;
+    transform: translateX(-50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  :global(.timeline-track .brutal-timeline-today::after) {
+    content: '';
+    width: 2px;
+    flex: 1;
+    min-height: 60px;
+    background: var(--color-primary);
+    opacity: 0.6;
+  }
+
+  :global(.timeline-track .brutal-timeline-today__label) {
+    white-space: nowrap;
+    margin-bottom: 2px;
+  }
+
+  /* Print-only footer (hidden on screen). The print header is the
+     PrintReportHeader component, which hides and styles itself. */
+  .print-report-footer {
+    display: none;
+  }
+
+  @media print {
+    /* Hide interactive chrome. The map controls, hint and sheet handle are
+       rendered by MapVisualizer / CompliancePanel, and the breadcrumb by
+       BaseLayout, so they need :global(). */
+    :global(.site-header),
+    :global(footer),
+    .regulation-filters,
+    :global(.map-controls),
+    :global(.map-quick-zoom),
+    .brutal-map-cta,
+    :global(.brutal-map-hint),
+    .brutal-bottom-sheet__overlay,
+    :global(.brutal-bottom-sheet__handle),
+    .back-link,
+    :global(.breadcrumb) {
+      display: none !important;
+    }
+
+    /* Show print footer */
+    .print-report-footer {
+      display: block !important;
+      margin-top: var(--spacing-2xl);
+      padding-top: var(--spacing-lg);
+      border-top: 1px solid var(--border-light);
+    }
+
+    .print-report-footer p {
+      font-family: var(--font-family-mono);
+      font-size: 8pt;
+      color: var(--text-muted);
+      margin: 0 0 var(--spacing-xs);
+      line-height: 1.4;
+    }
+
+    /* Map: static, bordered */
+    .map-wrapper {
+      page-break-inside: avoid;
+    }
+
+    :global(.brutal-map-container) {
+      border: 1px solid var(--border-light) !important;
+      overflow: visible;
+    }
+
+    /* Panel: static layout */
+    :global(.brutal-panel) {
+      position: static !important;
+      max-height: none !important;
+      overflow: visible !important;
+      transform: none !important;
+      transition: none !important;
+      border: 1px solid var(--border-light) !important;
+      border-top: 3px solid var(--color-primary) !important;
+      page-break-inside: avoid;
+    }
+
+    :global(.brutal-reg-card) {
+      border: 1px solid var(--border-light) !important;
+      border-left: 3px solid var(--color-primary) !important;
+      break-inside: avoid;
+    }
+
+    /* Timeline: no scroll, static */
+    .timeline-scroll {
+      overflow: visible;
+      max-width: 100%;
+    }
+
+    :global(.timeline-track .brutal-timeline-entry) {
+      color: var(--text-primary);
+    }
+
+    /* FAQ: readable, no collapse */
+    :global(.brutal-faq__item) {
+      border: 1px solid var(--border-light) !important;
+      break-inside: avoid;
+    }
+
+    .map-layout {
+      grid-template-columns: 1fr !important;
+      max-width: 100%;
+    }
+
+    @page {
+      margin: 1.5cm;
+    }
+  }
+</style>

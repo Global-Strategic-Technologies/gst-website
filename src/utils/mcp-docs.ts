@@ -85,7 +85,7 @@ function readIndex(): (SearchableCapability & { href: string })[] {
  * Capability lookup.
  *
  * Markup and keyboard contract lifted from the Regulatory Map's search (markup
- * in `src/pages/hub/tools/regulatory-map/index.astro`, keyboard handling in
+ * in `src/page-templates/HubRegulatoryMapPage.astro`, keyboard handling in
  * `src/scripts/regulatory-map/index.ts`): a `.brutal-search` field with a
  * sibling `role="listbox"`, arrow keys moving `aria-activedescendant`, Enter
  * committing, Escape closing. The two are not shared because that one filters
