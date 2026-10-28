@@ -245,28 +245,36 @@ describe('W5: concurrency', () => {
   it('measures distinct duration_ms across parallel HOF invocations', async () => {
     // Adversarial-audit W5: per-invocation `startedAt` capture must not be
     // shared across concurrent calls. Three callers with staggered delays
-    // should land three events with monotonically related durations.
-    const { sink, ctx } = makeCtx();
-    const wrapped = withMetricsCore<[number], number>(
-      'tool_invocation',
-      't',
-      ctx,
-      () => 'success',
-      async (delayMs: number) => {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        return delayMs;
-      }
-    );
-    await Promise.all([wrapped(5), wrapped(20), wrapped(40)]);
-    expect(sink.events).toHaveLength(3);
-    // Sort by duration so the assertion is order-independent.
-    const durations = sink.events.map((e) => e.duration_ms ?? 0).sort((a, b) => a - b);
-    expect(durations[0]).toBeLessThan(durations[1]);
-    expect(durations[1]).toBeLessThan(durations[2]);
-    // Each duration should be at least ~its requested delay.
-    expect(durations[0]).toBeGreaterThanOrEqual(3);
-    expect(durations[1]).toBeGreaterThanOrEqual(15);
-    expect(durations[2]).toBeGreaterThanOrEqual(35);
+    // should land three events with their own durations.
+    //
+    // On a fake clock: the real one let a busy machine fire the 5 ms timer at
+    // 21 ms, level with the 20 ms one, and fail the ordering for no defect.
+    // Fake timers drive both `setTimeout` and `Date.now()`, so each duration is
+    // exactly its delay — and a shared `startedAt` would still show, as three
+    // equal durations.
+    vi.useFakeTimers();
+    try {
+      const { sink, ctx } = makeCtx();
+      const wrapped = withMetricsCore<[number], number>(
+        'tool_invocation',
+        't',
+        ctx,
+        () => 'success',
+        async (delayMs: number) => {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          return delayMs;
+        }
+      );
+      const run = Promise.all([wrapped(5), wrapped(20), wrapped(40)]);
+      await vi.advanceTimersByTimeAsync(40);
+      await run;
+      expect(sink.events).toHaveLength(3);
+      // Sort by duration so the assertion is order-independent.
+      const durations = sink.events.map((e) => e.duration_ms ?? 0).sort((a, b) => a - b);
+      expect(durations).toEqual([5, 20, 40]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
