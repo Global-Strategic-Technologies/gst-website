@@ -51,10 +51,13 @@ export interface RegulationData {
   version: string;
 }
 
+// One build per locale: the template and 128 endpoints share it. Not under
+// `astro dev`, where a catalog edit must reach the endpoints and the `?v=`
+// without a server restart.
 const cache = new Map<string, Promise<RegulationData>>();
 
 export function regulationData(locale: Locale): Promise<RegulationData> {
-  let data = cache.get(locale.code);
+  let data = import.meta.env.DEV ? undefined : cache.get(locale.code);
   if (!data) {
     data = build(locale);
     cache.set(locale.code, data);

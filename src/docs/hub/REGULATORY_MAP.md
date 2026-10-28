@@ -501,6 +501,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 3. Updates to the Zod validation regex to accept the new code format
 4. D3 rendering logic in `src/scripts/regulatory-map/index.ts` to render and wire up the new paths
 5. Suppression of the parent country path from click handling
+6. Its names in every locale: add the map to `regionNameEn` in `src/scripts/regulatory-map/logic.ts`, its `region.<code>` keys to `src/i18n/{en,es,pt-BR}/regulatory-map-geo.json` (then `npm run i18n:stamp`), and the map to the list in `tests/unit/regulatory-map-catalog.test.ts` — otherwise es and pt pages show English names and the geo pin never sees the new codes (see [Localization](#localization))
 
 ---
 
