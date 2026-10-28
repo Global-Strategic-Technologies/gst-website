@@ -4,7 +4,7 @@
 
 The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, cybersecurity and industry compliance regulations, spanning every jurisdiction enumerated by `list_regulation_facets`. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
-**Entry point**: `src/pages/hub/tools/regulatory-map/index.astro` (markup and styles); its client script is `src/scripts/regulatory-map/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
+**Entry point**: `src/page-templates/HubRegulatoryMapPage.astro` (markup and styles), rendered in English by the one-line route `src/pages/hub/tools/regulatory-map/index.astro` and in es and pt-BR by the `[locale]` catch-all (BL-153 Tier B — see [Localization](#localization)); its client script is `src/scripts/regulatory-map/` ([ADR-0042](../adr/0042-tool-page-client-scripts.md))
 
 **URL**: `https://globalstrategic.tech/hub/tools/regulatory-map`
 
@@ -30,12 +30,20 @@ User (Map UI)
 ├── src/pages/data/
 │     reg-index.json.ts           ← Prerendered lightweight index (map coloring, timeline, search)
 │     regulations/[id].json.ts    ← Prerendered per-regulation detail, fetched on click
+│     reg-index/[lang].json.ts    ← The same index in an es or pt page's language
+│     regulations/[lang]/[id].json.ts ← The same detail in an es or pt page's language
 │
+├── src/page-templates/HubRegulatoryMapPage.astro ← Markup, scoped styles, every locale
 ├── src/pages/hub/tools/regulatory-map/
-│     index.astro                 ← Route entry: markup, scoped styles
+│     index.astro                 ← English route: one line, renders the template
+│
+├── src/lib/regulation-i18n.ts    ← A locale's index, records and content version
+├── src/i18n/<locale>/regulatory-map*.json ← Page words, region names, regulation texts
 │
 ├── src/scripts/regulatory-map/
 │     index.ts                    ← Client script: D3 rendering, event wiring (ADR-0042)
+│     logic.ts                    ← DOM-free builders: cards, search, timeline, region names
+│     strings.ts                  ← The page's island reader (`data-rm-strings`)
 │     faq-analytics.ts            ← FAQ toggle tracking, imported first by index.ts
 │
 ├── src/types/regulatory-map.ts   ← TypeScript interfaces (Regulation, RegionSelectedDetail)
@@ -66,9 +74,9 @@ All rendering logic runs client-side. Regulation data and TopoJSON geodata are s
 
 ## Data Flow
 
-1. **Build time**: `fetchAllRegulations()` loads all `src/data/regulatory-map/*.json` files via `import.meta.glob` and validates each against the Zod schema. The result is prerendered to `/data/regulations.json` via a static API endpoint
+1. **Build time**: `fetchAllRegulations()` loads all `src/data/regulatory-map/*.json` files through the `regulatory-map` content collection, which validates each against the Zod schema. `regulationData(locale)` (`src/lib/regulation-i18n.ts`) turns them into the locale's lightweight index and per-regulation records, prerendered to `/data/reg-index.json` and `/data/regulations/<id>.json` (English) or `/data/reg-index/<locale>.json` and `/data/regulations/<locale>/<id>.json`. The page writes those URLs, with a content hash as `?v=`, on its section
 2. **Static assets**: TopoJSON files (world, US states, Canadian provinces) are served from `public/data/`
-3. **Client load**: Page fetches all four data files in parallel via `Promise.all([...fetch()])`, then D3 projects geography with `geoEquirectangular`, renders SVG paths, and colors regions by regulation coverage
+3. **Client load**: Page fetches the world TopoJSON and its locale's index in parallel via `Promise.all([...fetch()])`, then D3 projects geography with `geoEquirectangular`, renders SVG paths, and colors regions by regulation coverage
 4. **Interaction**: Click dispatches `regionSelected` CustomEvent; the compliance panel listens and renders regulation cards
 
 ### Component Communication
@@ -406,6 +414,22 @@ The map covers four categories of regulation: **data privacy**, **cybersecurity*
 
 ---
 
+## Localization
+
+The page is a BL-153 Tier B route in es and pt-BR, regulation texts included (operator decision 2026-10-28; [ADR-0030](../adr/0030-website-locale-model.md), 2026-10-28 note). Three catalogs serve it:
+
+| Namespace | Holds | Reaches the page as |
+|---|---|---|
+| `regulatory-map` | Every word on the page, and the script's `js.*` strings | Rendered by the template; the `js.*` keys travel in the `data-rm-strings` island on es and pt pages |
+| `regulatory-map-geo` | Country, state and province names (`region.<code>`) | The island; English falls back to the TypeScript maps the script already bundles |
+| `regulatory-map-data` | The 128 regulation texts (`reg.<id>.name`, `.summary`, `.scope`, `.penalties`, `.req.<n>`) | Each locale's prerendered `/data/` endpoints, never the island |
+
+- **The regulation files stay English.** The MCP server bundles them and returns them verbatim, so translations live only in `src/i18n/`. The English `regulatory-map-data` catalog is generated from the files by `npm run i18n:sync-regulatory-map` and pinned to them by `tests/unit/regulatory-map-catalog.test.ts`; `regulatory-map-geo` is pinned the same way to the three name maps.
+- **Editing a regulation**: edit the file → `npm run i18n:sync-regulatory-map` → retranslate the es and pt-BR keys the parity guard reports stale → `npm run i18n:stamp`.
+- **Caching.** `vercel.json` serves `/data/*.json` with `Cache-Control: public, max-age=31536000, immutable`, and the URLs are not content-addressed. So the page appends `?v=<hash>`, the first 8 hex characters of a SHA-256 over exactly what the locale's endpoints serve (`regulationData(locale).version`), to the index URL, the preload link and every regulation fetch. A content change gets a new URL. Anything else that fetches `/data/` JSON on a page must version its URL the same way.
+- **Analytics stays English**: `region_name` is the English region name, `regulation_name` the English regulation name (`nameEn` on a translated index), and the FAQ toggle sends the English question from `data-analytics-label`.
+- **MCP deeplinks** (`?region=`, `?filter=`) are locale-free and keep pointing at the English page.
+
 ## Map Rendering
 
 ### Projection
@@ -459,13 +483,14 @@ The JSON file is the only *code* you write, but the corpus is published in sever
 4. **Use valid region codes** — alpha-3 in `src/utils/countryCodeMap.ts`, US states in `src/utils/fipsToStateCode.ts`, provinces in `src/utils/canadianProvinceMap.ts`. **Never `USA` or `CAN`** (see [Region Code Formats](#region-code-formats)).
 5. **Enacted but not yet in force?** Set `status: "not-in-force"` and put the enactment date in `effectiveDate`. Never publish a Royal Assent or signature date as the effective date.
 6. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). An alias under 4 characters once normalized is ignored by both MCP matchers. Aliases must be unique across the corpus; a duplicate guard fails if two entries normalize to the same one — but it runs as the **mcp-server** workspace's `prebuild`/`pretest` hook, so `npm run test:mcp` is what surfaces a collision. The root `npm run build` is `astro build` and will not.
-7. **Probe the name against `compose_dossier_envelope`'s matcher.** It matches a model-supplied framework name by normalized substring in *both* directions, so a new long name can swallow a short name another jurisdiction uses (an unqualified "Consumer Product Safety Act" now resolves to the Canadian record). Pin any collision you accept in `mcp-server/tests/unit/schemas/compose-dossier-envelope-gap-validation.test.ts`, with the reason.
-8. **Regenerate the MCP bundle**: `node mcp-server/scripts/generate-regulations-index.mjs`. `npm run test:docs` fails while `mcp-server/src/content/regulations-data.generated.ts` is stale.
-9. **Release the MCP change.** A new file is a new Resource URI, so the manifest hash moves: update `EXPECTED_MANIFEST_HASH` and its ledger in `mcp-server/tests/integration/manifest-stability.test.ts`, add a version entry and the new hash to `mcp-server/BREAKING_CHANGES.md`, and bump the version in `mcp-server/package.json`, `mcp-server/src/version.ts` and the root `package-lock.json` together. Merging triggers the MCP production-deploy approval.
-10. **Move the published counts.** The total, per-category and resource counts are pinned in tests (`tests/unit/regulatory-map-data.test.ts`, `mcp-server/tests/integration/resource-uri-stability.test.ts`, `protocol-roundtrip.test.ts`, and the website's MCP parity tests) and repeated in published copy and docs. The tests fail until they agree; the copy does not, so `git grep -n -w` the old regulation total and the old resource total and update every current-state mention. Historical records (ledgers, ADRs, UAT run logs) keep their numbers.
-11. **Re-stamp the translations** when the count in `tools.regulatory-map.f1` changes: update `src/i18n/{en,es,pt-BR}/hub-tools.json`, then `npm run i18n:stamp`.
-12. **Add the row to the coverage tables above.**
-13. **Validate**: `npx astro check && npm run lint && npm run lint:css && npm run test:run`, then `npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs`.
+7. **Translate it.** Run `npm run i18n:sync-regulatory-map`, which adds the new record's prose to the English `regulatory-map-data` catalog, then add the same keys translated to `src/i18n/es/regulatory-map-data.json` and `src/i18n/pt-BR/regulatory-map-data.json` and run `npm run i18n:stamp`. `npm run test:docs` fails until every locale has them (see [Localization](#localization)).
+8. **Probe the name against `compose_dossier_envelope`'s matcher.** It matches a model-supplied framework name by normalized substring in *both* directions, so a new long name can swallow a short name another jurisdiction uses (an unqualified "Consumer Product Safety Act" now resolves to the Canadian record). Pin any collision you accept in `mcp-server/tests/unit/schemas/compose-dossier-envelope-gap-validation.test.ts`, with the reason.
+9. **Regenerate the MCP bundle**: `node mcp-server/scripts/generate-regulations-index.mjs`. `npm run test:docs` fails while `mcp-server/src/content/regulations-data.generated.ts` is stale.
+10. **Release the MCP change.** A new file is a new Resource URI, so the manifest hash moves: update `EXPECTED_MANIFEST_HASH` and its ledger in `mcp-server/tests/integration/manifest-stability.test.ts`, add a version entry and the new hash to `mcp-server/BREAKING_CHANGES.md`, and bump the version in `mcp-server/package.json`, `mcp-server/src/version.ts` and the root `package-lock.json` together. Merging triggers the MCP production-deploy approval.
+11. **Move the published counts.** The total, per-category and resource counts are pinned in tests (`tests/unit/regulatory-map-data.test.ts`, `mcp-server/tests/integration/resource-uri-stability.test.ts`, `protocol-roundtrip.test.ts`, and the website's MCP parity tests) and repeated in published copy and docs. The tests fail until they agree; the copy does not, so `git grep -n -w` the old regulation total and the old resource total and update every current-state mention. Historical records (ledgers, ADRs, UAT run logs) keep their numbers.
+12. **Re-stamp the translations** when the count in `tools.regulatory-map.f1` changes: update `src/i18n/{en,es,pt-BR}/hub-tools.json`, then `npm run i18n:stamp`.
+13. **Add the row to the coverage tables above.**
+14. **Validate**: `npx astro check && npm run lint && npm run lint:css && npm run test:run`, then `npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs`.
 
 ### Adding Sub-National Support for a New Country
 
@@ -499,7 +524,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 - **Category filter UI** — Filter chips for data privacy, AI governance, industry compliance, cybersecurity. Updates map highlighting and panel cards in real time.
 - **Regulation timeline/tracker** — Horizontal scrollable timeline with Today marker and filter-aware display.
-- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the client index (fetched at runtime from `/data/reg-index.json`) is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does raw term-wise substring matching with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
+- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. On an es or pt page it also searches the English name (`nameEn` on that locale's index), so "GDPR" or an English title finds a regulation in any language, and it ignores accents on both sides (`foldForSearch` in `src/scripts/regulatory-map/logic.ts`). Summaries and key requirements are **not** searched: the client index (fetched at runtime from `/data/reg-index.json`) is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does term-wise substring matching (accents folded) with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
 - **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
 - **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
 - **Industry compliance expansion** — 17 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II, and (BL-169) Canada's provincial health acts, Medical Devices Regulations and Consumer Product Safety Act.
@@ -558,7 +583,7 @@ Prioritized list of regulations and jurisdictions for future phases:
 
 **Purpose:** Fill the empty space between the page header and the map with a compact stats strip that communicates the map's breadth at a glance — before the user interacts with anything.
 
-**Placement:** Between `<HubHeader>` and `<div class="map-layout">` in `index.astro` (line ~58).
+**Placement:** Between `<HubHeader>` and `<div class="map-layout">` in `HubRegulatoryMapPage.astro`.
 
 **Layout:**
 
@@ -585,7 +610,7 @@ Prioritized list of regulations and jurisdictions for future phases:
 
 **Styling approach:**
 - Reuse the existing `.stats-bar` / `.stat-item` pattern from `global.css` (already handles dark theme, responsive grid, separator borders)
-- OR scope new styles inside `index.astro`'s `<style>` block if the global pattern doesn't fit visually (the global stats bar has a dark background which may clash)
+- OR scope new styles inside `HubRegulatoryMapPage.astro`'s `<style>` block if the global pattern doesn't fit visually (the global stats bar has a dark background which may clash)
 - Use CSS variables for all colors, spacing, typography — no hardcoded values
 - Primary color accent on the numeric values (`var(--color-primary)`) for visual pop
 
@@ -599,7 +624,7 @@ Prioritized list of regulations and jurisdictions for future phases:
 - Responsive breakpoint matches existing page: `@media (min-width: 1024px)`
 
 **Files to modify:**
-- `src/pages/hub/tools/regulatory-map/index.astro` — add HTML + scoped styles in frontmatter/template
+- `src/page-templates/HubRegulatoryMapPage.astro` — add HTML + scoped styles in frontmatter/template, words in the `regulatory-map` catalog for every locale
 
 ---
 

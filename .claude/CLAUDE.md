@@ -237,6 +237,7 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 
 - **Operating manual**: [src/docs/development/LOCALIZATION.md](src/docs/development/LOCALIZATION.md) — locale registry (`src/i18n/locales.ts`), catalogs `src/i18n/<locale>/<ns>.json` with English as the schema, `useTranslations(locale, ns)` in templates, one template per route under `src/page-templates/`, draft→live checklist. Decisions: [ADR-0030](src/docs/adr/0030-website-locale-model.md)
 - **Every user-visible string on a Tier A page or in the chrome goes through a catalog** — no literals in templates; every English edit needs the other locales revisited and re-stamped (`npm run i18n:stamp`), or `test:docs` fails on staleness
+- **Editing a regulation file (`src/data/regulatory-map/*.json`) touches three locales**: run `npm run i18n:sync-regulatory-map`, retranslate the stale es and pt-BR `regulatory-map-data` keys, then stamp — the files stay English for the MCP server, the page serves translations from `/data/` endpoints (ADR-0030, 2026-10-28)
 - **Locale codes and URL prefixes are typed in ONE file** — `tests/unit/i18n-no-stray-literals.test.ts` fails on a quoted `'pt-BR'` / `'/es/'` anywhere else in `src/`
 
 ### Security
