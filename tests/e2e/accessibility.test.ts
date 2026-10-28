@@ -173,6 +173,16 @@ const PAGES: A11yPage[] = [
     waitFor: '#mapSvg [role="button"]',
   },
   {
+    name: 'Regulatory Map (es)',
+    path: '/es/hub/tools/regulatory-map/',
+    waitFor: '#mapSvg [role="button"]',
+  },
+  {
+    name: 'Regulatory Map (pt-BR)',
+    path: '/pt/hub/tools/regulatory-map/',
+    waitFor: '#mapSvg [role="button"]',
+  },
+  {
     name: 'Radar',
     path: '/hub/radar/',
     // The feed is a `server:defer` island (ADR-0012), so this waits for it to

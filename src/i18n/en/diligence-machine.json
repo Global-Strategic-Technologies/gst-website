@@ -20,7 +20,7 @@
   "note.tech-archetype": "Benchmark infrastructure costs against peers with <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">TechPar</a>.",
   "note.scale-intensity": "Evaluate cloud cost governance practices with the <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Infrastructure Cost Governance</a> tool.",
   "note.transformation-state": "Estimate technical debt remediation costs with the <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Tech Debt Calculator</a>.",
-  "note.data-sensitivity": "Explore jurisdiction-specific requirements in the <a href=\"{href}\" hreflang=\"en\" target=\"_blank\" rel=\"noopener\">Regulatory Map</a>.",
+  "note.data-sensitivity": "Explore jurisdiction-specific requirements in the <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Regulatory Map</a>.",
   "nav.back": "Back",
   "nav.next": "Next",
   "nav.generate": "Generate Agenda",

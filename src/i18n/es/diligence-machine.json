@@ -20,7 +20,7 @@
   "note.tech-archetype": "Compare los costos de infraestructura con los de sus pares en <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">TechPar</a>.",
   "note.scale-intensity": "Evalúe las prácticas de gobernanza de costos en la nube con la herramienta <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Infrastructure Cost Governance</a>.",
   "note.transformation-state": "Estime los costos de remediación de la deuda técnica con la <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Tech Debt Calculator</a>.",
-  "note.data-sensitivity": "Explore los requisitos de cada jurisdicción en el <a href=\"{href}\" hreflang=\"en\" target=\"_blank\" rel=\"noopener\">Regulatory Map</a>.",
+  "note.data-sensitivity": "Explore los requisitos de cada jurisdicción en el <a href=\"{href}\" target=\"_blank\" rel=\"noopener\">Regulatory Map</a>.",
   "nav.back": "Atrás",
   "nav.next": "Siguiente",
   "nav.generate": "Generar agenda",
