@@ -87,7 +87,111 @@ export const IRL_XLSX_MIME_TYPE =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 const PRIMARY_SHEET_NAME = 'Information Request List';
-const INSTRUCTIONS_SHEET_NAME = 'Instructions';
+
+/**
+ * The workbook text a recipient reads (BL-153 Tier B). The website's es and
+ * pt pages pass translated labels; the MCP tools pass none, so their
+ * workbooks stay byte-identical (`FROZEN_PATH_GOLDEN`).
+ *
+ * Text that code reads back is deliberately NOT here and cannot be
+ * translated: the main sheet name, the metadata labels and context values,
+ * the OPEN / PARTIAL / CLOSED values, the Reference ids and the `NN — `
+ * section prefix. `extract-markdown.mjs` and the MCP extract record match
+ * them exactly. Translated mirrors live in the website's
+ * `information-request-list-generator-data` catalog, pinned to this object.
+ */
+export interface IRLXlsxLabels {
+  /** Row of 7 headers: Reference, Request, Status, File Location, Comments, Notes, Response. */
+  readonly columnHeaders: readonly [string, string, string, string, string, string, string];
+  /** Tab name of the hidden Instructions sheet. Excel: at most 31 chars, none of `[]:*?/\`. */
+  readonly instructionsSheetName: string;
+  /** One cell per line; `{sectionCount}` is replaced with the section count. */
+  readonly instructionsLines: readonly string[];
+  readonly handbackWithTarget: string;
+  readonly handbackWithoutTarget: string;
+  /** Status dropdown input message. Excel: title at most 32 chars, text at most 255. */
+  readonly statusPromptTitle: string;
+  readonly statusPrompt: string;
+  /** Status dropdown error dialog. Excel: title at most 32 chars, text at most 225. */
+  readonly statusErrorTitle: string;
+  readonly statusError: string;
+}
+
+export const IRL_XLSX_LABELS_EN: IRLXlsxLabels = {
+  columnHeaders: [
+    'Reference',
+    'Request',
+    'Status',
+    'File Location',
+    'Comments',
+    'Notes',
+    'Response',
+  ],
+  instructionsSheetName: 'Instructions',
+  instructionsLines: [
+    'Instructions',
+    '',
+    'This spreadsheet is the structured response surface for the GST',
+    'Information Request List. Each section mirrors a Virtual Data Room',
+    '(VDR) folder; together they cover the inputs GST needs to size and',
+    'execute the engagement.',
+    '',
+    'Column layout on the main sheet:',
+    '  A  Reference      short ID per request (e.g., "0-01"). Quote it',
+    '                   back in conversation or in your VDR.',
+    '  B  Request        the structured information GST is asking for.',
+    '  C  Status         OPEN, PARTIAL, or CLOSED. Pre-filled OPEN on',
+    '                   every row; update as you progress.',
+    '  D  File Location  OPTIONAL. The filename, VDR path, or share-link',
+    '                   where the corresponding artifact lives.',
+    '  E  Comments       OPTIONAL. More of the answer — anything that did',
+    '                   not fit in Response. Read as part of your answer.',
+    '  F  Notes          OPTIONAL. Caveats and context about the answer',
+    '                   (timing, confidentiality, who to ask).',
+    '  G  Response       your free-text answer.',
+    '',
+    'All four of D, E, F and G are read into the deliverable GST builds',
+    'from this workbook. Response and Comments are combined into the',
+    'answer; File Location and Notes are carried alongside it as source',
+    'and caveat. None of it is a private side channel — if you would',
+    'not want it read back to you, leave it out.',
+    '',
+    'Status workflow (column C):',
+    '  OPEN     no response yet. Cell color: white.',
+    '  PARTIAL  answer in progress or awaiting input. Cell auto-colors',
+    '           cream when value is set to PARTIAL.',
+    '  CLOSED   answered and complete. Cell auto-colors light green',
+    '           when value is set to CLOSED.',
+    '',
+    'Click any Status cell to use the in-cell dropdown. Cell color',
+    'updates automatically as the value changes (no manual recolor).',
+    '',
+    '1. Set Status (column C) to PARTIAL or CLOSED as you progress.',
+    '2. Fill answers in column G (Response) alongside each request in B.',
+    '3. If you are attaching a file or pointing to a VDR folder, put the',
+    '   reference in column D (File Location). D and G may be used together.',
+    '4. Use column E (Comments) when the answer runs past what fits in',
+    '   Response. It is read as a continuation of your answer, so put',
+    '   answers there — not remarks about the answer.',
+    '5. Use column F (Notes) for anything that is NOT an answer',
+    '   ("scheduled for Q3 refresh", "confidential, discuss in call").',
+    '6. Type "n/a" or "not yet tracked" rather than leaving a Response',
+    '   cell blank. The presence of an answer is signal, including',
+    '   "we do not track this."',
+    '7. Section header rows (e.g., "00 — BASICS") delimit the {sectionCount} request',
+    '   areas. Per-section context lives in the canonical GST Information',
+    '   Request List article.',
+    '',
+  ],
+  handbackWithTarget:
+    'Return the filled file to your Global Strategic Technologies engagement lead.',
+  handbackWithoutTarget:
+    'Return the filled file to your Global Strategic Technologies point of contact.',
+  statusPromptTitle: 'Status',
+  statusPrompt: 'OPEN, PARTIAL, or CLOSED',
+  statusErrorTitle: 'Invalid status',
+  statusError: 'Status must be OPEN, PARTIAL, or CLOSED.',
+};
 
 const TRANSACTION_CONTEXT_LABEL: Record<IRLTransactionContext, string> = {
   'sell-side': 'Sell-side',
@@ -141,14 +245,20 @@ function slugifyTargetName(name: string): string {
 export function generateIrlXlsxBuffer(
   article: IRLArticle,
   metadata: IRLXlsxMetadata,
-  prefill?: ReadonlyMap<string, IRLRowPrefill>
+  prefill?: ReadonlyMap<string, IRLRowPrefill>,
+  labels: IRLXlsxLabels = IRL_XLSX_LABELS_EN
 ): Uint8Array {
-  const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(article, metadata, prefill);
-  const instructionsSheet = buildInstructionsSheet(metadata, article.sections.length);
+  const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(
+    article,
+    metadata,
+    prefill,
+    labels
+  );
+  const instructionsSheet = buildInstructionsSheet(metadata, article.sections.length, labels);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, primarySheet, PRIMARY_SHEET_NAME);
-  XLSX.utils.book_append_sheet(wb, instructionsSheet, INSTRUCTIONS_SHEET_NAME);
+  XLSX.utils.book_append_sheet(wb, instructionsSheet, labels.instructionsSheetName);
 
   // Hide the Instructions sheet so the recipient lands on the request list
   // by default. Toggle to `0` (visible) if senior-consultant review prefers
@@ -156,7 +266,7 @@ export function generateIrlXlsxBuffer(
   wb.Workbook = {
     Sheets: [
       { name: PRIMARY_SHEET_NAME, Hidden: 0 },
-      { name: INSTRUCTIONS_SHEET_NAME, Hidden: 1 },
+      { name: labels.instructionsSheetName, Hidden: 1 },
     ],
   };
 
@@ -173,7 +283,7 @@ export function generateIrlXlsxBuffer(
   // the empty `<dxfs/>` block in styles.xml with the cream/green fills
   // the CF rules reference. Result: Status cells get an in-cell dropdown,
   // paste-blocking, AND auto-coloring (PARTIAL → cream, CLOSED → green).
-  return patchStatusValidationAndColoring(raw, statusCellRefs);
+  return patchStatusValidationAndColoring(raw, statusCellRefs, labels);
 }
 
 /**
@@ -248,7 +358,8 @@ interface PrimarySheetResult {
 function buildPrimarySheet(
   article: IRLArticle,
   meta: IRLXlsxMetadata,
-  prefill?: ReadonlyMap<string, IRLRowPrefill>
+  prefill: ReadonlyMap<string, IRLRowPrefill> | undefined,
+  labels: IRLXlsxLabels
 ): PrimarySheetResult {
   // 7-column layout:
   //   A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response
@@ -323,7 +434,7 @@ function buildPrimarySheet(
 
   // Column header row — 7 cols, bold + larger font applied after sheet creation.
   const headerRowIdx = rowIdx;
-  rows.push(['Reference', 'Request', 'Status', 'File Location', 'Comments', 'Notes', 'Response']);
+  rows.push([...labels.columnHeaders]);
   rowIdx += 1;
 
   for (const section of article.sections) {
@@ -457,6 +568,15 @@ const STATUS_DXF_FILLS = [
   { rgb: 'FFC6EFCE', label: 'CLOSED' }, // light green
 ] as const;
 
+/** Escape a label for an OOXML attribute value (labels may be translated). */
+function xmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /**
  * Inject Excel data validation + conditional formatting into the
  * post-XLSX-write buffer:
@@ -494,7 +614,8 @@ const STATUS_DXF_FILLS = [
  */
 function patchStatusValidationAndColoring(
   buf: Uint8Array,
-  statusCellRefs: readonly string[]
+  statusCellRefs: readonly string[],
+  labels: IRLXlsxLabels
 ): Uint8Array {
   if (statusCellRefs.length === 0) return buf;
 
@@ -521,9 +642,9 @@ function patchStatusValidationAndColoring(
   const dataValidationsXml =
     `<dataValidations count="1">` +
     `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" ` +
-    `errorStyle="stop" errorTitle="Invalid status" ` +
-    `error="Status must be OPEN, PARTIAL, or CLOSED." ` +
-    `promptTitle="Status" prompt="OPEN, PARTIAL, or CLOSED" ` +
+    `errorStyle="stop" errorTitle="${xmlAttr(labels.statusErrorTitle)}" ` +
+    `error="${xmlAttr(labels.statusError)}" ` +
+    `promptTitle="${xmlAttr(labels.statusPromptTitle)}" prompt="${xmlAttr(labels.statusPrompt)}" ` +
     `sqref="${sqref}">` +
     `<formula1>"OPEN,PARTIAL,CLOSED"</formula1>` +
     `</dataValidation>` +
@@ -607,65 +728,19 @@ function patchStatusValidationAndColoring(
   return zipSync(unzipped, { level: 6 });
 }
 
-function buildInstructionsSheet(meta: IRLXlsxMetadata, sectionCount: number): XLSX.WorkSheet {
+function buildInstructionsSheet(
+  meta: IRLXlsxMetadata,
+  sectionCount: number,
+  labels: IRLXlsxLabels
+): XLSX.WorkSheet {
   const recipientHandback = meta.targetName
-    ? 'Return the filled file to your Global Strategic Technologies engagement lead.'
-    : 'Return the filled file to your Global Strategic Technologies point of contact.';
+    ? labels.handbackWithTarget
+    : labels.handbackWithoutTarget;
 
   const rows: string[][] = [
-    ['Instructions'],
-    [''],
-    ['This spreadsheet is the structured response surface for the GST'],
-    ['Information Request List. Each section mirrors a Virtual Data Room'],
-    ['(VDR) folder; together they cover the inputs GST needs to size and'],
-    ['execute the engagement.'],
-    [''],
-    ['Column layout on the main sheet:'],
-    ['  A  Reference      short ID per request (e.g., "0-01"). Quote it'],
-    ['                   back in conversation or in your VDR.'],
-    ['  B  Request        the structured information GST is asking for.'],
-    ['  C  Status         OPEN, PARTIAL, or CLOSED. Pre-filled OPEN on'],
-    ['                   every row; update as you progress.'],
-    ['  D  File Location  OPTIONAL. The filename, VDR path, or share-link'],
-    ['                   where the corresponding artifact lives.'],
-    ['  E  Comments       OPTIONAL. More of the answer — anything that did'],
-    ['                   not fit in Response. Read as part of your answer.'],
-    ['  F  Notes          OPTIONAL. Caveats and context about the answer'],
-    ['                   (timing, confidentiality, who to ask).'],
-    ['  G  Response       your free-text answer.'],
-    [''],
-    ['All four of D, E, F and G are read into the deliverable GST builds'],
-    ['from this workbook. Response and Comments are combined into the'],
-    ['answer; File Location and Notes are carried alongside it as source'],
-    ['and caveat. None of it is a private side channel — if you would'],
-    ['not want it read back to you, leave it out.'],
-    [''],
-    ['Status workflow (column C):'],
-    ['  OPEN     no response yet. Cell color: white.'],
-    ['  PARTIAL  answer in progress or awaiting input. Cell auto-colors'],
-    ['           cream when value is set to PARTIAL.'],
-    ['  CLOSED   answered and complete. Cell auto-colors light green'],
-    ['           when value is set to CLOSED.'],
-    [''],
-    ['Click any Status cell to use the in-cell dropdown. Cell color'],
-    ['updates automatically as the value changes (no manual recolor).'],
-    [''],
-    ['1. Set Status (column C) to PARTIAL or CLOSED as you progress.'],
-    ['2. Fill answers in column G (Response) alongside each request in B.'],
-    ['3. If you are attaching a file or pointing to a VDR folder, put the'],
-    ['   reference in column D (File Location). D and G may be used together.'],
-    ['4. Use column E (Comments) when the answer runs past what fits in'],
-    ['   Response. It is read as a continuation of your answer, so put'],
-    ['   answers there — not remarks about the answer.'],
-    ['5. Use column F (Notes) for anything that is NOT an answer'],
-    ['   ("scheduled for Q3 refresh", "confidential, discuss in call").'],
-    ['6. Type "n/a" or "not yet tracked" rather than leaving a Response'],
-    ['   cell blank. The presence of an answer is signal, including'],
-    ['   "we do not track this."'],
-    [`7. Section header rows (e.g., "00 — BASICS") delimit the ${sectionCount} request`],
-    ['   areas. Per-section context lives in the canonical GST Information'],
-    ['   Request List article.'],
-    [''],
+    ...labels.instructionsLines.map((line) => [
+      line.replace('{sectionCount}', String(sectionCount)),
+    ]),
     [recipientHandback],
   ];
 
