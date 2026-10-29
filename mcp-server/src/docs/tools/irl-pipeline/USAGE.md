@@ -101,6 +101,8 @@ The target fills in the Comments and File Location columns and sends the workboo
 
   Both produce byte-identical output. The conversion is deterministic, which is the reason to use it over asking the model to read the spreadsheet.
 
+  **A workbook from the Spanish or Portuguese Hub page** (`/es/` or `/pt/hub/tools/information-request-list-generator/`) has translated request text, column headers and Instructions sheet, so it is not the workbook this tool returns; the "identical workbooks" promise is for the English page. Everything code reads stays English in it — the sheet name, the `Target` and `Engagement context` labels, `OPEN` / `PARTIAL` / `CLOSED` and the Reference ids — so the extractor and `irl:extract` convert it exactly as they do an English one, with the requests in the reader's language. **Use one of those two for such a workbook.** Attaching it for the model to read is not supported: `WORKBOOK_COLUMN_CONTRACT` names the English column headers.
+
 - **Markdown already**: use it as is.
 
 - **Nothing yet, but you hold evidence of your own** (filings, a data-room export, earlier calls): you can pre-fill the workbook before or instead of the target's reply. That is [`fill_information_request_list_xlsx`](../irl-fill/USAGE.md), and its output feeds Step 4 exactly as a target-returned workbook does.
