@@ -392,7 +392,7 @@ test.describe('Hub Tools — IRL per-question removal + directives', () => {
 
     await page.locator('input[name="transactionContext"][value="value-creation"]').check();
     await expect(taggedRow).toHaveClass(/is-auto-skipped/);
-    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · value-creation');
+    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · Value Creation');
     await expect(taggedRow.locator('.irl-gen__q-toggle')).toHaveAttribute('aria-disabled', 'true');
 
     const values = await downloadCellValues(page);
@@ -440,7 +440,7 @@ test.describe('Hub Tools — IRL per-question removal + directives', () => {
     await gotoTool(page, '?context=buy-side');
     const taggedRow = page.locator('.irl-gen__q[data-question="00-02"]');
     await expect(taggedRow).toHaveClass(/is-auto-skipped/);
-    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · buy-side');
+    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · Buy-side');
   });
 
   test('excluding every question blocks the download with a status message', async ({ page }) => {

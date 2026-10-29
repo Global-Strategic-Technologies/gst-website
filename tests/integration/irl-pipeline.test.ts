@@ -29,6 +29,16 @@ import * as XLSX from 'xlsx-js-style';
 import { parseIrlArticle } from '../../src/utils/irl/parse-article';
 import { generateIrlXlsxBuffer } from '../../src/utils/irl/generate-xlsx';
 import { customizeIrlArticle } from '../../src/utils/irl/customize-article';
+import {
+  extractIrlMarkdownFromRows,
+  PRIMARY_SHEET_NAME,
+} from '../../src/utils/irl/extract-markdown.mjs';
+import {
+  localizeIrlArticle,
+  localizedXlsxLabels,
+} from '../../src/scripts/information-request-list-generator/logic';
+import ES_DATA from '../../src/i18n/es/information-request-list-generator-data.json';
+import PT_DATA from '../../src/i18n/pt-BR/information-request-list-generator-data.json';
 
 const ARTICLE_PATH = resolve(__dirname, '../../src/data/irl/information-request-list.md');
 
@@ -202,5 +212,49 @@ describe('IRL pipeline — canonical article.md → AST → .xlsx', () => {
     // pattern (TEST_BEST_PRACTICES § 6 — Hardcoded Test Data Assumptions).
     const article = parseIrlArticle(ARTICLE_BODY);
     expect(article.sections.length).toBeGreaterThanOrEqual(10);
+  });
+});
+
+// ─── BL-153 — a workbook from the es / pt page still extracts ────────────────
+//
+// The es and pt pages translate what a recipient reads (requests, section
+// titles, column headers, the Instructions sheet) and leave every token the
+// extractor and the MCP extract record match on English. This builds each
+// locale's workbook the way the page does and runs it through the shared
+// extractor the IRL Extractor page and `irl:extract` use.
+describe.each([
+  ['es', ES_DATA as Record<string, string>],
+  ['pt-BR', PT_DATA as Record<string, string>],
+])('IRL pipeline — the %s workbook round-trips through the extractor', (_locale, catalog) => {
+  const lookup = (key: string) => catalog[key];
+  const article = customizeIrlArticle(localizeIrlArticle(parseIrlArticle(ARTICLE_BODY), lookup), {
+    context: 'buy-side',
+  });
+  const buf = generateIrlXlsxBuffer(article, METADATA, undefined, localizedXlsxLabels(lookup));
+  const wb = XLSX.read(buf, { type: 'array' });
+  const rows = XLSX.utils.sheet_to_json<(string | number)[]>(wb.Sheets[PRIMARY_SHEET_NAME], {
+    header: 1,
+    defval: '',
+  });
+  const result = extractIrlMarkdownFromRows(rows);
+  const bulletCount = article.sections.reduce((n, s) => n + s.bullets.length, 0);
+
+  it('extracts every request, OPEN, in the translated text', () => {
+    expect(result.bulletCount).toBe(bulletCount);
+    expect(result.markdown).toContain(`- 0-01 ${catalog['req.00-01']} [OPEN] — <NO RESPONSE>`);
+    expect(result.markdown).not.toContain('Company name (legal entity');
+    expect(result.sectionsSeen).toHaveLength(article.sections.length);
+  });
+
+  it('keeps the target and engagement-context lines the sweep reads', () => {
+    expect(result.markdown).toContain('> Target: Integration Test Target');
+    expect(result.markdown).toContain('> Engagement context: Buy-side');
+  });
+
+  it('writes the translated headers and Instructions tab', () => {
+    expect(rows).toContainEqual(
+      Array.from({ length: 7 }, (_, i) => catalog[`xlsx.header.${i + 1}`])
+    );
+    expect(wb.SheetNames).toEqual([PRIMARY_SHEET_NAME, catalog['xlsx.instructionsSheetName']]);
   });
 });

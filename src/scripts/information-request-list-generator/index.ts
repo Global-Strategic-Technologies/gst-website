@@ -7,6 +7,10 @@ import {
   type IRLTransactionContext,
 } from '../../utils/irl/generate-xlsx';
 import { customizeIrlArticle, type IRLCustomRequest } from '../../utils/irl/customize-article';
+import { formatNumber } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
+import { localizeIrlArticle, localizedXlsxLabels, type StringLookup } from './logic';
+import { hasString, s } from './strings';
 
 const TRANSACTION_CONTEXT_VALUES = new Set<IRLTransactionContext>([
   'sell-side',
@@ -24,6 +28,11 @@ const MAX_CUSTOM_PER_SECTION = 10;
 // submit (and must produce the same section order as the SSR render — it
 // does, both parse the same deterministic article).
 const article = parseIrlArticle(articleBody);
+
+// On an es or pt page the island carries the source's and the workbook's
+// translations by key; on the English page it is absent and these resolve to
+// the English source and labels.
+const lookup: StringLookup = (key) => (hasString(key) ? s(key) : undefined);
 
 const form = document.getElementById('irl-gen-form') as HTMLFormElement | null;
 const status = document.getElementById('irl-gen-status') as HTMLParagraphElement | null;
@@ -54,14 +63,14 @@ function addCustomRow(sectionNumber: string, presetText = ''): void {
   input.type = 'text';
   input.className = 'brutal-input irl-gen__custom-input';
   input.maxLength = 500;
-  input.placeholder = 'Custom request…';
-  input.setAttribute('aria-label', `Custom request for section ${sectionNumber}`);
+  input.placeholder = s('js.customPlaceholder');
+  input.setAttribute('aria-label', s('js.customAria', { section: sectionNumber }));
   input.value = presetText;
 
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'irl-gen__custom-remove';
-  remove.setAttribute('aria-label', 'Remove custom request');
+  remove.setAttribute('aria-label', s('js.removeCustomAria'));
   remove.textContent = '×';
   remove.addEventListener('click', () => row.remove());
 
@@ -160,6 +169,7 @@ function selectedContext(): IRLTransactionContext | undefined {
  */
 function renderAutoSkips(): void {
   const context = selectedContext();
+  const contextLabel = context ? s(`context.${context}`) : '';
   document.querySelectorAll<HTMLLIElement>('.irl-gen__q[data-skip-context]').forEach((row) => {
     const contexts = (row.dataset.skipContext ?? '').split(' ').filter(Boolean);
     const auto = context !== undefined && contexts.includes(context);
@@ -176,11 +186,11 @@ function renderAutoSkips(): void {
       toggle.setAttribute(
         'aria-label',
         auto
-          ? `${toggle.dataset.baseLabel} — auto-skipped for ${context}`
+          ? s('js.autoSkippedAria', { label: toggle.dataset.baseLabel, context: contextLabel })
           : toggle.dataset.baseLabel
       );
     }
-    if (label) label.textContent = auto ? `auto · ${context}` : '';
+    if (label) label.textContent = auto ? s('js.autoSkipped', { context: contextLabel }) : '';
   });
 }
 
@@ -304,7 +314,7 @@ if (form && status) {
     const includeSections = allBoxes.filter((cb) => cb.checked).map((cb) => cb.value);
 
     if (includeSections.length === 0) {
-      status.textContent = 'Select at least one section to include.';
+      status.textContent = s('js.noSections');
       return;
     }
 
@@ -328,7 +338,7 @@ if (form && status) {
     // Single composed customization — same shared entry point the MCP tool
     // calls. Self-short-circuits (and stays value-identical to the universal
     // artifact) when nothing effective was configured.
-    const built = customizeIrlArticle(article, {
+    const built = customizeIrlArticle(localizeIrlArticle(article, lookup), {
       context: transactionContext,
       includeSections,
       customRequests,
@@ -336,20 +346,26 @@ if (form && status) {
     });
 
     if (built.sections.length === 0) {
-      status.textContent = 'Every remaining request is excluded — restore at least one request.';
+      status.textContent = s('js.allExcluded');
       return;
     }
 
     const generatedAt = new Date();
-    const buffer = generateIrlXlsxBuffer(built, {
-      targetName,
-      transactionContext,
-      companyName,
-      projectName,
-      showCanonicalReference,
-      generatedAt,
-      canonicalUrl: `${window.location.origin}/hub/library/information-request-list/`,
-    });
+    // The library is English-only (Tier C), so the canonical link stays English.
+    const buffer = generateIrlXlsxBuffer(
+      built,
+      {
+        targetName,
+        transactionContext,
+        companyName,
+        projectName,
+        showCanonicalReference,
+        generatedAt,
+        canonicalUrl: `${window.location.origin}/hub/library/information-request-list/`,
+      },
+      undefined,
+      localizedXlsxLabels(lookup)
+    );
     const filename = buildIrlFilename(targetName, generatedAt);
 
     // Wrap in a fresh Uint8Array so the typed-array's underlying buffer
@@ -366,6 +382,9 @@ if (form && status) {
     URL.revokeObjectURL(url);
 
     const sizeKB = Math.round((buffer.byteLength / 1024) * 10) / 10;
-    status.textContent = `Downloaded ${filename} (${sizeKB} KB).`;
+    status.textContent = s('js.downloaded', {
+      filename,
+      size: formatNumber(sizeKB, pageLang(), { maximumFractionDigits: 1 }),
+    });
   });
 }

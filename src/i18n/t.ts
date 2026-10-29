@@ -37,6 +37,8 @@ import enHubMcpFromCode from './en/hub-mcp-from-code.json';
 import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
 import enInfrastructureCostGovernance from './en/infrastructure-cost-governance.json';
+import enInformationRequestListGenerator from './en/information-request-list-generator.json';
+import enInformationRequestListGeneratorData from './en/information-request-list-generator-data.json';
 import enDiligenceMachine from './en/diligence-machine.json';
 import enDiligenceMachineData from './en/diligence-machine-data.json';
 import enRegulatoryMap from './en/regulatory-map.json';
@@ -70,6 +72,8 @@ export const EN = {
   'regulatory-map': enRegulatoryMap,
   'regulatory-map-data': enRegulatoryMapData,
   'regulatory-map-geo': enRegulatoryMapGeo,
+  'information-request-list-generator': enInformationRequestListGenerator,
+  'information-request-list-generator-data': enInformationRequestListGeneratorData,
 } as const;
 
 export type Namespace = keyof typeof EN;
