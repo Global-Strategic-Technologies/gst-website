@@ -526,6 +526,7 @@ constant inside the helper.
 |-------|-------|
 | **File** | `src/page-templates/HubIrlGeneratorPage.astro` (route wrapper `src/pages/hub/tools/information-request-list-generator/index.astro`); `inLanguage` from the page locale |
 | **datePublished** | 2026-05-25 |
+| **dateModified** | 2026-10-29 |
 | **featureList** | Fillable .xlsx workbook generated client-side, Per-section selection mirroring VDR folder structure, Engagement-specific custom requests, Context-aware request removal |
 | **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
 

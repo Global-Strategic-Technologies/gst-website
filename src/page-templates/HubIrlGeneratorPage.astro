@@ -23,6 +23,7 @@ import HubHeader from '../components/hub/HubHeader.astro';
 import DeltaIcon from '../components/DeltaIcon.astro';
 import articleBodyRaw from '../data/irl/information-request-list.md?raw';
 import { parseIrlArticle } from '../utils/irl/parse-article';
+import { irlRequestKey } from '../utils/irl/customize-article';
 import { hubToolSchema } from '../utils/hub-tool-schema';
 import { isDefaultLocale, type Locale } from '../i18n/locales';
 import { localizedHref } from '../i18n/routes';
@@ -57,7 +58,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   // contexts whose skip-if directive auto-removes it (BL-044.5). The text is
   // looked up by that key (the catalog is pinned to the source).
   bullets: s.bullets.map((b, i) => {
-    const key = `${s.number}-${String(b.ordinal ?? i + 1).padStart(2, '0')}`;
+    const key = irlRequestKey(s.number, b, i + 1);
     return {
       text: tDataAny(`req.${key}`),
       key,

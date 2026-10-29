@@ -19,6 +19,7 @@ import { resolve } from 'node:path';
 
 import { parseIrlArticle } from '../../src/utils/irl/parse-article';
 import { IRL_XLSX_LABELS_EN } from '../../src/utils/irl/generate-xlsx';
+import { irlRequestKey } from '../../src/utils/irl/customize-article';
 import EN from '../../src/i18n/en/information-request-list-generator-data.json';
 import ES from '../../src/i18n/es/information-request-list-generator-data.json';
 import PT from '../../src/i18n/pt-BR/information-request-list-generator-data.json';
@@ -35,7 +36,7 @@ function expectedCatalog(): Record<string, string> {
   for (const section of article.sections) {
     out[`section.${section.number}.title`] = section.title;
     section.bullets.forEach((b, i) => {
-      out[`req.${section.number}-${String(b.ordinal ?? i + 1).padStart(2, '0')}`] = b.text;
+      out[`req.${irlRequestKey(section.number, b, i + 1)}`] = b.text;
     });
   }
   const L = IRL_XLSX_LABELS_EN;

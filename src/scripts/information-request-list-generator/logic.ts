@@ -9,15 +9,11 @@
  * island lacks keeps the English, which is all the English page ever sees.
  */
 import { IRL_XLSX_LABELS_EN, type IRLXlsxLabels } from '../../utils/irl/generate-xlsx';
+import { irlRequestKey } from '../../utils/irl/customize-article';
 import type { IRLArticle } from '../../utils/irl/types';
 
 /** A translation for `key`, or undefined when the page carries none. */
 export type StringLookup = (key: string) => string | undefined;
-
-/** The `NN-II` key of a bullet, as the template and `customizeIrlArticle` build it. */
-function requestKey(sectionNumber: string, ordinal: number): string {
-  return `${sectionNumber}-${String(ordinal).padStart(2, '0')}`;
-}
 
 export function localizeIrlArticle(article: IRLArticle, lookup: StringLookup): IRLArticle {
   return {
@@ -28,7 +24,7 @@ export function localizeIrlArticle(article: IRLArticle, lookup: StringLookup): I
       title: lookup(`section.${section.number}.title`) ?? section.title,
       bullets: section.bullets.map((bullet, i) => ({
         ...bullet,
-        text: lookup(`req.${requestKey(section.number, bullet.ordinal ?? i + 1)}`) ?? bullet.text,
+        text: lookup(`req.${irlRequestKey(section.number, bullet, i + 1)}`) ?? bullet.text,
       })),
     })),
   };
@@ -37,10 +33,18 @@ export function localizeIrlArticle(article: IRLArticle, lookup: StringLookup): I
 export function localizedXlsxLabels(lookup: StringLookup): IRLXlsxLabels {
   const en = IRL_XLSX_LABELS_EN;
   const pick = (key: string, fallback: string) => lookup(`xlsx.${key}`) ?? fallback;
-  const headers = en.columnHeaders.map((h, i) => pick(`header.${i + 1}`, h));
+  const [h1, h2, h3, h4, h5, h6, h7] = en.columnHeaders;
   const instructions = lookup('xlsx.instructions');
   return {
-    columnHeaders: headers as unknown as IRLXlsxLabels['columnHeaders'],
+    columnHeaders: [
+      pick('header.1', h1),
+      pick('header.2', h2),
+      pick('header.3', h3),
+      pick('header.4', h4),
+      pick('header.5', h5),
+      pick('header.6', h6),
+      pick('header.7', h7),
+    ],
     instructionsSheetName: pick('instructionsSheetName', en.instructionsSheetName),
     instructionsLines: instructions ? instructions.split('\n') : en.instructionsLines,
     handbackWithTarget: pick('handbackWithTarget', en.handbackWithTarget),
