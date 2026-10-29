@@ -127,6 +127,7 @@ const PAGES: A11yPage[] = [
   // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened;
   // 32 as of the two localized About routes (BL-153); 33 as of the trial
   // signup (BL-155); 35 as of the from-code guide and its Spanish route (BL-156).
+  // The localized Tier B tool routes (BL-153) are listed beside their English rows.
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
@@ -150,6 +151,16 @@ const PAGES: A11yPage[] = [
   {
     name: 'IRL Generator',
     path: '/hub/tools/information-request-list-generator/',
+    waitFor: 'h1',
+  },
+  {
+    name: 'IRL Generator (es)',
+    path: '/es/hub/tools/information-request-list-generator/',
+    waitFor: 'h1',
+  },
+  {
+    name: 'IRL Generator (pt-BR)',
+    path: '/pt/hub/tools/information-request-list-generator/',
     waitFor: 'h1',
   },
   {

@@ -13,6 +13,7 @@
 import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
 import HubIcgPage from './HubIcgPage.astro';
+import HubIrlGeneratorPage from './HubIrlGeneratorPage.astro';
 import HubDiligenceMachinePage from './HubDiligenceMachinePage.astro';
 import HubRegulatoryMapPage from './HubRegulatoryMapPage.astro';
 import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
@@ -42,6 +43,7 @@ export const TEMPLATES = {
   'infrastructure-cost-governance': HubIcgPage,
   'diligence-machine': HubDiligenceMachinePage,
   'regulatory-map': HubRegulatoryMapPage,
+  'information-request-list-generator': HubIrlGeneratorPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;
