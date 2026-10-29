@@ -132,7 +132,9 @@ describe('localizedHref — prefixes registry routes only', () => {
 
   it('returns English-only routes unchanged (unregistered tools and Tier C stay English)', () => {
     expect(localizedHref('/ma-portfolio/', es)).toBe('/ma-portfolio/');
-    expect(localizedHref('/hub/tools/regulatory-map/', ptBR)).toBe('/hub/tools/regulatory-map/');
+    expect(localizedHref('/hub/tools/information-request-list-extractor/', ptBR)).toBe(
+      '/hub/tools/information-request-list-extractor/'
+    );
     expect(localizedHref('/hub/mcp/get-started/', es)).toBe('/hub/mcp/get-started/');
     expect(localizedHref('/brand/', es)).toBe('/brand/');
   });
@@ -191,12 +193,16 @@ describe('localizedHrefWithFragment — localizes the path, keeps the fragment',
 
 describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns a single entry for routes outside the registry', () => {
-    expect(alternatesFor('/hub/tools/regulatory-map/', en)).toEqual([en]);
+    expect(alternatesFor('/hub/tools/information-request-list-extractor/', en)).toEqual([en]);
     expect(alternatesFor('/ma-portfolio/', es)).toEqual([es]);
   });
 
   it('advertises every live locale for a Tier B route', () => {
-    for (const path of ['/hub/tools/techpar/', '/hub/tools/tech-debt-calculator/']) {
+    for (const path of [
+      '/hub/tools/techpar/',
+      '/hub/tools/tech-debt-calculator/',
+      '/hub/tools/regulatory-map/',
+    ]) {
       expect(alternatesFor(path, en)).toEqual(LOCALES.filter((l) => l.status === 'live'));
     }
   });

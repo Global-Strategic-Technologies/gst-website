@@ -515,7 +515,7 @@ constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/regulatory-map/index.astro` |
+| **File** | `src/page-templates/HubRegulatoryMapPage.astro` (localized; `src/pages/hub/tools/regulatory-map/index.astro` is its English wrapper). Emits `inLanguage` with the page language; the regulation count is measured from the data |
 | **datePublished** | 2026-01-15 |
 | **featureList** | 128 regulations across 4 categories, Interactive D3 world map, Jurisdiction-specific compliance details, Data privacy/AI governance/cybersecurity/industry compliance |
 | **knowsAbout** | Regulatory Compliance, Data Privacy, AI Governance, Technical Due Diligence, M&A Tech Strategy |

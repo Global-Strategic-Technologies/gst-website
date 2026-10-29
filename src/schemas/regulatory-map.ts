@@ -54,7 +54,8 @@ export const RegulationSchema = z.object({
         '(2) `scoreQuery` in `mcp-server/src/tools/regulations.ts`: normalized substring, folded ' +
         'into the name-relevance bucket, skipped for queries under 4 normalized characters; ' +
         '(3) `buildRegulationSearchText` in `src/utils/regulation-search-text.ts`, which feeds the ' +
-        "/hub/tools/regulatory-map/ page's raw term-wise substring filter — no normalization. " +
+        "/hub/tools/regulatory-map/ page's term-wise substring filter — accents folded, no other " +
+        'normalization (an es or pt page also matches the English name). ' +
         'Verify a change against all three, not whichever one you found first.'
     ),
   regions: z

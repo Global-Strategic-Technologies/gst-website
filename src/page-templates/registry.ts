@@ -14,6 +14,7 @@ import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
 import HubIcgPage from './HubIcgPage.astro';
 import HubDiligenceMachinePage from './HubDiligenceMachinePage.astro';
+import HubRegulatoryMapPage from './HubRegulatoryMapPage.astro';
 import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
 import HubMcpPage from './HubMcpPage.astro';
 import HubMcpTrialPage from './HubMcpTrialPage.astro';
@@ -40,6 +41,7 @@ export const TEMPLATES = {
   'tech-debt-calculator': HubTechDebtPage,
   'infrastructure-cost-governance': HubIcgPage,
   'diligence-machine': HubDiligenceMachinePage,
+  'regulatory-map': HubRegulatoryMapPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

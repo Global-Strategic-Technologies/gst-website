@@ -22,7 +22,7 @@
 
 /* Page-specific component CSS — NOT loaded site-wide; imported by the pages that
    use them. Any page rendering these components must import the sheet itself:
-   filter.css     → PortfolioHeader.astro (ma-portfolio), regulatory-map/index.astro,
+   filter.css     → PortfolioHeader.astro (ma-portfolio), HubRegulatoryMapPage.astro,
                     hub/mcp/docs/index.astro, brand.astro
    portfolio.css  → PortfolioGrid.astro (ma-portfolio), brand.astro
    map.css        → MapVisualizer.astro (regulatory-map), HubMcpTrialPage.astro, brand.astro

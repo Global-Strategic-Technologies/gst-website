@@ -65,7 +65,7 @@ export const NavigationSpecimen = () => (
     </Row>
 
     <Row label="Search with results">
-      {/* regulatory-map/index.astro § search — the results list is a SIBLING
+      {/* HubRegulatoryMapPage.astro § search — the results list is a SIBLING
           of .brutal-search inside a position:relative wrapper; --active marks
           the keyboard-highlighted result; __category takes a data-domain modifier. */}
       <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>

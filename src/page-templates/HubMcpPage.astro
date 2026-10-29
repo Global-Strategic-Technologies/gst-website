@@ -230,7 +230,10 @@ function accessHref(tier?: string) {
                     list_regulation_facets
                   </li>
                 </ul>
-                <a class="mcp-catalog__try" href="/hub/tools/regulatory-map/" hreflang="en">
+                <a
+                  class="mcp-catalog__try"
+                  href={localizedHref('/hub/tools/regulatory-map/', locale)}
+                >
                   {t('catalog.try')}
                 </a>
               </div>

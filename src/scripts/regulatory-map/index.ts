@@ -18,13 +18,18 @@ import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { encodeFilters, decodeFilters } from '../../utils/regulatory-map-url';
 import type { Regulation, RegionSelectedDetail } from '../../types/regulatory-map';
-import { numericToAlpha3, alpha3ToName } from '../../utils/countryCodeMap';
-import { fipsToStateCode, stateCodeToName } from '../../utils/fipsToStateCode';
-import { provinceCodeToName } from '../../utils/canadianProvinceMap';
+import { numericToAlpha3 } from '../../utils/countryCodeMap';
+import { fipsToStateCode } from '../../utils/fipsToStateCode';
 import { trackEvent } from '../../utils/analytics';
+import { escapeHtml } from '../../utils/escape-html';
+import { pluralKey } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
 import {
   buildSearchIndex,
   filterRegionMap,
+  regionCountLabel,
+  regionName,
+  regionNameEn,
   renderRegulationCard,
   searchRegulations,
   renderSearchResultRows,
@@ -32,7 +37,27 @@ import {
   sortByEffectiveDate,
   type RegIndexEntry,
 } from './logic';
+import { s } from './strings';
 import * as Sentry from '@sentry/browser';
+
+// --- Data URLs: the template writes them for the page's locale ---
+// An es or pt page reads its translated index and regulations; `?v=` changes
+// with the content, so the year-long immutable cache on /data never serves a
+// stale copy (vercel.json).
+const section = document.querySelector<HTMLElement>('.regulatory-map-section');
+const regIndexHref = section?.dataset.regIndexHref ?? '/data/reg-index.json';
+const regBase = section?.dataset.regBase ?? '/data/regulations/';
+const regVersion = section?.dataset.regVersion;
+const regulationHref = (id: string): string =>
+  `${regBase}${encodeURIComponent(id)}.json${regVersion ? `?v=${regVersion}` : ''}`;
+
+/** "N regulations", in the page language. */
+function regulationCountLabel(n: number): string {
+  return s(`js.regCount.${pluralKey(n, pageLang())}`, { count: n });
+}
+
+const LOADING_CARD = (): string =>
+  `<div class="brutal-reg-card brutal-reg-card--loading">${s('js.loading')}</div>`;
 
 // --- Detail cache: full regulation objects fetched on demand ---
 const detailCache = new Map<string, Regulation>();
@@ -40,7 +65,7 @@ const detailCache = new Map<string, Regulation>();
 async function fetchRegulationDetail(id: string): Promise<Regulation | null> {
   if (detailCache.has(id)) return detailCache.get(id)!;
   try {
-    const res = await fetch(`/data/regulations/${encodeURIComponent(id)}.json`);
+    const res = await fetch(regulationHref(id));
     if (!res.ok) return null;
     const reg: Regulation = await res.json();
     detailCache.set(id, reg);
@@ -58,7 +83,7 @@ let rmStartFired = false;
 // Phase 1: world geodata + regulation index in parallel (critical path)
 const [topology, regIndexRaw] = await Promise.all([
   fetch('/data/world-110m.json').then((r) => r.json()) as Promise<Topology>,
-  fetch('/data/reg-index.json').then((r) => r.json()) as Promise<{
+  fetch(regIndexHref).then((r) => r.json()) as Promise<{
     regions: Record<string, string[]>;
     regs: RegIndexEntry[];
   }>,
@@ -168,10 +193,10 @@ document.getElementById('panelCopyLink')?.addEventListener('click', () => {
   const btn = document.getElementById('panelCopyLink')!;
   const showCopied = () => {
     btn.classList.add('brutal-panel__copy--copied');
-    btn.setAttribute('aria-label', 'Link copied!');
+    btn.setAttribute('aria-label', s('js.copied'));
     setTimeout(() => {
       btn.classList.remove('brutal-panel__copy--copied');
-      btn.setAttribute('aria-label', 'Copy link to this view');
+      btn.setAttribute('aria-label', s('js.copyLabel'));
     }, 2000);
   };
   showCopied();
@@ -399,7 +424,7 @@ g.selectAll('path')
   .attr('data-alpha3', (d) => numericToAlpha3[d.id as string] ?? '')
   .attr('data-name', (d) => {
     const alpha3 = numericToAlpha3[d.id as string];
-    return alpha3ToName[alpha3] ?? '';
+    return alpha3 ? (regionName(alpha3) ?? '') : '';
   })
   .attr('aria-hidden', 'true')
   .on('click', function (event: MouseEvent) {
@@ -445,7 +470,7 @@ async function loadSubnationalData(): Promise<void> {
     .attr('data-state-code', (d) => fipsToStateCode[d.id as string] ?? '')
     .attr('data-name', (d) => {
       const code = fipsToStateCode[d.id as string];
-      return code ? (stateCodeToName[code] ?? '') : '';
+      return code ? (regionName(code) ?? '') : '';
     })
     .attr('aria-hidden', 'true')
     .on('click', function (event: MouseEvent) {
@@ -473,7 +498,7 @@ async function loadSubnationalData(): Promise<void> {
     .attr('data-state-code', (d) => d.properties?.iso_3166_2 ?? '')
     .attr('data-name', (d) => {
       const code = d.properties?.iso_3166_2 ?? '';
-      return provinceCodeToName[code] ?? '';
+      return code ? (regionName(code) ?? '') : '';
     })
     .attr('aria-hidden', 'true')
     .on('click', function (event: MouseEvent) {
@@ -557,9 +582,8 @@ function handleMouseEnter(event: MouseEvent): void {
   // Resolve name from either country alpha3 or state code
   const alpha3 = target.dataset.alpha3 ?? '';
   const stateCode = target.dataset.stateCode ?? '';
-  const name = stateCode
-    ? (stateCodeToName[stateCode] ?? provinceCodeToName[stateCode])
-    : alpha3ToName[alpha3];
+  const code = stateCode || alpha3;
+  const name = code ? regionName(code) : undefined;
   if (!name) return;
 
   tooltip.textContent = name;
@@ -634,7 +658,7 @@ function handleCountryClick(event: Event): void {
   if (!alpha3) return;
 
   if (isMobile()) {
-    const name = alpha3ToName[alpha3] ?? alpha3;
+    const name = regionName(alpha3) ?? alpha3;
     showTapBar(name, target, alpha3, 'country-path--selected');
   } else {
     selectRegion(target, alpha3, 'country-path--selected');
@@ -648,7 +672,7 @@ function handleStateClick(event: Event): void {
   if (!stateCode) return;
 
   if (isMobile()) {
-    const name = stateCodeToName[stateCode] ?? provinceCodeToName[stateCode] ?? stateCode;
+    const name = regionName(stateCode) ?? stateCode;
     showTapBar(name, target, stateCode, 'state-path--selected');
   } else {
     selectRegion(target, stateCode, 'state-path--selected');
@@ -662,27 +686,25 @@ const panelRegCount = document.getElementById('panelRegCount')!;
 const panelRegulations = document.getElementById('panelRegulations')!;
 
 async function renderPanel(regionId: string): Promise<void> {
-  const countryName =
-    stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
+  const countryName = regionName(regionId) ?? regionId;
   const filteredMap = getFilteredRegionMap();
   const regIds = filteredMap[regionId] ?? [];
 
   panelCountryName.textContent = countryName;
 
   const count = regIds.length;
-  panelRegCount.textContent = `${count} regulation${count !== 1 ? 's' : ''}`;
+  panelRegCount.textContent = regulationCountLabel(count);
 
   if (count === 0) {
     panelRegulations.innerHTML = '';
     return;
   }
 
-  panelRegulations.innerHTML =
-    '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
+  panelRegulations.innerHTML = LOADING_CARD();
   const details = await Promise.all(regIds.map(fetchRegulationDetail));
   panelRegulations.innerHTML = details
     .filter((r): r is Regulation => r !== null)
-    .map(renderRegulationCard)
+    .map((reg) => renderRegulationCard(reg))
     .join('');
 
   trackEvent({
@@ -698,8 +720,8 @@ document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedD
   const { regionId } = event.detail;
   currentRegionId = regionId;
   syncUrlParams();
-  const countryName =
-    stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
+  // Analytics stays English whatever the page language (LOCALIZATION.md).
+  const countryName = regionNameEn(regionId) ?? regionId;
 
   renderPanel(regionId);
 
@@ -873,7 +895,10 @@ function renderSearchResults(results: RegIndexEntry[]): void {
   }
 
   if (results.length === 0) {
-    container.innerHTML = '<div class="brutal-search__no-results">No regulations found</div>';
+    const empty = document.createElement('div');
+    empty.className = 'brutal-search__no-results';
+    empty.textContent = s('js.noResults');
+    container.replaceChildren(empty);
     container.hidden = false;
     return;
   }
@@ -925,11 +950,9 @@ async function selectSearchResult(regId: string): Promise<void> {
 
   highlightRegulationRegions(indexEntry);
 
-  const regionCount = indexEntry.regions.length;
   panelCountryName.textContent = indexEntry.name;
-  panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
-  panelRegulations.innerHTML =
-    '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
+  panelRegCount.textContent = regionCountLabel(indexEntry.regions.length);
+  panelRegulations.innerHTML = LOADING_CARD();
   document.getElementById('mapCta')?.remove();
   compliancePanel.hidden = false;
 
@@ -948,7 +971,7 @@ async function selectSearchResult(regId: string): Promise<void> {
     event: 'rm_search_result_click',
     category: 'tool',
     regulation_id: regId,
-    regulation_name: indexEntry.name,
+    regulation_name: indexEntry.nameEn ?? indexEntry.name,
     search_term: activeSearchTerm,
     page: 'regulatory-map',
   });
@@ -1121,7 +1144,7 @@ function renderTimeline(): void {
 
   // Today marker — absolutely positioned based on chronological position
   // among the rendered year groups. This is filter-independent.
-  html += `<div class="brutal-timeline-today" id="timelineTodayMarker"><span class="brutal-timeline-today__label">Today</span></div>`;
+  html += `<div class="brutal-timeline-today" id="timelineTodayMarker"><span class="brutal-timeline-today__label">${escapeHtml(s('js.today'))}</span></div>`;
 
   track.innerHTML = html;
 
@@ -1169,11 +1192,9 @@ document.getElementById('timelineTrack')?.addEventListener('click', async (e) =>
     highlightRegulationRegions(indexEntry);
 
     // Show this single regulation in the panel (fetch detail on demand)
-    const regionCount = indexEntry.regions.length;
     panelCountryName.textContent = indexEntry.name;
-    panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
-    panelRegulations.innerHTML =
-      '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
+    panelRegCount.textContent = regionCountLabel(indexEntry.regions.length);
+    panelRegulations.innerHTML = LOADING_CARD();
     document.getElementById('mapCta')?.remove();
     compliancePanel.hidden = false;
 
@@ -1192,7 +1213,7 @@ document.getElementById('timelineTrack')?.addEventListener('click', async (e) =>
     event: 'rm_timeline_click',
     category: 'tool',
     regulation_id: regId,
-    regulation_name: indexEntry.name,
+    regulation_name: indexEntry.nameEn ?? indexEntry.name,
     page: 'regulatory-map',
   });
 });

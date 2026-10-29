@@ -39,6 +39,9 @@ import enHubTools from './en/hub-tools.json';
 import enInfrastructureCostGovernance from './en/infrastructure-cost-governance.json';
 import enDiligenceMachine from './en/diligence-machine.json';
 import enDiligenceMachineData from './en/diligence-machine-data.json';
+import enRegulatoryMap from './en/regulatory-map.json';
+import enRegulatoryMapData from './en/regulatory-map-data.json';
+import enRegulatoryMapGeo from './en/regulatory-map-geo.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
 import enTechDebtCalculator from './en/tech-debt-calculator.json';
@@ -64,6 +67,9 @@ export const EN = {
   'infrastructure-cost-governance': enInfrastructureCostGovernance,
   'diligence-machine': enDiligenceMachine,
   'diligence-machine-data': enDiligenceMachineData,
+  'regulatory-map': enRegulatoryMap,
+  'regulatory-map-data': enRegulatoryMapData,
+  'regulatory-map-geo': enRegulatoryMapGeo,
 } as const;
 
 export type Namespace = keyof typeof EN;
@@ -74,10 +80,14 @@ type Catalog = Record<string, string>;
 
 /**
  * Every `<locale>/<namespace>.json` (sidecars excluded), keyed
- * `"<locale>/<namespace>"`. Eager so the lookup is synchronous at render.
+ * `"<locale>/<namespace>"`. Eager so the lookup is synchronous at render. The
+ * sidecars are excluded from the glob itself, not only skipped below, so they
+ * stay out of the server bundle (the SSR radar function imports this file).
  */
 const CATALOGS: Record<string, Catalog> = (() => {
-  const modules = import.meta.glob<{ default: Catalog }>('./*/*.json', { eager: true });
+  const modules = import.meta.glob<{ default: Catalog }>(['./*/*.json', '!./*/*.source.json'], {
+    eager: true,
+  });
   const out: Record<string, Catalog> = {};
   for (const [file, mod] of Object.entries(modules)) {
     // './pt-BR/common.json' → 'pt-BR/common'; skip './pt-BR/common.source.json'

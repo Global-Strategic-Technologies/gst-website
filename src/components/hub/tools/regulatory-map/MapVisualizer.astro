@@ -4,11 +4,28 @@
  * Publishes `regionSelected` CustomEvent when a country is clicked.
  */
 import '../../../../styles/components/map.css';
+import type { Locale } from '../../../../i18n/locales';
+import { useTranslations } from '../../../../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { t } = useTranslations(Astro.props.locale, 'regulatory-map');
+// The region-zoom buttons: visible code + an accessible label that opens with
+// it (WCAG 2.5.3 Label in Name), both from the catalog.
+const ZOOM_REGIONS = ['world', 'americas', 'europe', 'asia-pacific', 'africa-mideast'] as const;
+const tAny = t as (key: string) => string;
 ---
 
 <div class="brutal-map-container" id="mapContainer" data-testid="map-container">
   <div class="map-controls">
-    <button id="zoomIn" class="brutal-map-control" aria-label="Zoom in" title="Zoom in">
+    <button
+      id="zoomIn"
+      class="brutal-map-control"
+      aria-label={t('map.zoomIn')}
+      title={t('map.zoomIn')}
+    >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path
           d="M8 3v10M3 8h10"
@@ -18,12 +35,22 @@ import '../../../../styles/components/map.css';
         ></path>
       </svg>
     </button>
-    <button id="zoomOut" class="brutal-map-control" aria-label="Zoom out" title="Zoom out">
+    <button
+      id="zoomOut"
+      class="brutal-map-control"
+      aria-label={t('map.zoomOut')}
+      title={t('map.zoomOut')}
+    >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
       </svg>
     </button>
-    <button id="zoomReset" class="brutal-map-control" aria-label="Reset zoom" title="Reset zoom">
+    <button
+      id="zoomReset"
+      class="brutal-map-control"
+      aria-label={t('map.zoomReset')}
+      title={t('map.zoomReset')}
+    >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect
           x="3"
@@ -41,7 +68,7 @@ import '../../../../styles/components/map.css';
   <div class="brutal-map-tap-bar" id="mapTapBar" hidden>
     <span class="brutal-map-tap-bar__name" id="tapBarName"></span>
     <button class="brutal-map-tap-bar__action" id="tapBarAction">
-      View details
+      {t('map.viewDetails')}
     </button>
   </div>
   <svg
@@ -49,7 +76,7 @@ import '../../../../styles/components/map.css';
     class="map-svg"
     viewBox="0 0 960 440"
     role="group"
-    aria-label="Interactive world map. Countries and states with regulations are buttons that open their compliance details. Use scroll wheel or pinch to zoom, drag to pan."
+    aria-label={t('map.label')}
     preserveAspectRatio="xMidYMid meet"
   ></svg>
   <div class="map-loading-skeleton" aria-hidden="true">
@@ -60,52 +87,22 @@ import '../../../../styles/components/map.css';
     <div class="brutal-skeleton-bar" style="width: 30%; margin-left: 50%; margin-top: -8%"></div>
     <div class="brutal-skeleton-bar" style="width: 20%; margin-left: 65%; margin-top: 2%"></div>
     <div class="brutal-skeleton-bar" style="width: 10%; margin-left: 8%; margin-top: 4%"></div>
-    <span class="map-loading-label">Loading map</span>
+    <span class="map-loading-label">{t('map.loading')}</span>
   </div>
   <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   {/* Each label opens with the button's visible text (WCAG 2.5.3 Label in
       Name) so a voice-control user can say what they see: "click AMR". */}
   <div class="map-quick-zoom" id="mapQuickZoom">
-    <button
-      type="button"
-      class="brutal-quick-zoom"
-      data-region="world"
-      aria-label="Zoom out to world view"
-    >
-      WORLD
-    </button>
-    <button
-      type="button"
-      class="brutal-quick-zoom"
-      data-region="americas"
-      aria-label="AMR — zoom to Americas"
-    >
-      AMR
-    </button>
-    <button
-      type="button"
-      class="brutal-quick-zoom"
-      data-region="europe"
-      aria-label="EUR — zoom to Europe"
-    >
-      EUR
-    </button>
-    <button
-      type="button"
-      class="brutal-quick-zoom"
-      data-region="asia-pacific"
-      aria-label="APAC — zoom to Asia-Pacific"
-    >
-      APAC
-    </button>
-    <button
-      type="button"
-      class="brutal-quick-zoom"
-      data-region="africa-mideast"
-      aria-label="MEA — zoom to Africa & Middle East"
-    >
-      MEA
-    </button>
+    {ZOOM_REGIONS.map((region) => (
+      <button
+        type="button"
+        class="brutal-quick-zoom"
+        data-region={region}
+        aria-label={tAny(`map.zoom.${region}.label`)}
+      >
+        {tAny(`map.zoom.${region}`)}
+      </button>
+    ))}
   </div>
   <div class="brutal-map-hint" id="mapPinchHint" hidden aria-hidden="true">
     <svg
@@ -118,7 +115,7 @@ import '../../../../styles/components/map.css';
     >
       <path d="M6 12L2 8M6 12L2 16M18 12L22 8M18 12L22 16"></path>
     </svg>
-    <span>Pinch to zoom</span>
+    <span>{t('map.pinch')}</span>
   </div>
 </div>
 

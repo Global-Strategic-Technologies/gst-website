@@ -16,6 +16,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run tests with coverage                | `npm run test:coverage`                                                      |
 | Run the docs guards (link/anchor integrity + variables parity + design-sync name/ROOTS parity + published tool counts + generated-bundle freshness + i18n catalog parity/staleness) | `npm run test:docs` |
 | Stamp translation catalogs against the current English (after review) / check for stale ones | `npm run i18n:stamp [locale] [ns]` / `npm run i18n:check` (see [LOCALIZATION.md](LOCALIZATION.md)) |
+| Rewrite the English `regulatory-map-data` mirror after editing a regulation file (then retranslate and stamp) / check it | `npm run i18n:sync-regulatory-map` / `npm run i18n:sync-regulatory-map -- --check` (see [LOCALIZATION.md § Tool scripts](LOCALIZATION.md)) |
 | Check the committed mcp-server bundles match their sources | `node mcp-server/scripts/generate-regulations-index.mjs --check` (renders in memory, writes nothing; drop `--check` to regenerate) |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
