@@ -303,13 +303,12 @@ export function generateIrlXlsxBuffer(
  * refs stable across differently-configured engagements.
  *
  * **Exported because the IRL extract record keys off this value and only this
- * value.** Three sibling builders exist (`customize-article.ts:bulletKey`,
- * `information-request-list.ts`, `list-irl-requests.ts`) and all three
- * interpolate `sectionNumber` raw, producing the `NN-II` exclusion key
- * (`00-03`) rather than the workbook Reference column (`0-03`). A record keyed
- * on the exclusion key parses, looks canonical, and never matches the reference
- * the target quoted — so `mcp-server/src/schemas/irl-extract-record.ts` reuses
- * this function rather than writing a fifth copy.
+ * value.** Its sibling, `customize-article.ts:irlRequestKey`, interpolates
+ * `sectionNumber` raw, producing the `NN-II` exclusion key (`00-03`) rather
+ * than the workbook Reference column (`0-03`). A record keyed on the exclusion
+ * key parses, looks canonical, and never matches the reference the target
+ * quoted — so `mcp-server/src/schemas/irl-extract-record.ts` reuses this
+ * function rather than writing its own copy.
  */
 export function buildReferenceId(sectionNumber: string, bulletOrdinal: number): string {
   const sectionDigit = sectionNumber.replace(/^0+/, '') || '0';
