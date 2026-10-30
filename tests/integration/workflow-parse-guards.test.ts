@@ -430,6 +430,17 @@ jobs:
       ).toThrow(/block scalar/);
     });
 
+    it('THROWS on a plain scalar wrapped onto a second line', () => {
+      // Read as one line, `if: a` would hide a continuation such as `|| always()`.
+      expect(() =>
+        parseJob(
+          lines(job('      - run: a\n        if: a\n          || always()\n')),
+          'build',
+          'fixture'
+        )
+      ).toThrow(/multi-line plain scalar/);
+    });
+
     it('THROWS on a step with no key it recognises', () => {
       expect(() => parseJob(lines(job('      - shell: bash\n')), 'build', 'fixture')).toThrow(
         /no recognised key/

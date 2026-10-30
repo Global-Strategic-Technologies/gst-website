@@ -430,6 +430,11 @@ export function parseJob(lines: string[], job: string, label = '<lines>'): Workf
       closeKey();
       readKey(l.slice(8));
     } else if (indent > 8 && step && open) {
+      // A plain scalar continued onto a deeper line (a wrapped `if:`) would otherwise be
+      // read only up to the line break, hiding whatever the continuation adds.
+      if (open.key === '(scalar)') {
+        throw new Error(`step in ${label}: a multi-line plain scalar is not read: \`${l}\``);
+      }
       open.lines.push(l);
     } else {
       throw new Error(`job \`${job}\` in ${label}: step line at an unexpected indent: \`${l}\``);

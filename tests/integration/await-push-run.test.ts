@@ -169,10 +169,11 @@ describe('await-push-run.sh — the cap is the push run age', () => {
   });
 
   it('stops when a run it was waiting on ages out mid-wait', () => {
-    // Created 1.5 s ago against a 3 s limit: counted at first, aged out ~1.5 s later.
-    const aging = runs({ status: 'in_progress', ageS: 1.5 });
+    // Created 1 s ago against a 4 s limit: counted on the first poll (3 s of headroom for a
+    // slow interpreter start), aged out ~3 s later, before the 4 s wall-clock guard.
+    const aging = runs({ status: 'in_progress', ageS: 1 });
     writeStub(`  *) ${body(aging)} ;;`);
-    const r = run({ ...VALID, maxAgeS: '3' });
+    const r = run({ ...VALID, maxAgeS: '4' });
     expect(r.code).toBe(0);
     expect(r.output).toContain('waiting on 1 in-flight');
     expect(r.output).toContain('no recent test.yml push run in flight');

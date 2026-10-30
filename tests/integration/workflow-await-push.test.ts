@@ -23,16 +23,21 @@ import { workflowJob, type WorkflowJob, type WorkflowStep } from './helpers/work
 const SCRIPT = 'scripts/await-push-run.sh';
 const GUARD = "steps.dedup.outputs.skip != 'true'";
 
-const SUITES: { file: string; job: string; dedupId: string }[] = [
-  { file: 'test.yml', job: 'changes', dedupId: 'skip_dup' },
-  { file: 'test-mcp-server.yml', job: 'test', dedupId: 'dedup' },
+/**
+ * `workAfterS` is the most the job can still need once the wait ends: seconds for the gate's
+ * own steps, or the MCP job's full suite when the push run did not pass. Test C holds the
+ * timeout above wait + work, not just above the wait.
+ */
+const SUITES: { file: string; job: string; dedupId: string; workAfterS: number }[] = [
+  { file: 'test.yml', job: 'changes', dedupId: 'skip_dup', workAfterS: 120 },
+  { file: 'test-mcp-server.yml', job: 'test', dedupId: 'dedup', workAfterS: 600 },
 ];
 
 const indexOfId = (job: WorkflowJob, id: string): number => job.steps.findIndex((s) => s.id === id);
 
 describe.each(SUITES)(
   '$file — the PR run waits for the push run',
-  ({ file, job: jobName, dedupId }) => {
+  ({ file, job: jobName, dedupId, workAfterS }) => {
     const job = workflowJob(file, jobName);
     const waitAt = indexOfId(job, 'await_push');
     const wait: WorkflowStep | undefined = job.steps[waitAt];
@@ -54,10 +59,10 @@ describe.each(SUITES)(
       expect(waitAt).toBeLessThan(dedupAt);
     });
 
-    it('C. the job timeout outlasts the age cap', () => {
+    it('C. the job timeout outlasts the age cap plus the work that can follow it', () => {
       const maxAgeS = Number(wait!.env.MAX_AGE_S);
       expect(maxAgeS).toBeGreaterThan(0); // probe: a number was read
-      expect(job.timeoutMinutes * 60).toBeGreaterThan(maxAgeS);
+      expect(job.timeoutMinutes * 60).toBeGreaterThanOrEqual(maxAgeS + workAfterS);
     });
   }
 );
