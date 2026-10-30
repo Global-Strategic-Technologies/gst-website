@@ -328,16 +328,17 @@ test.describe('Hub Tools — IRL per-question removal + directives', () => {
     await expect(wrapper).not.toHaveClass(/is-pinned/);
   });
 
-  // At ≤768px the pane drops below the row. The ⓘ follows the section name,
-  // so a pane anchored to the icon ran off the left edge and cut the start of
-  // every request line; anchored to the row it stays on screen.
-  for (const width of [768, 480, 360]) {
+  // The ⓘ follows the section name, so the pane's position tracks the title's
+  // length. Beside the icon it ran off the right edge up to 977px (section 03
+  // has the longest English title); anchored below an icon at ≤768px it ran
+  // off the left edge. At ≤1024px it now spans the row and stays on screen.
+  for (const width of [1280, 900, 768, 480, 360]) {
     test(`the pinned pane stays on screen at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await gotoTool(page);
-      await pinPane(page, '01');
+      await pinPane(page, '03');
       const box = await page
-        .locator('.irl-gen__section[data-section="01"] .irl-gen__section-panel')
+        .locator('.irl-gen__section[data-section="03"] .irl-gen__section-panel')
         .boundingBox();
       expect(box).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);

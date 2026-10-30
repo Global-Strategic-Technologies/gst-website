@@ -822,19 +822,14 @@ const CONTEXTS = [
     margin-top: var(--spacing-2xl);
   }
 
-  @media (max-width: 768px) {
-    .irl-gen {
-      padding: 0 0 var(--spacing-3xl);
-    }
-
-    .irl-gen__form {
-      padding: var(--spacing-lg);
-    }
-
-    /* No hover on touch and no room to the side — drop the panel below the
-       row (a tap on the ⓘ fires click → pins the pane open + interactive).
-       It anchors to the whole section row, not the icon: the ⓘ follows the
-       section name, so an icon-anchored pane ran off the left edge. */
+  /* No room to the side — drop the panel below the row (on touch, a tap on
+     the ⓘ fires click → pins the pane open + interactive). The side pane
+     needs up to 380px right of the ⓘ, which follows the section name: it ran
+     off the right edge up to 977px (es, longest titles) and clears it by
+     22px or more above 1024, hence this tier rather than 768. Below, the
+     pane anchors to the whole section row, not the icon, so it cannot run
+     off either edge. */
+  @media (max-width: 1024px) {
     .irl-gen__section-head {
       position: relative;
     }
@@ -850,6 +845,16 @@ const CONTEXTS = [
       transform: none;
       width: auto;
       max-width: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .irl-gen {
+      padding: 0 0 var(--spacing-3xl);
+    }
+
+    .irl-gen__form {
+      padding: var(--spacing-lg);
     }
   }
 
