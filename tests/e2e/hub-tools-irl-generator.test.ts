@@ -328,6 +328,23 @@ test.describe('Hub Tools — IRL per-question removal + directives', () => {
     await expect(wrapper).not.toHaveClass(/is-pinned/);
   });
 
+  // At ≤768px the pane drops below the row. The ⓘ follows the section name,
+  // so a pane anchored to the icon ran off the left edge and cut the start of
+  // every request line; anchored to the row it stays on screen.
+  for (const width of [768, 480, 360]) {
+    test(`the pinned pane stays on screen at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoTool(page);
+      await pinPane(page, '01');
+      const box = await page
+        .locator('.irl-gen__section[data-section="01"] .irl-gen__section-panel')
+        .boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    });
+  }
+
   test('pinning one pane unpins any other (single-open)', async ({ page }) => {
     await gotoTool(page);
     await pinPane(page, '02');

@@ -831,14 +831,25 @@ const CONTEXTS = [
       padding: var(--spacing-lg);
     }
 
-    /* No hover on touch and no room to the side — anchor the panel below the
-       icon (a tap on the ⓘ fires click → pins the pane open + interactive). */
+    /* No hover on touch and no room to the side — drop the panel below the
+       row (a tap on the ⓘ fires click → pins the pane open + interactive).
+       It anchors to the whole section row, not the icon: the ⓘ follows the
+       section name, so an icon-anchored pane ran off the left edge. */
+    .irl-gen__section-head {
+      position: relative;
+    }
+
+    .irl-gen__section-info {
+      position: static;
+    }
+
     .irl-gen__section-panel {
       top: calc(100% + var(--spacing-xs));
-      left: auto;
+      left: 0;
       right: 0;
       transform: none;
-      max-width: min(340px, 82vw);
+      width: auto;
+      max-width: none;
     }
   }
 
