@@ -25,8 +25,10 @@ import {
   buildIrlFilename,
   enumerateWorkbookRefs,
   generateIrlXlsxBuffer,
+  IRL_XLSX_LABELS_EN,
   IRL_XLSX_MIME_TYPE,
   type IRLRowPrefill,
+  type IRLXlsxLabels,
   type IRLXlsxMetadata,
   type IRLTransactionContext,
 } from '../../src/utils/irl/generate-xlsx';
@@ -748,5 +750,64 @@ describe('generateIrlXlsxBuffer — Instructions sheet', () => {
     it('keeps the "n/a rather than blank" instruction (the substantive-cell rule depends on it)', () => {
       expect(instructionsText()).toContain('"n/a" or "not yet tracked"');
     });
+  });
+});
+
+// ─── BL-153 — translated labels (the website's es / pt pages) ────────────────
+
+describe('generateIrlXlsxBuffer — translated labels', () => {
+  const LABELS: IRLXlsxLabels = {
+    ...IRL_XLSX_LABELS_EN,
+    columnHeaders: ['Ref', 'Solicitud', 'Estado', 'Ubicación', 'Comentarios', 'Notas', 'Respuesta'],
+    instructionsSheetName: 'Instrucciones',
+    instructionsLines: ['Instrucciones', 'Las {sectionCount} áreas'],
+    handbackWithTarget: 'Devuelva el archivo al líder del proyecto.',
+    statusPromptTitle: 'Estado',
+    statusPrompt: 'OPEN, PARTIAL o CLOSED',
+    statusErrorTitle: 'Estado no válido',
+    statusError: 'Use "OPEN", PARTIAL o CLOSED & nada más <ok>.',
+  };
+
+  function build() {
+    return generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, undefined, LABELS);
+  }
+
+  it('writes the translated headers, Instructions tab and lines', () => {
+    const wb = XLSX.read(build(), { type: 'array' });
+    expect(wb.SheetNames).toEqual(['Information Request List', 'Instrucciones']);
+    const rows = XLSX.utils.sheet_to_json<string[]>(wb.Sheets['Information Request List'], {
+      header: 1,
+      defval: '',
+    });
+    expect(rows).toContainEqual([...LABELS.columnHeaders]);
+    const instr = XLSX.utils.sheet_to_json<string[]>(wb.Sheets['Instrucciones'], { header: 1 });
+    expect(instr.map((r) => r[0])).toEqual([
+      'Instrucciones',
+      'Las 3 áreas',
+      'Devuelva el archivo al líder del proyecto.',
+    ]);
+  });
+
+  it('keeps every machine-read token English', () => {
+    const wb = XLSX.read(build(), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json<string[]>(wb.Sheets['Information Request List'], {
+      header: 1,
+      defval: '',
+    });
+    const colA = rows.map((r) => r[0]);
+    expect(colA).toEqual(expect.arrayContaining(['Target', 'Engagement context', 'Generated']));
+    expect(rows.find((r) => r[0] === 'Engagement context')?.[1]).toBe('Buy-side');
+    expect(rows.find((r) => r[0] === '0-01')?.[2]).toBe('OPEN');
+    const sheet1 = strFromU8(unzipSync(build())['xl/worksheets/sheet1.xml']);
+    expect(sheet1).toContain('<formula1>"OPEN,PARTIAL,CLOSED"</formula1>');
+  });
+
+  it('XML-escapes the translated dropdown text', () => {
+    const sheet1 = strFromU8(unzipSync(build())['xl/worksheets/sheet1.xml']);
+    expect(sheet1).toContain(
+      'error="Use &quot;OPEN&quot;, PARTIAL o CLOSED &amp; nada más &lt;ok&gt;."'
+    );
+    expect(sheet1).toContain('promptTitle="Estado" prompt="OPEN, PARTIAL o CLOSED"');
+    expect(() => XLSX.read(build(), { type: 'array' })).not.toThrow();
   });
 });

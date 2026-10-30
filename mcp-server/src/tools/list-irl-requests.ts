@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
+import { irlRequestKey } from '../../../src/utils/irl/customize-article';
 import { toolOk } from './_result';
 
 const TOOL_DESCRIPTION = `List every canonical GST **Information Request List** question with its stable \`NN-II\` key.
@@ -39,7 +40,7 @@ export async function handleListIrlRequestsTool() {
 
   const requests = article.sections.flatMap((section) =>
     section.bullets.map((bullet, i) => ({
-      key: `${section.number}-${String(bullet.ordinal ?? i + 1).padStart(2, '0')}`,
+      key: irlRequestKey(section.number, bullet, i + 1),
       section: section.number,
       sectionTitle: section.title,
       text: bullet.text,

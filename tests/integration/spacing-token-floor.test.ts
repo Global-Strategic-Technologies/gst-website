@@ -87,7 +87,7 @@ const ACCEPTED_RESIDUALS = [
       'src/pages/hub/library/business-architectures/index.astro',
       'src/pages/hub/library/information-request-list/index.astro',
       'src/pages/hub/library/vdr-structure/index.astro',
-      'src/pages/hub/tools/information-request-list-generator/index.astro',
+      'src/page-templates/HubIrlGeneratorPage.astro',
     ],
     reason: 'Ruled by ADR-0028: 80px is ABOVE the ramp top (48px), so snapping moves pixels.',
   },
@@ -309,7 +309,7 @@ const ACCEPTED_RESIDUALS = [
   },
   {
     value: '1.65rem',
-    files: ['src/pages/hub/tools/information-request-list-generator/index.astro'],
+    files: ['src/page-templates/HubIrlGeneratorPage.astro'],
     reason:
       '26.4px, between xl (24) and 1_75 (28). An indent aligning a column against the ' +
       'question rows above it — snapping misaligns, it does not resize.',

@@ -1,0 +1,866 @@
+---
+/**
+ * /hub/tools/information-request-list-generator/ in every locale. Rendered by
+ * src/pages/hub/tools/information-request-list-generator/index.astro
+ * (English) and by src/pages/[locale]/[...route].astro. A Tier B route
+ * (`TIER_B_ROUTES`).
+ *
+ * Every user-visible string comes from the `information-request-list-generator`
+ * catalog. The sections and requests come from the shared IRL source, which
+ * stays English for the MCP server; on an es or pt page their text is swapped
+ * in by key from `information-request-list-generator-data`, which also carries
+ * the workbook's reader-facing text. The client script builds the workbook, so
+ * that text travels in the `data-irl-strings` island at the bottom. Hooks
+ * (`id`, `class`, `data-*`) are untouched: the script and the E2E suite read
+ * them.
+ *
+ * Literals that stay: the tool name ("Information Request List" is a product
+ * name), "GST", the site URL. `knowsAbout` in the JSON-LD stays an English
+ * literal — `tests/unit/hub-tool-schema.test.ts` parses it.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import articleBodyRaw from '../data/irl/information-request-list.md?raw';
+import { parseIrlArticle } from '../utils/irl/parse-article';
+import { irlRequestKey } from '../utils/irl/customize-article';
+import { hubToolSchema } from '../utils/hub-tool-schema';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+import { SCRIPT_STRING_KEYS } from '../scripts/information-request-list-generator/strings';
+import DATA_EN from '../i18n/en/information-request-list-generator-data.json';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'information-request-list-generator');
+const { t: common } = useTranslations(locale, 'common');
+const { t: tData } = useTranslations(locale, 'information-request-list-generator-data');
+const tDataAny = tData as (key: string) => string;
+const tAny = t as (key: string) => string;
+
+const isEnglish = isDefaultLocale(locale);
+const href = (path: string) => localizedHref(path, locale);
+
+// Parse the IRL generator source at build time so the section checkboxes render
+// server-side. Client-created DOM does NOT receive Astro's scoped-style
+// attribute, so rendering the rows here (rather than in the client script) is
+// what lets the scoped `.irl-gen__*` styles actually apply to them.
+const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
+  number: s.number,
+  title: tDataAny(`section.${s.number}.title`),
+  // Canonical requests — rendered into the per-section context pane. Each row
+  // carries its `NN-II` removal key (two-digit section + two-digit canonical
+  // ordinal — the same key the MCP tool's `excludeRequests` takes) and the
+  // contexts whose skip-if directive auto-removes it (BL-044.5). The text is
+  // looked up by that key (the catalog is pinned to the source).
+  bullets: s.bullets.map((b, i) => {
+    const key = irlRequestKey(s.number, b, i + 1);
+    return {
+      text: tDataAny(`req.${key}`),
+      key,
+      skipContext: b.skipIf?.context?.join(' ') ?? '',
+    };
+  }),
+}));
+
+// The island: the script's own strings and the whole data namespace (the
+// requests and the workbook's text). English needs none — the script falls
+// back to its English catalog, the parsed source and IRL_XLSX_LABELS_EN.
+const SCRIPT_STRINGS = isEnglish
+  ? {}
+  : {
+      ...Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, tAny(key)])),
+      ...Object.fromEntries(Object.keys(DATA_EN).map((key) => [key, tDataAny(key)])),
+    };
+
+const CONTEXTS = [
+  { value: '', label: t('context.unspecified') },
+  { value: 'sell-side', label: t('context.sell-side') },
+  { value: 'buy-side', label: t('context.buy-side') },
+  { value: 'value-creation', label: t('context.value-creation') },
+];
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.title')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${href('/hub/tools/information-request-list-generator/')}`}
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Information Request List Generator',
+        description: t('jsonld.description'),
+        datePublished: '2026-05-25',
+        dateModified: '2026-10-29',
+        inLanguage: locale.htmlLang,
+        featureList: [
+          t('jsonld.feature.xlsx'),
+          t('jsonld.feature.sections'),
+          t('jsonld.feature.custom'),
+          t('jsonld.feature.context'),
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Information Request Lists',
+          'Virtual Data Room Structure',
+          'M&A Tech Strategy',
+        ],
+      })
+    )}
+  />
+  <section class="irl-gen">
+    <div class="container">
+      <HubHeader
+        title="Information Request List Generator"
+        subtitle={t('header.subtitle')}
+        locale={locale}
+      />
+
+      <div class="irl-gen__intro">
+        <p set:html={tHtml('intro.workbook')} />
+        <p set:html={tHtml('intro.status')} />
+        <p
+          set:html={tHtml('intro.reference', {
+            irlHref: '/hub/library/information-request-list/',
+            vdrHref: '/hub/library/vdr-structure/',
+          })}
+        />
+        {!isEnglish && <p class="brutal-text-tiny">{common('notice.contentInEnglish')}</p>}
+      </div>
+
+      <form id="irl-gen-form" class="irl-gen__form">
+        <label class="irl-gen__field">
+          <span class="irl-gen__label">
+            {t('form.companyName')} <span class="irl-gen__hint">{t('form.optional')}</span>
+          </span>
+          <input
+            id="companyName"
+            name="companyName"
+            type="text"
+            class="brutal-input"
+            placeholder={t('form.companyPlaceholder')}
+            autocomplete="organization"
+            maxlength="120"
+          />
+        </label>
+
+        <label class="irl-gen__field">
+          <span class="irl-gen__label">
+            {t('form.projectName')} <span class="irl-gen__hint">{t('form.optional')}</span>
+          </span>
+          <input
+            id="projectName"
+            name="projectName"
+            type="text"
+            class="brutal-input"
+            placeholder={t('form.projectPlaceholder')}
+            maxlength="120"
+          />
+        </label>
+
+        <label class="irl-gen__field">
+          <span class="irl-gen__label">
+            {t('form.targetName')} <span class="irl-gen__hint">{t('form.optional')}</span>
+          </span>
+          <input
+            id="targetName"
+            name="targetName"
+            type="text"
+            class="brutal-input"
+            placeholder={t('form.targetPlaceholder')}
+            autocomplete="organization"
+            maxlength="120"
+          />
+        </label>
+
+        <fieldset class="irl-gen__fieldset">
+          <legend class="irl-gen__label">
+            {t('form.context')} <span class="irl-gen__hint">{t('form.optional')}</span>
+          </legend>
+          {CONTEXTS.map((c) => (
+            <label class="irl-gen__radio">
+              <input
+                type="radio"
+                name="transactionContext"
+                value={c.value}
+                checked={c.value === ''}
+              />
+              <span>{c.label}</span>
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset id="irl-gen-sections" class="irl-gen__fieldset">
+          <legend class="irl-gen__label">{t('form.sections')}</legend>
+          <div class="irl-gen__sections-actions">
+            <button type="button" id="irl-gen-select-all" class="irl-gen__linkbtn">
+              {t('form.selectAll')}
+            </button>
+            <span class="irl-gen__sections-actions-sep" aria-hidden="true">
+              /
+            </span>
+            <button type="button" id="irl-gen-clear-all" class="irl-gen__linkbtn">
+              {t('form.clearAll')}
+            </button>
+          </div>
+          <div id="irl-gen-sections-list" class="irl-gen__sections-list">
+            {irlSections.map((s) => (
+              <div class="irl-gen__section" data-section={s.number}>
+                <div class="irl-gen__section-head">
+                  <label class="irl-gen__section-toggle">
+                    <input type="checkbox" name="sections" value={s.number} checked />
+                    <span class="irl-gen__section-name">
+                      <span class="irl-gen__section-num">{s.number}</span>
+                      {s.title}
+                    </span>
+                  </label>
+                  <span class="irl-gen__section-info">
+                    <button
+                      type="button"
+                      class="irl-gen__section-info-btn"
+                      aria-label={t('section.infoAria', { number: s.number, title: s.title })}
+                      aria-expanded="false"
+                      aria-controls={`irl-sec-panel-${s.number}`}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        width="15"
+                        height="15"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" />
+                        <line
+                          x1="8"
+                          y1="7"
+                          x2="8"
+                          y2="11.5"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                        <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
+                      </svg>
+                    </button>
+                    <div
+                      class="irl-gen__section-panel"
+                      id={`irl-sec-panel-${s.number}`}
+                      aria-labelledby={`irl-sec-panel-head-${s.number}`}
+                    >
+                      <div class="irl-gen__section-panel-top">
+                        <span
+                          class="irl-gen__section-panel-head"
+                          id={`irl-sec-panel-head-${s.number}`}
+                        >
+                          {t('section.panelHead', { number: s.number, title: s.title })}
+                        </span>
+                        <button
+                          type="button"
+                          class="irl-gen__section-panel-close"
+                          aria-label={t('section.closeAria')}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p class="irl-gen__section-panel-hint">{t('section.hint')}</p>
+                      <ul class="irl-gen__section-panel-list">
+                        {s.bullets.map((b) => (
+                          <li
+                            class="irl-gen__q"
+                            data-question={b.key}
+                            data-skip-context={b.skipContext || undefined}
+                          >
+                            <button
+                              type="button"
+                              class="irl-gen__q-toggle"
+                              aria-pressed="false"
+                              aria-label={t('section.excludeAria', { key: b.key, text: b.text })}
+                            >
+                              <DeltaIcon class="delta-chevron" />
+                            </button>
+                            <span class="irl-gen__q-text">{b.text}</span>
+                            <span class="irl-gen__q-auto-label" />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </span>
+                </div>
+                <div class="irl-gen__custom-list" data-section={s.number} />
+                <button
+                  type="button"
+                  class="brutal-btn brutal-btn--secondary irl-gen__add-custom"
+                  data-section={s.number}
+                >
+                  {t('section.addCustom')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </fieldset>
+
+        <label class="irl-gen__checkbox">
+          <input type="checkbox" id="showCanonicalReference" name="showCanonicalReference" />
+          <span>{t('form.showCanonical')}</span>
+        </label>
+
+        <button type="submit" class="cta-button irl-gen__cta">
+          {t('form.download')}
+        </button>
+
+        <p id="irl-gen-status" class="irl-gen__status" role="status" aria-live="polite"></p>
+      </form>
+
+      <a href={href('/hub/tools/')} class="cta-button irl-gen__back">
+        {t('nav.back')}
+      </a>
+    </div>
+  </section>
+  {/* English needs no island: the script falls back to its English catalog and the source. */}
+  {!isEnglish && (
+    <script
+      is:inline
+      type="application/json"
+      data-irl-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
+    />
+  )}
+</BaseLayout>
+
+<script>
+  import '../scripts/information-request-list-generator';
+</script>
+
+<style>
+  /* No top padding: `HubHeader` already contributes 3xl above the title, and a
+     second 3xl here started this page's title 48px lower than the other hub
+     tools'. */
+  .irl-gen {
+    padding: 0 0 5rem;
+  }
+
+  .irl-gen__intro {
+    max-width: 720px;
+    margin: 0 auto var(--spacing-3xl);
+  }
+
+  .irl-gen__intro p {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-gen__intro a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-gen__intro a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .irl-gen__form {
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+  }
+
+  .irl-gen__field,
+  .irl-gen__fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .irl-gen__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+  .irl-gen__hint {
+    font-weight: var(--font-weight-normal);
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    margin-left: var(--spacing-xs);
+  }
+
+  /* Static text inputs carry the global .brutal-input brand class; only their
+     full-width sizing is page-local. */
+  .irl-gen__field :global(.brutal-input) {
+    width: 100%;
+  }
+
+  .irl-gen__radio {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--spacing-xs) 0;
+  }
+
+  .irl-gen__radio input,
+  .irl-gen__checkbox input,
+  .irl-gen__section-toggle input {
+    accent-color: var(--color-primary);
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .irl-gen__checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  /* ── Sections to include ─────────────────────────────────────────── */
+
+  .irl-gen__sections-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .irl-gen__sections-actions-sep {
+    color: var(--text-muted);
+  }
+
+  .irl-gen__linkbtn {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-gen__linkbtn:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .irl-gen__sections-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+  }
+
+  .irl-gen__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
+  }
+
+  .irl-gen__section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .irl-gen__section-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+  }
+
+  .irl-gen__section-name {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+  }
+
+  .irl-gen__section-num {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+  }
+
+  /* Section row: the toggle label + the info affordance sit on one line. */
+  .irl-gen__section-head {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  /* Hover/focus affordance that reveals the per-section request panel. */
+  .irl-gen__section-info {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .irl-gen__section-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    background: none;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .irl-gen__section-info-btn:hover,
+  .irl-gen__section-info-btn:focus-visible {
+    color: var(--color-primary);
+  }
+
+  .irl-gen__section-info-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+
+  /* Floating request panel — mirrors the .brutal-map-tooltip language
+     (solid surface, 2px square border, mono head). Positioned to the right of
+     the icon on desktop; repositioned below on mobile (see media query).
+
+     Two visibility states:
+       - HOVER: passive preview (pointer-events: none — read-only glance).
+       - PINNED (.is-pinned via ⓘ click / Enter): interactive — the delta
+         toggles inside become clickable. There is deliberately NO
+         focus-triggered preview: keyboard users pin via the ⓘ button, which
+         avoids ghost-panel states on unpin/Escape/close. */
+  .irl-gen__section-panel {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + var(--spacing-sm));
+    transform: translateY(-50%);
+    z-index: 30;
+    width: max-content;
+    max-width: 380px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-radius: 0;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--transition-fast),
+      visibility var(--transition-fast);
+  }
+
+  .irl-gen__section-info:hover .irl-gen__section-panel {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .irl-gen__section-info.is-pinned .irl-gen__section-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__section-info.is-pinned .irl-gen__section-info-btn {
+    color: var(--color-primary);
+  }
+
+  .irl-gen__section-panel-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .irl-gen__section-panel-head {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+  }
+
+  .irl-gen__section-panel-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    line-height: 1;
+    font-size: var(--text-base);
+    background: transparent;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
+  }
+
+  .irl-gen__section-panel-close:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__section-panel-hint {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .irl-gen__section-panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Question rows: delta-chevron toggle + request text (+ auto-skip label).
+     INVERTED rotation vs the global habitat: as a request bullet the delta
+     RESTS upright (△, the brand delta) and flips upside-down (▽) only when the
+     question is REMOVED — the opposite of the global `.delta-chevron`
+     expand/collapse default (which rests at rotate(180deg)). See the override
+     rules below. */
+  .irl-gen__q {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
+  .irl-gen__q-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    margin-top: 1px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .irl-gen__q-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+
+  /* Resting bullet = upright brand delta (△). Overrides BOTH the global
+     `.delta-chevron` rotate(180deg) default AND its margin-left:auto (which
+     belongs to its list-toggle habitat, not this icon-then-text row). */
+  .irl-gen__q-toggle :global(.delta-chevron) {
+    margin-left: 0;
+    transform: rotate(0deg);
+  }
+
+  .irl-gen__q-text {
+    transition:
+      opacity var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  /* Manual removal: flip the delta upside-down (▽) + dim/strike the text (the
+     ICG is-dismissed treatment, adapted — that class is scoped to
+     .brutal-rec-card and can't be reused directly). The scoped selector beats
+     the global `.is-collapsed .delta-chevron { rotate(0deg) }`. */
+  .irl-gen__q.is-collapsed :global(.delta-chevron) {
+    transform: rotate(180deg);
+    color: var(--text-muted);
+  }
+
+  .irl-gen__q.is-collapsed .irl-gen__q-text {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  /* Directive auto-skip (BL-044.5): same visual grammar as manual removal
+     (flipped-down muted delta + dimmed text) plus a labeled reason; the toggle
+     is inert while auto-skipped. */
+  .irl-gen__q.is-auto-skipped :global(.delta-chevron) {
+    transform: rotate(180deg);
+    color: var(--text-muted);
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-text {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-toggle {
+    cursor: not-allowed;
+  }
+
+  .irl-gen__q-auto-label {
+    flex: 0 0 auto;
+    display: none;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border: 1px dashed light-dark(var(--border-light), var(--border-dark-default));
+    padding: 1px var(--spacing-xs);
+    margin-top: 2px;
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-auto-label {
+    display: inline-block;
+  }
+
+  /* "Add custom request" uses the global .brutal-btn--secondary brand class;
+     only its placement + compact sizing are page-local. */
+  .irl-gen__add-custom {
+    align-self: flex-start;
+    margin-left: 1.65rem;
+    padding: var(--spacing-xs) var(--spacing-md);
+  }
+
+  .irl-gen__custom-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-left: 1.65rem;
+  }
+
+  .irl-gen__custom-list:empty {
+    display: none;
+  }
+
+  /* Custom-request rows are created client-side, so scoped selectors would not
+     reach them — style via :global(). The input carries the global
+     .brutal-input; here we only size it inside the row. */
+  :global(.irl-gen__custom-row) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  :global(.irl-gen__custom-input) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  :global(.irl-gen__custom-remove) {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    line-height: 1;
+    font-size: var(--text-lg);
+    background: transparent;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
+  }
+
+  :global(.irl-gen__custom-remove:hover) {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__cta {
+    align-self: flex-start;
+  }
+
+  .irl-gen__status {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 0;
+    min-height: 1.5em;
+  }
+
+  .irl-gen__back {
+    display: inline-block;
+    margin-top: var(--spacing-2xl);
+  }
+
+  /* No room to the side — drop the panel below the row (on touch, a tap on
+     the ⓘ fires click → pins the pane open + interactive). The side pane
+     needs up to 380px right of the ⓘ, which follows the section name: it ran
+     off the right edge up to 977px (es, longest titles) and clears it by
+     22px or more above 1024, hence this tier rather than 768. Below, the
+     pane anchors to the whole section row, not the icon, so it cannot run
+     off either edge. */
+  @media (max-width: 1024px) {
+    .irl-gen__section-head {
+      position: relative;
+    }
+
+    .irl-gen__section-info {
+      position: static;
+    }
+
+    .irl-gen__section-panel {
+      top: calc(100% + var(--spacing-xs));
+      left: 0;
+      right: 0;
+      transform: none;
+      width: auto;
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .irl-gen {
+      padding: 0 0 var(--spacing-3xl);
+    }
+
+    .irl-gen__form {
+      padding: var(--spacing-lg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .irl-gen {
+      padding: 0 0 var(--spacing-2xl);
+    }
+  }
+</style>

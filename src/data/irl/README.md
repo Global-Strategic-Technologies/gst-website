@@ -2,10 +2,12 @@
 
 `information-request-list.md` in this folder is the **machine-parsed source** for the
 Information Request List `.xlsx` generators — the Hub tool
-(`src/pages/hub/tools/information-request-list-generator/`) and the MCP tool
+(`src/page-templates/HubIrlGeneratorPage.astro`) and the MCP tool
 (`mcp-server/src/tools/generate-information-request-list-xlsx.ts`). Both parse it
 with the shared `parseIrlArticle` (`src/utils/irl/parse-article.ts`) and must
-produce identical output, so this file **must obey the strict IRL grammar**:
+produce identical output from the English page (the es and pt pages translate
+it, § Editing a request — translations), so this file **must obey the strict IRL
+grammar**:
 
 - exactly one `# ` H1 title, followed by an intro paragraph;
 - sections as `## NN — Title` (two ASCII digits, space, em-dash `—`, space, title);
@@ -135,6 +137,33 @@ previous layout will silently target different questions. Prefer appending new
 bullets at the end of a section; when inserting or reordering is unavoidable,
 treat it like an API change (note it in the PR description). Skip-if directives
 do not have this problem — they travel with the question they tag.
+
+## Editing a request — translations
+
+The Hub tool's es and pt pages translate this file by key, from
+`src/i18n/<locale>/information-request-list-generator-data.json` (BL-153 Tier B).
+The English copy of that catalog mirrors this file — the intro, every
+`section.<NN>.title` and every `req.<NN-II>` — and
+`tests/unit/irl-generator-catalog.test.ts` pins the two. This file stays English:
+the MCP server returns it verbatim. So an edit here is:
+
+1. Edit the bullet (or title, or intro) here.
+2. `npm run test:run` — the pin test names each key whose English no longer
+   matches; update those values in `src/i18n/en/information-request-list-generator-data.json`.
+3. `npm run test:docs` — the staleness guard now names the es and pt-BR keys
+   translated from the old English; retranslate them, then `npm run i18n:stamp`.
+
+Inserting a bullet shifts every `NN-II` key after it (§ Positional keys), so the
+pin test fails for each shifted key; move their translations along with them. A
+section that gains an `intro` needs a `section.<NN>.intro` key and support in
+`localizeIrlArticle` (`src/scripts/information-request-list-generator/logic.ts`)
+first — the pin test fails until it has both.
+
+The workbook's own text (column headers, the Instructions sheet, the Status
+dropdown's messages) is `IRL_XLSX_LABELS_EN` in `src/utils/irl/generate-xlsx.ts`,
+mirrored as the catalog's `xlsx.*` keys under the same pin. What code reads back
+(sheet name, metadata labels, `OPEN` / `PARTIAL` / `CLOSED`, Reference ids) is
+not a label and stays English in every locale.
 
 ## Not the library article
 

@@ -66,8 +66,17 @@ export interface IRLCustomizeOptions {
   readonly customRequests?: readonly IRLCustomRequest[];
 }
 
-/** The `NN-II` exclusion key for a bullet (dense fallback for hand-built articles). */
-function bulletKey(sectionNumber: string, bullet: IRLBullet, denseIndex: number): string {
+/**
+ * The `NN-II` key of a bullet: the exclusion key, the `data-question` hook and
+ * the key the website's translations are stored under
+ * (`information-request-list-generator-data`, `req.<NN-II>`). `denseIndex` is
+ * the bullet's 1-based position, the fallback for hand-built articles.
+ */
+export function irlRequestKey(
+  sectionNumber: string,
+  bullet: IRLBullet,
+  denseIndex: number
+): string {
   return `${sectionNumber}-${String(bullet.ordinal ?? denseIndex).padStart(2, '0')}`;
 }
 
@@ -149,7 +158,7 @@ export function excludeBullets(
   let anyRemoved = false;
   const sections = article.sections.map((section): IRLSection => {
     const kept = section.bullets.filter(
-      (bullet, i) => !keys.has(bulletKey(section.number, bullet, i + 1))
+      (bullet, i) => !keys.has(irlRequestKey(section.number, bullet, i + 1))
     );
     if (kept.length === section.bullets.length) return section;
     anyRemoved = true;

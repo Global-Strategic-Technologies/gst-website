@@ -202,6 +202,7 @@ describe('alternatesFor — live-only, draft emits nothing', () => {
       '/hub/tools/techpar/',
       '/hub/tools/tech-debt-calculator/',
       '/hub/tools/regulatory-map/',
+      '/hub/tools/information-request-list-generator/',
     ]) {
       expect(alternatesFor(path, en)).toEqual(LOCALES.filter((l) => l.status === 'live'));
     }

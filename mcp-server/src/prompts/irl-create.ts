@@ -80,7 +80,7 @@ import { arrayFromWire, booleanFromWire, enumFromWire, stringFromWire } from './
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
-import { applyDirectives } from '../../../src/utils/irl/customize-article';
+import { applyDirectives, irlRequestKey } from '../../../src/utils/irl/customize-article';
 
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
@@ -166,11 +166,6 @@ function parseCustomRequests(raw: string | undefined): { section: string; text: 
     .filter((entry): entry is { section: string; text: string } => entry !== null);
 }
 
-/** `NN-II` key for a bullet (dense fallback mirrors the shared layer). */
-function keyOf(sectionNumber: string, ordinal: number | undefined, denseIndex: number): string {
-  return `${sectionNumber}-${String(ordinal ?? denseIndex).padStart(2, '0')}`;
-}
-
 /**
  * Server-computed omission list: which canonical requests the generated
  * workbook will NOT contain, and why. Directive-skipped entries come from
@@ -188,13 +183,13 @@ function computeOmissions(
     const article = parseIrlArticle(loadIrlSourceBody());
     const filtered = applyDirectives(article, { context });
     const surviving = new Set(
-      filtered.sections.flatMap((s) => s.bullets.map((b, i) => keyOf(s.number, b.ordinal, i + 1)))
+      filtered.sections.flatMap((s) => s.bullets.map((b, i) => irlRequestKey(s.number, b, i + 1)))
     );
     const textByKey = new Map<string, string>();
     const omissions: { key: string; text: string; reason: string }[] = [];
     for (const section of article.sections) {
       section.bullets.forEach((bullet, i) => {
-        const key = keyOf(section.number, bullet.ordinal, i + 1);
+        const key = irlRequestKey(section.number, bullet, i + 1);
         textByKey.set(key, bullet.text);
         if (!surviving.has(key)) {
           omissions.push({

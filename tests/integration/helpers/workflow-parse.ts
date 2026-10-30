@@ -8,6 +8,11 @@
  * **Equivalence checked, not assumed.** Across all 12 workflow files these extractors and the
  * real `yaml` parser agree exactly — 12 names, 5 `paths` blocks, 10 trigger-scoped `branches`
  * lists, 1 `workflow_run.workflows` list, **zero disagreements** (measured, not estimated).
+ * `parseJob` (added 2026-10-30 for the PR-run dedup wait) was held to the same bar: every job
+ * with `steps` in every workflow, 16 jobs and 126 steps, agrees with `yaml` on `timeout-minutes`,
+ * job `permissions` and each step's `id`, `name`, `uses`, `if`, `run` and `env`, with zero
+ * disagreements. Its first cut had 79 (an unquoted `== 'push'` losing its closing quote, and
+ * bash `#` lines dropped from `run` blocks), which is the differential doing its job.
  * That agreement is what justifies not taking the dependency; **re-run the differential if any
  * extractor changes.** The method is the one `workflow-secret-scope.test.ts` (lines 79-84)
  * records as the only one that actually worked there: vigilance produced ten fail-open paths,
@@ -263,9 +268,191 @@ export function parseWorkflowRunWorkflows(lines: string[], label = '<lines>'): s
     .filter((s) => s.length > 0);
 }
 
+/** One step of a job, as `parseJob` reads it. Keys absent from the step are absent here. */
+export interface WorkflowStep {
+  id?: string;
+  name?: string;
+  uses?: string;
+  if?: string;
+  /** A `run: |` block is returned dedented, one string with `\n` line breaks. */
+  run?: string;
+  env: Record<string, string>;
+}
+
+export interface WorkflowJob {
+  timeoutMinutes: number;
+  /** The job-level `permissions:` map; `{}` when the job sets none (it inherits). */
+  permissions: Record<string, string>;
+  steps: WorkflowStep[];
+}
+
+const STEP_KEYS = new Set(['id', 'name', 'uses', 'if', 'run', 'env']);
+
+/** Strip ONE matching pair of surrounding quotes. `unquote` strips either end on its own,
+ *  which is right for branch names but would eat the closing quote of an unquoted
+ *  expression such as `if: github.event_name == 'push'`. */
+const unquotePair = (s: string): string => {
+  const m = /^'(.*)'$/.exec(s) ?? /^"(.*)"$/.exec(s);
+  return m ? m[1] : s;
+};
+
+/**
+ * One job's `timeout-minutes`, job-level `permissions` map and `steps`, read from the
+ * layout every workflow here uses: `jobs:` at column 0, the job at 2 spaces, its keys at 4,
+ * step dashes at 6, step keys at 8, `env:` entries at 10.
+ *
+ * Fail-closed like the rest of this module. It throws on a missing `jobs:`, job, `steps:` or
+ * numeric `timeout-minutes`; on the flow forms (`steps: [...]`, `env: {...}`,
+ * `permissions: {...}`); on any non-blank line inside `steps:` at an indent the layout does
+ * not allow; and on a step none of whose keys it recognises. Keys it does not model (`with:`,
+ * `shell:`, `working-directory:` …) are skipped together with their nested lines, which is
+ * safe because no caller asserts on them.
+ */
+export function parseJob(lines: string[], job: string, label = '<lines>'): WorkflowJob {
+  // Raw lines, not stripComments: a `#` line inside a `run: |` block is script content,
+  // not a YAML comment. Comment lines are skipped explicitly wherever they could
+  // otherwise end a block or be read as a key.
+  const L = lines;
+  const isComment = (l: string): boolean => l.trimStart().startsWith('#');
+  const jobsAt = L.flatMap((l, i) => (/^jobs:\s*$/.test(l) ? [i] : []));
+  if (jobsAt.length !== 1) {
+    throw new Error(`expected exactly one column-0 \`jobs:\` in ${label}, found ${jobsAt.length}`);
+  }
+  const jobRe = new RegExp(`^ {2}${job.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&')}:\\s*$`);
+  const start = L.findIndex((l, i) => i > jobsAt[0] && jobRe.test(l));
+  if (start === -1) throw new Error(`no job \`${job}\` under \`jobs:\` in ${label}`);
+  let end = L.findIndex((l, i) => i > start && !isComment(l) && /^ {0,2}\S/.test(l));
+  if (end === -1) end = L.length;
+  const body = L.slice(start + 1, end);
+
+  const timeouts = body
+    .map((l) => /^ {4}timeout-minutes:\s*(.*?)\s*$/.exec(l))
+    .filter((m): m is RegExpExecArray => m !== null);
+  if (timeouts.length !== 1 || !/^\d+$/.test(timeouts[0][1])) {
+    throw new Error(`job \`${job}\` in ${label} needs exactly one numeric \`timeout-minutes\``);
+  }
+
+  // A job-level key block: the lines after `    <key>:` that sit deeper than 4 spaces.
+  const block = (key: string): string[] | undefined => {
+    const at = body.findIndex((l) => new RegExp(`^ {4}${key}:`).test(l));
+    if (at === -1) return undefined;
+    if (!new RegExp(`^ {4}${key}:\\s*$`).test(body[at])) {
+      throw new Error(`job \`${job}\` in ${label}: only the block form of \`${key}:\` is read`);
+    }
+    let stop = body.findIndex((l, i) => i > at && !isComment(l) && /^ {0,4}\S/.test(l));
+    if (stop === -1) stop = body.length;
+    return body.slice(at + 1, stop);
+  };
+
+  const permissions: Record<string, string> = {};
+  for (const l of block('permissions') ?? []) {
+    if (!l.trim() || isComment(l)) continue;
+    const m = /^ {6}([\w-]+):\s*(\S+)\s*$/.exec(l);
+    if (!m) throw new Error(`job \`${job}\` in ${label}: unreadable permissions line \`${l}\``);
+    permissions[m[1]] = unquote(m[2]);
+  }
+
+  const stepLines = block('steps');
+  if (!stepLines) throw new Error(`job \`${job}\` in ${label} has no \`steps:\``);
+
+  const steps: WorkflowStep[] = [];
+  let step: WorkflowStep | undefined;
+  let open: { key: string; lines: string[] } | undefined;
+  let sawKey = false;
+
+  const closeKey = () => {
+    if (!open || !step) return;
+    if (open.key === 'run') {
+      const indent = Math.min(
+        ...open.lines.filter((l) => l.trim()).map((l) => l.length - l.trimStart().length)
+      );
+      step.run = open.lines
+        .map((l) => l.slice(indent))
+        .join('\n')
+        .trim();
+    } else if (open.key === 'env') {
+      for (const l of open.lines) {
+        if (!l.trim() || isComment(l)) continue;
+        const m = /^ {10}([\w-]+):\s*(.*?)\s*$/.exec(l);
+        if (!m) throw new Error(`step in ${label}: unreadable env line \`${l}\``);
+        step.env[m[1]] = unquotePair(m[2]);
+      }
+    }
+    open = undefined;
+  };
+  const closeStep = () => {
+    closeKey();
+    if (step) {
+      if (!sawKey) throw new Error(`a step in job \`${job}\` (${label}) has no recognised key`);
+      steps.push(step);
+    }
+  };
+  const readKey = (text: string) => {
+    const m = /^([\w-]+):\s*(.*?)\s*$/.exec(text);
+    if (!m) throw new Error(`step in ${label}: unreadable key line \`${text}\``);
+    const [, key, value] = m;
+    if (!STEP_KEYS.has(key)) {
+      open = { key: '(skipped)', lines: [] };
+      return;
+    }
+    sawKey = true;
+    if (key === 'env') {
+      if (value) throw new Error(`step in ${label}: only the block form of \`env:\` is read`);
+      open = { key, lines: [] };
+    } else if (key === 'run' && /^[|>][-+]?$/.test(value)) {
+      open = { key, lines: [] };
+    } else if (/^[|>]/.test(value)) {
+      throw new Error(
+        `step in ${label}: a block scalar is only read for \`run:\`, not \`${key}:\``
+      );
+    } else {
+      (step as unknown as Record<string, string>)[key] = unquotePair(value);
+      open = { key: '(scalar)', lines: [] };
+    }
+  };
+
+  for (const l of stepLines) {
+    if (!l.trim()) {
+      open?.lines.push('');
+      continue;
+    }
+    const indent = l.length - l.trimStart().length;
+    // Inside a run block a `#` line deeper than the step keys is script; anywhere else
+    // it is a YAML comment.
+    if (isComment(l) && !(open?.key === 'run' && indent > 8)) continue;
+    const dash = /^ {6}- (.*)$/.exec(l);
+    if (dash) {
+      closeStep();
+      step = { env: {} };
+      sawKey = false;
+      readKey(dash[1]);
+    } else if (indent === 8 && step) {
+      closeKey();
+      readKey(l.slice(8));
+    } else if (indent > 8 && step && open) {
+      // A plain scalar continued onto a deeper line (a wrapped `if:`) would otherwise be
+      // read only up to the line break, hiding whatever the continuation adds.
+      if (open.key === '(scalar)') {
+        throw new Error(`step in ${label}: a multi-line plain scalar is not read: \`${l}\``);
+      }
+      open.lines.push(l);
+    } else {
+      throw new Error(`job \`${job}\` in ${label}: step line at an unexpected indent: \`${l}\``);
+    }
+  }
+  closeStep();
+  if (steps.length === 0) throw new Error(`job \`${job}\` in ${label} has no steps`);
+
+  return { timeoutMinutes: Number(timeouts[0][1]), permissions, steps };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // File-reading wrappers.
 // ─────────────────────────────────────────────────────────────────────────────
+
+export function workflowJob(file: string, job: string): WorkflowJob {
+  return parseJob(readWorkflow(file), job, file);
+}
 
 export function extractPathBlocks(file: string): string[][] {
   return parsePathBlocks(readWorkflow(file), file);

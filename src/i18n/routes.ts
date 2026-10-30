@@ -60,6 +60,10 @@ export const TIER_B_ROUTES: readonly RouteEntry[] = [
   },
   { id: 'diligence-machine', path: '/hub/tools/diligence-machine/' },
   { id: 'regulatory-map', path: '/hub/tools/regulatory-map/' },
+  {
+    id: 'information-request-list-generator',
+    path: '/hub/tools/information-request-list-generator/',
+  },
 ];
 
 /** Every route that exists in every locale. */
