@@ -35,13 +35,12 @@ concurrency:
   # then killed the push run, leaving branch protection with a cancelled
   # required check. Separating the groups lets both run to completion.
   #
-  # This comment used to end "...while skip-duplicate-actions short-circuits
-  # the concurrent PR run." That is no longer true and the distinction
-  # matters: the `skip_dup` step that replaced that action queries
-  # `status=success` runs only, and an in-flight run is never `success`, so
-  # nothing short-circuits a CONCURRENT sibling any more. Both events now do
-  # the work when they fire together; this group key is the only thing
-  # keeping them from cancelling each other. See DEVELOPER_TOOLING.md
+  # The `skip_dup` step queries `status=success` runs only, and an in-flight
+  # run is never `success`, so on its own it cannot short-circuit a
+  # CONCURRENT sibling. The gate's `await_push` step covers that: a PR run
+  # waits for the push run already validating its head commit, then lets
+  # `skip_dup` see the result. This group key is still what keeps the two
+  # from cancelling each other while one waits. See DEVELOPER_TOOLING.md
   # § Duplicate-run dedup.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -57,7 +56,9 @@ jobs:
   changes:
     name: Detect Code Changes
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    # 50, not 2: a PR run's `await_push` may wait up to MAX_AGE_S (45 min)
+    # for the push run. A push run never waits and finishes in seconds.
+    timeout-minutes: 50
     # pull-requests: read lets dorny/paths-filter use the GitHub API on PR
     # events instead of falling back to git-based detection.
     permissions:
@@ -71,7 +72,8 @@ jobs:
       #   canonical case: a push to an up-to-date feature branch passes,
       #   then opening its PR fires the same workflow on a synthetic merge
       #   SHA whose tree is identical, so the new run is a duplicate of
-      #   work already validated.
+      #   work already validated. When the PR opens while that push run is
+      #   still going, `await_push` waits for it first.
       # `should_run` — true only when BOTH code changed AND no duplicate
       #   exists. Downstream jobs key off this single output.
       code: ${{ steps.filter.outputs.code }}
@@ -80,6 +82,19 @@ jobs:
       should_run: ${{ steps.decide.outputs.should_run }}
     steps:
       - uses: actions/checkout@v7
+      - id: await_push
+        # A PR opened while a push run is still validating the same head
+        # commit would otherwise repeat all of its work, because skip_dup
+        # matches SUCCESSFUL runs only. Wait for that push run, then let
+        # skip_dup decide. The wait is advisory (always exits 0) and capped
+        # by the push run's age; see the script header.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: test.yml
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MAX_AGE_S: '2700'
+        run: bash scripts/await-push-run.sh
       - id: skip_dup
         # Check if a prior workflow run already passed with the same tree
         # hash. Replaces fkirc/skip-duplicate-actions (Node 20 deprecated).

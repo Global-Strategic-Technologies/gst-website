@@ -25,6 +25,7 @@ import {
   parseWorkflowName,
   parseTriggerBranches,
   parseWorkflowRunWorkflows,
+  parseJob,
 } from './helpers/workflow-parse';
 
 const lines = (s: string): string[] => s.split('\n');
@@ -324,6 +325,120 @@ on:
       - 'b/**'
 `;
       expect(parsePathBlocks(lines(src), 'fixture')).toEqual([['a/**', 'b/**']]);
+    });
+  });
+
+  describe('parseJob', () => {
+    const job = (steps: string, head = '    timeout-minutes: 5\n') =>
+      `on: push\njobs:\n  build:\n${head}    steps:\n${steps}  other:\n    timeout-minutes: 1\n    steps:\n      - run: echo other\n`;
+
+    it('reads timeout, permissions and each step, bounded to the named job', () => {
+      const src = `on: push
+jobs:
+  build:
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - id: wait
+        # a YAML comment between keys
+        if: github.event_name == 'pull_request'
+        env:
+          WORKFLOW: test.yml
+          MAX_AGE_S: '900'
+        run: bash scripts/x.sh
+      - name: Script
+        if: "always() && steps.wait.outputs.skip != 'true'"
+        with:
+          path: ignored
+        run: |
+          # a bash comment, kept
+          echo one
+  other:
+    timeout-minutes: 1
+    steps:
+      - run: echo other
+`;
+      const j = parseJob(lines(src), 'build', 'fixture');
+      expect(j.timeoutMinutes).toBe(30);
+      expect(j.permissions).toEqual({ contents: 'read', actions: 'read' });
+      expect(j.steps).toHaveLength(3);
+      expect(j.steps[1]).toEqual({
+        id: 'wait',
+        if: "github.event_name == 'pull_request'",
+        env: { WORKFLOW: 'test.yml', MAX_AGE_S: '900' },
+        run: 'bash scripts/x.sh',
+      });
+      expect(j.steps[2].if).toBe("always() && steps.wait.outputs.skip != 'true'");
+      expect(j.steps[2].run).toBe('# a bash comment, kept\necho one');
+    });
+
+    it('THROWS when the job is missing rather than reading a neighbour', () => {
+      expect(() => parseJob(lines(job('      - run: x\n')), 'deploy', 'fixture')).toThrow(
+        /no job `deploy`/
+      );
+    });
+
+    it('THROWS when timeout-minutes is missing or not a number', () => {
+      expect(() => parseJob(lines(job('      - run: x\n', '')), 'build', 'fixture')).toThrow(
+        /timeout-minutes/
+      );
+      expect(() =>
+        parseJob(
+          lines(job('      - run: x\n', '    timeout-minutes: ${{ inputs.t }}\n')),
+          'build',
+          'fixture'
+        )
+      ).toThrow(/timeout-minutes/);
+    });
+
+    it('THROWS on the flow form of steps, env or permissions', () => {
+      const flowSteps =
+        'on: push\njobs:\n  build:\n    timeout-minutes: 5\n    steps: [{ run: x }]\n';
+      expect(() => parseJob(lines(flowSteps), 'build', 'fixture')).toThrow(
+        /block form of `steps:`/
+      );
+      expect(() =>
+        parseJob(lines(job('      - run: x\n        env: { A: b }\n')), 'build', 'fixture')
+      ).toThrow(/block form of `env:`/);
+      expect(() =>
+        parseJob(
+          lines(job('      - run: x\n', '    timeout-minutes: 5\n    permissions: read-all\n')),
+          'build',
+          'fixture'
+        )
+      ).toThrow(/block form of `permissions:`/);
+    });
+
+    it('THROWS on a step line at an indent the layout does not allow', () => {
+      // A key at 7 spaces belongs to no step under this layout; reading on past it would
+      // misattribute it or drop it, so the parser refuses.
+      expect(() =>
+        parseJob(lines(job('      - run: a\n       if: x\n')), 'build', 'fixture')
+      ).toThrow(/unexpected indent/);
+    });
+
+    it('THROWS on a block scalar anywhere but run', () => {
+      expect(() =>
+        parseJob(
+          lines(job('      - run: a\n        if: >-\n          always()\n')),
+          'build',
+          'fixture'
+        )
+      ).toThrow(/block scalar/);
+    });
+
+    it('THROWS on a step with no key it recognises', () => {
+      expect(() => parseJob(lines(job('      - shell: bash\n')), 'build', 'fixture')).toThrow(
+        /no recognised key/
+      );
+    });
+
+    it('THROWS when the job has no steps block', () => {
+      const src = 'on: push\njobs:\n  build:\n    timeout-minutes: 5\n    runs-on: ubuntu-latest\n';
+      expect(() => parseJob(lines(src), 'build', 'fixture')).toThrow(/no `steps:`/);
     });
   });
 });

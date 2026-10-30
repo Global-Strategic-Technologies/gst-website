@@ -12,6 +12,13 @@ permissions:
 # trigger this workflow. The trade-off vs the test.yml gate-job pattern: a
 # skipped status is acceptable here because this workflow is NOT a required
 # branch-protection check.
+#
+# A PR run skips its work when the push run already validated the same tree:
+# `await_push` waits for an in-flight push run on the PR head, then `dedup`
+# checks it passed and that the merge tree equals the head tree. Push runs
+# never take this path, so the deploy chain (staging's workflow_run filter on
+# `event == 'push'`, production's `await-mcp-test-run.sh` polling `event=push`)
+# sees exactly what it saw before. DEVELOPER_TOOLING.md § Duplicate-run dedup.
 
 on:
   push:
@@ -121,19 +128,61 @@ jobs:
   test:
     name: Typecheck, Build & Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 30, not 10: a PR run may wait up to MAX_AGE_S (15 min) for the push run,
+    # then do up to 10 min of real work if that push run did not pass.
+    timeout-minutes: 30
+    # Restates contents: read (a job-level block replaces the workflow-level
+    # one) and adds actions: read for the runs queries below. The queries work
+    # without it on this public repo today, but the dedup fails safe, so a
+    # visibility change would silently turn it off rather than go red.
+    permissions:
+      contents: read
+      actions: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - id: await_push
+        # A PR opened while the push run is still validating the same head
+        # commit waits for it rather than repeating it. Advisory: always
+        # exits 0, capped by the push run's age. See the script header.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: test-mcp-server.yml
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MAX_AGE_S: '900'
+        run: bash scripts/await-push-run.sh
+
+      - id: dedup
+        # skip=true only when a push run of this workflow PASSED on the PR
+        # head commit AND this run's merge tree equals that commit's tree
+        # (master has not moved under the PR). Anything else, including an
+        # API error, leaves skip unset and the full suite runs.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          PASSED=$(gh api "repos/${{ github.repository }}/actions/workflows/test-mcp-server.yml/runs?head_sha=${HEAD_SHA}&event=push&status=success&per_page=1" --jq '.total_count' 2>/dev/null || echo 0)
+          HEAD_TREE=$(gh api "repos/${{ github.repository }}/git/commits/${HEAD_SHA}" --jq '.tree.sha' 2>/dev/null || echo "")
+          MERGE_TREE=$(git rev-parse 'HEAD^{tree}')
+          echo "passed push runs on ${HEAD_SHA}: ${PASSED}; head tree ${HEAD_TREE:-?}; merge tree ${MERGE_TREE}"
+          if [ "$PASSED" != "0" ] && [ "$PASSED" -eq "$PASSED" ] 2>/dev/null && [ -n "$HEAD_TREE" ] && [ "$HEAD_TREE" = "$MERGE_TREE" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The push run already validated this tree; skipping the repeat."
+          fi
+
       - name: Setup Node.js
+        if: steps.dedup.outputs.skip != 'true'
         uses: actions/setup-node@v7
         with:
           node-version: '22.x'
           cache: 'npm'
 
       - name: Cache node_modules
+        if: steps.dedup.outputs.skip != 'true'
         uses: actions/cache@v6
         id: nm-cache
         with:
@@ -148,13 +197,15 @@ jobs:
           key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
-        if: steps.nm-cache.outputs.cache-hit != 'true'
+        if: steps.dedup.outputs.skip != 'true' && steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Typecheck
+        if: steps.dedup.outputs.skip != 'true'
         run: npm -w @gst/mcp-server run typecheck
 
       - name: Build
+        if: steps.dedup.outputs.skip != 'true'
         run: npm -w @gst/mcp-server run build
 
       - name: Run tests with coverage
@@ -170,6 +221,7 @@ jobs:
         # test.yml had the same bug; both fixed in the same commit.
         #
         # PIPESTATUS[0] is bash-specific — `shell: bash` is required.
+        if: steps.dedup.outputs.skip != 'true'
         shell: bash
         run: |
           npm -w @gst/mcp-server run test -- --coverage 2>&1 | tee coverage-output.txt
@@ -196,12 +248,19 @@ jobs:
           exit $TEST_EXIT
 
       - name: Smoke test compiled binary
+        if: steps.dedup.outputs.skip != 'true'
         run: node mcp-server/dist/index.js < /dev/null
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
-        if: always()
+        # always() keeps the upload on red runs; the dedup guard is combined
+        # with it, never in place of it.
+        if: always() && steps.dedup.outputs.skip != 'true'
         with:
           name: mcp-server-coverage
           path: mcp-server/coverage/
           retention-days: 7
+
+      - name: Skipped (duplicate of the push run)
+        if: steps.dedup.outputs.skip == 'true'
+        run: echo "The push run of this workflow already passed on this tree; nothing to repeat."
