@@ -13,9 +13,9 @@
  * parity guard requires every namespace in every locale, a NEW locale must
  * carry the Tier B catalogs too — not only Tier A.
  *
- * Everything not listed (the other tools, guides, the portfolio, brand) is
- * English only. `localizedHref` returns those paths UNCHANGED for every locale,
- * so a Spanish page links to the English tool rather than to a `/es/…` 404.
+ * Everything not listed (guides, the portfolio, brand, a tool not localized yet)
+ * is English only. `localizedHref` returns those paths UNCHANGED for every
+ * locale, so a Spanish page links to the English page rather than to a `/es/…` 404.
  */
 import { DEFAULT_LOCALE, LOCALES, isDefaultLocale, localeFromPath, type Locale } from './locales';
 
@@ -63,6 +63,10 @@ export const TIER_B_ROUTES: readonly RouteEntry[] = [
   {
     id: 'information-request-list-generator',
     path: '/hub/tools/information-request-list-generator/',
+  },
+  {
+    id: 'information-request-list-extractor',
+    path: '/hub/tools/information-request-list-extractor/',
   },
 ];
 

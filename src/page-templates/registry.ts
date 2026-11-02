@@ -13,6 +13,7 @@
 import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
 import HubIcgPage from './HubIcgPage.astro';
+import HubIrlExtractorPage from './HubIrlExtractorPage.astro';
 import HubIrlGeneratorPage from './HubIrlGeneratorPage.astro';
 import HubDiligenceMachinePage from './HubDiligenceMachinePage.astro';
 import HubRegulatoryMapPage from './HubRegulatoryMapPage.astro';
@@ -44,6 +45,7 @@ export const TEMPLATES = {
   'diligence-machine': HubDiligenceMachinePage,
   'regulatory-map': HubRegulatoryMapPage,
   'information-request-list-generator': HubIrlGeneratorPage,
+  'information-request-list-extractor': HubIrlExtractorPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

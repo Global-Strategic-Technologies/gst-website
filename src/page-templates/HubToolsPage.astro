@@ -5,9 +5,10 @@
  *
  * Tool pages are Tier B: localized one at a time (TIER_B_ROUTES). A card links
  * to the tool in the page's locale when the tool is localized, and to the
- * English page (with `hreflang="en"`) when it is not; a non-English page
- * carries one `notice.someToolsEnglish` line under the header rather than a
- * footnote per card. The ItemList JSON-LD keeps the English tool names — the
+ * English page (with `hreflang="en"`) when it is not. While any tool is English
+ * only (every tool is localized today; a new one launches in English), a
+ * non-English page carries one `notice.someToolsEnglish` line under the header
+ * rather than a footnote per card. The ItemList JSON-LD keeps the English tool names — the
  * tool name is a brand in every locale — and its URLs follow the cards.
  * `tests/unit/hub-tool-schema.test.ts` reads this file for the ItemList.
  *
@@ -90,7 +91,9 @@ const tools = TOOL_IDS.map((id) => ({
     <div class="container">
       <HubHeader title={t('header.title')} subtitle={t('header.subtitle')} locale={locale} />
 
-      {!isDefaultLocale(locale) && <p class="tools-notice">{t('notice.someToolsEnglish')}</p>}
+      {!isDefaultLocale(locale) && tools.some((tool) => tool.englishOnly) && (
+        <p class="tools-notice">{t('notice.someToolsEnglish')}</p>
+      )}
 
       <div class="brutal-gateway-grid">
         {tools.map((tool) => (
@@ -238,7 +241,7 @@ const tools = TOOL_IDS.map((id) => ({
     padding-bottom: var(--spacing-3xl);
   }
 
-  /* Tier C/B notice (BL-153): every tool below is English-only. */
+  /* Tier B notice (BL-153): shown on a non-English page while a tool is English only. */
   .tools-notice {
     font-size: var(--text-sm);
     font-family: var(--font-family-mono);

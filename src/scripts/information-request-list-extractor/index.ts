@@ -8,7 +8,10 @@ import {
   extractIrlMarkdownFromRows,
 } from '../../utils/irl/extract-markdown.mjs';
 import { copyWithFeedback } from '../../utils/copy-feedback';
+import { formatFixed, formatPlain } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
 import { summarizeExtraction } from './logic';
+import { s } from './strings';
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
 
@@ -80,16 +83,16 @@ function showState(state: 'idle' | 'error' | 'ok') {
  */
 function fail(sheetName: string) {
   current = null;
-  if (statusEl) statusEl.textContent = `Read “${sheetName}”: 0 requests`;
+  if (statusEl) statusEl.textContent = s('js.status.zero', { sheet: sheetName });
   if (errorBody) {
-    errorBody.textContent = `No request rows were found in “${sheetName}”, so there is nothing to convert.`;
+    errorBody.textContent = s('js.error.noRows.body', { sheet: sheetName });
   }
   if (errorHint) {
-    errorHint.textContent = `This does not look like an Information Request List. “${sheetName}” is the sheet that was read.`;
+    errorHint.textContent = s('js.error.noRows.hint', { sheet: sheetName });
   }
   setDiag({
-    bullets: '0',
-    sections: 'none',
+    bullets: formatPlain(0, pageLang()),
+    sections: s('js.diag.none'),
     bytes: DOT,
     comments: DOT,
     contradictions: DOT,
@@ -109,24 +112,27 @@ const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 async function handleFile(file: File) {
   if (file.size > MAX_FILE_BYTES) {
     current = null;
-    const mb = (file.size / (1024 * 1024)).toFixed(1);
-    if (statusEl) statusEl.textContent = 'File too large';
+    const lang = pageLang();
+    if (statusEl) statusEl.textContent = s('js.status.tooLarge');
     if (errorBody) {
       // Built from the constant, never typed twice: a literal here would go
       // stale the first time the ceiling moves, and the copy is the only
       // place a visitor learns what the limit is.
-      errorBody.textContent = `“${file.name}” is ${mb} MB. This tool reads workbooks up to ${MAX_FILE_MB} MB.`;
+      errorBody.textContent = s('js.error.tooLarge.body', {
+        file: file.name,
+        size: formatFixed(file.size / (1024 * 1024), lang, 1),
+        max: formatPlain(MAX_FILE_MB, lang),
+      });
     }
     if (errorHint) {
-      errorHint.textContent =
-        'An IRL workbook is normally well under a megabyte — check this is the request list and not a data export.';
+      errorHint.textContent = s('js.error.tooLarge.hint');
     }
     resetDiag();
     showState('error');
     return;
   }
 
-  if (statusEl) statusEl.textContent = `Reading “${file.name}”…`;
+  if (statusEl) statusEl.textContent = s('js.status.reading', { file: file.name });
 
   let workbook: XLSX.WorkBook;
   try {
@@ -137,12 +143,12 @@ async function handleFile(file: File) {
     workbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
   } catch {
     current = null;
-    if (statusEl) statusEl.textContent = 'Could not read that file';
+    if (statusEl) statusEl.textContent = s('js.status.unreadable');
     if (errorBody) {
-      errorBody.textContent = `“${file.name}” could not be opened as a spreadsheet.`;
+      errorBody.textContent = s('js.error.unreadable.body', { file: file.name });
     }
     if (errorHint) {
-      errorHint.textContent = 'Export it as .xlsx and try again.';
+      errorHint.textContent = s('js.error.unreadable.hint');
     }
     resetDiag();
     showState('error');
@@ -157,7 +163,7 @@ async function handleFile(file: File) {
     : workbook.SheetNames[0];
   const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
   if (!sheet || !sheetName) {
-    fail('(no sheet)');
+    fail(s('js.status.noSheet'));
     return;
   }
 
@@ -220,7 +226,7 @@ if (copyBtn) {
     // min-width for the duration, which matters on a page whose whole
     // premise is that nothing moves when you interact with it.
     void copyWithFeedback(current.markdown, copyBtn, {
-      label: 'Copied',
+      label: s('js.copied'),
       copiedClass: 'brutal-btn--copied',
     });
   });

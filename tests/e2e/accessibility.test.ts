@@ -168,6 +168,16 @@ const PAGES: A11yPage[] = [
     path: '/hub/tools/information-request-list-extractor/',
     waitFor: 'h1',
   },
+  {
+    name: 'IRL Extractor (es)',
+    path: '/es/hub/tools/information-request-list-extractor/',
+    waitFor: 'h1',
+  },
+  {
+    name: 'IRL Extractor (pt-BR)',
+    path: '/pt/hub/tools/information-request-list-extractor/',
+    waitFor: 'h1',
+  },
   { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
   { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
   { name: 'ICG (es)', path: '/es/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
