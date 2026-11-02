@@ -31,7 +31,7 @@
  * conditions in the doc. A copy BELOW the floor is the security failure and
  * fails here; a missing package is a dead entry and fails here too.
  *
- * Scope: flat string overrides (`"qs": "6.16.0"`) govern every copy of that
+ * Scope: flat string overrides (`"qs": "6.17.1"`) govern every copy of that
  * name anywhere in the tree. Scoped overrides (`"@lhci/cli": { "tmp": … }`)
  * govern the copy each copy of the parent actually resolves (Node's
  * node_modules walk-up), not every copy of that name; the `"."` key names
