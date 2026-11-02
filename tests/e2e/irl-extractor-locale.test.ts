@@ -221,7 +221,11 @@ for (const { prefix, lang, decimal, ui } of LOCALES) {
         await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
         const boxes = await page.evaluate(() => {
           const rect = (id: string) => document.getElementById(id)!.getBoundingClientRect();
-          const status = rect('irl-ext-status');
+          // The text, not the element: flex keeps the element's box clear of the
+          // buttons even while the text inside it overflows onto them.
+          const range = document.createRange();
+          range.selectNodeContents(document.getElementById('irl-ext-status')!);
+          const status = range.getBoundingClientRect();
           const copy = rect('irl-ext-copy');
           return {
             beside: status.right <= copy.left,
