@@ -1550,13 +1550,13 @@ const SCRIPT_STRINGS = Object.fromEntries(SCRIPT_STRING_KEYS.map((key) => [key, 
     font-size: var(--text-sm);
   }
 
-  .tp-cross-link a {
+  .tp-cross-link :global(a) {
     color: var(--color-primary);
     text-decoration: none;
     font-weight: var(--font-weight-bold);
   }
 
-  .tp-cross-link a:hover {
+  .tp-cross-link :global(a:hover) {
     text-decoration: underline;
   }
 

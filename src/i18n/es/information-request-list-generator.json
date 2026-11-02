@@ -12,6 +12,7 @@
   "intro.workbook": "Genere un <strong>libro .xlsx</strong> estructurado que los destinatarios pueden diligenciar celda por celda y devolver por correo. El libro refleja la Information Request List canónica de GST: una sección por cada carpeta de la sala de datos virtual (VDR), con todos los insumos que las herramientas de GST necesitan para ejecutar el proyecto. Elija qué secciones incluir y agregue abajo sus propias solicitudes específicas del proyecto.",
   "intro.status": "Cada fila de solicitud incluye una celda de <strong>Estado</strong> (OPEN / PARTIAL / CLOSED) para que los socios y los destinatarios sigan el avance de un vistazo. Todas las filas vienen con <code>OPEN</code>; cámbielo a <code>PARTIAL</code> (crema) o <code>CLOSED</code> (verde) a medida que lleguen las respuestas.",
   "intro.reference": "Contenido de referencia: <a href=\"{irlHref}\" hreflang=\"en\">Information Request List</a> en la Biblioteca. La taxonomía de secciones refleja la <a href=\"{vdrHref}\" hreflang=\"en\">VDR Structure Guide</a> canónica de GST, de modo que una IRL diligenciada corresponde una a una con las carpetas que el respondiente ya mantiene.",
+  "notice.referencesEnglish": "Las referencias de la Biblioteca solo están disponibles en inglés.",
   "form.optional": "(opcional)",
   "form.companyName": "Nombre de la empresa solicitante",
   "form.companyPlaceholder": "p. ej., Global Strategic Technologies",

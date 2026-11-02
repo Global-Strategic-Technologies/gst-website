@@ -8,6 +8,9 @@
  */
 import { WEB_PROMPT_ARG_CEILING } from '../../utils/irl/extract-markdown.mjs';
 import type { ExtractIrlMarkdownResult } from '../../utils/irl/extract-markdown.mjs';
+import { formatNumber, formatPlain, pluralKey } from '../../i18n/formatters';
+import { pageLang } from '../tool-strings';
+import { s } from './strings';
 
 /** What the page renders for a workbook that converted to at least one row. */
 export interface ExtractionSummary {
@@ -36,31 +39,38 @@ export function summarizeExtraction(
   // Two advisories, neither of them an error. An unfilled template converts
   // successfully into a body of `<NO RESPONSE>` rows — the CLI does the same
   // — so the honest signal is "nothing here is answered yet", not a failure.
+  const lang = pageLang();
   const unanswered = result.markdown.split('— <NO RESPONSE>').length - 1;
   let advisory: string | null = null;
   if (unanswered === result.bulletCount) {
-    advisory =
-      `All ${result.bulletCount} rows are unanswered, so this looks like a template that has ` +
-      'not been filled in yet. It converted, but there is nothing in it to sweep.';
+    advisory = s(`js.advisory.unanswered.${pluralKey(result.bulletCount, lang)}`, {
+      count: formatPlain(result.bulletCount, lang),
+    });
   } else if (byteLength > WEB_PROMPT_ARG_CEILING) {
-    advisory =
-      `${byteLength.toLocaleString()} bytes exceeds the ` +
-      `~${WEB_PROMPT_ARG_CEILING.toLocaleString('en-US')}-byte ceiling for a ` +
-      'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
+    advisory = s('js.advisory.ceiling', {
+      bytes: formatNumber(byteLength, lang),
+      ceiling: formatNumber(WEB_PROMPT_ARG_CEILING, lang),
+    });
   }
 
   return {
     filename: fileName.replace(/\.xlsx$/i, '') + '.md',
-    status:
-      `Read “${sheetName}”: ${result.bulletCount} ` +
-      `${result.bulletCount === 1 ? 'request' : 'requests'} across ` +
-      `${sections} ${sections === 1 ? 'section' : 'sections'}`,
+    status: s('js.status.read', {
+      sheet: sheetName,
+      requests: s(`js.status.requests.${pluralKey(result.bulletCount, lang)}`, {
+        count: formatPlain(result.bulletCount, lang),
+      }),
+      // pt-BR's plural rules select `one` for 0, which would print "0 seção".
+      sections: s(`js.status.sections.${sections === 0 ? 'other' : pluralKey(sections, lang)}`, {
+        count: formatPlain(sections, lang),
+      }),
+    }),
     diag: {
-      bullets: String(result.bulletCount),
-      sections: sections ? result.sectionsSeen.join(' ') : 'none',
-      bytes: `${kb} KB`,
-      comments: String(result.commentsSourcedAnswers.length),
-      contradictions: String(result.statusContradictions.length),
+      bullets: formatPlain(result.bulletCount, lang),
+      sections: sections ? result.sectionsSeen.join(' ') : s('js.diag.none'),
+      bytes: s('js.diag.bytes', { kb: formatPlain(kb, lang) }),
+      comments: formatPlain(result.commentsSourcedAnswers.length, lang),
+      contradictions: formatPlain(result.statusContradictions.length, lang),
     },
     advisory,
   };
