@@ -37,7 +37,6 @@ interface Props {
 
 const { locale } = Astro.props;
 const { t, tHtml } = useTranslations(locale, 'information-request-list-generator');
-const { t: common } = useTranslations(locale, 'common');
 const { t: tData } = useTranslations(locale, 'information-request-list-generator-data');
 const tDataAny = tData as (key: string) => string;
 const tAny = t as (key: string) => string;
@@ -137,7 +136,7 @@ const CONTEXTS = [
           })}
         />
         {!isEnglish && (
-          <p class="brutal-text-tiny irl-gen__note">{common('notice.contentInEnglish')}</p>
+          <p class="brutal-text-tiny irl-gen__note">{t('notice.referencesEnglish')}</p>
         )}
       </div>
 

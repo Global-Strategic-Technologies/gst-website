@@ -21,7 +21,7 @@
   "diag.bullets": "Solicitações extraídas",
   "diag.sections": "Seções encontradas",
   "diag.bytes": "Tamanho do corpo",
-  "diag.comments": "Respostas vindas de Comments",
+  "diag.comments": "Respostas vindas de Comentários",
   "diag.contradictions": "Contradições de status",
   "out.label": "02 / Markdown canônico",
   "out.waiting": "Aguardando uma planilha",
@@ -56,8 +56,8 @@
   "js.error.unreadable.hint": "Exporte-o como .xlsx e tente novamente.",
   "js.diag.none": "nenhuma",
   "js.diag.bytes": "{kb} KB",
-  "js.advisory.unanswered.one": "A única linha está sem resposta, então parece um modelo ainda não preenchido. Foi convertido, mas não há nada para varrer.",
-  "js.advisory.unanswered.other": "As {count} linhas estão sem resposta, então parece um modelo ainda não preenchido. Foi convertido, mas não há nada para varrer.",
+  "js.advisory.unanswered.one": "A única linha está sem resposta, então parece um modelo ainda não preenchido. Foi convertido, mas não há nada para a varredura.",
+  "js.advisory.unanswered.other": "As {count} linhas estão sem resposta, então parece um modelo ainda não preenchido. Foi convertido, mas não há nada para a varredura.",
   "js.advisory.ceiling": "{bytes} bytes excedem o limite de ~{ceiling} bytes de um argumento de prompt no claude.ai web. O corpo continua válido; cole-o no app para desktop.",
   "js.copied": "Copiado"
 }

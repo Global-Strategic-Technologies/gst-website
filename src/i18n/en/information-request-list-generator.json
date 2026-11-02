@@ -12,6 +12,7 @@
   "intro.workbook": "Generate a structured <strong>.xlsx workbook</strong> recipients can fill in cell-by-cell and email back. The workbook mirrors the GST canonical Information Request List — one section per VDR folder, covering every input GST tools need to execute the engagement. Choose which sections to include and add your own engagement-specific requests below.",
   "intro.status": "Each request row carries a <strong>Status</strong> cell (OPEN / PARTIAL / CLOSED) so partners and recipients can track progress at a glance. Pre-filled <code>OPEN</code> on every row; promote to <code>PARTIAL</code> (cream) or <code>CLOSED</code> (green) as answers land.",
   "intro.reference": "Reference content: <a href=\"{irlHref}\" hreflang=\"en\">Information Request List</a> in the Library. The section taxonomy mirrors GST's canonical <a href=\"{vdrHref}\" hreflang=\"en\">VDR Structure Guide</a>, so a filled IRL maps one-to-one to the folders the responder already maintains.",
+  "notice.referencesEnglish": "The Library references are available in English only.",
   "form.optional": "(optional)",
   "form.companyName": "Requesting company name",
   "form.companyPlaceholder": "e.g., Global Strategic Technologies",

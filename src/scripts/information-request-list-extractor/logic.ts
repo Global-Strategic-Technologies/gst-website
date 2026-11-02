@@ -60,7 +60,8 @@ export function summarizeExtraction(
       requests: s(`js.status.requests.${pluralKey(result.bulletCount, lang)}`, {
         count: formatPlain(result.bulletCount, lang),
       }),
-      sections: s(`js.status.sections.${pluralKey(sections, lang)}`, {
+      // pt-BR's plural rules select `one` for 0, which would print "0 seção".
+      sections: s(`js.status.sections.${sections === 0 ? 'other' : pluralKey(sections, lang)}`, {
         count: formatPlain(sections, lang),
       }),
     }),

@@ -66,6 +66,11 @@ describe.each([
     expect(summarizeExtraction(result(), 'IRL', 'a.xlsx').status).toBe(status);
   });
 
+  it('uses the plural for zero sections, whatever the language rules say', () => {
+    const { status } = summarizeExtraction(result({ sectionsSeen: [] }), 'IRL', 'a.xlsx');
+    expect(status).toContain(catalog(code)['js.status.sections.other'].replace('{count}', '0'));
+  });
+
   it('translates "none" and writes the size with a decimal comma', () => {
     const { diag } = summarizeExtraction(result({ sectionsSeen: [] }), 'IRL', 'a.xlsx');
     expect(diag.sections).toBe(none);
@@ -112,7 +117,7 @@ describe('IRL Extractor strings — the English page', () => {
 });
 
 describe('IRL Extractor strings — the island keys', () => {
-  it('finds script keys, so the parity cases above are not vacuous', () => {
+  it('binds the script keys, and only the script keys, to the island', () => {
     expect(SCRIPT_STRING_KEYS).toContain('js.status.read');
     expect(SCRIPT_STRING_KEYS.every((key) => key.startsWith('js.'))).toBe(true);
   });

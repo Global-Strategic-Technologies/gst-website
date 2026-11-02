@@ -207,6 +207,33 @@ for (const { prefix, lang, decimal, ui } of LOCALES) {
       expect(after.cards.top).toBeCloseTo(before.cards.top, 0);
     });
 
+    // Beside the buttons the status had too little room at 1100px: it wrapped
+    // to four lines, moved the markdown box, and an unbroken sheet name ran over
+    // the buttons. 31 characters is Excel's own limit for a sheet name.
+    for (const width of [1030, 1100, 1280, 1281, 1400]) {
+      test(`at ${width}px a long sheet name stays clear of the buttons`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoTool(page, url);
+        const bodyTop = () =>
+          page.locator('.irl-ext__body').evaluate((el) => el.getBoundingClientRect().top);
+        const before = await bodyTop();
+        await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS, 'X'.repeat(31)));
+        await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+        const boxes = await page.evaluate(() => {
+          const rect = (id: string) => document.getElementById(id)!.getBoundingClientRect();
+          const status = rect('irl-ext-status');
+          const copy = rect('irl-ext-copy');
+          return {
+            beside: status.right <= copy.left,
+            above: status.bottom <= copy.top,
+          };
+        });
+        expect(boxes.beside || boxes.above).toBe(true);
+        // The sentence fits the two reserved lines, so the box below does not move.
+        expect(await bodyTop()).toBeCloseTo(before, 0);
+      });
+    }
+
     test('the status line shows in full', async ({ page }) => {
       await gotoTool(page, url);
       await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));

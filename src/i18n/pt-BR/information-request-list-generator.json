@@ -12,6 +12,7 @@
   "intro.workbook": "Gere uma <strong>planilha .xlsx</strong> estruturada que os destinatários podem preencher célula por célula e devolver por e-mail. A planilha espelha a Information Request List canônica da GST — uma seção por pasta do data room virtual (VDR), cobrindo todas as informações de que as ferramentas da GST precisam para executar o projeto. Escolha quais seções incluir e adicione abaixo suas próprias solicitações específicas do projeto.",
   "intro.status": "Cada linha de solicitação traz uma célula de <strong>Status</strong> (OPEN / PARTIAL / CLOSED) para que sócios e destinatários acompanhem o progresso rapidamente. Todas as linhas vêm preenchidas com <code>OPEN</code>; altere para <code>PARTIAL</code> (creme) ou <code>CLOSED</code> (verde) à medida que as respostas chegam.",
   "intro.reference": "Conteúdo de referência: <a href=\"{irlHref}\" hreflang=\"en\">Information Request List</a>, na Biblioteca. A taxonomia das seções espelha o <a href=\"{vdrHref}\" hreflang=\"en\">VDR Structure Guide</a> canônico da GST, de modo que uma IRL preenchida corresponde, uma a uma, às pastas que o respondente já mantém.",
+  "notice.referencesEnglish": "As referências da Biblioteca estão disponíveis apenas em inglês.",
   "form.optional": "(opcional)",
   "form.companyName": "Nome da empresa solicitante",
   "form.companyPlaceholder": "ex.: Global Strategic Technologies",

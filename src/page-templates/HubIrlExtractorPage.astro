@@ -8,8 +8,9 @@
  * catalog; the client script's strings travel in the `data-irl-ext-strings`
  * island at the bottom. The markdown the page produces is NOT translated: its
  * labels are the grammar the sweep and extraction prompts read, and it must stay
- * byte-identical to the operator CLI (ADR-0025). Hooks (`id`, `class`, `data-*`)
- * are untouched: the script and the E2E suite read them.
+ * byte-identical to the operator CLI (ADR-0025). The `id` and `data-*` hooks and
+ * the page's classes are what the script and the E2E suite read; catalog links
+ * carry no class, so they are styled with `:global(a)`.
  *
  * Literals that stay: the tool name (a product name), "GST", the site URL.
  * `knowsAbout` in the JSON-LD stays an English literal —
@@ -583,10 +584,13 @@ const SCRIPT_STRINGS = isEnglish
 
   /* Wraps rather than truncates: an ellipsis cut the section count off the
      sentence in every locale. Two lines are reserved so a result arriving does
-     not move the markdown box below it; a very long sheet name can still add a
-     third line, which only shortens that box. */
+     not move the markdown box below it. A sheet name is free text, up to Excel's
+     31 characters with no spaces, so it may break anywhere; where the head is
+     too narrow to hold the sentence beside the buttons, the media query below
+     stacks them. */
   .irl-ext__status {
     min-height: 2lh;
+    overflow-wrap: anywhere;
     font-size: var(--text-xs);
     color: var(--text-muted);
   }
@@ -804,6 +808,17 @@ const SCRIPT_STRINGS = isEnglish
   }
 
   /* ── responsive ─────────────────────────────────────────────────── */
+
+  /* Two panels side by side, and the output column too narrow for the status
+     beside the buttons: at 1100px it wrapped to four lines and moved the
+     markdown box. At 1024 and below the panels stack and the column is wide
+     again. */
+  @media (min-width: 1025px) and (max-width: 1280px) {
+    .irl-ext__outhead {
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+  }
 
   @media (max-width: 1024px) {
     .irl-ext__shell {
