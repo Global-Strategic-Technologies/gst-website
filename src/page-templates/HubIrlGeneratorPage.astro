@@ -136,7 +136,9 @@ const CONTEXTS = [
             vdrHref: '/hub/library/vdr-structure/',
           })}
         />
-        {!isEnglish && <p class="brutal-text-tiny">{common('notice.contentInEnglish')}</p>}
+        {!isEnglish && (
+          <p class="brutal-text-tiny irl-gen__note">{common('notice.contentInEnglish')}</p>
+        )}
       </div>
 
       <form id="irl-gen-form" class="irl-gen__form">
@@ -355,20 +357,24 @@ const CONTEXTS = [
     margin: 0 auto var(--spacing-3xl);
   }
 
-  .irl-gen__intro p {
+  .irl-gen__intro p:not(.irl-gen__note) {
     font-size: var(--text-base);
     line-height: 1.7;
     color: var(--text-secondary);
   }
 
-  .irl-gen__intro a {
+  .irl-gen__note {
+    margin-top: var(--spacing-md);
+  }
+
+  .irl-gen__intro :global(a) {
     color: var(--color-primary);
     text-decoration: none;
     border-bottom: 1px solid currentColor;
     transition: color var(--transition-fast);
   }
 
-  .irl-gen__intro a:hover {
+  .irl-gen__intro :global(a:hover) {
     color: var(--color-primary-dark);
   }
 

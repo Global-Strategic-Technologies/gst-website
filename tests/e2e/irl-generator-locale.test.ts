@@ -38,6 +38,19 @@ async function gotoTool(page: Page, url: string): Promise<void> {
   });
 }
 
+test('the English-content note renders tiny, not at body size', async ({ page }) => {
+  await gotoTool(page, '/es/hub/tools/information-request-list-generator/');
+  const note = await page.locator('.irl-gen__note').evaluate((n) => {
+    const probe = document.createElement('span');
+    probe.style.fontSize = 'var(--text-xs)';
+    document.body.append(probe);
+    const tiny = getComputedStyle(probe).fontSize;
+    probe.remove();
+    return { size: getComputedStyle(n).fontSize, tiny };
+  });
+  expect(note.size).toBe(note.tiny);
+});
+
 for (const { prefix, lang, ui, data } of LOCALES) {
   test.describe(`IRL Generator (${lang})`, () => {
     const url = `${prefix}/hub/tools/information-request-list-generator/`;
@@ -83,6 +96,26 @@ for (const { prefix, lang, ui, data } of LOCALES) {
       expect(first?.[1]).toBe(data['req.00-01']);
       expect(first?.[2]).toBe('OPEN');
       await expect(page.locator('#irl-gen-status')).toContainText('GST-IRL-Acme-');
+    });
+
+    // The intro's link comes from the catalog through set:html, which carries no
+    // Astro scope attribute, so a plain scoped `a` selector silently misses it.
+    test('the intro link keeps the page styling', async ({ page }) => {
+      await gotoTool(page, url);
+      const link = await page
+        .locator('.irl-gen__intro a')
+        .first()
+        .evaluate((a) => {
+          const probe = document.createElement('span');
+          probe.style.color = 'var(--color-primary)';
+          document.body.append(probe);
+          const primary = getComputedStyle(probe).color;
+          probe.remove();
+          const style = getComputedStyle(a);
+          return { color: style.color, primary, border: style.borderBottomWidth };
+        });
+      expect(link.color).toBe(link.primary);
+      expect(link.border).toBe('1px');
     });
 
     test('the MCP page links to the same-locale generator', async ({ page }) => {
