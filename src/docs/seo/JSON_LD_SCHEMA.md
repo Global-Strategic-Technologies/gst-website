@@ -534,8 +534,9 @@ constant inside the helper.
 
 | Field | Value |
 |-------|-------|
-| **File** | `src/pages/hub/tools/information-request-list-extractor/index.astro` |
+| **File** | `src/page-templates/HubIrlExtractorPage.astro` (route wrapper `src/pages/hub/tools/information-request-list-extractor/index.astro`); `inLanguage` from the page locale |
 | **datePublished** | 2026-08-30 |
+| **dateModified** | 2026-11-02 |
 | **featureList** | Filled .xlsx converted to canonical markdown client-side, Byte-identical to the operator extractor for the same workbook, Answered rows carried across verbatim with status and sourcing, Workbook never leaves the browser |
 | **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
 
