@@ -558,6 +558,10 @@ The base and override configs both register `layer` as an allowed at-rule (`at-r
 
 **No CSS under `src/styles` uses the at-rule.** This section previously described a live `@layer reset, tokens, utilities, components, theme, overrides;` scheme; no such scheme exists, and the cascade is plain source order throughout. That matters — source order at equal specificity is exactly what made `.container`'s responsive gutter rules sit dead in `components/buttons.css` for months, shadowed by the base rule that `global.css` declares after importing it. Introducing layers would be a real architectural decision needing its own ADR; permitting the at-rule in lint config is not that decision.
 
+### `:global()` is allowed only in `.astro`
+
+`selector-pseudo-class-no-unknown` ignores `global` in the `.astro` override only. Astro compiles `:global()` away inside a `<style>` block, but in a plain `.css` file it reaches the browser as an unknown pseudo-class, and the browser drops the whole rule. The base config used to ignore it too, so three `.brutal-faq__answer` rules in `cards.css` shipped dead from at least April 2026 until 2026-11-03: the only signal was a minify warning in the build log. Two came back as they were written, for paragraph spacing. The third, which would have made FAQ links teal and underlined, was deleted: they follow the site-wide link rule in `global.css`.
+
 ### Complexity rules in the `.astro` override
 
 Phase 3 commit 0c enabled a tighter complexity rule set in the `.astro` override only. These rules are too noisy for legacy `global.css` but are cheap wins in naturally bounded scoped blocks:
@@ -703,11 +707,11 @@ These rules are configured externally in Sentry's UI, not in code. This table us
 Source maps enable readable stack traces in Sentry. The `sentry()` integration is conditionally included in `astro.config.mjs` — only when `SENTRY_AUTH_TOKEN` is present. This means local builds and CI have zero Sentry overhead.
 
 When the token is set (Vercel production), `@sentry/astro` automatically:
-- Enables `sourcemap: 'hidden'` for the server build
+- Enables `sourcemap: 'hidden'` for every build
 - Detects Vercel output directories (`{.vercel,dist}/**/*`)
-- Uploads maps and deletes them after upload
+- Uploads the maps and deletes the client ones
 
-**`vite.build.sourcemap: 'hidden'`** is set explicitly in user config because Astro's client build doesn't pick up integration config changes (only server build does). This ensures both client and server maps are generated.
+**Never set `vite.build.sourcemap` in `astro.config.mjs`.** The integration only deletes maps it enabled itself, so an explicit value leaves them in the output. That setting stood from April 2026 until 2026-11-03, on the belief that Astro's client build ignored the integration's config, which it does not, and production served every client `.map` publicly. A unit test now fails if the setting returns. `silent: true` hides upload and delete failures from the build log, so verify in production: a `.js.map` URL returns 404, and the release has its bundles under [Source Maps](https://gst-7o.sentry.io/settings/projects/gst-website/source-maps/) (126 and 30 files on 2026-11-03). Builds without the token generate no maps at all.
 
 **Telemetry**: Disabled (`telemetry: false`).
 
