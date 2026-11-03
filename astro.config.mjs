@@ -98,8 +98,9 @@ export default defineConfig({
   },
   integrations: [
     // Sentry: source maps, error tracking. Only active when SENTRY_AUTH_TOKEN is set
-    // (Vercel production). @sentry/astro auto-enables sourcemap:'hidden', auto-detects
-    // Vercel output dirs, and auto-deletes .map files after upload.
+    // (Vercel production). @sentry/astro generates hidden maps, uploads them and deletes
+    // the client ones. It only deletes maps it enabled itself, so never set
+    // `vite.build.sourcemap`: production would serve them publicly.
     ...(process.env.SENTRY_AUTH_TOKEN
       ? [
           sentry({
@@ -111,7 +112,7 @@ export default defineConfig({
             // output, including "no sourcemap found" warnings for Astro's
             // inline script chunks. These chunks don't go through Vite's
             // bundler so no .map files exist — the warnings are expected
-            // and not actionable. Errors are still reported to Sentry.
+            // and not actionable. It hides upload failures from the log too.
             silent: true,
           }),
         ]
@@ -144,14 +145,6 @@ export default defineConfig({
       // discover them lazily during page load. Without this, the optimizer
       // may re-run mid-session and serve 504 "Outdated Optimize Dep" errors.
       include: ['d3-geo', 'd3-selection', 'd3-zoom', 'd3-transition', 'topojson-client'],
-    },
-    build: {
-      // Sentry source maps. 'hidden' generates .map files without adding
-      // sourceMappingURL to output JS (browsers don't request them).
-      // @sentry/astro auto-enables this for the server build, but Astro's
-      // client build ignores integration updateConfig — explicit config here
-      // ensures both builds generate maps. Sentry auto-deletes after upload.
-      sourcemap: 'hidden',
     },
     css: {
       // LightningCSS replaces esbuild for CSS: autoprefixing, minification,

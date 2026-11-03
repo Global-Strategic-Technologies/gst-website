@@ -35,15 +35,17 @@ Source maps give Sentry readable stack traces instead of minified code. The uplo
 
 4. **Trigger a production deploy** to verify
    - Push to `master` or trigger a manual deploy
-   - Check the Vercel build logs for: `Uploading source maps...`
-   - If it says `Source maps upload is disabled` the env vars aren't being read
+   - The Vercel build log says nothing about the upload, because `silent: true` in `astro.config.mjs` hides it
 
 5. **Verify in Sentry**
-   - Go to Sentry → Releases → click the latest release
-   - Under "Artifacts" you should see `.js.map` files
+   - Go to Sentry → Settings → Projects → `gst-website` → Source Maps
+   - The latest release should have two bundles, from the SSR and client builds
+   - Request a deployed script's URL with `.map` added: it should return 404, because the maps are deleted after upload
    - Trigger a test error — the stack trace should show original TypeScript, not minified JS
 
 ### Troubleshooting
+
+`silent: true` hides the plugin's messages below. To see them, set it to `false` temporarily and run a production build.
 
 - **"Didn't find any matching sources for debug ID upload"**: This is almost always a symptom of an auth failure (401), not a missing config. The Sentry Vite plugin injects debug IDs during the build and writes source maps to a temp directory — if auth fails, the upload step can't run, and the plugin reports "no matching sources" as a secondary warning. Fix the auth token and this warning resolves.
 - **"Authentication required" or 401 error in build**: The auth token is invalid, expired, or missing. Generate a new Organization Token at sentry.io → Settings → Developer Settings → Organization Tokens.
