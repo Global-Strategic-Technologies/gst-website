@@ -79,6 +79,18 @@ scoped CSS of the real Header from the chrome cards.
 Nothing breaks loudly when this is skipped — the design system just quietly goes stale, so
 treat a class rename as a re-sync trigger.
 
+### The other mirror: `gst-branding`
+
+The [gst-branding](https://github.com/Global-Strategic-Technologies/gst-branding) repo also
+publishes these four docs and the brand assets (`public/favicon.svg`, the install icons, the
+palette tab icons, the OG image and others). Its weekly **Design-system drift check** fails
+when any of them differs from `master` here. Nothing in this repo reports that, so the
+failure surfaces only as a Monday email. After changing them, or when that email arrives,
+re-mirror in `gst-branding` and record it in its `CHANGELOG.md`. Its
+`scripts/sync-from-website.sh` does the full sync, and its workflow lists exactly what is
+compared. The check does not cover `design-system/`, which `design-system/SOURCE.json`
+records separately.
+
 ## How to re-sync
 
 Invoke the `/design-sync` skill in Claude Code from the repo root. It reads

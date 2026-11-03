@@ -31,7 +31,7 @@
  * conditions in the doc. A copy BELOW the floor is the security failure and
  * fails here; a missing package is a dead entry and fails here too.
  *
- * Scope: flat string overrides (`"qs": "6.16.0"`) govern every copy of that
+ * Scope: flat string overrides (`"qs": "6.17.1"`) govern every copy of that
  * name anywhere in the tree. Scoped overrides (`"@lhci/cli": { "tmp": … }`)
  * govern the copy each copy of the parent actually resolves (Node's
  * node_modules walk-up), not every copy of that name; the `"."` key names
@@ -143,11 +143,12 @@ describe('package.json overrides are honoured by package-lock.json', () => {
         .filter((c): c is { path: string; version: string } => c !== null);
       expect(governed.length, `${child} under ${parent}: not in the lockfile`).toBeGreaterThan(0);
       expectAtOrAboveFloor(governed, floor);
-      // A scoped override patches inside the parent's pinned major. If npm
+      // A scoped override chooses a major, usually the parent's own (lhci's
+      // `uuid` and the `glob` pair go above it, and were tested there). If npm
       // DROPS the nested copy (it does, for `miniflare → undici`, on an
       // incremental `--package-lock-only` while a root `undici@8` exists), the
       // parent resolves the root copy instead — above the floor, so the check
-      // above passes, but on a major the parent never declared.
+      // above passes, but on a major nobody chose.
       // Blunt by design: it compares the leading number only, so a 0.x pin
       // (lhci's `tmp`) would accept a 0.y copy that semver treats as breaking.
       for (const { path, version } of governed) {
