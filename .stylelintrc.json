@@ -37,12 +37,7 @@
     "at-rule-empty-line-before": null,
     "declaration-empty-line-before": null,
     "custom-property-empty-line-before": null,
-    "selector-pseudo-class-no-unknown": [
-      true,
-      {
-        "ignorePseudoClasses": ["global"]
-      }
-    ],
+    "selector-pseudo-class-no-unknown": true,
     "at-rule-no-unknown": [
       true,
       {

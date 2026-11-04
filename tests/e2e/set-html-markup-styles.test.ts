@@ -50,3 +50,35 @@ test('TechPar: the script-built cross-link takes the brand colour', async ({ pag
   const { actual, expected } = await colorAgainst(page, '.tp-cross-link a', '--color-primary');
   expect(actual).toBe(expected);
 });
+
+// Not a scoping case, and here for the same symptom: `:global()` in a plain .css
+// file reached the browser as an unknown pseudo-class, which drops the rule.
+test('FAQ answers: paragraphs are spaced and the last one sits flush', async ({ page }) => {
+  await page.goto('/services/', { waitUntil: 'load' });
+  const margins = await page
+    .locator('.brutal-faq__answer')
+    .first()
+    .evaluate((box) => {
+      box.innerHTML = '<p>one</p><p>two</p>';
+      const [first, last] = [...box.querySelectorAll('p')].map(
+        (el) => getComputedStyle(el).marginBottom
+      );
+      return { first, last };
+    });
+  expect(parseFloat(margins.first)).toBeGreaterThan(0);
+  expect(margins.last).toBe('0px');
+});
+
+// By decision (2026-11-03): FAQ links follow the site-wide link rule in
+// global.css, ink at rest and brand teal on hover, with no underline of their own.
+for (const path of ['/services/', '/hub/', '/hub/tools/regulatory-map/']) {
+  test(`FAQ answers on ${path}: a link keeps the site's link colour`, async ({ page }) => {
+    await page.goto(path, { waitUntil: 'load' });
+    const { actual, expected } = await colorAgainst(
+      page,
+      '.brutal-faq__answer a',
+      '--color-secondary-ink'
+    );
+    expect(actual).toBe(expected);
+  });
+}
