@@ -24,7 +24,6 @@ const LOCALES = [
   isEnglish: l.lang === 'en',
   ma: read(l.lang, 'ma-portfolio'),
   lib: read(l.lang, 'hub-library'),
-  hub: read(l.lang, 'hub'),
   common: read(l.lang, 'common'),
 }));
 
@@ -113,6 +112,10 @@ for (const { prefix, lang, isEnglish, ma, lib } of LOCALES) {
         )}`
       );
       await expect(page.getByTestId('project-modal-summary')).toHaveText(FIRST.summary);
+      for (const id of ['project-modal-title', 'project-modal-summary']) {
+        if (isEnglish) await expect(page.getByTestId(id)).not.toHaveAttribute('lang', /.*/);
+        else await expect(page.getByTestId(id)).toHaveAttribute('lang', 'en');
+      }
       await expect(page.locator('#portfolio-labels')).toHaveCount(isEnglish ? 0 : 1);
     });
 
@@ -158,10 +161,11 @@ for (const { prefix, lang, isEnglish, ma, lib } of LOCALES) {
     });
 
     test('the page title stays inside its box beside the controls', async ({ page }) => {
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      await page.evaluate(() => document.fonts.ready);
       for (const width of [1440, 1100, 1025, 768, 480, 360]) {
         await page.setViewportSize({ width, height: 800 });
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
-        await page.evaluate(() => document.fonts.ready);
+        await page.waitForFunction((w) => document.documentElement.clientWidth <= w, width);
         const fit = await page.evaluate(() => {
           const title = document.querySelector<HTMLElement>('.portfolio-title')!;
           const range = document.createRange();
@@ -191,17 +195,22 @@ for (const { prefix, lang, isEnglish, ma, lib } of LOCALES) {
     test('bullets and CTAs translate while titles and article links stay English', async ({
       page,
     }) => {
-      await page.goto(url);
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('html')).toHaveAttribute('lang', lang);
       await expect(page.locator('h1')).toHaveText(lib['header.title']);
 
       const cards = page.locator('.brutal-gateway-card');
-      await expect(cards.first().locator('h2')).toHaveText('Business & Technology Architectures');
+      const title = cards.first().locator('h2');
+      await expect(title).toHaveText('Business & Technology Architectures');
+      if (isEnglish) await expect(title).not.toHaveAttribute('lang', /.*/);
+      else await expect(title).toHaveAttribute('lang', 'en');
       await expect(cards.first().locator('li').first()).toHaveText(lib['architectures.feature1']);
 
       const cta = cards.first().locator('.brutal-gateway-card__cta');
       await expect(cta).toHaveText(lib['architectures.cta']);
       await expect(cta).toHaveAttribute('href', '/hub/library/business-architectures/');
+      // Analytics payloads stay English in every locale.
+      await expect(cta).toHaveAttribute('onclick', "trackCTA('resource-article', 'library')");
       if (isEnglish) {
         await expect(cta).not.toHaveAttribute('hreflang', /.*/);
       } else {
@@ -209,10 +218,9 @@ for (const { prefix, lang, isEnglish, ma, lib } of LOCALES) {
       }
 
       await expect(page.locator('.library-notice')).toHaveCount(isEnglish ? 0 : 1);
-      await expect(page.locator('.library-section > .container > a.cta-button')).toHaveAttribute(
-        'href',
-        `${prefix}/hub/`
-      );
+      const back = page.locator('.library-section > .container > a.cta-button');
+      await expect(back).toHaveAttribute('href', `${prefix}/hub/`);
+      await expect(back).toHaveAttribute('onclick', "trackNavigation('/hub', 'Return to Hub')");
     });
   });
 }
@@ -221,17 +229,17 @@ test('English chips keep their order, and Spanish chips sort by their translated
   page,
 }) => {
   const values = [...new Set(PROJECTS.map((p) => p.theme))];
-  const read = async () =>
+  const chipTexts = async () =>
     (await page.locator('#theme-chips .filter-chip:not([data-value="all"])').allTextContents()).map(
       (s) => s.trim()
     );
 
   await gotoPortfolio(page);
-  expect(await read()).toEqual([...values].sort());
+  expect(await chipTexts()).toEqual([...values].sort());
 
   await gotoPortfolio(page, '/es');
   const collator = new Intl.Collator('es-CO');
-  expect(await read()).toEqual(
+  expect(await chipTexts()).toEqual(
     values.map((v) => labelOf(ES.ma, 'theme', v)).sort((a, b) => collator.compare(a, b))
   );
 });
@@ -258,7 +266,7 @@ test('the open modal passes axe on the Spanish page', async ({ page }) => {
 test('registering the library takes its English-only line off the /es/hub/ card only', async ({
   page,
 }) => {
-  await page.goto('/es/hub/');
+  await page.goto('/es/hub/', { waitUntil: 'domcontentloaded' });
   const library = page.locator('a.hub-card[href="/es/hub/library/"]');
   await expect(library).toBeVisible();
   await expect(library).not.toHaveAttribute('hreflang', /.*/);
@@ -270,7 +278,7 @@ test('registering the library takes its English-only line off the /es/hub/ card 
 });
 
 test('the MCP page links to the same-locale portfolio', async ({ page }) => {
-  await page.goto('/es/hub/mcp/');
+  await page.goto('/es/hub/mcp/', { waitUntil: 'domcontentloaded' });
   const link = page.locator('a.mcp-catalog__try[href="/es/ma-portfolio/"]');
   await expect(link).toHaveCount(1);
   await expect(link).not.toHaveAttribute('hreflang', /.*/);
