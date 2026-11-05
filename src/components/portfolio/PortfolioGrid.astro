@@ -1,13 +1,21 @@
 ---
 import type { Project } from '../../types/portfolio';
 import ProjectModal from './ProjectModal.astro';
+import { isDefaultLocale, type Locale } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/t';
+import { portfolioLabeler } from '../../lib/portfolio-labels';
 import '../../styles/components/portfolio.css';
 
 interface Props {
   projects: Project[];
+  locale: Locale;
 }
 
-const { projects } = Astro.props;
+const { projects, locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
+const label = portfolioLabeler(locale);
+// Entry text stays English on a translated page (Tier C).
+const entryLang = isDefaultLocale(locale) ? undefined : 'en';
 ---
 
 <div class="portfolio-grid-container brutal-frosted--blur-only">
@@ -23,30 +31,36 @@ const { projects } = Astro.props;
         >
           <div class="card-header">
             <div>
-              <h3 class="project-title">{project.codeName}</h3>
-              <p class="project-industry">{project.industry}</p>
+              <h3 class="project-title" lang={entryLang}>
+                {project.codeName}
+              </h3>
+              <p class="project-industry" lang={entryLang}>
+                {project.industry}
+              </p>
             </div>
             <div class="year-badge">{project.year}</div>
           </div>
 
           <div class="metrics">
             <div class="metric">
-              <div class="metric-label">ARR</div>
+              <div class="metric-label">{t('grid.arr')}</div>
               <div class="metric-value arr">
                 {project.arr === 'Not in source' ? '--' : project.arr}
               </div>
             </div>
             <div class="metric">
-              <div class="metric-label">Stage</div>
-              <div class="metric-value">{project.growthStage}</div>
+              <div class="metric-label">{t('grid.stage')}</div>
+              <div class="metric-value">{label('stage', project.growthStage)}</div>
             </div>
           </div>
 
-          <p class="summary">{project.summary}</p>
+          <p class="summary" lang={entryLang}>
+            {project.summary}
+          </p>
 
           <div class="tags">
-            <div class="tag theme">{project.theme}</div>
-            <div class="tag engagement">{project.engagementCategory}</div>
+            <div class="tag theme">{label('theme', project.theme)}</div>
+            <div class="tag engagement">{label('category', project.engagementCategory)}</div>
           </div>
         </div>
       ))}
@@ -54,7 +68,7 @@ const { projects } = Astro.props;
   </div>
 
   <!-- Project Details Modal -->
-  <ProjectModal />
+  <ProjectModal locale={locale} />
 </div>
 
 <style>

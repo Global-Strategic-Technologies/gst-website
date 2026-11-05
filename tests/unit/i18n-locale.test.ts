@@ -131,7 +131,7 @@ describe('localizedHref — prefixes registry routes only', () => {
   });
 
   it('returns English-only routes unchanged (Tier C stays English)', () => {
-    expect(localizedHref('/ma-portfolio/', es)).toBe('/ma-portfolio/');
+    expect(localizedHref('/hub/library/vdr-structure/', es)).toBe('/hub/library/vdr-structure/');
     expect(localizedHref('/hub/mcp/using/', ptBR)).toBe('/hub/mcp/using/');
     expect(localizedHref('/hub/mcp/get-started/', es)).toBe('/hub/mcp/get-started/');
     expect(localizedHref('/brand/', es)).toBe('/brand/');
@@ -192,7 +192,7 @@ describe('localizedHrefWithFragment — localizes the path, keeps the fragment',
 describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns a single entry for routes outside the registry', () => {
     expect(alternatesFor('/hub/mcp/get-started/', en)).toEqual([en]);
-    expect(alternatesFor('/ma-portfolio/', es)).toEqual([es]);
+    expect(alternatesFor('/brand/', es)).toEqual([es]);
   });
 
   it('advertises every live locale for a Tier B route', () => {
@@ -202,6 +202,8 @@ describe('alternatesFor — live-only, draft emits nothing', () => {
       '/hub/tools/regulatory-map/',
       '/hub/tools/information-request-list-generator/',
       '/hub/tools/information-request-list-extractor/',
+      '/ma-portfolio/',
+      '/hub/library/',
     ]) {
       expect(alternatesFor(path, en)).toEqual(LOCALES.filter((l) => l.status === 'live'));
     }

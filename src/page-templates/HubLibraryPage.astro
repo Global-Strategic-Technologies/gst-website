@@ -1,0 +1,155 @@
+---
+/**
+ * /hub/library/ in every locale. Rendered by src/pages/hub/library/index.astro
+ * (English) and by src/pages/[locale]/[...route].astro. A Tier B route.
+ *
+ * The articles are Tier C and stay English, so a card's title is the article's
+ * English name in every locale, its CTA carries `hreflang="en"` on a non-English
+ * page, and that page has one `notice.articlesEnglish` line under the header.
+ * The dev-only "Planned" card stays literal: it never ships, so a catalog entry
+ * would be noise.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'hub-library');
+const isEnglish = isDefaultLocale(locale);
+const articleLang = isEnglish ? undefined : 'en';
+const isDev = import.meta.env.DEV;
+
+const articles = [
+  {
+    title: 'Business & Technology Architectures',
+    href: '/hub/library/business-architectures/',
+    features: [
+      t('architectures.feature1'),
+      t('architectures.feature2'),
+      t('architectures.feature3'),
+    ],
+    cta: t('architectures.cta'),
+    track: 'resource-article',
+  },
+  {
+    title: 'Virtual Data Room (VDR) Structure Guide',
+    href: '/hub/library/vdr-structure/',
+    features: [t('vdr.feature1'), t('vdr.feature2'), t('vdr.feature3')],
+    cta: t('vdr.cta'),
+    track: 'resource-guide',
+  },
+  {
+    title: 'Information Request List',
+    href: '/hub/library/information-request-list/',
+    features: [t('irl.feature1'), t('irl.feature2'), t('irl.feature3')],
+    cta: t('irl.cta'),
+    track: 'resource-irl',
+  },
+];
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${localizedHref('/hub/library/', locale)}`}
+>
+  <section class="library-section">
+    <div class="container">
+      <HubHeader title={t('header.title')} subtitle={t('header.subtitle')} locale={locale} />
+
+      {!isEnglish && <p class="library-notice">{t('notice.articlesEnglish')}</p>}
+
+      <div class="brutal-gateway-grid">
+        {articles.map((article) => (
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header">
+              <h2 lang={articleLang}>{article.title}</h2>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              {article.features.map((feature) => (
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={article.href}
+              class="cta-button brutal-gateway-card__cta"
+              hreflang={articleLang}
+              onclick={`trackCTA('${article.track}', 'library')`}
+            >
+              {article.cta}
+            </a>
+          </article>
+        ))}
+
+        {isDev && (
+          <article class="brutal-gateway-card">
+            <div class="brutal-gateway-card__header">
+              <h2>Technology Strategy 101</h2>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Foundational frameworks for aligning technology decisions with business objectives
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Build vs. buy analysis, platform selection, and roadmap prioritization
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Translating technical trade-offs into board-ready language for investors and
+                executives
+              </li>
+            </ul>
+            <span class="brutal-gateway-card__badge">Planned</span>
+          </article>
+        )}
+      </div>
+
+      <a
+        href={localizedHref('/hub/', locale)}
+        class="cta-button"
+        onclick="trackNavigation('/hub', 'Return to Hub')"
+      >
+        {t('back')}
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { trackCTA } from '../utils/analytics';
+  window.trackCTA = trackCTA;
+  // The "Return to Hub" onclick calls `trackNavigation`, which is NOT wired
+  // here: `Header.astro` puts it on `window` and BaseLayout renders that header
+  // on every page. A second assignment here was redundant.
+</script>
+
+<style>
+  .library-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* Tier C notice (BL-153): the articles stay English. */
+  .library-notice {
+    font-size: var(--text-sm);
+    font-family: var(--font-family-mono);
+    font-style: italic;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xl);
+  }
+</style>
