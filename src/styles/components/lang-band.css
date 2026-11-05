@@ -116,7 +116,10 @@ teal-on-near-black pair passes AA.
     font-size: var(--text-xs);
   }
 
+  /* The buttons never wrap their text, so a locale's longer labels need a second
+     row: at 320px "Continuar em português" pushed the page 25px sideways. */
   .lang-band__actions {
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
   }
 
