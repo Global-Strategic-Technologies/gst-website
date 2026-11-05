@@ -239,7 +239,7 @@ surface that works full-bleed, must not obscure the controls that opened it, and
 needs a decision on whether covering the filtered content is acceptable.
 
 The one other `.portfolio-filter-drawer` rule in the repo is the print-hide in
-pages/ma-portfolio.astro, which is live and unaffected. */
+page-templates/MaPortfolioPage.astro, which is live and unaffected. */
 
 .portfolio-filter-drawer {
   /* A closed drawer is off-screen but still in the tab order without this, so

@@ -82,10 +82,10 @@ Brutalist Callout
 }
 
 /* Frost does not print. `backdrop-filter` breaks print in some browsers (the
-   reason recorded on ma-portfolio.astro's own reset), the 2% tint is a grey
+   reason recorded on MaPortfolioPage.astro's own reset), the 2% tint is a grey
    wash on paper, and the hairline edge is a visible ring around every tile and
    callout. All three declarations come off, following the resets in
-   tool-ui.css, ma-portfolio.astro and tech-debt-calculator. */
+   tool-ui.css, MaPortfolioPage.astro and tech-debt-calculator. */
 @media print {
   .brutal-stat-tile,
   .brutal-callout {
