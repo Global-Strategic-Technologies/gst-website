@@ -1,6 +1,6 @@
 // Specimen gallery — GST card families (src/styles/components/cards.css).
 // Ported from src/components/brand/BrandUILibrary.astro § Cards, the hub
-// library gateway (src/pages/hub/library/index.astro), the Diligence Machine
+// library gateway (src/page-templates/HubLibraryPage.astro), the Diligence Machine
 // option grid (src/page-templates/HubDiligenceMachinePage.astro) and the
 // services FAQ (src/pages/services.astro).
 //
@@ -121,7 +121,7 @@ export const CardSpecimen = () => (
     </Row>
 
     <Row label="Gateway card">
-      {/* Structure ported from src/pages/hub/library/index.astro — the real
+      {/* Structure ported from src/page-templates/HubLibraryPage.astro — the real
           consumer. Note the BEM sub-elements and that the CTA is
           `cta-button brutal-gateway-card__cta`, not a .brutal-btn. A card with
           no live CTA carries a __badge instead (hub/tools/index.astro). */}

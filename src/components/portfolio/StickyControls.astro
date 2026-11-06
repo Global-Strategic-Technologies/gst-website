@@ -2,6 +2,15 @@
 // Markup and styles only. PortfolioHeader.astro's script is this bar's runtime: it
 // binds #search-input-sticky and #filter-toggle-sticky alongside the header bar's
 // controls, and slides the bar in (`sticky-active`) once the header scrolls under the nav.
+import type { Locale } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
 ---
 
 <!-- Fixed Controls - Positioned independently at viewport level -->
@@ -25,8 +34,8 @@
           type="search"
           id="search-input-sticky"
           class="search-input"
-          placeholder="Name, industry, technology"
-          aria-label="Search projects"
+          placeholder={t('search.placeholder')}
+          aria-label={t('search.ariaLabel')}
           data-testid="sticky-search-input"
         />
       </div>
@@ -34,7 +43,7 @@
       <button
         id="filter-toggle-sticky"
         class="filter-button"
-        aria-label="Open filters"
+        aria-label={t('filters.open')}
         aria-expanded="false"
         data-testid="sticky-filter-toggle"
       >
@@ -50,7 +59,7 @@
           <line x1="4" y1="12" x2="20" y2="12"></line>
           <line x1="4" y1="18" x2="20" y2="18"></line>
         </svg>
-        <span class="filter-text">Filters</span>
+        <span class="filter-text">{t('filters.button')}</span>
         <span
           id="filter-badge-sticky"
           class="filter-badge"

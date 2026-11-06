@@ -6,12 +6,13 @@ interface Stat {
 
 interface Props {
   stats: Stat[];
+  ariaLabel?: string;
 }
 
-const { stats } = Astro.props;
+const { stats, ariaLabel = 'Key metrics' } = Astro.props;
 ---
 
-<section class="stats-bar" aria-label="Key metrics">
+<section class="stats-bar" aria-label={ariaLabel}>
   <div class="container">
     <div class="stats-grid">
       {stats.map((stat) => (

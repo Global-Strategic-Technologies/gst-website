@@ -66,6 +66,8 @@ const PAGES: A11yPage[] = [
   { name: 'About (es)', path: '/es/about/' },
   { name: 'About (pt-BR)', path: '/pt/about/' },
   { name: 'M&A Portfolio', path: '/ma-portfolio/' },
+  { name: 'M&A Portfolio (es)', path: '/es/ma-portfolio/' },
+  { name: 'M&A Portfolio (pt-BR)', path: '/pt/ma-portfolio/' },
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   // TechPar is the first Tier B (localized) tool — BL-153 Slice 3.
@@ -140,6 +142,8 @@ const PAGES: A11yPage[] = [
   // trailingSlash before the error page renders.
   { name: '404', path: '/this-page-does-not-exist' },
   { name: 'Hub Library', path: '/hub/library/' },
+  { name: 'Hub Library (es)', path: '/es/hub/library/' },
+  { name: 'Hub Library (pt-BR)', path: '/pt/hub/library/' },
   {
     name: 'Library — Business Architectures',
     path: '/hub/library/business-architectures/',

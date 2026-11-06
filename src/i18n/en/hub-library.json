@@ -1,0 +1,23 @@
+{
+  "meta.title": "The Library | GST",
+  "meta.description": "Deep-dive frameworks and blueprints for technical due diligence and value creation execution.",
+  "meta.ogTitle": "The Library - Resources | GST",
+  "meta.ogDescription": "Frameworks and blueprints for technical due diligence and value creation.",
+  "meta.ogImageAlt": "GST Library - Due Diligence Frameworks and Reference Architectures",
+  "header.title": "The Library",
+  "header.subtitle": "Useful information for technical due diligence frameworks and value creation blueprints.",
+  "notice.articlesEnglish": "The articles open in English.",
+  "architectures.feature1": "How architecture choices cascade into business outcomes",
+  "architectures.feature2": "Five layers from software foundations to industry forces",
+  "architectures.feature3": "Diligence focus areas for investors, executives & founders",
+  "architectures.cta": "Read Article",
+  "vdr.feature1": "Organize a technology-focused virtual data room",
+  "vdr.feature2": "Folder taxonomy & content recommendations",
+  "vdr.feature3": "Best practices from 100+ buy-side and sell-side deals",
+  "vdr.cta": "Read Guide",
+  "irl.feature1": "A one-page intake checklist organized by VDR taxonomy",
+  "irl.feature2": "Hand to a target, client, or portfolio company at engagement start",
+  "irl.feature3": "Feeds GST's Hub diligence tools with structured inputs",
+  "irl.cta": "Read List",
+  "back": "Return to Hub"
+}

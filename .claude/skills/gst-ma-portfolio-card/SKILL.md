@@ -25,7 +25,7 @@ Read the PDF at `$ARGUMENTS`. Extract the following:
 | `id`                        | kebab-case slug from the code name (e.g. `"project-eagle"`)                                                   |
 | `codeName`                  | Project code name from the report cover (e.g. `"Project Eagle"`)                                              |
 | `industry`                  | Derive from business description if not explicit                                                              |
-| `theme`                     | Map to closest existing theme value from Step 1                                                               |
+| `theme`                     | Map to closest existing theme value from Step 1 (a new value needs Step 4's label step)                       |
 | `summary`                   | ~30 words describing the technology/product. Do NOT use the real company or product name.                     |
 | `arr`                       | Extract from the report (e.g. `"$74M"`). Search web for estimates if unavailable. Use `"N/A"` as last resort. |
 | `arrNumeric`                | Numeric USD value (e.g. `73838000`). Use `0` if N/A.                                                          |
@@ -53,5 +53,7 @@ Output the following and wait for explicit user confirmation before editing any 
 Ask: **"Shall I insert this record into projects.json?"**
 
 ## Step 4 — Insert the record
+
+A new `theme` or `growthStage` also needs its label in `src/i18n/{en,es,pt-BR}/ma-portfolio.json`, with the English value equal to the data value, then `npm run i18n:stamp`. `tests/unit/portfolio-labels.test.ts` fails until it has one. A record using existing values needs nothing here.
 
 On confirmation, read `src/data/ma-portfolio/projects.json` and **prepend** the new object to the array (insert it as the first element, immediately after the opening `[`). The portfolio UI renders entries in file order with no sort applied, so newest entries must appear at the top of the array to appear at the top of the page. Preserve all existing records exactly. Use 2-space indentation. Do not reformat or sort any existing entries.

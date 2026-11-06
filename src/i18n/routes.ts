@@ -3,7 +3,8 @@
  * helpers every localized component uses.
  *
  * Tier A (ADR-0030, BL-153) is the set of pages a locale must carry to launch.
- * Tier B is the hub tools, localized one at a time after launch. Both lists
+ * Tier B is the hub tools plus the portfolio's and the library index's chrome,
+ * localized after launch. Both lists
  * feed `LOCALIZED_ROUTES`, and a page is added to every locale by adding it
  * HERE and giving it a template in `src/page-templates/registry.ts` — the
  * catch-all `src/pages/[locale]/[...route].astro` builds `getStaticPaths` from
@@ -13,8 +14,8 @@
  * parity guard requires every namespace in every locale, a NEW locale must
  * carry the Tier B catalogs too — not only Tier A.
  *
- * Everything not listed (guides, the portfolio, brand, a tool not localized yet)
- * is English only. `localizedHref` returns those paths UNCHANGED for every
+ * Everything not listed (guides, library articles, brand, a tool not localized
+ * yet) is English only. `localizedHref` returns those paths UNCHANGED for every
  * locale, so a Spanish page links to the English page rather than to a `/es/…` 404.
  */
 import { DEFAULT_LOCALE, LOCALES, isDefaultLocale, localeFromPath, type Locale } from './locales';
@@ -47,8 +48,8 @@ export const TIER_A_ROUTES: readonly RouteEntry[] = [
 ];
 
 /**
- * Tier B — hub tools localized after launch (BL-153 Slice 3). Live in every
- * locale once listed here, machine-translated with native review owed
+ * Tier B — hub tools, the portfolio and the library index, localized after
+ * launch (BL-153 Slice 3). Live in every locale once listed here, machine-translated with native review owed
  * (LOCALIZATION.md § Draft → live).
  */
 export const TIER_B_ROUTES: readonly RouteEntry[] = [
@@ -68,6 +69,8 @@ export const TIER_B_ROUTES: readonly RouteEntry[] = [
     id: 'information-request-list-extractor',
     path: '/hub/tools/information-request-list-extractor/',
   },
+  { id: 'ma-portfolio', path: '/ma-portfolio/' },
+  { id: 'hub-library', path: '/hub/library/' },
 ];
 
 /** Every route that exists in every locale. */

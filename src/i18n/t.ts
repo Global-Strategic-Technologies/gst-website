@@ -35,7 +35,9 @@ import enHub from './en/hub.json';
 import enHubMcp from './en/hub-mcp.json';
 import enHubMcpFromCode from './en/hub-mcp-from-code.json';
 import enHubMcpTrial from './en/hub-mcp-trial.json';
+import enHubLibrary from './en/hub-library.json';
 import enHubTools from './en/hub-tools.json';
+import enMaPortfolio from './en/ma-portfolio.json';
 import enInfrastructureCostGovernance from './en/infrastructure-cost-governance.json';
 import enInformationRequestListGenerator from './en/information-request-list-generator.json';
 import enInformationRequestListGeneratorData from './en/information-request-list-generator-data.json';
@@ -76,6 +78,8 @@ export const EN = {
   'information-request-list-generator': enInformationRequestListGenerator,
   'information-request-list-generator-data': enInformationRequestListGeneratorData,
   'information-request-list-extractor': enInformationRequestListExtractor,
+  'ma-portfolio': enMaPortfolio,
+  'hub-library': enHubLibrary,
 } as const;
 
 export type Namespace = keyof typeof EN;

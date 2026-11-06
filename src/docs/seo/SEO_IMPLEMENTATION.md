@@ -287,7 +287,7 @@ Every page's `og:locale` comes from the locale registry (`src/i18n/locales.ts`),
 <meta property="og:locale:alternate" content="pt_BR" />
 ```
 
-Rules: canonical is always the page's own locale URL; `x-default` is the English URL; an English-only route (tools, guides, portfolio) emits no cluster; a **draft** locale emits no cluster and is `noindex` (a draft→English link would be non-reciprocal, which crawlers discard). The `<html lang>` attribute is `en` / `es` / `pt-BR`. `@astrojs/sitemap` receives the same registry as its `i18n` option, so `sitemap-0.xml` carries `<xhtml:link rel="alternate" hreflang>` entries for the live locales and no draft-locale URLs at all. Operating manual: [LOCALIZATION.md](../development/LOCALIZATION.md); decisions: [ADR-0030](../adr/0030-website-locale-model.md).
+Rules: canonical is always the page's own locale URL; `x-default` is the English URL; an English-only route (guides, library articles, brand) emits no cluster; a **draft** locale emits no cluster and is `noindex` (a draft→English link would be non-reciprocal, which crawlers discard). The `<html lang>` attribute is `en` / `es` / `pt-BR`. `@astrojs/sitemap` receives the same registry as its `i18n` option, so `sitemap-0.xml` carries `<xhtml:link rel="alternate" hreflang>` entries for the live locales and no draft-locale URLs at all. Operating manual: [LOCALIZATION.md](../development/LOCALIZATION.md); decisions: [ADR-0030](../adr/0030-website-locale-model.md).
 
 ### Platform-Specific Rendering
 

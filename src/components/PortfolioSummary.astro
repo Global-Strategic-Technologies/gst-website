@@ -1,15 +1,23 @@
 ---
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
 ---
 
-<section class="portfolio-summary" aria-label="Portfolio overview">
+<section class="portfolio-summary" aria-label={t('summary.ariaLabel')}>
   <div class="container">
     <div class="summary-content">
-      <h2>Overview</h2>
-      <p>
-        M&A services span both the buy-side and sell-side executing technical diligence, preparing
-        portfolio companies for sale and investment, and executing post-acquisition value creation
-        initiatives to build value, reduce risks and costs while accelerating business objectives
-      </p>
+      <h2>{t('summary.heading')}</h2>
+      <p>{t('summary.body')}</p>
+      {!isDefaultLocale(locale) && (
+        <p class="portfolio-summary__note">{t('notice.entriesEnglish')}</p>
+      )}
     </div>
   </div>
 </section>
@@ -35,11 +43,21 @@
     margin-bottom: var(--spacing-xl);
   }
 
-  .portfolio-summary p {
+  .portfolio-summary p:not(.portfolio-summary__note) {
     font-size: var(--text-lg);
     font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.8;
+  }
+
+  /* Tier C notice (BL-153), on non-English pages. Excluded from the rule above,
+     whose specificity would otherwise win over this class at every width. */
+  .portfolio-summary__note {
+    font-size: var(--text-sm);
+    font-family: var(--font-family-mono);
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: var(--spacing-md);
   }
 
   @media (max-width: 768px) {
@@ -52,7 +70,7 @@
       margin-bottom: var(--spacing-lg);
     }
 
-    .portfolio-summary p {
+    .portfolio-summary p:not(.portfolio-summary__note) {
       font-size: var(--text-base);
     }
   }
@@ -67,7 +85,7 @@
       margin-bottom: var(--spacing-md);
     }
 
-    .portfolio-summary p {
+    .portfolio-summary p:not(.portfolio-summary__note) {
       font-size: var(--text-sm);
       line-height: 1.6;
     }
