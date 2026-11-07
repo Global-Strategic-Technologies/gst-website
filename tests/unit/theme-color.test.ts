@@ -164,6 +164,14 @@ describe("the inline seed mirrors the header's surfaces", () => {
     expect(seedSurfaces()).toEqual([light, dimLight, dimDark, dark]);
   });
 
+  it("the manifest's theme_color is the dark theme's surface", () => {
+    // An installed Android app paints its navigation bar from this value,
+    // frozen at install, so no palette accent may go here (STYLES_GUIDE §
+    // Browser chrome).
+    const manifest = JSON.parse(read('public/site.webmanifest')) as { theme_color: string };
+    expect(manifest.theme_color.toLowerCase()).toBe(seedSurfaces()[3]);
+  });
+
   describe('the inline look block writes the seed for the restored theme', () => {
     // Sliced as tests/unit/daily-look.test.ts slices it.
     const start = layout.indexOf('const dayToPalette = [');
