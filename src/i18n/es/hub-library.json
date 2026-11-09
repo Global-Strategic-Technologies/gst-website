@@ -1,0 +1,23 @@
+{
+  "meta.title": "La Biblioteca | GST",
+  "meta.description": "Marcos y guías en profundidad para la debida diligencia técnica y la ejecución de la creación de valor.",
+  "meta.ogTitle": "La Biblioteca - Recursos | GST",
+  "meta.ogDescription": "Marcos y guías para la debida diligencia técnica y la creación de valor.",
+  "meta.ogImageAlt": "Biblioteca de GST: marcos de debida diligencia y arquitecturas de referencia",
+  "header.title": "La Biblioteca",
+  "header.subtitle": "Información útil sobre marcos de debida diligencia técnica y guías de creación de valor.",
+  "notice.articlesEnglish": "Los artículos se abren en inglés.",
+  "architectures.feature1": "Cómo las decisiones de arquitectura repercuten en los resultados del negocio",
+  "architectures.feature2": "Cinco capas, desde los fundamentos del software hasta las fuerzas del sector",
+  "architectures.feature3": "Focos de diligencia para inversionistas, ejecutivos y fundadores",
+  "architectures.cta": "Leer el artículo",
+  "vdr.feature1": "Organice una sala de datos virtual centrada en tecnología",
+  "vdr.feature2": "Taxonomía de carpetas y recomendaciones de contenido",
+  "vdr.feature3": "Mejores prácticas de más de 100 transacciones de buy-side y sell-side",
+  "vdr.cta": "Leer la guía",
+  "irl.feature1": "Una lista de verificación de una página organizada según la taxonomía del VDR",
+  "irl.feature2": "Para entregar a una empresa objetivo, cliente o empresa de portafolio al inicio del proyecto",
+  "irl.feature3": "Alimenta las herramientas de diligencia del Hub de GST con datos estructurados",
+  "irl.cta": "Leer la lista",
+  "back": "Volver al Hub"
+}

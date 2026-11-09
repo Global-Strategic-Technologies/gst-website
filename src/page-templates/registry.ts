@@ -14,6 +14,8 @@ import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
 import HubIcgPage from './HubIcgPage.astro';
 import HubIrlExtractorPage from './HubIrlExtractorPage.astro';
+import HubLibraryPage from './HubLibraryPage.astro';
+import MaPortfolioPage from './MaPortfolioPage.astro';
 import HubIrlGeneratorPage from './HubIrlGeneratorPage.astro';
 import HubDiligenceMachinePage from './HubDiligenceMachinePage.astro';
 import HubRegulatoryMapPage from './HubRegulatoryMapPage.astro';
@@ -46,6 +48,8 @@ export const TEMPLATES = {
   'regulatory-map': HubRegulatoryMapPage,
   'information-request-list-generator': HubIrlGeneratorPage,
   'information-request-list-extractor': HubIrlExtractorPage,
+  'ma-portfolio': MaPortfolioPage,
+  'hub-library': HubLibraryPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

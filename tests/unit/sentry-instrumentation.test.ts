@@ -16,6 +16,14 @@ function countMatches(src: string, pattern: RegExp): number {
   return (src.match(pattern) || []).length;
 }
 
+describe('Sentry source maps', () => {
+  // The integration only deletes maps it enabled itself. Setting this would leave
+  // them in the output, and nothing fails if they ship, so this is what notices.
+  it('leaves source map generation to the integration, so it deletes them', () => {
+    expect(readSrc('astro.config.mjs')).not.toMatch(/\bsourcemap\s*:/);
+  });
+});
+
 describe('Sentry Client Config (privacy-first policy)', () => {
   const config = readSrc('sentry.client.config.ts');
 

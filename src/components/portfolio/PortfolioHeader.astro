@@ -2,26 +2,27 @@
 import type { Project } from '../../types/portfolio';
 import { getUniqueEngagementCategories, getUniqueThemes } from '../../utils/filterLogic';
 import FilterDrawer from './FilterDrawer.astro';
+import type { Locale } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/t';
 import '../../styles/components/filter.css';
 
 interface Props {
-  portfolioType?: string;
   projects?: Project[];
+  locale: Locale;
 }
 
-const { portfolioType = 'standard', projects = [] } = Astro.props;
-
-const title = portfolioType === 'ma' ? 'PORTFOLIO M&A ENGAGEMENTS' : 'CLIENT ENGAGEMENTS';
+const { projects = [], locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
 
 const uniqueThemes = getUniqueThemes(projects);
 const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 ---
 
-<div class="portfolio-header">
+<div class="portfolio-header" data-no-results-label={t('noResults')}>
   <div class="container">
     <div class="portfolio-header-content">
       <div class="portfolio-brand">
-        <h1 class="portfolio-title">{title}</h1>
+        <h1 class="portfolio-title">{t('header.title')}</h1>
       </div>
 
       <!-- Search and Filter Controls (Fixed) -->
@@ -44,8 +45,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
               type="search"
               id="search-input-fixed"
               class="search-input"
-              placeholder="Name, industry, technology"
-              aria-label="Search projects"
+              placeholder={t('search.placeholder')}
+              aria-label={t('search.ariaLabel')}
               data-testid="portfolio-search-input"
             />
           </div>
@@ -53,7 +54,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
           <button
             id="filter-toggle"
             class="filter-button"
-            aria-label="Open filters"
+            aria-label={t('filters.open')}
             aria-expanded="false"
             data-testid="portfolio-filter-toggle"
           >
@@ -69,7 +70,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
               <line x1="4" y1="12" x2="20" y2="12"></line>
               <line x1="4" y1="18" x2="20" y2="18"></line>
             </svg>
-            <span class="filter-text">Filters</span>
+            <span class="filter-text">{t('filters.button')}</span>
             <span
               id="filter-badge-header"
               class="filter-badge"
@@ -85,6 +86,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   <FilterDrawer
     uniqueThemes={uniqueThemes}
     uniqueEngagementCategories={uniqueEngagementCategories}
+    locale={locale}
   />
 
   <!-- Data island: server-rendered project data for client scripts -->
@@ -92,7 +94,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     is:inline
     type="application/json"
     id="portfolio-data"
-    set:html={JSON.stringify(projects)}
+    set:html={JSON.stringify(projects).replace(/</g, '\\u003c')}
   />
 </div>
 
@@ -512,7 +514,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         message.id = 'portfolio-no-results';
         message.className = 'no-results-message';
         message.textContent =
-          'No projects match your filters. Try adjusting your search or filters.';
+          document.querySelector<HTMLElement>('[data-no-results-label]')?.dataset.noResultsLabel ??
+          '';
         const grid = document.querySelector('.grid');
         if (grid && grid.parentElement) {
           grid.parentElement.insertBefore(message, grid);

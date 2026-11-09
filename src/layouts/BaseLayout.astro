@@ -115,7 +115,9 @@ const isHomepage = routePath === '/' || routePath === '';
          the look block below seeds the header's surface for the restored theme
          and src/scripts/theme-color.ts keeps it in step (STYLES_GUIDE § Browser
          chrome). One tag, not a prefers-color-scheme pair — the site's theme is
-         its own classes, not the OS setting. -->
+         its own classes, not the OS setting. The manifest's theme_color is the
+         dark surface on purpose, not teal: it paints an installed app's bottom
+         navigation bar, which the page cannot change. -->
     <meta name="theme-color" content="#05cd99" />
 
     <!-- Preconnect to third-party origins to reduce critical path latency -->

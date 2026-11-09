@@ -650,16 +650,11 @@ Brutalist FAQ
   font-family: var(--font-family-mono);
 }
 
-.brutal-faq__answer :global(a) {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.brutal-faq__answer :global(p) {
+.brutal-faq__answer p {
   margin: 0 0 var(--spacing-md) 0;
 }
 
-.brutal-faq__answer :global(p:last-child) {
+.brutal-faq__answer p:last-child {
   margin-bottom: 0;
 }
 

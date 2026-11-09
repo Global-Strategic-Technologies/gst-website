@@ -109,7 +109,7 @@ test.describe('document-level SEO per locale', () => {
     page,
   }) => {
     await presetLang(page, 'en');
-    await page.goto('/ma-portfolio/');
+    await page.goto('/brand/');
     await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(0);
     // alternatesFor() returns one entry for a non-registry route → no switcher.
     await expect(page.locator(SWITCH)).toHaveCount(0);

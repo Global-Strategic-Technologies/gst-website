@@ -1,0 +1,118 @@
+---
+/**
+ * /ma-portfolio/ in every locale. Rendered by src/pages/ma-portfolio.astro
+ * (English) and by src/pages/[locale]/[...route].astro. A Tier B route.
+ *
+ * The chrome comes from the `ma-portfolio` catalog. The entries are Tier C and
+ * stay English, except the fixed labels, translated at render by key
+ * (src/lib/portfolio-labels.ts). Filters, URL params and analytics read the
+ * English values, because `src/utils/filterLogic.ts` is the engine the MCP
+ * server's `search_portfolio` also uses. Search therefore matches English only,
+ * and a non-English page says so (`notice.entriesEnglish`).
+ *
+ * The combined ARR keeps its English notation in every locale, to match the
+ * English entry ARR strings on the cards beside it.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PortfolioHeader from '../components/portfolio/PortfolioHeader.astro';
+import PortfolioGrid from '../components/portfolio/PortfolioGrid.astro';
+import StickyControls from '../components/portfolio/StickyControls.astro';
+import StatsBar from '../components/StatsBar.astro';
+import PortfolioSummary from '../components/PortfolioSummary.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import { projects } from '../data/ma-portfolio';
+import type { Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+import type { Stat } from '../types/portfolio';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
+
+// Calculate statistics
+const uniqueIndustries = new Set(projects.map((p) => p.industry)).size;
+const totalARR = projects.reduce((sum, p) => sum + p.arrNumeric, 0);
+const combinedARRLabel = `$${(totalARR / 1e9).toFixed(1)}B+`;
+const minYear = Math.min(...projects.map((p) => p.year));
+const maxYear = Math.max(...projects.map((p) => p.year));
+const yearSpan = maxYear - minYear + 1;
+
+const stats: Stat[] = [
+  { label: t('stats.combinedArr'), value: combinedARRLabel },
+  { label: t('stats.industries'), value: uniqueIndustries.toString() },
+  { label: t('stats.clientEngagements'), value: `${projects.length}+` },
+  { label: t('stats.yearSpan'), value: yearSpan.toString() },
+];
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description', { count: projects.length })}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${localizedHref('/ma-portfolio/', locale)}`}
+>
+  <PrintReportHeader title={t('print.title')} locale={locale} />
+
+  <StickyControls locale={locale} />
+  <div class="portfolio-content">
+    <PortfolioHeader projects={projects} locale={locale} />
+    <PortfolioSummary locale={locale} />
+    <StatsBar stats={stats} ariaLabel={t('stats.ariaLabel')} />
+    <PortfolioGrid projects={projects} locale={locale} />
+  </div>
+</BaseLayout>
+
+<style>
+  .portfolio-content {
+    min-height: 100vh;
+  }
+
+  @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
+    /* Hide interactive chrome */
+    :global(.sticky-controls-overlay),
+    :global(.portfolio-filter-drawer),
+    :global(.portfolio-filter-overlay),
+    :global(.portfolio-controls-fixed),
+    :global(.controls-wrapper),
+    :global(.cta-button) {
+      display: none !important;
+    }
+
+    /* Reset frosted glass (backdrop-filter breaks print in some browsers) */
+    :global(.brutal-frosted),
+    :global(.portfolio-grid-container) {
+      backdrop-filter: none !important;
+      background: transparent !important;
+    }
+
+    /* Ensure grid is visible and flows naturally */
+    :global(.portfolio-grid-container) {
+      padding: 0 !important;
+    }
+
+    :global(.project-card) {
+      break-inside: avoid;
+      border: 1px solid #ccc !important;
+      background: #fff !important;
+      backdrop-filter: none !important;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    :global(.project-card .cta-button) {
+      display: none !important;
+    }
+
+    @page {
+      margin: 1.5cm;
+    }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
+  }
+</style>

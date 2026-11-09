@@ -1,10 +1,25 @@
 ---
+import type { Locale } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/t';
+import { portfolioLabeler, type LabelKind } from '../../lib/portfolio-labels';
+
 interface Props {
   uniqueThemes: string[];
   uniqueEngagementCategories: string[];
+  locale: Locale;
 }
 
-const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
+const { uniqueThemes, uniqueEngagementCategories, locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
+const label = portfolioLabeler(locale);
+const collator = new Intl.Collator(locale.intl);
+
+// Chips carry the English value in `data-value` and `data-testid`, which the
+// filter script, URL params and analytics read. Only the text and order vary.
+const chips = (kind: LabelKind, values: string[]) =>
+  values
+    .map((value) => ({ value, text: label(kind, value) }))
+    .sort((a, b) => collator.compare(a.text, b.text));
 ---
 
 <!--
@@ -23,11 +38,11 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
   data-testid="portfolio-filter-drawer"
 >
   <div class="drawer-header">
-    <h2 class="drawer-title">FILTERS</h2>
+    <h2 class="drawer-title">{t('drawer.title')}</h2>
     <button
       id="drawer-close"
       class="drawer-close"
-      aria-label="Close filters"
+      aria-label={t('drawer.close')}
       data-testid="portfolio-drawer-close"
     >
       <svg
@@ -46,40 +61,40 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
 
   <div class="drawer-content">
     <button id="clear-filters" class="clear-filters-button" data-testid="clear-filters-button">
-      Clear All Filters
+      {t('drawer.clearAll')}
     </button>
 
     <div class="filter-section">
-      <div class="filter-label">Engagement</div>
+      <div class="filter-label">{t('drawer.engagement')}</div>
       <div class="filter-chips" id="engagement-chips" data-testid="engagement-filter-chips">
         <div class="filter-chip active" data-value="all" data-testid="filter-chip-engagement-all">
-          All Engagements
+          {t('drawer.allEngagements')}
         </div>
-        {uniqueEngagementCategories.map((cat) => (
+        {chips('category', uniqueEngagementCategories).map(({ value: cat, text }) => (
           <div
             class="filter-chip"
             data-value={cat}
             data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
           >
-            {cat}
+            {text}
           </div>
         ))}
       </div>
     </div>
 
     <div class="filter-section">
-      <div class="filter-label">Theme</div>
+      <div class="filter-label">{t('drawer.theme')}</div>
       <div class="filter-chips" id="theme-chips" data-testid="theme-filter-chips">
         <div class="filter-chip active" data-value="all" data-testid="filter-chip-theme-all">
-          All Themes
+          {t('drawer.allThemes')}
         </div>
-        {uniqueThemes.map((theme) => (
+        {chips('theme', uniqueThemes).map(({ value: theme, text }) => (
           <div
             class="filter-chip"
             data-value={theme}
             data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
           >
-            {theme}
+            {text}
           </div>
         ))}
       </div>

@@ -1,0 +1,23 @@
+{
+  "meta.title": "A Biblioteca | GST",
+  "meta.description": "Frameworks e guias aprofundados para due diligence técnica e execução da criação de valor.",
+  "meta.ogTitle": "A Biblioteca - Recursos | GST",
+  "meta.ogDescription": "Frameworks e guias para due diligence técnica e criação de valor.",
+  "meta.ogImageAlt": "Biblioteca da GST: frameworks de due diligence e arquiteturas de referência",
+  "header.title": "A Biblioteca",
+  "header.subtitle": "Informações úteis sobre frameworks de due diligence técnica e guias de criação de valor.",
+  "notice.articlesEnglish": "Os artigos abrem em inglês.",
+  "architectures.feature1": "Como as escolhas de arquitetura repercutem nos resultados do negócio",
+  "architectures.feature2": "Cinco camadas, dos fundamentos de software às forças do setor",
+  "architectures.feature3": "Focos de diligência para investidores, executivos e fundadores",
+  "architectures.cta": "Ler o artigo",
+  "vdr.feature1": "Organize uma sala de dados virtual voltada à tecnologia",
+  "vdr.feature2": "Taxonomia de pastas e recomendações de conteúdo",
+  "vdr.feature3": "Melhores práticas de mais de 100 transações de buy-side e sell-side",
+  "vdr.cta": "Ler o guia",
+  "irl.feature1": "Um checklist de uma página organizado pela taxonomia do VDR",
+  "irl.feature2": "Para entregar a uma empresa-alvo, cliente ou empresa de portfólio no início do projeto",
+  "irl.feature3": "Alimenta as ferramentas de diligência do Hub da GST com dados estruturados",
+  "irl.cta": "Ler a lista",
+  "back": "Voltar ao Hub"
+}

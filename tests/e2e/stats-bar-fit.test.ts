@@ -40,8 +40,11 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 
-/** Both renderings: the real page, and the specimen frame that got it wrong. */
-const ROUTES = ['/ma-portfolio/', '/brand/'] as const;
+/**
+ * Both renderings: the real page, and the specimen frame that got it wrong. The
+ * translated pages carry different label words, and a word can't wrap.
+ */
+const ROUTES = ['/ma-portfolio/', '/es/ma-portfolio/', '/pt/ma-portfolio/', '/brand/'] as const;
 
 /**
  * NOT `>= 0`. 0.39px of clearance is what shipped a red CI check while this

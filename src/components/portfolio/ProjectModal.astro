@@ -1,6 +1,23 @@
 ---
 // ProjectModal Component
 // Extracted from PortfolioGrid for reusability and separation of concerns
+//
+// Every value is written by the inline script below before the dialog opens, so
+// the markup carries no placeholder text. That script can't import modules, so a
+// non-English page gives it the translated labels in the `portfolio-labels`
+// island; on English it shows the data values, which are the English labels.
+import { isDefaultLocale, type Locale } from '../../i18n/locales';
+import { useTranslations } from '../../i18n/t';
+import { portfolioLabelIsland } from '../../lib/portfolio-labels';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'ma-portfolio');
+const isEnglish = isDefaultLocale(locale);
+const entryLang = isEnglish ? undefined : 'en';
 ---
 
 <!-- Project Details Modal -->
@@ -9,7 +26,7 @@
     <button
       id="modal-close-2"
       class="modal-close"
-      aria-label="Close modal"
+      aria-label={t('modal.close')}
       data-testid="project-modal-close"
     >
       <svg
@@ -27,58 +44,57 @@
 
     <div class="modal-header">
       <div>
-        <h2 id="modal-title-2" class="modal-title" data-testid="project-modal-title">
-          Project Title
-        </h2>
-        <p id="modal-industry-2" class="modal-industry" data-testid="project-modal-industry">
-          Industry
-        </p>
+        <h2
+          id="modal-title-2"
+          class="modal-title"
+          data-testid="project-modal-title"
+          lang={entryLang}
+        ></h2>
+        <p
+          id="modal-industry-2"
+          class="modal-industry"
+          data-testid="project-modal-industry"
+          lang={entryLang}
+        ></p>
       </div>
     </div>
 
     <div class="modal-metrics">
       <div class="modal-metric">
-        <div class="metric-label">ARR</div>
-        <div id="modal-arr-2" class="metric-value arr" data-testid="project-modal-arr">
-          $0M
-        </div>
+        <div class="metric-label">{t('modal.arr')}</div>
+        <div id="modal-arr-2" class="metric-value arr" data-testid="project-modal-arr"></div>
       </div>
       <div class="modal-metric">
-        <div class="metric-label">Growth Stage</div>
-        <div id="modal-stage-2" class="metric-value" data-testid="project-modal-stage">
-          Stage
-        </div>
+        <div class="metric-label">{t('modal.growthStage')}</div>
+        <div id="modal-stage-2" class="metric-value" data-testid="project-modal-stage"></div>
       </div>
       <div class="modal-metric">
-        <div class="metric-label">Theme</div>
-        <div id="modal-theme-2" class="metric-value" data-testid="project-modal-theme">
-          Theme
-        </div>
+        <div class="metric-label">{t('modal.theme')}</div>
+        <div id="modal-theme-2" class="metric-value" data-testid="project-modal-theme"></div>
       </div>
       <div class="modal-metric">
-        <div class="metric-label">Year</div>
-        <div id="modal-year-2" class="metric-value" data-testid="project-modal-year">
-          2024
-        </div>
+        <div class="metric-label">{t('modal.year')}</div>
+        <div id="modal-year-2" class="metric-value" data-testid="project-modal-year"></div>
       </div>
     </div>
 
     <div class="modal-section">
-      <h3 class="modal-section-title">Engagement Type</h3>
+      <h3 class="modal-section-title">{t('modal.engagementType')}</h3>
       <p
         id="modal-engagement-line-2"
         class="modal-engagement-line"
         data-testid="project-modal-engagement"
-      >
-        Sell-Side · Technical Assessment
-      </p>
+      ></p>
     </div>
 
     <div class="modal-section">
-      <h3 class="modal-section-title">Summary</h3>
-      <p id="modal-summary-2" class="modal-text" data-testid="project-modal-summary">
-        Project summary goes here.
-      </p>
+      <h3 class="modal-section-title">{t('modal.summary')}</h3>
+      <p
+        id="modal-summary-2"
+        class="modal-text"
+        data-testid="project-modal-summary"
+        lang={entryLang}
+      ></p>
     </div>
 
     <div
@@ -87,10 +103,13 @@
       style="display: none;"
       data-testid="project-modal-challenge-section"
     >
-      <h3 class="modal-section-title">Challenge</h3>
-      <p id="modal-challenge-2" class="modal-text" data-testid="project-modal-challenge">
-        Challenge description goes here.
-      </p>
+      <h3 class="modal-section-title">{t('modal.challenge')}</h3>
+      <p
+        id="modal-challenge-2"
+        class="modal-text"
+        data-testid="project-modal-challenge"
+        lang={entryLang}
+      ></p>
     </div>
 
     <div
@@ -99,20 +118,40 @@
       style="display: none;"
       data-testid="project-modal-solution-section"
     >
-      <h3 class="modal-section-title">Solution</h3>
-      <p id="modal-solution-2" class="modal-text" data-testid="project-modal-solution">
-        Solution description goes here.
-      </p>
+      <h3 class="modal-section-title">{t('modal.solution')}</h3>
+      <p
+        id="modal-solution-2"
+        class="modal-text"
+        data-testid="project-modal-solution"
+        lang={entryLang}
+      ></p>
     </div>
 
     <div class="modal-section">
-      <h3 class="modal-section-title">Technologies</h3>
-      <div id="modal-tech-tags-2" class="modal-tech-tags" data-testid="project-modal-tech-tags">
+      <h3 class="modal-section-title">{t('modal.technologies')}</h3>
+      <div
+        id="modal-tech-tags-2"
+        class="modal-tech-tags"
+        data-testid="project-modal-tech-tags"
+        lang={entryLang}
+      >
         <!-- Tech tags will be inserted here -->
       </div>
     </div>
   </div>
 </dialog>
+
+{!isEnglish && (
+  <script
+    is:inline
+    type="application/json"
+    id="portfolio-labels"
+    set:html={JSON.stringify({
+      ...portfolioLabelIsland(locale),
+      notAvailable: t('modal.notAvailable'),
+    }).replace(/</g, '\\u003c')}
+  />
+)}
 
 <style>
   /* Modal Styles */
@@ -372,6 +411,15 @@
         });
       }
 
+      // Translated labels on a non-English page; bad JSON must not stop the dialog
+      let labels = {};
+      try {
+        labels = JSON.parse(document.getElementById('portfolio-labels')?.textContent ?? '{}');
+      } catch {
+        labels = {};
+      }
+      const label = (kind, value) => labels[kind]?.[value] ?? value;
+
       // Populate modal with null checks
       const modalTitle = document.getElementById('modal-title-2');
       const modalIndustry = document.getElementById('modal-industry-2');
@@ -386,11 +434,14 @@
       if (modalIndustry) modalIndustry.textContent = project.industry;
       if (modalYear) modalYear.textContent = project.year.toString();
       if (modalArr) modalArr.textContent = project.arr === 'Not in source' ? '--' : project.arr;
-      if (modalStage) modalStage.textContent = project.growthStage;
-      if (modalTheme) modalTheme.textContent = project.theme;
+      if (modalStage) modalStage.textContent = label('stage', project.growthStage);
+      if (modalTheme) modalTheme.textContent = label('theme', project.theme);
       if (modalEngagementLine) {
-        const parts = [project.engagementCategory, project.engagementType].filter(Boolean);
-        modalEngagementLine.textContent = parts.join(' \u00B7 ') || 'N/A';
+        const parts = [
+          label('category', project.engagementCategory),
+          label('type', project.engagementType),
+        ].filter(Boolean);
+        modalEngagementLine.textContent = parts.join(' \u00B7 ') || labels.notAvailable || 'N/A';
       }
 
       if (modalSummary) modalSummary.textContent = project.summary;

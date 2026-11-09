@@ -60,7 +60,7 @@ scoped CSS of the real Header from the chrome cards.
 - **Curate specimen markup from real sources**, never invent it. Ported from
   [`BrandComponents.astro`](../../components/brand/BrandComponents.astro),
   [`BrandUILibrary.astro`](../../components/brand/BrandUILibrary.astro), and
-  [`src/pages/hub/library/index.astro`](../../pages/hub/library/index.astro), and — for the
+  [`src/page-templates/HubLibraryPage.astro`](../../page-templates/HubLibraryPage.astro), and — for the
   Slice 2 families — the hub tool pages themselves (`infrastructure-cost-governance`,
   `techpar`, `diligence-machine`, `tech-debt-calculator`, `regulatory-map`, `services`).
   Each specimen's header comment names its source. The gateway card was invented on the

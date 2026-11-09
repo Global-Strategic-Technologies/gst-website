@@ -143,6 +143,9 @@ const ROUTES = [
   '/about/',
   '/hub/',
   '/ma-portfolio/',
+  // Its title never wraps, so longer translated titles are a real overflow risk.
+  '/es/ma-portfolio/',
+  '/pt/ma-portfolio/',
   '/hub/tools/regulatory-map/',
 ] as const;
 

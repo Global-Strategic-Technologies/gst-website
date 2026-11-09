@@ -49,9 +49,12 @@ export async function openFilterDrawer(page: Page): Promise<void> {
   );
 }
 
-/** Navigate to the portfolio and wait until its filter runtime has bound. */
-export async function gotoPortfolio(page: Page): Promise<void> {
-  await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
+/**
+ * Navigate to the portfolio and wait until its filter runtime has bound.
+ * `prefix` is a locale's URL prefix, such as `/es`; English has none.
+ */
+export async function gotoPortfolio(page: Page, prefix = ''): Promise<void> {
+  await page.goto(`${prefix}/ma-portfolio/`, { waitUntil: 'domcontentloaded' });
   // domcontentloaded is reliable under parallel worker contention; networkidle
   // can time out when many workers share the same dev server. The readiness
   // gate matters because openFilterDrawer clicks the toggle, and PortfolioHeader

@@ -370,7 +370,7 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   `guidelinesGlob` rather than raising the number and letting the tail (the boilerplate) or,
   worse, the end of the header be cut.
 - **Specimen markup was ported from real sources** — `BrandComponents.astro`,
-  `BrandUILibrary.astro`, and `src/pages/hub/library/index.astro` for the gateway card.
+  `BrandUILibrary.astro`, and `src/page-templates/HubLibraryPage.astro` for the gateway card.
   If those change materially, re-port. The gateway card was _invented_ on the first pass
   and was wrong (used `.brutal-btn` and heading classes instead of the BEM sub-elements
   and `cta-button brutal-gateway-card__cta`); curate from the real consumer, don't invent.
