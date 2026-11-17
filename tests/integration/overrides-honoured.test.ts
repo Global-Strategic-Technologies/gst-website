@@ -144,12 +144,11 @@ describe('package.json overrides are honoured by package-lock.json', () => {
       expect(governed.length, `${child} under ${parent}: not in the lockfile`).toBeGreaterThan(0);
       expectAtOrAboveFloor(governed, floor);
       // A scoped override chooses a major, usually the parent's own (the
-      // `glob` pair goes above it, and was tested there). If npm
-      // DROPS the nested copy (it did, for the 2026-10 `miniflare → undici`
-      // override, on an incremental `--package-lock-only` while a root
-      // `undici@8` existed), the
-      // parent resolves the root copy instead — above the floor, so the check
-      // above passes, but on a major nobody chose.
+      // `glob` pair goes above it, and was tested there). If npm DROPS the
+      // nested copy (it did, for the 2026-10 `miniflare → undici` override, on
+      // an incremental `--package-lock-only` while a root `undici@8` existed),
+      // the parent resolves the root copy instead — above the floor, so the
+      // check above passes, but on a major nobody chose.
       // Blunt by design: it compares the leading number only, so a 0.x pin
       // would accept a 0.y copy that semver treats as breaking.
       for (const { path, version } of governed) {
