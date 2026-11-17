@@ -19,15 +19,18 @@
 // repo-wide by eslint. Full rationale: ADR-0020.
 //
 // Scoped `import type { … } from '@cloudflare/workers-types'` resolves to
-// `index.ts` — a module, not a global script — and is always safe. Prefer it.
-// Its types are separate declarations from the globals, though: a value the
-// global script types (the `ctx` that `ExportedHandler` hands the handlers
-// below) is assignable to the scoped type only while the two copies agree.
-// The bump to 5.20261114.1 broke that for `ExecutionContext`. Its new
-// `mapVirtualHost(fetcher: Fetcher, …)` reaches `Headers`, and the global
-// `Headers` this program sees lacks the module's `getAll`. So a callee that
-// receives `ctx` types the capability it uses (`Pick<ExecutionContext,
-// 'waitUntil'>`), never the whole interface.
+// `index.ts` — a module, not a global script — and is always safe from that
+// shadowing. Prefer it. Its types are separate declarations from the globals,
+// though: a value the global script types (the `ctx` that `ExportedHandler`
+// hands the handlers below) is assignable to the scoped type only while the
+// two copies agree. The bump to 5.20261114.1 broke that for
+// `ExecutionContext`, in both directions. Its new
+// `mapVirtualHost(fetcher: Fetcher, …)` reaches `Request` and `Headers`, and
+// the global copies of those differ from the module's because this program
+// also loads the DOM lib (tsconfig sets no `lib`). So a callee that receives
+// `ctx` types the capabilities it uses (`Pick<ExecutionContext,
+// 'waitUntil'>`), never the whole interface. ADR-0020 records why
+// `lib: ["ES2022"]` was not the fix.
 
 /**
  * Cloudflare Worker entrypoint for the GST MCP server.
