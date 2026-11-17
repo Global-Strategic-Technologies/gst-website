@@ -20,6 +20,14 @@
 //
 // Scoped `import type { … } from '@cloudflare/workers-types'` resolves to
 // `index.ts` — a module, not a global script — and is always safe. Prefer it.
+// Its types are separate declarations from the globals, though: a value the
+// global script types (the `ctx` that `ExportedHandler` hands the handlers
+// below) is assignable to the scoped type only while the two copies agree.
+// The bump to 5.20261114.1 broke that for `ExecutionContext`. Its new
+// `mapVirtualHost(fetcher: Fetcher, …)` reaches `Headers`, and the global
+// `Headers` this program sees lacks the module's `getAll`. So a callee that
+// receives `ctx` types the capability it uses (`Pick<ExecutionContext,
+// 'waitUntil'>`), never the whole interface.
 
 /**
  * Cloudflare Worker entrypoint for the GST MCP server.
