@@ -32,7 +32,7 @@
  * fails here; a missing package is a dead entry and fails here too.
  *
  * Scope: flat string overrides (`"qs": "6.17.1"`) govern every copy of that
- * name anywhere in the tree. Scoped overrides (`"@lhci/cli": { "tmp": … }`)
+ * name anywhere in the tree. Scoped overrides (`"@vercel/nft": { "glob": … }`)
  * govern the copy each copy of the parent actually resolves (Node's
  * node_modules walk-up), not every copy of that name; the `"."` key names
  * the parent itself. Pins must be exact versions, which is what every override
@@ -143,14 +143,14 @@ describe('package.json overrides are honoured by package-lock.json', () => {
         .filter((c): c is { path: string; version: string } => c !== null);
       expect(governed.length, `${child} under ${parent}: not in the lockfile`).toBeGreaterThan(0);
       expectAtOrAboveFloor(governed, floor);
-      // A scoped override chooses a major, usually the parent's own (lhci's
-      // `uuid` and the `glob` pair go above it, and were tested there). If npm
-      // DROPS the nested copy (it does, for `miniflare → undici`, on an
-      // incremental `--package-lock-only` while a root `undici@8` exists), the
-      // parent resolves the root copy instead — above the floor, so the check
-      // above passes, but on a major nobody chose.
+      // A scoped override chooses a major, usually the parent's own (the
+      // `glob` pair goes above it, and was tested there). If npm DROPS the
+      // nested copy (it did, for the 2026-10 `miniflare → undici` override, on
+      // an incremental `--package-lock-only` while a root `undici@8` existed),
+      // the parent resolves the root copy instead — above the floor, so the
+      // check above passes, but on a major nobody chose.
       // Blunt by design: it compares the leading number only, so a 0.x pin
-      // (lhci's `tmp`) would accept a 0.y copy that semver treats as breaking.
+      // would accept a 0.y copy that semver treats as breaking.
       for (const { path, version } of governed) {
         expect(
           version.split('.')[0],

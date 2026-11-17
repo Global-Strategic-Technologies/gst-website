@@ -90,7 +90,9 @@ function r2Key(envName: string, tsIso: string, seq: number): string {
 export async function consumeAuditBatch(
   batch: MessageBatch<AuditEntry>,
   env: Env,
-  _ctx: ExecutionContext
+  // Unused (kept for the queue-handler shape). A capability, not the whole
+  // interface, for the reason in the scoped-import note at the top of worker.ts.
+  _ctx: Pick<ExecutionContext, 'waitUntil'>
 ): Promise<void> {
   const startedAt = Date.now();
   const envName = env.ENV_NAME ?? 'dev';
