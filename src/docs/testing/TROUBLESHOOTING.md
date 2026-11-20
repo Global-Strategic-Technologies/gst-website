@@ -33,7 +33,7 @@ cat .github/workflows/test.yml
 
 1. **E2E tests waiting too long** - Playwright timeouts too aggressive
 2. **Resource exhaustion** - Too many tests running at once
-3. **Stale Playwright cache** - Outdated browser binaries
+3. **Stale Playwright cache** - Outdated browser binaries (in CI, see [CI: "error while loading shared libraries" on browser launch](#ci-error-while-loading-shared-libraries-on-browser-launch))
 
 **Solution:**
 
@@ -569,6 +569,14 @@ A `beforeAll` could relocate only about 250ms, which is 20–30× too small to e
 2. If the orphan cycle is still in the lockfile, delete those `packages` entries from `package-lock.json`, including the old `@vitest/*` packages hoisted to the root.
 3. Run `npm install` so npm re-adds anything that's genuinely needed. It should add nothing.
 4. Run `npm ci`, then check that `npm ls vitest --all` shows a single version and exits 0.
+
+### CI: "error while loading shared libraries" on browser launch
+
+**Symptom:** E2E tests fail with `browserType.launch: Target page, context or browser has been closed`, and the browser log shows `error while loading shared libraries: libicudata.so.NN` (or another `.so`). All other tests pass.
+
+**Cause:** the cached browsers in `~/.cache/ms-playwright` were built for a different runner image. Playwright downloads a browser build for the host OS, so binaries cached on ubuntu-24.04 don't load on ubuntu-26.04. `npx playwright install-deps` can't fix this because it installs the new image's library versions.
+
+**Fix:** the Playwright cache keys in `test.yml` and `test-cross-browser.yml` include the OS release (`playwright-Linux-ubuntu26.04-<version>`), so an image upgrade misses the cache and reinstalls. If this symptom comes back, check that both keys still include the OS release.
 
 ### "Playwright browsers not installed"
 
