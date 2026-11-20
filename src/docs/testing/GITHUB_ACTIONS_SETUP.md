@@ -25,7 +25,7 @@ All in [`.github/workflows/`](../../../.github/workflows/).
 
 The required **E2E Tests (Playwright)** job in `test.yml` runs after both Lint & Type Check and Unit & Integration Tests pass. It:
 
-1. installs Playwright browsers (cached per Playwright version);
+1. installs Playwright browsers (cached per runner OS release and Playwright version — the browser builds are OS-specific, so an image upgrade must miss the cache);
 2. runs `npm run build`;
 3. starts the radar snapshot stub (`scripts/radar-stub.mjs`) and points `MCP_RADAR_SNAPSHOT_URL` at it, so the `/hub/radar` content tests run instead of skipping ([RADAR.md § E2E Test Mocking](../hub/RADAR.md#e2e-test-mocking));
 4. runs `npx playwright test --project=chromium` — chromium only, with 1 retry and 2 workers under `CI`, inside a 30-minute job timeout;
