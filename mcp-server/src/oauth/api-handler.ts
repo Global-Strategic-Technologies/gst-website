@@ -52,8 +52,15 @@ function unauthorized(message: string): Response {
 }
 
 export const oauthApiHandler = {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const props = (ctx as ExecutionContext & { props?: Partial<OAuthGrantProps> }).props;
+  // `ctx` is typed by the capabilities used, for the reason in the
+  // scoped-import note at the top of worker.ts. The `as never` registration
+  // in provider.ts would hide a mismatch here, so the narrow type matters.
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: Pick<ExecutionContext, 'waitUntil' | 'props'>
+  ): Promise<Response> {
+    const props = ctx.props as Partial<OAuthGrantProps> | undefined;
     if (!props || typeof props.keyOwner !== 'string' || !Array.isArray(props.scopes)) {
       // A token validated by the provider but carrying malformed props
       // means a grant written outside consent.ts's contract — fail

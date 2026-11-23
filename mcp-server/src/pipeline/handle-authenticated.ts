@@ -83,7 +83,10 @@ function batchedToolCallResponse(): Response {
 export async function handleAuthenticated(
   request: Request,
   env: Env,
-  ctx: ExecutionContext,
+  // Only `waitUntil` is used, and typing the capability rather than the whole
+  // interface is what keeps the runtime's global `ctx` assignable here — see
+  // the scoped-import note at the top of worker.ts.
+  ctx: Pick<ExecutionContext, 'waitUntil'>,
   auth: AuthSuccess
 ): Promise<Response> {
   const url = new URL(request.url);
