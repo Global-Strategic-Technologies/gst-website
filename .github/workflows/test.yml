@@ -398,7 +398,13 @@ jobs:
       - name: Get Playwright version
         if: needs.changes.outputs.should_run == 'true'
         id: playwright-version
-        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+        # The OS release is part of the cache key: Playwright downloads an
+        # OS-specific browser build, so a runner-image upgrade (ubuntu-latest
+        # 24.04 → 26.04) must miss the cache rather than restore binaries
+        # linked against the old image's libraries.
+        run: |
+          echo "version=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+          . /etc/os-release && echo "os=${ID}${VERSION_ID}" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
         if: needs.changes.outputs.should_run == 'true'
@@ -406,7 +412,7 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.os }}-${{ steps.playwright-version.outputs.version }}
 
       - name: Install Playwright browsers
         if: needs.changes.outputs.should_run == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
