@@ -20,16 +20,19 @@ updates:
       production-patches:
         dependency-type: 'production'
         update-types: ['patch']
-    # Held: @sentry/astro and @sentry/browser at 11.14.0 (2026-11-23). From
-    # 11.15.0 (11.16.0 too) @sentry/astro's `sentry-astro-server-release` Vite
-    # plugin reads `this.getModuleInfo(id).isEntry` in `transform`, which Vite 8
-    # rejects, so `astro sync` fails. Only production builds load the
-    # integration (it is gated on SENTRY_AUTH_TOKEN in astro.config.mjs), so the
-    # Dependabot preview went green while the production deploy failed. Both are
-    # held because they move in lockstep (see the `sentry` group). Exit
-    # condition: a release whose `astro sync` passes with a dummy token, i.e.
-    #   SENTRY_AUTH_TOKEN=x SENTRY_ORG=x SENTRY_PROJECT=x npx astro sync
-    # Lift both entries then. See DEVELOPER_TOOLING.md § SDK version hold.
+    # Skipped: @sentry/astro and @sentry/browser 11.15.x and 11.16.x
+    # (2026-11-23). In those releases @sentry/astro's
+    # `sentry-astro-server-release` Vite plugin reads
+    # `this.getModuleInfo(id).isEntry` in `transform` outside a build, which
+    # Vite 8's dev-server container rejects, so `astro sync` fails. Only
+    # production builds load the integration (it is gated on SENTRY_AUTH_TOKEN
+    # in astro.config.mjs), so the Dependabot preview went green while the
+    # production deploy failed. 11.17.0 scopes the plugin to builds and is NOT
+    # skipped. Its preview will not prove it either, so run the
+    # placeholder-credential `astro sync` before merging (see
+    # DEVELOPER_TOOLING.md § SDK version hold). Both packages are listed because
+    # they move in lockstep (the `sentry` group). Delete these entries once the
+    # pins have moved past 11.16.x.
     #
     # `@cloudflare/workers-types` and `wrangler` were held here until BL-137
     # removed the dependence that made the hold necessary (ADR-0020). Both float
@@ -39,9 +42,9 @@ updates:
     # Dependabot PR, which is the signal that hold used to suppress.
     ignore:
       - dependency-name: '@sentry/astro'
-        versions: ['>= 11.15.0']
+        versions: ['>= 11.15.0, < 11.17.0']
       - dependency-name: '@sentry/browser'
-        versions: ['>= 11.15.0']
+        versions: ['>= 11.15.0, < 11.17.0']
     reviewers:
       - 'reidperyam'
 
